@@ -121,3 +121,21 @@ WHAT COULD NOT BE TESTED IN THIS SESSION (stated plainly)
     this ZIP, so they could not be re-verified even in principle. Recorded in docs/STATUS.md.
   * no real MongoDB Atlas, Cloudinary, Resend, Gemini, YouTube or BulkSMSBD call was made
   * R0 changed no product behaviour: docs, package.json test scripts and a test-only preflight helper
+
+======================================================================
+[7] Cold start from the delivered ZIP itself (not from the working tree)
+----------------------------------------------------------------------
+  ZIP: diction-R0-2026-11-12.zip — 767 files, 9.74 MB, no node_modules / .next / .git
+  Extracted to a fresh directory, then:
+  NPM_CI_EXIT=0        (added 432 packages in 23s)
+  TSC_EXIT=0           (npm run typecheck)
+  TEST_EXIT=0          (npm test — 31 suites, 0 failures)
+  TEST_MODE_EXIT=1     (npm run test-mode)
+    ✓ Compiled successfully in 57s
+    ✓ Generating static pages using 1 worker (173/173) in 2.3s
+    Starting disposable test database… first startup may download MongoDB.
+    DownloadError: Download failed for url
+      "https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-debian12-8.2.6.tgz"
+RESULT: the ZIP is complete and runnable. Every step of the cold start passes except the MongoDB
+        binary download, which this sandbox's network allowlist refuses. On the owner's machine
+        that step downloads mongod (~90 MB) and then serves http://localhost:3000/bn/admin.
