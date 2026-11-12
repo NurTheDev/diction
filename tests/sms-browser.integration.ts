@@ -181,7 +181,11 @@ async function run(){
     const retryButton=boss.page.locator('section:has(h2:has-text("Batches")) form button');
     await retryButton.waitFor({state:'visible',timeout:60000});
     await retryButton.click();
-    await boss.page.locator('section:has(h2:has-text("Batches")) span.admin-feedback').first().waitFor({state:'visible',timeout:60000});
+    // A successful retry removes the button entirely — the batch has no failures left — and the
+    // client component unmounts with it, so there is no feedback span to wait for. The button
+    // disappearing IS the operator-visible outcome, and it is server-rendered, so anchor on it
+    // (the same lesson as R1.4: never anchor an absence assertion to client state).
+    await boss.page.waitForSelector('section:has(h2:has-text("Batches")) form button',{state:'detached',timeout:60000});
     for(let i=0;i<60;i++){
       const row=await CenterSmsLog.findOne({phone:'01722222222'}).lean<any>();
       if(row?.status==='sent')break;
@@ -193,7 +197,11 @@ async function run(){
     assert.equal(await CenterSmsLog.countDocuments({batch:batch._id,status:'sent'}),2,'only the failed row changed; the sent row was not duplicated');
     assert.equal(await audits('sms.retry'),1,'a retry is audited');
     await boss.page.reload({waitUntil:'domcontentloaded'});
+    await boss.page.locator('h2:has-text("Batches")').waitFor({timeout:60000});
     assert.equal(await boss.page.locator('section:has(h2:has-text("Batches")) form button').count(),0,'a batch with no failures offers no retry');
+    const batchText=(await boss.page.locator('section:has(h2:has-text("Batches")) table.admin-table tbody').innerText()).replace(/[০-৯]/g,c=>String('০১২৩৪৫৬৭৮৯'.indexOf(c)));
+    assert.match(batchText,/done/,'the batch is marked done once nothing is left to retry');
+    assert.match(batchText,/2 \/ 0/,'and its counts read 2 sent / 0 failed');
     await boss.page.goto(`${origin}/en/admin/sms?status=failed`,{waitUntil:'domcontentloaded',timeout:180000});
     await boss.page.locator('section:has(h2:has-text("History")) p.admin-empty').first().waitFor({state:'visible',timeout:60000});
 
