@@ -1,3 +1,10 @@
-TypeError: Cannot read properties of null (reading 'deletedAt')
-    at run (/home/runner/work/diction/diction/tests/recycle-bin-ui.integration.ts:142:53)
-    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator('.admin-toast').getByRole('button', { name: 'Undo', exact: true })
+
+    at run (/home/runner/work/diction/diction/tests/recycle-bin-ui.integration.ts:149:16) {
+  log: [
+    "  - waiting for locator('.admin-toast').getByRole('button', { name: 'Undo', exact: true })"
+  ],
+  name: 'TimeoutError'
+}
