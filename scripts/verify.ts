@@ -112,16 +112,21 @@ async function stepInstall(ctx:Context):Promise<boolean>{
   return true;
 }
 
-async function stepUnitSuites(ctx:Context,scriptName:string,requirementId:string,label:string):Promise<void>{
+async function stepUnitSuites(ctx:Context,scriptName:string,requirementId:string,label:string,opts:{needsDb?:boolean;env?:Record<string,string|undefined>}={}):Promise<void>{
   const pkg=JSON.parse(await readFile('package.json','utf8')) as {scripts:Record<string,string>};
   const script=pkg.scripts[scriptName];
   if(!script){step(ctx,scriptName,label,'FAIL',`package.json has no script "${scriptName}"`);return}
+  if(opts.needsDb&&!ctx.mongoUri){
+    step(ctx,scriptName,label,'NOT TESTED','these suites need the disposable database and test mode did not publish one');
+    mark(ctx,requirementId,'NOT TESTED','no disposable database URI was published by test mode');
+    return;
+  }
   const suites=suitesFromScript(script);
   const tsxCli=path.join('node_modules','tsx','dist','cli.mjs');
   const failed:string[]=[];
   let ran=0;
   for(const suite of suites){
-    const result=await run(process.execPath,[tsxCli,...suite.flags,suite.file],{timeoutMs:240_000,echo:false});
+    const result=await run(process.execPath,[tsxCli,...suite.flags,suite.file],{timeoutMs:240_000,echo:false,env:opts.env});
     ran++;
     if(result.code!==0)failed.push(`${suite.file}: ${tail(result.text,2)}`);
     process.stdout.write(result.code===0?'·':'F');
@@ -303,6 +308,7 @@ async function main():Promise<void>{
   if(installed){
     await stepUnitSuites(ctx,'test:unit:core','R0.7','Core unit suites');
     await stepUnitSuites(ctx,'test:center','R0.8','Center unit suites');
+    await stepUnitSuites(ctx,'test:staff-role','R1.2','Staff role: schema, guards and nav visibility');
   }else{
     for(const r of requirements)if(!ctx.results[r.id])mark(ctx,r.id,'NOT TESTED','dependencies are not installed');
   }
@@ -311,6 +317,8 @@ async function main():Promise<void>{
     await stepBrowser(ctx);
     await stepApp(ctx,port,25*60_000);
     await stepSignIn(ctx);
+    await stepUnitSuites(ctx,'test:recycle:db','R1.1','Recycle Bin engine against the disposable database',
+      {needsDb:true,env:{TEST_ORIGIN:ctx.origin,TEST_MONGO_URI:ctx.mongoUri,TEST_MONGO_DB:ctx.mongoDb}});
     await stepScreens(ctx);
     await stepBrowserTests(ctx);
     (ctx as Context&{stop?:()=>void}).stop?.();

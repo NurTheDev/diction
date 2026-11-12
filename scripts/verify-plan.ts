@@ -38,6 +38,9 @@ export const requirements:Requirement[]=[
   {id:'R0.9',milestone:'R0',text:'Exams: role scope (exam_manager in, content_editor redirected), two subjects with Bangla digits, marks, total, A+ grade, rank and publication against the disposable database',bn:'পরীক্ষা: রোল, দুই বিষয়, নম্বর, মোট, গ্রেড, অবস্থান ও প্রকাশ (আলাদা টেস্ট ডাটাবেসে)',proof:{kind:'browser',ref:'tests/center-exams-browser.integration.ts'}},
   {id:'R0.10',milestone:'R0',text:'Workbook import: real XLSX preview (2 tabs / 17 students / ৳226400), decisions, draft save+load, CSV, no overflow at 360 and 1440',bn:'ওয়ার্কবুক ইমপোর্ট প্রিভিউ, সিদ্ধান্ত, খসড়া, CSV ও ৩৬০/১৪৪০ লেআউট',proof:{kind:'browser',ref:'tests/workbook-preview-browser.integration.ts'}},
   {id:'R0.11',milestone:'R0',text:'Screenshots captured at 360 px and 1440 px for the key public and admin pages',bn:'৩৬০ ও ১৪৪০ পিক্সেলে প্রধান পেজের স্ক্রিনশট',proof:{kind:'screens',ref:'screenshots'}},
+  // ── R1 · delete, archive, restore, Recycle Bin ─────────────────────────────
+  {id:'R1.1',milestone:'R1',text:'Recycle Bin engine: soft delete with a 30-day purge date, restore, delete blocked with real reference counts, and purge only after retention',bn:'রিসাইকেল বিন: ৩০ দিনে মুছে যাওয়া, ফেরত, রেফারেন্স থাকলে আটকে যাওয়া ও মেয়াদ শেষে পার্জ',proof:{kind:'unit',ref:'test:recycle:db'}},
+  {id:'R1.2',milestone:'R1',text:'Staff role exists: creatable by super admin, sees admin lists, can archive but never delete, cannot open roles/audit/ai',bn:'স্টাফ রোল: আর্কাইভ করতে পারে, মুছে ফেলতে পারে না, রোল/অডিট/এআই দেখতে পারে না',proof:{kind:'unit',ref:'test:staff-role'}},
 ];
 
 export function milestones():string[]{return [...new Set(requirements.map(r=>r.milestone))]}
