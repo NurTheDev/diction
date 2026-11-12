@@ -83,28 +83,34 @@ async function run(){
     assert.equal(examBlocked.status,'blocked');
     assert.equal(examBlocked.messageBn,'১ জন শিক্ষার্থীর ফল এই পরীক্ষায় সংরক্ষিত — মুছে ফেলা যাবে না। আর্কাইভ করুন।');
 
-    // 5b. Every query shape hides the bin: aggregate, distinct, bulkWrite and populate.
-    const group3=await CenterClassGroup.create({name:{bn:'তৃতীয় ক্লাস'},academicYear:2027});
-    const exam3=await CenterExam.create({name:{bn:'populate নমুনা'},type:'monthly',date:'2026-02-02',classGroups:[group3._id],subjects:[{name:{bn:'গণিত'},fullMarks:50,passMarks:20}],gradeBands:[{min:0,label:'F'}],status:'draft'});
-    assert.equal((await softDelete('classGroup',String(group3._id),actorId)).status,'ok');
-    assert.deepEqual(await CenterClassGroup.aggregate([{$match:{_id:group3._id}},{$count:'n'}]),[],'aggregate skips binned rows');
-    const withBin=await CenterClassGroup.aggregate([{$match:{_id:group3._id}},{$count:'n'}],{recycleAny:true} as never);
-    assert.equal(withBin[0]?.n,1,'aggregate opts out only when asked');
-    assert.deepEqual(await CenterClassGroup.distinct('academicYear',{_id:group3._id}),[],'distinct skips binned rows');
-    const bulk=await CenterClassGroup.bulkWrite([{updateOne:{filter:{_id:group3._id},update:{$set:{order:9}}}}]);
-    assert.equal(bulk.modifiedCount,0,'bulkWrite filters are rewritten too');
-    const populated=await CenterExam.findById(exam3._id).populate('classGroups').lean();
-    assert.deepEqual(populated!.classGroups as unknown[],[],'populate of a binned reference returns nothing');
-    const livePopulated=await CenterExam.findById(exam._id).populate('classGroups').lean();
-    assert.equal((livePopulated!.classGroups as unknown[]).length,1,'populate of a live reference still works');
-
     // 6. Every successful move wrote its audit row; bin queries never see live rows.
     for(const action of ['recycle.delete:classGroup','recycle.restore:classGroup','recycle.delete:editorial']){
       assert.equal(await AdminAudit.countDocuments({action}),1,`audit row for ${action}`);
     }
     assert.equal(await Editorial.countDocuments(binFilter),0);
 
-    // 7. The daily job (§E5) end to end: refused without the bearer secret, and when it runs it
+    // 7. Every query shape hides the bin: aggregate, distinct, bulkWrite and populate. Kept after
+    //    the audit-count section so its extra rows do not change those counts.
+    const group3=await CenterClassGroup.create({name:{bn:'তৃতীয় ক্লাস'},academicYear:2027});
+    const examShape={type:'monthly',subjects:[{name:{bn:'গণিত'},fullMarks:50,passMarks:20}],gradeBands:[{min:0,label:'F'}],status:'draft'};
+    const exam3=await CenterExam.create({...examShape,name:{bn:'populate নমুনা'},date:'2026-02-02',classGroups:[group3._id]});
+    const livePopulated=await CenterExam.findById(exam3._id).populate('classGroups').lean();
+    assert.equal((livePopulated!.classGroups as unknown[]).length,1,'populate of a live reference still works');
+    assert.equal((await softDelete('classGroup',String(group3._id),actorId)).status,'blocked','a live exam still uses the class, so it cannot be binned');
+
+    const group4=await CenterClassGroup.create({name:{bn:'চতুর্থ ক্লাস'},academicYear:2027});
+    assert.equal((await softDelete('classGroup',String(group4._id),actorId)).status,'ok');
+    const exam4=await CenterExam.create({...examShape,name:{bn:'binned populate নমুনা'},date:'2026-03-03',classGroups:[group4._id]});
+    const populated=await CenterExam.findById(exam4._id).populate('classGroups').lean();
+    assert.deepEqual(populated!.classGroups as unknown[],[],'populate of a binned reference returns nothing');
+    assert.deepEqual(await CenterClassGroup.aggregate([{$match:{_id:group4._id}},{$count:'n'}]),[],'aggregate skips binned rows');
+    const withBin=await CenterClassGroup.aggregate([{$match:{_id:group4._id}},{$count:'n'}],{recycleAny:true} as never);
+    assert.equal(withBin[0]?.n,1,'aggregate opts out only when asked');
+    assert.deepEqual(await CenterClassGroup.distinct('academicYear',{_id:group4._id}),[],'distinct skips binned rows');
+    const bulk=await CenterClassGroup.bulkWrite([{updateOne:{filter:{_id:group4._id},update:{$set:{order:9}}}}]);
+    assert.equal(bulk.modifiedCount,0,'bulkWrite filters are rewritten too');
+
+    // 8. The daily job (§E5) end to end: refused without the bearer secret, and when it runs it
     //    purges only expired rows and trims logs past the retention window.
     const jobSecret='j'.repeat(40);
     process.env.CRON_SECRET=jobSecret;
