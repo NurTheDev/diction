@@ -1,19 +1,18 @@
-AssertionError [ERR_ASSERTION]: the page renders only the fields it means to
-+ actual - expected
+AssertionError [ERR_ASSERTION]: The input did not match the regular expression /01722222222/. Input:
 
-+ [
-+   'q'
-+ ]
-- []
+'১৩ November ২০২৬\n' +
+  '০২:৩৪\tনমুনা শিক্ষার্থী · SYNTH-SMS-UI\t০১৭২২২২২২২২\tডিকশন কোচিং: ব্যর্থ বার্তা\n' +
+  'ব্যালেন্স অপর্যাপ্ত\n' +
+  'reason: 1007\tfailed\t১\t৳ ০.৫'
 
-    at run (/home/runner/work/diction/diction/tests/sms-browser.integration.ts:104:12)
-    at runNextTicks (node:internal/process/task_queues:64:5)
-    at process.processImmediate (node:internal/timers:452:9)
-    at process.callbackTrampoline (node:internal/async_hooks:130:17) {
-  generatedMessage: false,
+    at run (/home/runner/work/diction/diction/tests/sms-browser.integration.ts:174:12) {
+  generatedMessage: true,
   code: 'ERR_ASSERTION',
-  actual: [Array],
-  expected: [],
-  operator: 'deepStrictEqual',
+  actual: '১৩ November ২০২৬\n' +
+    '০২:৩৪\tনমুনা শিক্ষার্থী · SYNTH-SMS-UI\t০১৭২২২২২২২২\tডিকশন কোচিং: ব্যর্থ বার্তা\n' +
+    'ব্যালেন্স অপর্যাপ্ত\n' +
+    'reason: 1007\tfailed\t১\t৳ ০.৫',
+  expected: /01722222222/,
+  operator: 'match',
   diff: 'simple'
 }
