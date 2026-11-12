@@ -69,10 +69,11 @@ async function run(){
     assert.equal((await softDelete('editorial',String(post._id),actorId)).status,'ok');
     const tooEarly=await purgeExpired(new Date());
     assert.equal(tooEarly.find(r=>r.kind==='editorial').purged,0,'nothing purges before its 30 days are up');
-    assert.equal(await Editorial.countDocuments({_id:post._id}),1);
+    assert.equal(await Editorial.countDocuments({_id:post._id,...binFilter}),1,'still in the bin, waiting out its 30 days');
+    assert.equal(await Editorial.countDocuments({_id:post._id}),0,'and already invisible to ordinary queries while it waits');
     const late=await purgeExpired(new Date(Date.now()+31*86400000));
     assert.equal(late.find(r=>r.kind==='editorial').purged,1);
-    assert.equal(await Editorial.countDocuments({_id:post._id}),0,'purge is the only hard delete, and it is the job that does it');
+    assert.equal(await Editorial.countDocuments({_id:post._id,...binFilter}),0,'purge is the only hard delete, and it is the job that does it');
 
     // 5. An exam with saved results is reference-blocked too.
     const exam=await CenterExam.create({name:{bn:'নমুনা পরীক্ষা'},type:'monthly',date:'2026-01-02',classGroups:[group._id],subjects:[{name:{bn:'বাংলা'},fullMarks:100,passMarks:33}],gradeBands:[{min:0,label:'F'},{min:80,label:'A+'}],status:'draft'});

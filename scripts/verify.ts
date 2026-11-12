@@ -124,16 +124,18 @@ async function stepUnitSuites(ctx:Context,scriptName:string,requirementId:string
   const suites=suitesFromScript(script);
   const tsxCli=path.join('node_modules','tsx','dist','cli.mjs');
   const failed:string[]=[];
+  const suiteTexts:string[]=[];
   let ran=0;
   for(const suite of suites){
     const result=await run(process.execPath,[tsxCli,...suite.flags,suite.file],{timeoutMs:240_000,echo:false,env:opts.env});
     ran++;
-    if(result.code!==0)failed.push(`${suite.file}: ${tail(result.text,6)}`);
+    suiteTexts.push(`--- ${suite.file} (exit ${result.code}) ---\n${result.text}`);
+    if(result.code!==0)failed.push(`${suite.file}: ${tail(result.text,12)}`);
     process.stdout.write(result.code===0?'·':'F');
   }
   process.stdout.write('\n');
   const logName=`unit-${scriptName.replace(/[^a-z0-9]+/gi,'-')}`;
-  ctx.logs.push({name:logName,text:`${ran} suites from "${scriptName}"\n${failed.length?failed.join('\n'):'all passed'}`});
+  ctx.logs.push({name:logName,text:suiteTexts.join('\n\n')||`${ran} suites from "${scriptName}"\n${failed.length?failed.join('\n'):'all passed'}`});
   if(!ran){step(ctx,scriptName,label,'NOT TESTED',`no test files found in the "${scriptName}" script`);mark(ctx,requirementId,'NOT TESTED','no suites ran');return}
   if(failed.length){
     step(ctx,scriptName,label,'FAIL',`${ran-failed.length}/${ran} passed. Failing: ${failed.join(' ; ').slice(0,400)}`);
