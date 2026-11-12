@@ -1,10 +1,12 @@
-locator.click: Timeout 30000ms exceeded.
-Call log:
-  - waiting for locator('.admin-toast').getByRole('button', { name: 'Undo', exact: true })
+AssertionError [ERR_ASSERTION]: {"error":"forbidden"}
 
-    at run (/home/runner/work/diction/diction/tests/recycle-bin-ui.integration.ts:149:16) {
-  log: [
-    "  - waiting for locator('.admin-toast').getByRole('button', { name: 'Undo', exact: true })"
-  ],
-  name: 'TimeoutError'
+403 !== 201
+
+    at run (/home/runner/work/diction/diction/tests/recycle-bin-ui.integration.ts:248:12) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: 403,
+  expected: 201,
+  operator: 'strictEqual',
+  diff: 'simple'
 }
