@@ -1,0 +1,10 @@
+locator.waitFor: Timeout 60000ms exceeded.
+Call log:
+  - waiting for locator('.admin-toast').getByText('Moved to the Recycle Bin.') to be visible
+
+    at run (/home/runner/work/diction/diction/tests/admin-controls-browser.integration.ts:90:65) {
+  log: [
+    "  - waiting for locator('.admin-toast').getByText('Moved to the Recycle Bin.') to be visible"
+  ],
+  name: 'TimeoutError'
+}
