@@ -1,0 +1,38 @@
+AssertionError [ERR_ASSERTION]: no input may hold a token-shaped value: {"id":"406a2dc0bc65f3391402aae4849c4b7224ead06a62","bound":"$@1"},"w/ob0/ZP+6gjBWvVvnU+b0Fzv3UYYZ1g4j8r5OWBzBcI7xOYI5EVSM4w42DdNgrsy+iF8WD24QHRUSmUqrFyAX9KqBsCLeb2akik+WnWkanD71Y=",{"id":"600adb4fc816a5a46f5769a3c47974ea08885ed160","bound":"$@1"},k7529bf171ae2a2c9d33420d74dd85215,{"id":"60b77417ba3f6a50ae36135129cecd4013a7810af0","bound":"$@1"},k9522cbfd9cba58c9ad4dbcdf3df3222a,{"id":"602b2118e9f7b7b029336eebadcf65eacebd70e5e3","bound":"$@1"},k1934b6b909ada40066123799cd7b29a5,{"id":"602b2118e9f7b7b029336eebadcf65eacebd70e5e3","bound":"$@1"},k35cb4b7c8640101271bf391540bd228f,{"id":"602b2118e9f7b7b029336eebadcf65eacebd70e5e3","bound":"$@1"},kd37e9506c029a954da1fb26a954c724d,{"id":"602b2118e9f7b7b029336eebadcf65eacebd70e5e3","bound":"$@1"},k37b5a04c27a5196e8d510b1b058d94a0,{"id":"602b2118e9f7b7b029336eebadcf65eacebd70e5e3","bound":"$@1"},k06e452eca667b86c3255a689d96db338,{"id":"602b2118e9f7b7b029336eebadcf65eacebd70e5e3","bound":"$@1"},k306ef1dd82a72065168756b527ab116d,{"id":"602b2118e9f7b7b029336eebadcf65eacebd70e5e3","bound":"$@1"},k5c7e2a9708a6c78971c314d0d7fe5d89,{"id":"60b7ffd8270b6905e260857409036457fd58a10a13","bound":"$@1"},ke87d2e3b3e0fd2b9633e8ea83eaa4257,6af62065ed715196955e5f0d
++ actual - expected
+
++ [
++   '{"id":"406a2dc0bc65f3391402aae4849c4b7224ead06a62","bound":"$@1"}',
++   '"w/ob0/ZP+6gjBWvVvnU+b0Fzv3UYYZ1g4j8r5OWBzBcI7xOYI5EVSM4w42DdNgrsy+iF8WD24QHRUSmUqrFyAX9KqBsCLeb2akik+WnWkanD71Y="',
++   '{"id":"600adb4fc816a5a46f5769a3c47974ea08885ed160","bound":"$@1"}',
++   'k7529bf171ae2a2c9d33420d74dd85215',
++   '{"id":"60b77417ba3f6a50ae36135129cecd4013a7810af0","bound":"$@1"}',
++   'k9522cbfd9cba58c9ad4dbcdf3df3222a',
++   '{"id":"602b2118e9f7b7b029336eebadcf65eacebd70e5e3","bound":"$@1"}',
++   'k1934b6b909ada40066123799cd7b29a5',
++   '{"id":"602b2118e9f7b7b029336eebadcf65eacebd70e5e3","bound":"$@1"}',
++   'k35cb4b7c8640101271bf391540bd228f',
++   '{"id":"602b2118e9f7b7b029336eebadcf65eacebd70e5e3","bound":"$@1"}',
++   'kd37e9506c029a954da1fb26a954c724d',
++   '{"id":"602b2118e9f7b7b029336eebadcf65eacebd70e5e3","bound":"$@1"}',
++   'k37b5a04c27a5196e8d510b1b058d94a0',
++   '{"id":"602b2118e9f7b7b029336eebadcf65eacebd70e5e3","bound":"$@1"}',
++   'k06e452eca667b86c3255a689d96db338',
++   '{"id":"602b2118e9f7b7b029336eebadcf65eacebd70e5e3","bound":"$@1"}',
++   'k306ef1dd82a72065168756b527ab116d',
++   '{"id":"602b2118e9f7b7b029336eebadcf65eacebd70e5e3","bound":"$@1"}',
++   'k5c7e2a9708a6c78971c314d0d7fe5d89',
++   '{"id":"60b7ffd8270b6905e260857409036457fd58a10a13","bound":"$@1"}',
++   'ke87d2e3b3e0fd2b9633e8ea83eaa4257',
++   '6af62065ed715196955e5f0d'
++ ]
+- []
+
+    at run (/home/runner/work/diction/diction/tests/sms-browser.integration.ts:97:12) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: [Array],
+  expected: [],
+  operator: 'deepStrictEqual',
+  diff: 'simple'
+}
