@@ -171,7 +171,11 @@ async function run(){
     // 8. The history filter shows only what was asked for.
     await boss.page.goto(`${origin}/en/admin/sms?status=failed`,{waitUntil:'domcontentloaded',timeout:180000});
     assert.equal(await boss.page.locator('section:has(h2:has-text("History")) table.admin-table tbody tr').count(),1,'one failed row');
-    assert.match(await boss.page.locator('section:has(h2:has-text("History")) table.admin-table tbody').innerText(),/01722222222/);
+    // Numbers render in the account's digit preference (Bangla by default), so normalize before
+    // matching — the assertion is about which row is shown, not about the digit glyphs.
+    const historyText=(await boss.page.locator('section:has(h2:has-text("History")) table.admin-table tbody').innerText()).replace(/[০-৯]/g,c=>String('০১২৩৪৫৬৭৮৯'.indexOf(c)));
+    assert.match(historyText,/01722222222/,'the filtered row is the failed one');
+    assert.ok(!historyText.includes('01711111111'),'the sent row is filtered out');
 
     // 9. Retry re-sends only the failed row, and the button then disappears.
     const retryButton=boss.page.locator('section:has(h2:has-text("Batches")) form button');

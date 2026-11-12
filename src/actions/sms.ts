@@ -88,7 +88,7 @@ export async function sendTestSmsAction(_:ActionState,form:FormData):Promise<Act
     const admin=await requireAdmin();
     const raw=String(form.get('phone')||'').trim();
     const phone=normalizePhone(raw);
-    if(!phone)return {status:'error',reason:'invalid',message:'নম্বরটি সঠিক নয় (০১XXXXXXXXX)'};
+    if(!phone)return {status:'error',reason:'invalid',message:(await localeIsEn())?'That number is not valid (01XXXXXXXXX)':'নম্বরটি সঠিক নয় (০১XXXXXXXXX)'};
     const result=await sendTestSms(phone,admin.id);
     refreshSms();
     const en=await localeIsEn();
