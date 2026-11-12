@@ -1,1 +1,10 @@
-Center exam browser: exam_manager signed in, created an exam with two subjects in Bangla digits, saved marks 80+40, total 120/150 graded A+, published, content_editor redirected, no horizontal overflow at 360/768/1440 and no page errors — against the disposable test database.
+locator.waitFor: Timeout 30000ms exceeded.
+Call log:
+  - waiting for getByRole('link', { name: 'পরীক্ষা নমুনা' }) to be visible
+
+    at run (/home/runner/work/diction/diction/tests/center-exams-browser.integration.ts:4:3803) {
+  log: [
+    "  - waiting for getByRole('link', { name: 'পরীক্ষা নমুনা' }) to be visible"
+  ],
+  name: 'TimeoutError'
+}

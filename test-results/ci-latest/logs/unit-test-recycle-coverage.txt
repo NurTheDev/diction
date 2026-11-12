@@ -1,2 +1,2 @@
 --- tests/recycle-coverage.test.ts (exit 0) ---
-Recycle coverage: 12 schemas carry the bin fields; 12 financial/audit/student types cannot be hidden; find/findOne/count/distinct/findOneAnd*/update*/delete*/aggregate/bulkWrite are covered; estimatedDocumentCount is the documented exception; public kinds revalidate their routes; the client kind lists match the registry.
+Recycle coverage: 21 schemas carry the bin fields; 15 financial/audit/student types cannot be hidden; find/findOne/count/distinct/findOneAnd*/update*/delete*/aggregate/bulkWrite are covered; estimatedDocumentCount is the documented exception; public kinds revalidate their routes; the client kind lists match the registry.

@@ -2,7 +2,7 @@ locator.waitFor: Timeout 60000ms exceeded.
 Call log:
   - waiting for locator('.admin-toast').getByText('Moved to the Recycle Bin.') to be visible
 
-    at run (/home/runner/work/diction/diction/tests/recycle-bin-ui.integration.ts:281:65) {
+    at run (/home/runner/work/diction/diction/tests/recycle-bin-ui.integration.ts:141:65) {
   log: [
     "  - waiting for locator('.admin-toast').getByText('Moved to the Recycle Bin.') to be visible"
   ],
