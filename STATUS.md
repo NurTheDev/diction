@@ -1,27 +1,10 @@
-# Milestone 1 — workbook import review
+# STATUS
 
-**All test decisions are illustrative only, not approved financial facts.** The demo XLSX is a source fixture. Synthetic test records exist only in temporary, disposable test databases. Tests do not add an invented missing amount to the report.
+**Moved to [`docs/STATUS.md`](docs/STATUS.md)** (R0, 2026-11-12) — that file is the accurate,
+evidence-based status of every module: working | partial | missing | blocked.
 
-## Current behavior
-- All XLSX tabs are scanned together; choose the class explicitly. Each red-row, marker, receipt and missing-amount decision is reviewable and recorded with the batch. Missing amounts are not inferred: paid `Done` and receipt without amount still require an explicit amount, otherwise choose note/skip.
-- Monthly fee/start month and changes are *suggested*, not established facts, from the numeric month cells with a receipt (excluding uncertain/formula and red individual cells). Any change in paid amounts is proposed as a fee change at that month; partial payments or advance payments can make this misleading. Review and edit every suggestion. Rows with no usable monthly evidence need a manually entered fee and start. A per-class bulk fee/start action is available; it replaces existing proposed history for that class.
-- Guardian name, guardian phone and admission date are optional for import. A phone number in the sheet is used if valid; missing/invalid phone is shown as missing and is needed before later SMS. Admission date is proposed as the first day of the first paid month; if no usable monthly payment exists it can remain blank. Dates inferred this way are not actual verified dates. Missing-detail count is displayed. Student review and class selection are still required.
-- Workbook-internal cross-student receipt collisions retain first/skip later by default; per-cell override can mark both. If a valid receipt already exists in the database, per-cell choices are keep existing (do not add incoming cell), add flagged, or skip. Existing records are never reassigned or modified. Server rechecks the existing payments under receipt locks and requires re-preview if they changed. Existing student identity duplicates still block import; this feature does not merge students.
-- Post-import reconciliation separates raw-source imported/excluded/flagged/skipped buckets, ledger total and any explicitly entered amount absent in the workbook. Flagged breakdown assigns each cell once to its first applicable reason in the fixed order shown; all reasons are listed on the individual line. Both raw-source and ledger amounts are displayed because a manually entered amount is not a source amount. Report and CSV remain stored with the batch.
-- Batch import is transactional, idempotent for exact replay and has guarded last-batch undo (void rather than physical deletion). Removed students retain imported payments, are hidden from ordinary active lists, and can be restored with a billing gap. Skip and hold have separate tests. Purge date is stored but automatic purge is not implemented. SMS and migration are not included.
+What used to live here was the Milestone-1 workbook-import review and its "what I click" list.
+It is preserved unchanged at [`docs/history/MILESTONE-1-REVIEW.md`](docs/history/MILESTONE-1-REVIEW.md).
 
-## Test evidence and safety
-- `test-results/milestone-1-final-verification.txt` contains TEST-ONLY output; the fresh final ZIP cold-start output is supplied separately as `cold-start-proof-final.txt`; the browser tests used disposable MongoDB in both application modes and no production server. Outputs and screenshots contain test decisions, not owner-approved results. `screenshots/workbook-import/` has 360/1440 views.
-- Standalone typecheck, baseline unit tests, actual XLSX transaction/replay/undo tests, existing-receipt decision tests and browser tests passed. Test mode runs a standalone TypeScript check first, then builds with a memory-limited webpack configuration and its duplicate in-build typecheck disabled. Outside this explicitly scoped test build, normal configuration is unchanged.
-- One-command test mode prints STARTING, runs typecheck, and uses the included prebuilt test app only when its source fingerprint matches. If application files change, it rebuilds with no MongoDB connection configured during that build. It then starts its own in-memory replica set `dictioncoaching_test`, ignores any real `MONGODB_URI`, creates the demo admin only there and erases its database on exit. No SMS is sent. First launch may need to download MongoDB; a rebuild after source changes can take a few minutes. The test build uses `.next`; do not start it alongside a production server in the same folder, and rebuild the production app separately.
-- For real production back up first, use a replica-set MongoDB server, review privacy/security/retention and all interpretations, and avoid sharing secrets. Existing duplicate student identities are deliberately not merged. No real production database, Atlas deployment, SMS or legacy migration has been verified here.
-- Earlier projects are preserved in `/home/user/previous_projects_complete_backup.tar.xz` (23 ZIPs verified byte-for-byte); this archive is separate from the latest complete project ZIP.
-
-## আমি কী ক্লিক করব
-1. Node 22.23.4 ব্যবহার করুন; ZIP extract করে project folder-এ `npm ci`, তারপর `npm run test-mode` চালান। `http://localhost:3000/bn/admin` খুলে demo `demo-admin@example.test` / `DemoOnly-2026!` দিয়ে প্রবেশ করুন। টেস্ট ব্যানার দেখুন।
-2. **শিক্ষার্থী → স্প্রেডশিট প্রিভিউ** → `tests/fixtures/Diction-Demo-Payment-Sheet.xlsx` → **সব ট্যাব দেখুন**। প্রতিটি ট্যাবের জন্য ক্লাস নির্বাচন করুন।
-3. লাল সারি/ঘর, A, Done, অসম্পূর্ণ ও ভাগাভাগি রসিদের সিদ্ধান্ত বেছে নিন। আগে থেকে থাকা রসিদের প্রতিটি ঘরে তিনটির একটি বেছে নিন; পুরোনো পেমেন্ট বদলাবে না। টাকার পরিমাণ অনুপস্থিত থাকলে প্রকৃত অঙ্ক না জানা পর্যন্ত note/skip বেছে নিন।
-4. **শিক্ষার্থীর তথ্য ও ইমপোর্ট**-এ অনুমানকৃত ফি, পরিবর্তনের মাস ও তারিখ যাচাই/সম্পাদনা করুন; চাইলে প্রথম মাস ও ফি লিখে সংশ্লিষ্ট ক্লাসে প্রয়োগ করুন। প্রয়োজন হলে অভিভাবকের বিবরণ যোগ করুন; প্রতিটি শিক্ষার্থীর যাচাই চিহ্ন দিন।
-5. **সিদ্ধান্তসহ ইমপোর্ট করুন** → সমীকরণ ও চিহ্নিত কারণের ভাগ দেখুন → **চূড়ান্ত রিপোর্ট CSV ডাউনলোড**। একই সিদ্ধান্ত আবার import করলে duplicate হবে না। Undo-র জন্য সর্বশেষ batch খুলে কারণ দিন; পরিবর্তিত/সংযুক্ত রেকর্ড থাকলে undo বন্ধ হবে। সরানো শিক্ষার্থী ফেরাতে **শিক্ষার্থী → সরানো শিক্ষার্থী**।
-
-Approval is required before Milestone 2 begins.
+Also see [`docs/SPEC.md`](docs/SPEC.md) (the project brief) and
+[`docs/STALE-TESTS.md`](docs/STALE-TESTS.md) (the three stale browser tests).

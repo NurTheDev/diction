@@ -1,0 +1,123 @@
+R0 STABILIZE AND DOCUMENT — verification run
+Date: 2026-11-12 (UTC)   Repo: NurTheDev/diction @ aef9adf   Branch: arena/c33e6ed1-diction
+Machine: Debian GNU/Linux 12 (bookworm), Node v22.22.3, npm 10.9.8, 2 CPU, 3939 MB RAM
+All commands below were run in this session on a clean checkout after 'npm ci'. Output is unedited.
+
+======================================================================
+[1] npm ci
+----------------------------------------------------------------------
+added 432 packages in 36s
+EXIT=0
+RESULT: PASS (node_modules populated from package-lock.json)
+
+======================================================================
+[2] npm run typecheck
+----------------------------------------------------------------------
+
+> diction-coaching@0.1.0 typecheck
+> tsc --noEmit
+
+RESULT: PASS (tsc --noEmit, no output = no errors)
+
+======================================================================
+[3] npm test  (22 core + 9 Center unit suites; Center suites newly wired in during R0)
+----------------------------------------------------------------------
+  Intake schema and availability tests passed.
+  Admin validation tests passed.
+  Academic validation tests passed.
+  Study feature validation tests passed.
+  Seed and faculty validation tests passed.
+  Editorial validation and sanitization tests passed.
+  Model test validation and scoring tests passed.
+  Site-content validation tests passed.
+  Site-settings validation tests passed.
+  Verified public-facts validation tests passed.
+  Official website URL validation passed.
+  Course validation tests passed.
+  Password recovery validation tests passed.
+  Homepage banner validation tests passed.
+  Learning material validation tests passed.
+  Fee validation and integer-currency tests passed.
+  Theme validation and contrast tests passed.
+  Private portal notice validation tests passed.
+  YouTube channel validation and cursor tests passed.
+  Achievement validation and model consent guard passed.
+  Unsafe achievement query and bulk writes fail closed.
+  Canonical-origin and production HTTPS environment validation passed.
+  Achievement workflow remains off unless both flags are explicitly enabled.
+  Public sheet input tests passed.
+  Unicode practice CSV and validation passed.
+  Database mode: test and production names separated; invalid values fail closed.
+  Center month status and phone normalization tests passed.
+  Due calculations: Dhaka cutoff, partial, hold, changed fees, waiver and bounded totals passed.
+  Due CSV formula escaping, Unicode and quoting passed.
+  Exam grading, per-subject pass, absent and tie ranking passed.
+  Review compiler rejects unresolved markers, red flags and missing data; explicit corrections preserved.
+  Spreadsheet preview parsing, color warnings, markers, varied fees and CSV passed.
+  Whole XLSX one-pass preview: 2 tabs, 17 students, raw ৳226400 reconciles; collision defaults, same-student receipts, override and hold details checked. No import performed.
+  SMS adapter: segment estimation, default gate, submitted-not-delivered and no-retry unknown outcome passed.
+RESULT: PASS — 31 suites (22 core + 9 Center), 0 failures.
+
+======================================================================
+[4] Production build (executed by 'npm run test-mode', step: building the test application)
+----------------------------------------------------------------------
+✓ Compiled successfully in 50s
+✓ Generating static pages using 1 worker (173/173) in 2.8s
+TEST_MODE_EXIT=1
+RESULT: PASS — full webpack production build of all 173 pages. The earlier 'build OOMs in the sandbox'
+        caveat (CENTER-DELIVERY-STATUS.md) does not apply on a 3.9 GB machine.
+
+======================================================================
+[5] npm run test-mode  (one-command disposable app + database)
+----------------------------------------------------------------------
+STARTING TEST MODE: checking TypeScript — first startup may take several minutes. Please wait.
+STARTING TEST MODE: building the test application — first startup may take several minutes. Please wait.
+✓ Compiled successfully in 50s
+Starting disposable test database… first startup may download MongoDB.
+DownloadError: Download failed for url "https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-debian12-8.2.6.tgz", Details:
+TEST_MODE_EXIT=1
+RESULT: BLOCKED at the MongoDB download only. fastdl.mongodb.org is not on this sandbox's network
+        allowlist (ECONNRESET after 3 retries). Steps 1-4 of the same command all passed.
+        On a machine with normal internet this step downloads mongod (~90 MB) and starts the app.
+        NOT A PRODUCT DEFECT — no application code was reached.
+
+======================================================================
+[6] Stale browser tests (R0 item 2) — fail-fast preflight demonstration
+----------------------------------------------------------------------
+--- npm run test:browser:workbook-preview ---
+Error: BLOCKED (environment, not a product bug) — tests/workbook-preview-browser.integration.ts could not start:
+   - Playwright Chromium is missing at /home/user/.cache/ms-playwright/chromium-1254/chrome-linux64/chrome.
+     Fix: npx playwright install chromium
+   - No local mongod binary, and the download host is not reachable from this machine
+     Fix with ONE of:
+       1. Run on a machine with normal internet access to fastdl.mongodb.org (the usual case).
+       2. Reuse an existing mongod: MONGOMS_SYSTEM_BINARY=/path/to/mongod
+       3. Attach to an already-running app + database:
+   No application code ran and no assertion was made.
+--- npm run test:browser:exams ---
+Error: BLOCKED (environment, not a product bug) — tests/center-exams-browser.integration.ts — start the app first, then run it with TEST_ORIGIN and TEST_MONGO_URI (see STALE-TESTS-REPORT.md) could not start:
+   - Playwright Chromium is missing at /home/user/.cache/ms-playwright/chromium-1254/chrome-linux64/chrome.
+     Fix: npx playwright install chromium
+   - No local mongod binary, and the download host is not reachable from this machine
+     Fix with ONE of:
+       1. Run on a machine with normal internet access to fastdl.mongodb.org (the usual case).
+       2. Reuse an existing mongod: MONGOMS_SYSTEM_BINARY=/path/to/mongod
+       3. Attach to an already-running app + database:
+   - The application did not answer at http://127.0.0.1:3100/api/auth/csrf.
+     Fix: start it first in another terminal (npm run test-mode, or npm run dev).
+   No application code ran and no assertion was made.
+RESULT: both stop in 1-10 s with an actionable message instead of minutes of retries.
+        Assertions unchanged; when prerequisites exist the preflight returns immediately.
+        Disposition and written reasons: docs/STALE-TESTS.md
+
+======================================================================
+WHAT COULD NOT BE TESTED IN THIS SESSION (stated plainly)
+----------------------------------------------------------------------
+  * npm run test-mode end to end (MongoDB binary download blocked)
+  * all 13 Mongo/browser integration tests, including the two repaired stale tests
+  * therefore no 360/1440 screenshots were produced in this session. Note: the repository's
+    screenshots/ directory is EMPTY (0 files) — the milestone captures referenced by the older
+    docs (screenshots/workbook-import/, screenshots/workbook-preview-wip/) were never shipped in
+    this ZIP, so they could not be re-verified even in principle. Recorded in docs/STATUS.md.
+  * no real MongoDB Atlas, Cloudinary, Resend, Gemini, YouTube or BulkSMSBD call was made
+  * R0 changed no product behaviour: docs, package.json test scripts and a test-only preflight helper
