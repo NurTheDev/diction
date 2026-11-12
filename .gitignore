@@ -12,3 +12,20 @@ test-assets/
 # npm run verify: the zip is a transfer artefact; the report and screenshots are kept as evidence
 verify-output/
 verify-output.zip
+
+# OS and editor noise
+.DS_Store
+Thumbs.db
+*.swp
+
+# Never commit credentials or keys, even by accident
+*.pem
+*.key
+*.p12
+.env*.local
+
+# Tool output
+*.log
+npm-debug.log*
+.vercel/
+playwright-report/
