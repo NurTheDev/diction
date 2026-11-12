@@ -48,12 +48,21 @@ async function run(){
     assert.equal(entries.length,1);
     assert.equal(entries[0].name,'নমুনা ক্লাস 2026');
 
+    // 2b. While binned, the record is invisible to ordinary reads and untouchable by
+    // ordinary writes — the schema-level invariant every list and public page relies on.
+    assert.equal(await CenterClassGroup.countDocuments({}),0,'a binned row leaves every plain query');
+    assert.deepEqual(await CenterClassGroup.find({}).lean(),[]);
+    assert.equal(await CenterClassGroup.countDocuments(binFilter),1,'the bin query still sees it');
+    const untouched=await CenterClassGroup.updateOne({_id:group._id},{$set:{order:7}});
+    assert.equal(untouched.matchedCount,0,'an unflagged write cannot touch a binned row');
+
     // 3. Restore brings it back with no bin fields left behind.
     assert.equal((await restoreRecord('classGroup',String(group._id),actorId)).status,'ok');
     const restored=await CenterClassGroup.findById(group._id).lean();
     assert.equal(restored.deletedAt,null);assert.equal(restored.purgeAt,null);
     assert.equal((await binCounts()).classGroup,0);
     assert.equal((await restoreRecord('classGroup',String(group._id),actorId)).status,'not-in-bin');
+    assert.equal(await CenterClassGroup.countDocuments({}),1,'restored rows are visible to plain queries again');
 
     // 4. Simple content deletes straight to the bin, and purge respects the 30 days.
     const post=await Editorial.create({kind:'blog',slug:'recycle-sample',title:{bn:'নমুনা',en:'Sample'},body:{bn:'লেখা',en:'text'},published:false});

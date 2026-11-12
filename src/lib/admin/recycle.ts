@@ -172,7 +172,7 @@ export async function purgeExpired(now:Date=new Date(),actor?:string):Promise<Pu
           if(result.result!=='ok'&&result.result!=='not found')assetFailures++;
         }catch{assetFailures++}
       }
-      await def.model().deleteOne({_id:doc._id});
+      await def.model().deleteOne({_id:doc._id},{recycleAny:true} as never);
       // AdminAudit.actor is a required User ref, so the unattended daily job records its totals in
       // its own report/log; a human-triggered purge (Super Admin "delete forever") names the actor.
       if(actor)await audit(actor,`recycle.purge:${def.kind}`,String(doc._id));

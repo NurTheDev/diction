@@ -5,7 +5,7 @@ import {requireAdmin} from '@/lib/admin/guard';
 import {audit} from '@/lib/admin/helpers';
 import {Admission,Slot,TrialBooking,ContactMessage} from '@/models/Intake';
 import {capacitySchema,createSlotSchema,idSchema,toggleSchema,updateAdmissionSchema} from '@/schemas/admin';
-export type ActionState={status:'idle'|'ok'|'error'|'conflict';reason?:'invalid'|'past'|'order'|'unavailable'|'history'};
+export type ActionState={status:'idle'|'ok'|'error'|'conflict';reason?:'invalid'|'past'|'order'|'unavailable'|'history';/** Human sentence for a refused destructive action, e.g. a reference count from the Recycle Bin engine. */message?:string};
 const input=(form:FormData)=>Object.fromEntries(form.entries());
 function refresh(){for(const l of ['bn','en'])for(const p of ['/admin','/admin/admissions','/admin/bookings','/admin/slots','/admin/messages'])revalidatePath(`/${l}${p}`);}
 export async function updateAdmission(_:ActionState,form:FormData):Promise<ActionState>{try{const admin=await requireAdmin();const v=updateAdmissionSchema.safeParse(input(form));if(!v.success)return {status:'error'};const result=await Admission.updateOne({_id:v.data.id},{$set:{status:v.data.status,notes:v.data.notes}});if(!result.matchedCount)return {status:'error'};await audit(admin.id,'admission.update',v.data.id);refresh();for(const l of ['bn','en'])revalidatePath(`/${l}/admin/admissions/${v.data.id}`);return {status:'ok'};}catch{return {status:'error'};}}

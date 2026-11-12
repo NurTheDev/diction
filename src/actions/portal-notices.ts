@@ -4,6 +4,7 @@ import {requireAdmin} from '@/lib/admin/guard';
 import {audit} from '@/lib/admin/helpers';
 import {Batch} from '@/models/Academic';
 import {PortalNotice} from '@/models/PortalNotice';
+import {softDelete} from '@/lib/admin/recycle';
 import {idSchema,toggleSchema} from '@/schemas/admin';
 import {createPortalNoticeSchema,editPortalNoticeSchema} from '@/schemas/portal-notices';
 import type {ActionState} from './admin';
@@ -12,4 +13,4 @@ export async function createPortalNotice(_:ActionState,form:FormData):Promise<Ac
 /** Only drafts can be edited; atomic filter prevents edits to a concurrently published notice. */
 export async function editPortalNotice(_:ActionState,form:FormData):Promise<ActionState>{try{const admin=await requireAdmin();const v=editPortalNoticeSchema.safeParse(Object.fromEntries(form.entries()));if(!v.success)return {status:'error'};const result=await PortalNotice.updateOne({_id:v.data.id,published:false},{$set:{title:{bn:v.data.titleBn,en:v.data.titleEn},body:{bn:v.data.bodyBn,en:v.data.bodyEn}}},{runValidators:true});if(!result.matchedCount)return {status:'conflict'};await audit(admin.id,'portal-notice.edit',v.data.id);refresh();return {status:'ok'};}catch{return {status:'error'}}}
 export async function setPortalNoticePublished(_:ActionState,form:FormData):Promise<ActionState>{try{const admin=await requireAdmin();const v=toggleSchema.safeParse(Object.fromEntries(form.entries()));if(!v.success)return {status:'error'};const publish=v.data.enabled==='true';const result=await PortalNotice.updateOne({_id:v.data.id,published:!publish},{$set:{published:publish}});if(!result.matchedCount)return {status:'conflict'};await audit(admin.id,publish?'portal-notice.publish':'portal-notice.hide',v.data.id);refresh();return {status:'ok'};}catch{return {status:'error'}}}
-export async function deletePortalNotice(_:ActionState,form:FormData):Promise<ActionState>{try{const admin=await requireAdmin();const id=idSchema.safeParse(form.get('id'));if(!id.success)return {status:'error'};const result=await PortalNotice.deleteOne({_id:id.data,published:false});if(!result.deletedCount)return {status:'conflict'};await audit(admin.id,'portal-notice.delete',id.data);refresh();return {status:'ok'};}catch{return {status:'error'}}}
+export async function deletePortalNotice(_:ActionState,form:FormData):Promise<ActionState>{try{const admin=await requireAdmin();const id=idSchema.safeParse(form.get('id'));if(!id.success)return {status:'error'};const outcome=await softDelete('portalNotice',id.data,admin.id);if(outcome.status==='blocked')return {status:'conflict',message:outcome.messageBn};if(outcome.status==='missing')return {status:'error'};refresh();return {status:'ok'};}catch{return {status:'error'}}}
