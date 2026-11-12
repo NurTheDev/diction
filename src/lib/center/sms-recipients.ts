@@ -154,16 +154,19 @@ export function resolveRecipients(students:SmsCandidateStudent[],options:Resolve
     if(held&&options.feeMessage){skip('held','');continue}
 
     const raw=phonesFor(student,options.audience);
-    let usable=0;
+    let usable=0,sawText=false;
     for(const value of raw){
       const text=String(value||'').trim();
       if(!text){continue}
+      sawText=true;
       const phone=normalizePhone(text);
       if(!phone){skip('invalid_phone',text);continue}
       usable++;
       candidates.push({student,phone,values:{...globalValues,...(student.values||{}),student_name:student.nameBn}});
     }
-    if(!usable)skip('missing_phone','');
+    // "No number" is only true when there was no text at all. A number that failed validation is
+    // reported once, as invalid — two contradictory reasons for one student would be noise.
+    if(!usable&&!sawText)skip('missing_phone','');
   }
 
   // Dedupe identical (phone, student) pairs — "both" can list the same number twice.

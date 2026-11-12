@@ -43,6 +43,10 @@ function run(){
   assert.equal(invalid.skipped[0].phone,'0171111','the operator sees which number was rejected');
   const letters=resolveRecipients([student({guardianPhone:'01711abc11'})],{audience:'guardian',feeMessage:false,now:NOW});
   assert.equal(letters.skipped[0].reason,'invalid_phone','letters are never silently stripped');
+  // One accurate reason per student: a number that failed validation is not also reported missing.
+  assert.equal(invalid.skipped.length,1,'an invalid number yields exactly one reason');
+  assert.equal(invalid.skipped.filter(entry=>entry.reason==='missing_phone').length,0,'invalid must not also say missing');
+  assert.equal(missing.skipped.length,1,'an absent number yields exactly one reason');
   const tooLong=resolveRecipients([student({guardianPhone:'০১৭১১১১১১১১১'})],{audience:'guardian',feeMessage:false,now:NOW});
   assert.equal(tooLong.recipients.length,0,'a 12-digit Bangla number is rejected, not truncated');
   assert.equal(tooLong.skipped[0].reason,'invalid_phone');
