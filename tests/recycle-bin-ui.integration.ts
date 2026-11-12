@@ -60,7 +60,7 @@ async function run(){
   }
   const group=await CenterClassGroup.create({name:{bn:CLASS_NAME,en:'Sample class — reference block'},academicYear:2027});
   for(const [index,studentId] of ['SYNTH-RB-1','SYNTH-RB-2'].entries()){
-    await CenterStudent.create({studentId,name:{bn:`নমুনা ছাত্র ${index+1}`},classGroup:group._id,guardianName:'অভিভাবক',guardianPhone:`017123456${index}`,admissionDate:'2027-01-01',startMonth:{year:2027,month:1},feeHistory:[{effectiveFrom:{year:2027,month:1},amount:1000}]});
+    await CenterStudent.create({studentId,name:{bn:`নমুনা ছাত্র ${index+1}`},classGroup:group._id,guardianName:'অভিভাবক',guardianPhone:index?'01712345671':'01712345670',admissionDate:'2027-01-01',startMonth:{year:2027,month:1},feeHistory:[{effectiveFrom:{year:2027,month:1},amount:1000}]});
   }
   const editorialByTitle=title=>Editorial.findOne({'title.bn':title}).lean();
   const stored=slug=>mongoose.connection.db.collection('editorials').countDocuments({slug});
@@ -195,6 +195,32 @@ async function run(){
     await foreverRow.waitFor({state:'detached',timeout:60000});
     assert.equal(await stored(SLUGS.forever),0,'Delete forever removed the row from storage');
 
+    // ── 6b. the client-fetched lists (lecture sheets) use the same dialog and Undo ───────────
+    const sheetTitle='রিসাইকেল নমুনা শিট';
+    const pdf=Buffer.from('%PDF-1.4\n% synthetic recycle sample\n%%EOF');
+    const created=await su.context.request.post(`${origin}/api/admin/public-sheets`,{multipart:{
+      titleBn:sheetTitle,titleEn:'Recycle sample sheet',descriptionBn:'',descriptionEn:'',className:'',subject:'',
+      file:{name:'recycle-sample.pdf',mimeType:'application/pdf',buffer:pdf},
+    }});
+    assert.equal(created.status(),201,await created.text());
+    const sheetId=(await created.json()).id;
+    await su.page.goto(`${origin}/en/admin/public-sheets`,{waitUntil:'domcontentloaded',timeout:180000});
+    const sheetCard=su.page.locator('article.sheet-admin-item').filter({hasText:sheetTitle});
+    await sheetCard.waitFor({timeout:60000});
+    await sheetCard.getByRole('button',{name:'Delete',exact:true}).click();
+    const sheetDialog=su.page.getByRole('dialog');
+    await sheetDialog.waitFor();
+    assert.match(await sheetDialog.locator('h2').innerText(),/রিসাইকেল নমুনা শিট/,'the sheet dialog names the sheet, not "this item"');
+    assert.match(await sheetDialog.locator('p').first().innerText(),/Recycle Bin for 30 days/);
+    await sheetDialog.getByRole('button',{name:'Yes, delete'}).click();
+    await toast(su.page).getByText('Moved to the Recycle Bin.').waitFor({timeout:60000});
+    await sheetCard.waitFor({state:'detached',timeout:60000});
+    assert.ok((await mongoose.connection.db.collection('publicsheets').countDocuments({_id:new mongoose.Types.ObjectId(sheetId),deletedAt:{$type:'date'}}))===1,'the sheet is binned');
+    await toast(su.page).getByRole('button',{name:'Undo',exact:true}).click();
+    await toast(su.page).getByText('Restored.').waitFor({timeout:60000});
+    await sheetCard.waitFor({timeout:60000});
+    assert.equal(await mongoose.connection.db.collection('publicsheets').countDocuments({_id:new mongoose.Types.ObjectId(sheetId),deletedAt:{$type:'date'}}),0,'Undo brought the sheet back into the client-fetched list');
+
     // ── 8a. Bangla strings and Bangla digits on the bin page ─────────────────────────────────
     await su.page.goto(`${origin}/bn/admin/recycle-bin`,{waitUntil:'domcontentloaded',timeout:180000});
     await su.page.locator('h1').filter({hasText:'রিসাইকেল বিন'}).waitFor({timeout:60000});
@@ -244,7 +270,7 @@ async function run(){
     assert.equal(await Editorial.countDocuments({...binFilter,slug:{$in:Object.values(SLUGS)}}),0,'every binned sample was restored or purged; nothing is left behind');
     assert.equal(await CenterClassGroup.countDocuments(binFilter),0,'the archived class was never binned');
 
-    console.log('Recycle Bin UI: named 30-day ConfirmDialog, delete + Undo (row and public page), bulk select + delete + Undo, blocked delete showing "2 student(s) use this class" with a working Archive, delete + restore from the bin with type filter and search, Delete forever gated on the typed name and on Super Admin, staff able to archive and restore but never to delete, content_editor seeing no destructive control, no overflow at 360/768/1440, no page errors, and an audit row per move — against the disposable test database.');
+    console.log('Recycle Bin UI: named 30-day ConfirmDialog, delete + Undo (row and public page), bulk select + delete + Undo, blocked delete showing "2 student(s) use this class" with a working Archive, delete + restore from the bin with type filter and search, Delete forever gated on the typed name and on Super Admin, the same dialog and Undo on the client-fetched lecture-sheet list, staff able to archive and restore but never to delete, content_editor seeing no destructive control, no overflow at 360/768/1440, no page errors, and an audit row per move — against the disposable test database.');
   }finally{
     await browser.close();
     await mongoose.disconnect();

@@ -5,7 +5,7 @@ import {useTranslations} from 'next-intl';
 import {restoreBinItem,purgeForeverItem} from '@/actions/recycle';
 import {ActionFeedback} from './action-feedback';
 import type {ActionState} from '@/actions/admin';
-import type {RecycleKind} from '@/lib/admin/recycle';
+import type {RecycleKind} from '@/lib/admin/recycle-kinds';
 
 const idle:ActionState={status:'idle'};
 

@@ -6,7 +6,7 @@ import {bulkDeleteItems,bulkRestoreItems} from '@/actions/recycle';
 import {ActionFeedback} from './action-feedback';
 import {formatNumber,type Digits} from '@/lib/admin/format';
 import type {ActionState} from '@/actions/admin';
-import type {RecycleKind} from '@/lib/admin/recycle';
+import type {RecycleKind} from '@/lib/admin/recycle-kinds';
 
 const idle:ActionState={status:'idle'};
 

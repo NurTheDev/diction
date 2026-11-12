@@ -29,7 +29,8 @@ import {getCloudinary} from '@/lib/cloudinary';
 import {formatNumber} from '@/lib/admin/format';
 import {revalidatePath} from 'next/cache';
 
-export type RecycleKind='editorial'|'course'|'material'|'media'|'portalNotice'|'faq'|'facility'|'achievementRecord'|'practiceTest'|'publicSheet'|'classGroup'|'centerExam';
+export {recycleKinds,archivableKinds,canArchiveKind} from './recycle-kinds';
+export type RecycleKind=import('./recycle-kinds').RecycleKind;
 
 export interface ReferenceCount{count:number;bn:string;en:string}
 export interface CloudAsset{publicId:string;resource:'image'|'raw'|'video'}

@@ -15,6 +15,7 @@ import {PublicSheet} from '../src/models/PublicSheet';
 import {CenterClassGroup,CenterExam,CenterStudent,CenterPayment,CenterFeeWaiver,CenterActivityLog,CenterSmsLog,CenterSmsBatch,CenterDueSnapshot,CenterImportBatch,CenterWorkbookBatch,CenterExamResult} from '../src/models/CenterRecords';
 import {User} from '../src/models/User';
 import {AdminAudit} from '../src/models/AdminAudit';
+import {recycleKinds,archivableKinds,canArchiveKind} from '../src/lib/admin/recycle-kinds';
 import {recycleRegistry} from '../src/lib/admin/recycle';
 
 // 1. The twelve schemas that carry deletedAt / deletedBy / purgeAt.
@@ -53,4 +54,11 @@ for(const kind of ['material','media','portalNotice','classGroup','centerExam'] 
   assert.equal(def.publicPaths,undefined,`${kind} has no public page to revalidate`);
 }
 
-console.log('Recycle coverage: 12 schemas carry the bin fields; 12 financial/audit/student types cannot be hidden; find/findOne/count/distinct/findOneAnd*/update*/delete*/aggregate/bulkWrite are covered; estimatedDocumentCount is the documented exception; public kinds revalidate their routes.');
+// 5. The client-safe vocabulary matches the server registry, so the UI never offers an Archive
+//    button for a kind that has no archive path.
+assert.deepEqual([...recycleKinds],recycleRegistry.map(def=>def.kind),'recycleKinds lists exactly the registered kinds');
+assert.deepEqual([...archivableKinds],recycleRegistry.filter(def=>def.archiveSet).map(def=>def.kind),'archivableKinds lists exactly the kinds with an archiveSet');
+for(const kind of archivableKinds)assert.equal(canArchiveKind(kind),true,`${kind} can be archived`);
+for(const kind of recycleKinds.filter(k=>!(archivableKinds as readonly string[]).includes(k)))assert.equal(canArchiveKind(kind),false,`${kind} has no archive path`);
+
+console.log('Recycle coverage: 12 schemas carry the bin fields; 12 financial/audit/student types cannot be hidden; find/findOne/count/distinct/findOneAnd*/update*/delete*/aggregate/bulkWrite are covered; estimatedDocumentCount is the documented exception; public kinds revalidate their routes; the client kind lists match the registry.');
