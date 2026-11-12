@@ -35,7 +35,7 @@ export const requirements:Requirement[]=[
   {id:'R0.6',milestone:'R0',text:'The demo admin can sign in and reach the dashboard',bn:'ডেমো অ্যাডমিন লগইন করে ড্যাশবোর্ডে ঢুকতে পারে',proof:{kind:'step',ref:'signin'}},
   {id:'R0.7',milestone:'R0',text:'Every core unit suite passes (site, CMS, roles, fees, theme, privacy guards, verify harness)',bn:'সব মূল ইউনিট টেস্ট পাস',proof:{kind:'unit',ref:'test:unit:core'}},
   {id:'R0.8',milestone:'R0',text:'Every Center unit suite passes (month status, dues, import, exams, SMS adapter)',bn:'সব সেন্টার ইউনিট টেস্ট পাস',proof:{kind:'unit',ref:'test:center'}},
-  {id:'R0.9',milestone:'R0',text:'Exams: role scope, default-off write gate, two subjects, marks, A+ ranking and publication',bn:'পরীক্ষা: রোল, রাইট গেট, নম্বর, গ্রেড ও প্রকাশ',proof:{kind:'browser',ref:'tests/center-exams-browser.integration.ts'}},
+  {id:'R0.9',milestone:'R0',text:'Exams: role scope (exam_manager in, content_editor redirected), two subjects with Bangla digits, marks, total, A+ grade, rank and publication against the disposable database',bn:'পরীক্ষা: রোল, দুই বিষয়, নম্বর, মোট, গ্রেড, অবস্থান ও প্রকাশ (আলাদা টেস্ট ডাটাবেসে)',proof:{kind:'browser',ref:'tests/center-exams-browser.integration.ts'}},
   {id:'R0.10',milestone:'R0',text:'Workbook import: real XLSX preview (2 tabs / 17 students / ৳226400), decisions, draft save+load, CSV, no overflow at 360 and 1440',bn:'ওয়ার্কবুক ইমপোর্ট প্রিভিউ, সিদ্ধান্ত, খসড়া, CSV ও ৩৬০/১৪৪০ লেআউট',proof:{kind:'browser',ref:'tests/workbook-preview-browser.integration.ts'}},
   {id:'R0.11',milestone:'R0',text:'Screenshots captured at 360 px and 1440 px for the key public and admin pages',bn:'৩৬০ ও ১৪৪০ পিক্সেলে প্রধান পেজের স্ক্রিনশট',proof:{kind:'screens',ref:'screenshots'}},
 ];

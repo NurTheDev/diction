@@ -35,6 +35,7 @@ type Context={
   notes:string[];
   origin:string;
   mongoUri?:string;
+  mongoDb?:string;
   browserReady:boolean;
   serverUp:boolean;
 };
@@ -161,7 +162,9 @@ async function stepBrowser(ctx:Context):Promise<void>{
 async function stepApp(ctx:Context,port:number,timeoutMs:number):Promise<void>{
   const child=spawn(process.execPath,[path.join('node_modules','tsx','dist','cli.mjs'),'scripts/test-mode.ts'],{
     cwd:process.cwd(),
-    env:{...process.env,TEST_MODE_PORT:String(port),MONGODB_URI:'mongodb://THIS-MUST-NOT-BE-USED.invalid/prod'},
+    // CENTER_EXAM_WRITE_ENABLED is on for this disposable database only, so the exam flow can be
+    // demonstrated end to end instead of asserting a disabled button. Production keeps the default.
+    env:{...process.env,TEST_MODE_PORT:String(port),MONGODB_URI:'mongodb://THIS-MUST-NOT-BE-USED.invalid/prod',CENTER_EXAM_WRITE_ENABLED:'true'},
     stdio:['ignore','pipe','pipe'],
   });
   let log='';
@@ -169,6 +172,8 @@ async function stepApp(ctx:Context,port:number,timeoutMs:number):Promise<void>{
     log+=chunk.toString();
     const uri=log.match(/TEST_MONGO_URI=(\S+)/);
     if(uri&&!ctx.mongoUri)ctx.mongoUri=uri[1];
+    const db=log.match(/TEST_MONGO_DB=(\S+)/);
+    if(db&&!ctx.mongoDb)ctx.mongoDb=db[1];
     process.stdout.write(chunk.toString().split(/\r?\n/).filter(l=>/STARTING|Compiled|Generating static|Ready in|DISPOSABLE|Demo admin|Open http|Error|error TS|DownloadError/.test(l)).map(l=>l+'\n').join(''));
   };
   child.stdout?.on('data',onData);
@@ -206,8 +211,9 @@ async function stepApp(ctx:Context,port:number,timeoutMs:number):Promise<void>{
     ctx.notes.push('Everything that needs the running app is NOT TESTED for the reason above. Unit-test results are still valid.');
     return;
   }
-  step(ctx,'database','Isolated disposable test database','PASS',ctx.mongoUri?`in-memory replica set at ${ctx.mongoUri.replace(/\/\/[^@]*@/,'//')} (database dictioncoaching_test); the real MONGODB_URI was replaced with an invalid host for this run`:'in-memory replica set started');
+  step(ctx,'database','Isolated disposable test database','PASS',ctx.mongoUri?`in-memory replica set at ${ctx.mongoUri.replace(/\/\/[^@]*@/,'//')} (database ${ctx.mongoDb||'dictioncoaching_test'}); the real MONGODB_URI was replaced with an invalid host for this run`:'in-memory replica set started');
   step(ctx,'serve','App serves the admin sign-in page','PASS',`GET ${ctx.origin}/api/auth/csrf answered 200`);
+  ctx.notes.push('This run served the disposable database with CENTER_EXAM_WRITE_ENABLED=true, so the exam create, marks and publication flow is demonstrated end to end. The gate stays off by default in production and is scheduled for removal in R5.');
   ctx.logs[ctx.logs.length-1]={name:'test-mode-stdout',text:log};
   (ctx as Context&{stop?:()=>void}).stop=()=>{if(!exited)child.kill('SIGTERM')};
 }
@@ -245,7 +251,7 @@ async function stepScreens(ctx:Context):Promise<void>{
   if(!ctx.browserReady){mark(ctx,requirement.id,'NOT TESTED','Playwright Chromium is unavailable (see Notes)');return}
   try{
     const {captureScreens}=await import('./verify-screens');
-    const capture=await captureScreens({origin:ctx.origin,mongoUri:ctx.mongoUri!,outDir:dir,milestone:ctx.milestone});
+    const capture=await captureScreens({origin:ctx.origin,mongoUri:ctx.mongoUri!,mongoDb:ctx.mongoDb,outDir:dir,milestone:ctx.milestone});
     ctx.logs.push({name:'screenshots',text:JSON.stringify(capture,null,2)});
     const overflow=capture.overflow.filter(o=>o.scrollWidth>o.clientWidth+1);
     if(overflow.length)ctx.notes.push(`Horizontal overflow measured on: ${overflow.map(o=>`${o.path}@${o.width}px (${o.scrollWidth}>${o.clientWidth})`).join(', ')}`);
@@ -265,7 +271,7 @@ async function stepBrowserTests(ctx:Context):Promise<void>{
     if(!ctx.browserReady){mark(ctx,requirement.id,'NOT TESTED','Playwright Chromium is unavailable (see Notes)');continue}
     const logName=path.basename(requirement.proof.ref,'.ts');
     const result=await run(process.execPath,[path.join('node_modules','tsx','dist','cli.mjs'),requirement.proof.ref],{
-      env:{TEST_ORIGIN:ctx.origin,TEST_MONGO_URI:ctx.mongoUri},timeoutMs:900_000,log:logName,
+      env:{TEST_ORIGIN:ctx.origin,TEST_MONGO_URI:ctx.mongoUri,TEST_MONGO_DB:ctx.mongoDb,CENTER_EXAM_WRITE_ENABLED:'true'},timeoutMs:900_000,log:logName,
     });
     const blocked=result.text.includes('BLOCKED (environment');
     if(result.code===0){
