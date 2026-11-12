@@ -36,8 +36,9 @@ async function main(){
   const stop=async(code=0)=>{if(stopping)return;stopping=true;if(child&&!child.killed)child.kill('SIGTERM');await mongoose.disconnect();await mongo.stop();process.exit(code)};
   process.once('SIGINT',()=>void stop());process.once('SIGTERM',()=>void stop());
   try{
-    await mongoose.connect(mongo.getUri(),{dbName:'dictioncoaching_test'});
-    if(process.env.CENTER_DATA_MODE!=='test'||mongoose.connection.name!=='dictioncoaching_test'||!['127.0.0.1','localhost'].includes(mongoose.connection.host))throw Error('Demo admin requires isolated local test database');
+    const dbName='dictioncoaching_test';
+    await mongoose.connect(mongo.getUri(),{dbName});
+    if(process.env.CENTER_DATA_MODE!=='test'||mongoose.connection.name!==dbName||!['127.0.0.1','localhost'].includes(mongoose.connection.host))throw Error('Demo admin requires isolated local test database');
     await User.create({name:'Demo Admin',email:'demo-admin@example.test',passwordHash:await bcrypt.hash('DemoOnly-2026!',12),role:'admin',active:true});
     await CenterClassGroup.insertMany([{name:{bn:'ক্লাস ৭',en:'Class 7'},academicYear:2026,shift:'All'},{name:{bn:'ক্লাস ৯ BS',en:'Class 9 BS'},academicYear:2026,shift:'All'}]);
     await mongoose.disconnect();
@@ -45,6 +46,9 @@ async function main(){
     // Local in-memory replica set with no credentials; the real MONGODB_URI is never printed.
     console.log(`TEST_ORIGIN=${origin}`);
     console.log(`TEST_MONGO_URI=${mongo.getUri()}`);
+    // The database name the app is serving, so attached tests and the screenshot pass seed and
+    // assert against the SAME database the pages read instead of a look-alike empty one.
+    console.log(`TEST_MONGO_DB=${dbName}`);
     console.log('\nDISPOSABLE TEST MODE — all data disappears when stopped.');
     console.log(`Open ${origin}/bn/admin`);
     console.log('Demo admin: demo-admin@example.test / DemoOnly-2026!');

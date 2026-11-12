@@ -37,7 +37,7 @@ export type CaptureResult={
 
 const slug=(target:ScreenTarget):string=>target.label||target.path.replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,'');
 
-export async function captureScreens(opts:{origin:string;mongoUri:string;outDir:string;milestone?:string;widths?:number[];timeoutMs?:number}):Promise<CaptureResult>{
+export async function captureScreens(opts:{origin:string;mongoUri:string;mongoDb?:string;outDir:string;milestone?:string;widths?:number[];timeoutMs?:number}):Promise<CaptureResult>{
   const widths=opts.widths||[360,1440];
   const timeout=opts.timeoutMs??90_000;
   const result:CaptureResult={files:[],failures:[],overflow:[]};
@@ -45,7 +45,10 @@ export async function captureScreens(opts:{origin:string;mongoUri:string;outDir:
 
   const mongoose=(await import('mongoose')).default;
   const openedHere=mongoose.connection.readyState!==1;
-  if(openedHere)await mongoose.connect(opts.mongoUri,{dbName:'dictioncoaching'});
+  // The app's own database name: seeding or looking up the demo admin anywhere else is invisible
+  // to the pages being photographed.
+  const {testDbName}=await import('../tests/helpers/env-preflight');
+  if(openedHere)await mongoose.connect(opts.mongoUri,{dbName:opts.mongoDb||testDbName()});
   const connection=mongoose.connection;
   // A previous browser test may have cleared the rate-limit or user collections.
   await connection.collection('ratelimits').deleteMany({}).catch(()=>{});

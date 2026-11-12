@@ -11,6 +11,27 @@
 import {existsSync} from 'node:fs';
 import {chromium} from 'playwright';
 
+/**
+ * The database name the running app actually uses, so a test that seeds or asserts data connects to
+ * the SAME database the pages read. Getting this wrong is silent and fatal: the app answers, the
+ * login form is accepted, but the user the test created is in another database, so the page
+ * redirects to sign-in and every later locator times out.
+ *
+ * Order: the name test mode published (TEST_MONGO_DB), then a database in TEST_MONGO_URI's path,
+ * then the production default. `src/lib/db.ts` resolves the name from CENTER_DATA_MODE, so test
+ * mode is `dictioncoaching_test` and a plain local run is `dictioncoaching`.
+ */
+export function testDbName(fallback='dictioncoaching'):string{
+  const published=process.env.TEST_MONGO_DB?.trim();
+  if(published)return published;
+  const uri=process.env.TEST_MONGO_URI?.trim();
+  if(uri){
+    const fromPath=uri.replace(/^[a-z+]+:\/\//i,'').replace(/^[^@/]*@/,'').split('/')[1]?.split('?')[0];
+    if(fromPath)return decodeURIComponent(fromPath);
+  }
+  return process.env.CENTER_DATA_MODE==='test'?'dictioncoaching_test':fallback;
+}
+
 /** Redacts any user:password in a Mongo URI so credentials never reach a log file. */
 export function safeUri(uri:string):string{
   return uri.replace(/\/\/([^/@]*)@/,(_match,credentials:string)=>`//${credentials.includes(':')?'<user>:<password>':'<user>'}@`);
