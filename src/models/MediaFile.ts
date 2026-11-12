@@ -1,4 +1,5 @@
 import { Schema, model, models, type Model } from "mongoose";
+import {addRecycleFields} from './recycle';
 export interface IMediaFile {
   publicId: string;
   url: string;
@@ -27,7 +28,7 @@ const schema = new Schema<IMediaFile>(
     data: { type: Buffer, select: false },
   },
   { timestamps: true },
-);
+);addRecycleFields(schema);
 schema.index({ createdAt: -1 });
 export const MediaFile =
   (models.MediaFile as Model<IMediaFile>) ||
