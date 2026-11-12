@@ -77,7 +77,7 @@ async function run(){
 
     // 5. An exam with saved results is reference-blocked too.
     const exam=await CenterExam.create({name:{bn:'নমুনা পরীক্ষা'},type:'monthly',date:'2026-01-02',classGroups:[group._id],subjects:[{name:{bn:'বাংলা'},fullMarks:100,passMarks:33}],gradeBands:[{min:0,label:'F'},{min:80,label:'A+'}],status:'draft'});
-    await CenterExamResult.create({exam:exam._id,student:(await CenterStudent.findOne({studentId:'SYNTH-R1'}).lean())._id,classGroup:group._id,marks:[{subject:exam.subjects[0]._id,obtained:80,absent:false}],total:80,fullTotal:100,percentage:80,grade:'A+'});
+    await CenterExamResult.create({exam:exam._id,student:(await CenterStudent.findOne({studentId:'SYNTH-R1'}).lean())._id,classGroup:group._id,marks:[{subject:exam.subjects[0]._id,obtained:80,absent:false}],total:80,fullTotal:100,percentage:80,grade:'A+',recordedBy:actor._id});
     const examBlocked=await softDelete('centerExam',String(exam._id),actorId);
     assert.equal(examBlocked.status,'blocked');
     assert.equal(examBlocked.messageBn,'১ জন শিক্ষার্থীর ফল এই পরীক্ষায় সংরক্ষিত — মুছে ফেলা যাবে না। আর্কাইভ করুন।');
