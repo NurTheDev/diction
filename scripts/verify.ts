@@ -314,6 +314,10 @@ async function main():Promise<void>{
     await stepUnitSuites(ctx,'test:staff-role','R1.2','Staff role: schema, guards and nav visibility');
     await stepUnitSuites(ctx,'test:recycle:coverage','R1.3','Auto-hide coverage: query shapes, protected types, revalidation map');
     await stepUnitSuites(ctx,'test:cron','R1.5','Daily scheduled job: bearer-secret auth and vercel.json schedule');
+    await stepUnitSuites(ctx,'test:sms:provider','R2.1','SMS provider adapter: documented endpoints, response-code table, credential redaction');
+    await stepUnitSuites(ctx,'test:sms:templates','R2.2','SMS templates: spec wording and variable substitution');
+    await stepUnitSuites(ctx,'test:sms:recipients','R2.3','SMS recipient rules: opt-out, held, normalization, sibling grouping');
+    await stepUnitSuites(ctx,'test:sms:quiet','R2.4','SMS quiet hours: the midnight-crossing window in Dhaka time');
   }else{
     for(const r of requirements)if(!ctx.results[r.id])mark(ctx,r.id,'NOT TESTED','dependencies are not installed');
   }
@@ -323,6 +327,8 @@ async function main():Promise<void>{
     await stepApp(ctx,port,25*60_000);
     await stepSignIn(ctx);
     await stepUnitSuites(ctx,'test:recycle:db','R1.1','Recycle Bin engine against the disposable database',
+      {needsDb:true,env:{TEST_ORIGIN:ctx.origin,TEST_MONGO_URI:ctx.mongoUri,TEST_MONGO_DB:ctx.mongoDb}});
+    await stepUnitSuites(ctx,'test:sms:db','R2.5','SMS send engine against the disposable database',
       {needsDb:true,env:{TEST_ORIGIN:ctx.origin,TEST_MONGO_URI:ctx.mongoUri,TEST_MONGO_DB:ctx.mongoDb}});
     await stepScreens(ctx);
     await stepBrowserTests(ctx);

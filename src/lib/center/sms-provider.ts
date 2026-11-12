@@ -1,9 +1,208 @@
-/** Server-only adapter. No automatic retry: an HTTP timeout may occur after provider submission.
- * Provider acceptance is not delivery. Callers must independently authorize, enforce opt-outs,
- * quiet hours, duplicate protection and durable audit before using this low-level function. */
+/**
+ * Server-only SMS provider layer (R2).
+ *
+ * Implemented against BulkSMSBD's current official API documentation
+ * (https://bulksmsbd.com/bulksms-api-bangladesh.php, read 2026-11-12):
+ *   Single SMS   POST/GET https://bulksmsbd.net/api/smsapi      api_key, type, number, senderid, message
+ *   Many SMS     POST/GET https://bulksmsbd.net/api/smsapimany  api_key, senderid, messages
+ *   Balance      POST/GET https://bulksmsbd.net/api/getBalanceApi  api_key
+ *   number format 8801XXXXXXXXX; every documented response code is mapped to a plain Bangla sentence.
+ *
+ * No automatic retry inside `submitBulkSmsBd`: an HTTP timeout may occur after provider submission,
+ * and provider acceptance is not delivery. Callers (src/lib/center/sms-send.ts) own authorization,
+ * opt-outs, quiet hours, batching, retries, idempotency and durable audit.
+ *
+ * Credentials live only in BULKSMSBD_API_KEY / BULKSMSBD_SENDER_ID, are read here and nowhere else,
+ * and are redacted from every string this module can return or throw.
+ */
 import 'server-only';
+
 const basic="@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !\"#¤%&'()*+,-./0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà";
 const extension='^{}\\[~]|€';
+
+/** GSM-7 counts septets (160/153); anything else — Bangla included — is Unicode (70/67). */
 export function estimateSms(message:string){if(!message)throw Error('EMPTY_MESSAGE');let septets=0,gsm=true;for(const char of message){if(basic.includes(char))septets++;else if(extension.includes(char))septets+=2;else{gsm=false;break}}if(gsm)return {encoding:'GSM-7' as const,units:septets,segments:septets<=160?1:Math.ceil(septets/153)};const units=message.length;return {encoding:'Unicode' as const,units,segments:units<=70?1:Math.ceil(units/67)}}
+
+export const SMS_SINGLE_URL='https://bulksmsbd.net/api/smsapi';
+export const SMS_MANY_URL='https://bulksmsbd.net/api/smsapimany';
+export const SMS_BALANCE_URL='https://bulksmsbd.net/api/getBalanceApi';
+/** Spec: batches of about 100 recipients per provider call. */
+export const SMS_BATCH_SIZE=100;
+
+/** Every code in the provider's published table, in the operator's language. */
+export const SMS_CODE_MESSAGES:Record<string,string>={
+  '202':'এসএমএস জমা হয়েছে (প্রেরণ নিশ্চিত নয়)',
+  '1001':'নম্বরটি সঠিক নয়',
+  '1002':'সেন্ডার আইডি সঠিক নয় বা বন্ধ আছে',
+  '1003':'সব ঘর পূরণ করা হয়নি; সিস্টেম অ্যাডমিনের সাথে যোগাযোগ করুন',
+  '1005':'প্রদানকারীর অভ্যন্তরীণ ত্রুটি',
+  '1006':'ব্যালেন্সের মেয়াদ নেই',
+  '1007':'ব্যালেন্স অপর্যাপ্ত',
+  '1011':'এই আইডি খুঁজে পাওয়া যায়নি',
+  '1012':'মাস্কিং এসএমএস অবশ্যই বাংলায় হতে হবে',
+  '1013':'এই এপিআই কী দিয়ে সেন্ডার আইডির গেটওয়ে পাওয়া যায়নি',
+  '1014':'এই সেন্ডার দিয়ে সেন্ডার টাইপ নাম পাওয়া যায়নি',
+  '1015':'এই সেন্ডার আইডির কোনো সক্রিয় গেটওয়ে পাওয়া যায়নি',
+  '1016':'এই সেন্ডার আইডির সক্রিয় মূল্য তথ্য পাওয়া যায়নি',
+  '1017':'এই সেন্ডার আইডির মূল্য তথ্য পাওয়া যায়নি',
+  '1018':'এই অ্যাকাউন্টের মালিক নিষ্ক্রিয়',
+  '1019':'এই অ্যাকাউন্টের সেন্ডার টাইপ মূল্য নিষ্ক্রিয়',
+  '1020':'এই অ্যাকাউন্টের প্যারেন্ট পাওয়া যায়নি',
+  '1021':'প্যারেন্টের সক্রিয় সেন্ডার টাইপ মূল্য পাওয়া যায়নি',
+  '1031':'অ্যাকাউন্ট যাচাই হয়নি; অ্যাডমিনের সাথে যোগাযোগ করুন',
+  '1032':'এই আইপি হোয়াইটলিস্টে নেই',
+};
+
+export function smsCodeMessage(code:string|undefined):string{
+  if(!code)return 'প্রদানকারীর সাড়া বোঝা যায়নি';
+  return SMS_CODE_MESSAGES[code]||`প্রদানকারী কোড ${code} (অজানা)`;
+}
+
+/** True when the body needs the provider's Unicode type — Bangla always does. */
+export function smsNeedsUnicode(message:string):boolean{return estimateSms(message).encoding==='Unicode'}
+
 export type SmsOutcome={status:'submitted'|'rejected'|'unknown';code?:string};
-export async function submitBulkSmsBd({phone,message,fetcher=fetch}:{phone:string;message:string;fetcher?:typeof fetch}):Promise<SmsOutcome>{if(process.env.CENTER_SMS_WRITE_ENABLED!=='true')throw Error('SMS_DISABLED');const apiKey=process.env.BULKSMSBD_API_KEY,senderId=process.env.BULKSMSBD_SENDER_ID;if(!apiKey||!senderId)throw Error('SMS_NOT_CONFIGURED');if(!/^01[3-9]\d{8}$/.test(phone)||!message.trim()||message.length>2000)throw Error('SMS_INVALID');try{const body=new URLSearchParams({api_key:apiKey,senderid:senderId,number:'88'+phone,message});const response=await fetcher('https://bulksmsbd.net/api/smsapi',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body,signal:AbortSignal.timeout(15000),cache:'no-store',redirect:'error'});const text=(await response.text()).slice(0,20000);let data:unknown;try{data=JSON.parse(text)}catch{return {status:'unknown'}}if(!data||typeof data!=='object')return {status:'unknown'};const obj=data as Record<string,unknown>,value=obj.response_code??obj.code,code=typeof value==='number'||typeof value==='string'?String(value):'';if(response.ok&&code==='202')return {status:'submitted',code};if(/^10\d{2}$/.test(code))return {status:'rejected',code};return {status:'unknown'}}catch{return {status:'unknown'}}}
+
+export function smsCredentials():{apiKey:string;senderId:string}|null{
+  const apiKey=process.env.BULKSMSBD_API_KEY,senderId=process.env.BULKSMSBD_SENDER_ID;
+  return apiKey&&senderId?{apiKey,senderId}:null;
+}
+
+/** Startup validation: reports what is missing without echoing any value. */
+export function validateSmsCredentials():{ok:boolean;missing:string[]}{
+  const missing:string[]=[];
+  if(!process.env.BULKSMSBD_API_KEY)missing.push('BULKSMSBD_API_KEY');
+  if(!process.env.BULKSMSBD_SENDER_ID)missing.push('BULKSMSBD_SENDER_ID');
+  return {ok:missing.length===0,missing};
+}
+
+/** Scrub credentials out of anything that could reach a log, an audit row or the browser. */
+export function redactSmsSecrets(text:string):string{
+  let out=String(text);
+  for(const value of [process.env.BULKSMSBD_API_KEY,process.env.BULKSMSBD_SENDER_ID]){
+    if(value&&value.length>3)out=out.split(value).join('***');
+  }
+  return out;
+}
+
+function parseCode(data:unknown):string{
+  if(!data||typeof data!=='object')return '';
+  const obj=data as Record<string,unknown>,value=obj.response_code??obj.code;
+  return typeof value==='number'||typeof value==='string'?String(value):'';
+}
+
+export async function submitBulkSmsBd({phone,message,fetcher=fetch}:{phone:string;message:string;fetcher?:typeof fetch}):Promise<SmsOutcome>{
+  if(process.env.CENTER_SMS_WRITE_ENABLED!=='true')throw Error('SMS_DISABLED');
+  const credentials=smsCredentials();
+  if(!credentials)throw Error('SMS_NOT_CONFIGURED');
+  if(!/^01[3-9]\d{8}$/.test(phone)||!message.trim()||message.length>2000)throw Error('SMS_INVALID');
+  try{
+    // `type` is a documented parameter: Bangla bodies go as unicode, ASCII bodies as text.
+    const body=new URLSearchParams({api_key:credentials.apiKey,type:smsNeedsUnicode(message)?'unicode':'text',senderid:credentials.senderId,number:'88'+phone,message});
+    const response=await fetcher(SMS_SINGLE_URL,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body,signal:AbortSignal.timeout(15000),cache:'no-store',redirect:'error'});
+    const text=redactSmsSecrets((await response.text()).slice(0,20000));
+    let data:unknown;try{data=JSON.parse(text)}catch{return {status:'unknown'}}
+    const code=parseCode(data);
+    if(!code)return {status:'unknown'};
+    if(response.ok&&code==='202')return {status:'submitted',code};
+    if(/^10\d{2}$/.test(code))return {status:'rejected',code};
+    return {status:'unknown',code};
+  }catch{return {status:'unknown'}}
+}
+
+export type SmsManyItem={phone:string;message:string};
+
+/** Serialize the provider's "mixed phone number and message" body: `880171…,msg;880181…,msg`. */
+export function serializeSmsMany(items:SmsManyItem[]):string{
+  return items.map(item=>`88${item.phone},${item.message}`).join(';');
+}
+
+/** One-to-many / many-to-many submission. Rejects the whole call, so callers re-batch. */
+export async function submitManyBulkSmsBd({items,fetcher=fetch}:{items:SmsManyItem[];fetcher?:typeof fetch}):Promise<SmsOutcome>{
+  if(process.env.CENTER_SMS_WRITE_ENABLED!=='true')throw Error('SMS_DISABLED');
+  const credentials=smsCredentials();
+  if(!credentials)throw Error('SMS_NOT_CONFIGURED');
+  if(!items.length)throw Error('SMS_INVALID');
+  if(items.some(item=>!/^01[3-9]\d{8}$/.test(item.phone)||!item.message.trim()||item.message.length>2000))throw Error('SMS_INVALID');
+  try{
+    const body=new URLSearchParams({api_key:credentials.apiKey,senderid:credentials.senderId,messages:serializeSmsMany(items)});
+    const response=await fetcher(SMS_MANY_URL,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body,signal:AbortSignal.timeout(30000),cache:'no-store',redirect:'error'});
+    const text=redactSmsSecrets((await response.text()).slice(0,20000));
+    let data:unknown;try{data=JSON.parse(text)}catch{return {status:'unknown'}}
+    const code=parseCode(data);
+    if(!code)return {status:'unknown'};
+    if(response.ok&&code==='202')return {status:'submitted',code};
+    if(/^10\d{2}$/.test(code))return {status:'rejected',code};
+    return {status:'unknown',code};
+  }catch{return {status:'unknown'}}
+}
+
+export type SmsBalance={ok:true;balance:number}|{ok:false;code?:string};
+
+/** Live balance for the settings page. Never returns the key, even in the failure branch. */
+export async function getBulkSmsBdBalance({fetcher=fetch}:{fetcher?:typeof fetch}={}):Promise<SmsBalance>{
+  const credentials=smsCredentials();
+  if(!credentials)return {ok:false};
+  try{
+    const url=`${SMS_BALANCE_URL}?api_key=${encodeURIComponent(credentials.apiKey)}`;
+    const response=await fetcher(url,{method:'GET',signal:AbortSignal.timeout(15000),cache:'no-store',redirect:'error'});
+    const text=redactSmsSecrets((await response.text()).slice(0,2000)).trim();
+    let data:unknown;try{data=JSON.parse(text)}catch{data=null}
+    const code=parseCode(data);
+    if(code&&code!=='202'&&/^10\d{2}$/.test(code))return {ok:false,code};
+    const candidate=data&&typeof data==='object'?((data as Record<string,unknown>).balance??(data as Record<string,unknown>).amount):text;
+    if(typeof candidate==='number'&&Number.isFinite(candidate))return {ok:true,balance:candidate};
+    // Only a single plain decimal is accepted. Stripping punctuation from prose ("not a number")
+    // yields '' and Number('') is 0, which would report a false zero balance and a bogus
+    // low-balance warning — so anything that is not a number is reported as unreadable instead.
+    const digits=String(candidate??'').replace(/[^\d.-]/g,'');
+    if(!/^-?\d+(?:\.\d+)?$/.test(digits))return {ok:false,code:code||undefined};
+    const balance=Number(digits);
+    if(!Number.isFinite(balance))return {ok:false,code:code||undefined};
+    return {ok:true,balance};
+  }catch{return {ok:false}}
+}
+
+/**
+ * The provider the rest of the app talks to. `SMS_PROVIDER=mock` (the default, and forced in test
+ * mode) sends nothing and records "Sent (mock)"; `bulksmsbd` uses the documented endpoints above.
+ */
+export type SmsProviderName='mock'|'bulksmsbd';
+
+export interface SmsProvider{
+  readonly name:SmsProviderName;
+  readonly configured:boolean;
+  send(phone:string,message:string):Promise<SmsOutcome>;
+  sendMany(items:SmsManyItem[]):Promise<SmsOutcome>;
+  balance():Promise<SmsBalance>;
+}
+
+export function smsProviderName():SmsProviderName{
+  return process.env.SMS_PROVIDER==='bulksmsbd'?'bulksmsbd':'mock';
+}
+
+/** The mock never touches the network, so a test run can send 500 messages safely. */
+export function createMockProvider(log:(line:string)=>void=()=>{}):SmsProvider{
+  return {
+    name:'mock',
+    configured:true,
+    async send(phone,message){log(`Sent (mock) to ${phone}: ${message.slice(0,80)}`);return {status:'submitted',code:'202'}},
+    async sendMany(items){for(const item of items)log(`Sent (mock) to ${item.phone}: ${item.message.slice(0,80)}`);return {status:'submitted',code:'202'}},
+    async balance(){return {ok:true,balance:Number(process.env.SMS_MOCK_BALANCE??9999)}},
+  };
+}
+
+export function createBulkSmsBdProvider(fetcher:typeof fetch=fetch):SmsProvider{
+  const configured=validateSmsCredentials().ok;
+  return {
+    name:'bulksmsbd',
+    configured,
+    send:(phone,message)=>submitBulkSmsBd({phone,message,fetcher}),
+    sendMany:items=>submitManyBulkSmsBd({items,fetcher}),
+    balance:()=>getBulkSmsBdBalance({fetcher}),
+  };
+}
+
+export function createSmsProvider(fetcher:typeof fetch=fetch,log:(line:string)=>void=(line)=>console.log(redactSmsSecrets(line))):SmsProvider{
+  return smsProviderName()==='bulksmsbd'?createBulkSmsBdProvider(fetcher):createMockProvider(log);
+}

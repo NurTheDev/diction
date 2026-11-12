@@ -68,7 +68,11 @@ export async function purgeExpiredProofMilestones(now:Date=new Date()):Promise<n
   const list=(stored?.proof?.milestones||[]) as ProofMilestone[];
   const kept=list.filter(m=>!m.deletedAt||!m.purgeAt||m.purgeAt.getTime()>now.getTime());
   if(kept.length===list.length)return 0;
-  for(const gone of list.filter(m=>!kept.includes(m)))await audit('system','proof.milestone.purge',milestoneName(gone));
+  // AdminAudit.actor is a required User ref, so the unattended daily job cannot write an audit row
+  // (an earlier version called audit('system',…) here, which threw and was swallowed — no row was
+  // ever written). Same convention as purgeExpired(): the job reports purged names in its own log.
+  const purgedNames=list.filter(m=>!kept.includes(m)).map(m=>milestoneName(m));
+  console.log(`Daily job: purged ${purgedNames.length} expired social-proof milestone(s): ${purgedNames.join(', ')}`);
   await SiteSettingsContent.updateOne({key:'main'},{$set:{'proof.milestones':kept}},{runValidators:true});
   revalidateHome();
   return list.length-kept.length;
