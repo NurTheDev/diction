@@ -76,7 +76,7 @@ message instead of minutes of retries and a raw stack trace (`tests/helpers/env-
 | Legacy fee **conversion/migration** | **missing** | No conversion code (searched `poisha`, `convertLegacy`, `LegacyFee`). Only the experimental identity link (`CENTER_LEGACY_LINK_ENABLED`, off by default). |
 | Portal linking for Center students/guardians | **missing** | `/parent/*` reads the legacy `Student`/`FeeInvoice`/`FeePayment` models only. No page outside `/admin` reads `CenterStudent` or `CenterPayment`. |
 | "ভর্তি সম্পন্ন" creates a student | **missing** | `ভর্তি সম্পন্ন` is only a status **label** (`admin.enrolled`, `forms.statusEnrolled`). `CenterStudent` is created by the student form, the import batch or the workbook batch — never from an admission. |
-| Exams (create, subjects, marks, ranking, publish) | partial | ran today (grading/ranking unit) + prior log. Writes gated by `CENTER_EXAM_WRITE_ENABLED` (off). Single class per screen, ≤500 students, no unpublish/correction, no teacher scoping, no SMS/portal/PDF → R5. |
+| Exams (create, subjects, marks, ranking, publish) | partial | ran today (grading/ranking unit) + prior log. Writes gated by `CENTER_EXAM_WRITE_ENABLED` (off in production; `npm run verify` turns it on for the disposable database so the flow is demonstrated — §11). The browser proof of create → marks → A+ → rank → publish is **not yet green**: it was the single FAIL of the first CI run (§11, cause found and fixed, awaiting a re-run). Single class per screen, ≤500 students, no unpublish/correction, no teacher scoping, no SMS/portal/PDF → R5. |
 | SMS | partial | A low-level BulkSMSBD adapter + segment estimator exist and are unit-tested, gated off. **No** queue, UI, templates UI, opt-out/quiet-hours, idempotency, logs page or balance → R2. Models `CenterSmsTemplate/Batch/Log` and `CenterSettings` already exist. |
 | Visitor leads | **missing** | → R3. |
 | Teacher CV bank | **missing** | → R4. |
@@ -125,6 +125,10 @@ Note against SPEC §4 ("no core feature hidden behind a disabled-by-default swit
 gate, the snapshot gate and the SMS gate currently do exactly that. R2 and R5 must turn SMS and
 exams into normal features (mock provider first), and the snapshot confirm checkbox should be
 revisited in R6.
+
+`npm run verify` sets `CENTER_EXAM_WRITE_ENABLED=true` for the disposable test database only, so
+verification demonstrates the exam flow instead of asserting a disabled button. No production
+default was changed.
 
 ## 6. Owner decisions
 
@@ -178,7 +182,8 @@ and every R1 requirement gets a line in `scripts/verify-plan.ts` before delivery
 | `verify-report.md` rendering | working | ran today; `tests/verify-report.test.ts` proves one line per requirement and no PASS without evidence |
 | `verify-output.zip` writer | working | ran today; round-tripped through `yauzl` with intact binary content |
 | Requirement registry (`verify-plan.ts`) | working | 11 R0 requirements; the unit test asserts every entry points at a real script or test file |
-| Screenshot pass (360/1440) | **blocked here** | needs the browser + the running app; will run on the owner's machine |
+| Screenshot pass (360/1440) | working | **blocked in this sandbox, proven on GitHub Actions**: 26 screenshots (13 pages × 360/1440) with no horizontal overflow — see §11 |
+| `testDbName()` — attached tests use the app's database | working | new after the first CI run; asserted in `tests/center-data-mode.test.ts`, explained in `docs/STALE-TESTS.md` §7 |
 | `README.md` steps for a non-technical person | working | new top section "Start here: verify this build in one command" + a failure/fix table |
 
 ## 9. সংক্ষেপে (owner summary)
@@ -215,3 +220,43 @@ illustrative. If any of it came from the real sheet, say so and I will regenerat
 obviously fake data — real student data must not live in a Git repository.
 
 **No credential was ever asked for, echoed or stored in chat or code during this work.**
+
+## 11. Continuous verification — the first full run on GitHub Actions (2026-11-12)
+
+`.github/workflows/verify.yml` runs the owner's protocol on every push to this branch. GitHub's
+runners can download what this sandbox cannot (MongoDB, Chromium), so run `43223729105` was the first
+time R0 was verified **end to end** rather than partially.
+
+Result: **10 PASS, 1 FAIL** of 11 requirements, 159 s, Node 22.23.4.
+
+Proven for the first time by that run:
+
+| Requirement | Evidence from the runner |
+| --- | --- |
+| R0.4 isolated database | in-memory replica set at `mongodb://127.0.0.1:46629/?replicaSet=testset`, database `dictioncoaching_test`, with the real `MONGODB_URI` replaced by an invalid host |
+| R0.5 app serves sign-in | `GET /api/auth/csrf` → 200 |
+| R0.6 demo admin sign-in | signed in, `GET /bn/admin` → 200 with the session cookie |
+| R0.10 workbook import browser flow | 2 tabs / 17 rows, raw ৳226400, class suggestions, bulk and per-row choices, draft save/load, CSV, 360/1440 layout |
+| R0.11 screenshots | 26 images in `screenshots/r0` (13 pages × 360 px and 1440 px) |
+
+The one FAIL, R0.9 (exams browser test):
+
+```
+locator.waitFor: Timeout 30000ms exceeded.
+  - waiting for locator('h1').filter({ hasText: 'কেন্দ্রের পরীক্ষা ও ফল' }) to be visible
+```
+
+**Cause:** the test seeded its `exam_manager` user into `dictioncoaching` while the app serves
+`dictioncoaching_test`, so the sign-in was rejected and the page redirected to `/bn/login`. A wrong
+database name presents as a broken selector. Full analysis and the fix: `docs/STALE-TESTS.md` §7.
+
+**Fix (this commit):** test mode publishes `TEST_MONGO_DB`; `tests/helpers/env-preflight.ts` gained
+`testDbName()`, used by both browser tests and the screenshot pass; the invariant is asserted in
+`tests/center-data-mode.test.ts`; the exams test now fails immediately with the landing URL instead
+of timing out; and verification enables the exam write gate for the disposable database so R0.9
+demonstrates create → marks → total/grade → rank → publish rather than a disabled button.
+
+**Where the evidence lives:** the workflow commits `verify-report.md` and
+`test-results/ci-latest/` (the report plus the last 400 lines of every step log) back to this
+branch, because artifact and log download is blocked from this sandbox. `git pull` is enough to read
+why a run failed.

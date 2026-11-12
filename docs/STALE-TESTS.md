@@ -193,3 +193,50 @@ protection, reasoned void).
 
 **Coverage lost and owed:** no browser test drives the live daily-collection screen. Rewriting it is
 small and belongs with the payment screens — scheduled for R1/R2, tracked in `docs/STATUS.md` §3.
+
+## 7. Found by continuous verification on 2026-11-12: the tests used the wrong database
+
+The first GitHub Actions run that could actually start MongoDB and Chromium
+(run `43223729105`, 10 PASS / 1 FAIL) failed exactly one requirement, R0.9:
+
+```
+locator.waitFor: Timeout 30000ms exceeded.
+  - waiting for locator('h1').filter({ hasText: 'কেন্দ্রের পরীক্ষা ও ফল' }) to be visible
+```
+
+**Cause — not a UI literal this time.** `src/lib/db.ts` resolves the database name from
+`CENTER_DATA_MODE`, so the test-mode app serves `dictioncoaching_test`. The two browser tests and
+the screenshot pass all connected with a hard-coded `{dbName:'dictioncoaching'}`. The exams test
+therefore created `ce-exam_manager@example.test` in a database the app never reads; NextAuth found
+no such user, the app redirected to `/bn/login`, and the heading locator timed out. The workbook
+test survived the same bug only because it signs in as the demo admin that test mode seeds into the
+*right* database, and its assertions come from an uploaded XLSX rather than from seeded rows.
+
+This is the second half of the harness defect described in §1 item 4 ("spawned `next start` on an
+ephemeral Mongo different from the one the page reads"). Pointing the tests at an external
+`TEST_ORIGIN` / `TEST_MONGO_URI` fixed *which server*; the *which database* half stayed broken and
+was invisible in the agent sandbox, where neither MongoDB nor Chromium can be downloaded at all.
+
+**Fix.**
+
+1. `scripts/test-mode.ts` now publishes the name it is serving: `TEST_MONGO_DB=dictioncoaching_test`
+   next to `TEST_ORIGIN` and `TEST_MONGO_URI`.
+2. `tests/helpers/env-preflight.ts` gained `testDbName()`: the published name, else the database in
+   `TEST_MONGO_URI`'s path, else `CENTER_DATA_MODE`, else `dictioncoaching`. Both browser tests and
+   `scripts/verify-screens.ts` use it instead of a literal.
+3. `tests/center-data-mode.test.ts` asserts the invariant that broke — including that
+   `testDbName()` in test mode equals `databaseName('test')`, and that credentials or a query string
+   in the URI do not confuse the parser.
+4. The exams test now fails immediately with a reason instead of timing out: if the URL after
+   `goto` does not contain `center-exams`, it throws "exam_manager was not let in; landed on … —
+   usually means this test and the app are using different databases".
+
+**Also corrected while re-reading the flow.** §1's table says `content_editor` is denied by
+`requireStaffPermission('exams')`. It never gets that far: `src/proxy.ts` redirects a
+`content_editor` away from any admin path outside `/content` and `/public-sheets` before the page
+runs (`exam_manager` is explicitly allowed `/center-exams`). The test's assertion
+`!op.url().includes('center-exams')` is correct, but the reason is the middleware, not the guard.
+
+**Lesson recorded for later milestones:** a browser test that seeds its own users must prove it is
+seeding the database the app serves. A wrong database name does not look like a configuration
+problem — it looks like a broken selector.

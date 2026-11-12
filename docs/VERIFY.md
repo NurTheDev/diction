@@ -25,12 +25,26 @@ send a complete new ZIP.
 | 4 | Starts `npm run test-mode` as a child: TypeScript check, production build, in-memory MongoDB replica set, demo admin, `next start` | R0.2, R0.3, R0.4, R0.5 | internet (first run downloads mongod) |
 | 5 | Signs in as the demo admin over plain HTTP and loads `/bn/admin` | R0.6 | step 4 |
 | 6 | Screenshot pass: 13 pages × 360 px and 1440 px, plus a horizontal-overflow measurement | R0.11 | steps 3 and 4 |
-| 7 | Browser tests against that same app and database | R0.9, R0.10 | steps 3 and 4 |
+| 7 | Browser tests against that same app **and the same database** (`TEST_MONGO_DB`) | R0.9, R0.10 | steps 3 and 4 |
 | 8 | Writes `verify-report.md`, `screenshots/<milestone>/`, `verify-output.zip`; stops the app | — | — |
 
 Safety: the child runs with `MONGODB_URI` replaced by an invalid host, so even a mistake cannot
 reach a real database; test mode uses its own `dictioncoaching_test` database and destroys it on
 exit. No SMS, email or Cloudinary call is made.
+
+Two environment details that matter when reading the report:
+
+- **`TEST_MONGO_DB`.** Test mode prints the database name it is serving, and the harness passes it
+  to every attached test and to the screenshot pass. `src/lib/db.ts` derives the name from
+  `CENTER_DATA_MODE`, so a test that hard-codes a name seeds a database nobody reads — the app then
+  bounces the sign-in and every locator times out. That exact failure cost the first CI run its only
+  FAIL; `tests/center-data-mode.test.ts` now asserts the invariant (`docs/STALE-TESTS.md` §7).
+- **`CENTER_EXAM_WRITE_ENABLED=true` for this disposable database only.** Verification demonstrates
+  the exam flow end to end (create → marks → total/grade → rank → publish) instead of asserting a
+  disabled button, which is what the owner's rule asks for: test mode means a separate database, not
+  a blocked feature. The gate is untouched in production and is scheduled for removal in R5; the
+  report says so in its Notes, and the exams test still asserts the disabled-button behaviour when
+  it is run without the gate.
 
 ## Reading the report
 
@@ -53,7 +67,9 @@ exit. No SMS, email or Cloudinary call is made.
 | `scripts/verify-zip.ts` | Dependency-free ZIP writer for `verify-output.zip` (unit-tested, round-tripped through `yauzl`). |
 | `scripts/verify-screens.ts` | Signed-in screenshot pass at 360/1440 px with overflow measurement. |
 | `tests/verify-report.test.ts` | Proves the harness itself: no PASS without evidence, one line per requirement, escaping, valid ZIP, every registered requirement points at a real proof. |
+| `tests/helpers/env-preflight.ts` | Shared prerequisites (`preflight`) and `testDbName()` — the database name attached tests must use. |
 | `verify-report.md`, `screenshots/` | Kept in the repository as evidence. |
+| `test-results/ci-latest/` | The most recent GitHub Actions run: its report and the last 400 lines of every step log, committed back to the branch so the evidence survives even where artifact download is blocked. |
 | `verify-output/`, `verify-output.zip` | Transfer artefacts, git-ignored. |
 
 ## Adding requirements for a new milestone (for the next agent)
@@ -97,13 +113,20 @@ the brief asks for and what is actually proven.
 1. `npm ci`
 2. `npx playwright install --with-deps chromium`
 3. `npm run verify`
-4. Prints `verify-report.md` into the job log **and** the job summary, then uploads
-   `verify-report.md`, `verify-output.zip`, `screenshots/` and `verify-output/logs/` as the
+4. Prints `verify-report.md` into the job log **and** the job summary.
+5. Commits the evidence back to this branch: `verify-report.md` plus
+   `test-results/ci-latest/` (the report and the last 400 lines of each step log). The commit
+   carries the skip-ci directive so it does not start another run.
+6. Uploads `verify-report.md`, `verify-output.zip`, `screenshots/` and `verify-output/logs/` as the
    `verify-output` artifact (uploaded even when the run fails, kept 30 days).
 
-The workflow is read-only (`permissions: contents: read`): it never pushes, never opens a pull
-request, never deploys and never runs on `main`. MongoDB and Chromium caches are kept between runs so
-a repeat run takes a few minutes instead of ten.
+Step 5 exists because a sandbox or a locked-down network can read a run's *status* but not its
+*artifacts*: with the evidence on the branch, `git pull` is enough to see why a run failed.
+
+The workflow has `permissions: contents: write` **only** so it can push that evidence commit to this
+one branch. It never opens a pull request, never merges, never deploys and never runs on `main`.
+Dispatching it manually with `publish_screenshots` also commits `screenshots/<milestone>/`.
+MongoDB and Chromium caches are kept between runs so a repeat run takes a few minutes instead of ten.
 
 Value: GitHub's runners have normal internet access, so the two downloads this agent sandbox cannot
 make (`fastdl.mongodb.org`, Playwright's Chromium) work there. A green run with 11/11 PASS is real
