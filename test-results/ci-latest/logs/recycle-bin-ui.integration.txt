@@ -1,1 +1,9 @@
-Recycle Bin UI: named 30-day ConfirmDialog, delete + Undo (row and public page), bulk select + delete + Undo, blocked delete showing "2 student(s) use this class" with a working Archive, delete + restore from the bin with type filter and search, Delete forever gated on the typed name and on Super Admin, the same dialog and Undo on the client-fetched lecture-sheet list, staff able to archive and restore but never to delete, content_editor seeing no destructive control, no overflow at 360/768/1440, no page errors, and an audit row per move — against the disposable test database.
+AssertionError [ERR_ASSERTION]: staff can archive
+    at run (/home/runner/work/diction/diction/tests/recycle-bin-ui.integration.ts:293:12) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}
