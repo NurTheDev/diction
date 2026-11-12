@@ -170,6 +170,8 @@ toast) and what must change in it, plus the R1 build order. Two extra findings: 
 
 ## 7. Next milestone
 
+**R2** (see §12 for what R1 delivered and what it still owes). The R1 brief was:
+
 **R1 — delete/archive everywhere.** Starting facts already gathered: six legacy content modules
 hard-delete today (`deleteEditorial`, `deleteCourse`, `deleteMaterial`, `deleteMedia`,
 `deletePortalNotice`, `deleteSiteContent` — all `deleteOne`, no restore); no model has `deletedAt`;
@@ -272,3 +274,48 @@ database."
 `test-results/ci-latest/` (the report plus the last 400 lines of every step log) back to this
 branch, because artifact and log download is blocked from this sandbox. `git pull` is enough to read
 why a run failed.
+
+## 12. R1 — delete, archive, restore, Recycle Bin (code complete, awaiting owner verification)
+
+**Status:** all six build-order steps of `docs/R1-AUDIT.md` §E are delivered for the twelve
+participating record types, and GitHub Actions run
+[43258474938](https://github.com/NurTheDev/diction/actions/runs/43258474938) reported
+**`PASS — 16 PASS, 0 FAIL, 0 NOT TESTED (of 16 requirements)`** in 145 s on Node 22.23.4
+(2026-11-12). Nothing here counts as verified until the owner runs `npm run verify` and sends
+`verify-output.zip` — see `docs/R1-START-HERE.md` for the click list.
+
+| Piece | Status | Evidence |
+| --- | --- | --- |
+| Recycle fields on 12 schemas (`deletedAt/deletedBy/purgeAt`, partial `purgeAt` index) | working | R1.1, R1.3 |
+| Auto-hide invariant: find, findOne, count, distinct, aggregate, bulkWrite, every update, populate | working | R1.3 (hook registration) + R1.1 (live aggregate/distinct/bulkWrite/populate) |
+| Deliberate opt-outs: bin list, restore, purge, `{recycleAny:true}`; `estimatedDocumentCount` unfiltered | documented | `docs/R1-COVERAGE.md` §1 |
+| Payments, students, logs, snapshots, SMS records, users can never be hidden | working | R1.3 (no `deletedAt` path exists on 12 such schemas) |
+| Blocked delete with real reference counts, in the operator's language | working | R1.1 + R1.4 (`2 student(s) use this class`) |
+| 30-day bin, restore, purge after retention, Cloudinary destroyed first | working | R1.1 |
+| Recycle Bin page: type filter, search, days left, Restore, Delete forever (Super Admin, typed name) | working | R1.4 |
+| ConfirmDialog names the item and says 30 days; 10-second Undo for single and bulk deletes | working | R1.4 |
+| Bulk select + delete on the blog/notice/video/gallery and course lists | working | R1.4 |
+| Archive floor for staff, offered automatically when a delete is blocked | working | R1.4 |
+| `staff` role: list access + archive, never delete, never authoring, no roles/audit/ai | working | R1.2, R1.4 |
+| Public pages, blog URLs and the sitemap stop serving a binned record immediately; revalidation on delete/restore/purge | working | R1.3 (route map) + R1.4 (public 404 then 200 after Undo) |
+| Daily job `/api/admin/jobs/daily`: purge + 12-month log trim, `CRON_SECRET` bearer auth, `vercel.json` | working | R1.5 (contract) + R1.1 (live run) |
+| Delete/archive controls for every participating kind (§E6 first wave) | working | R1.4 (sheets + content + classes) |
+| Audit row per delete, restore, archive and purge | working | R1.1, R1.4 |
+
+**Owed, stated plainly:**
+
+1. Nine record types are still outside the engine and have no delete control: trial slots, trial
+   bookings, admissions, contact messages, hero banners, teachers (faculty), portal accounts,
+   legacy academic exams and model tests (§E6 second wave).
+2. The media library card soft-deletes and names the file, but has no Undo button — restore is from
+   the Recycle Bin page.
+3. The daily job has not run on a real Vercel deployment; that needs the owner's project and a
+   `CRON_SECRET` of at least 32 characters.
+4. Two orphaned components (`center-import-preview.tsx`, `center-cash-form.tsx`) still await an
+   owner ruling, and R0 is still untagged pending the owner's `verify-output.zip`.
+
+**Two real defects the R1.4 browser test caught** (both fixed, both recorded in
+`test-results/r1-verification.txt`): `purgeForeverItem` compared the typed name against a read the
+auto-hide rule empties, so Delete forever could never succeed; and the Undo toast lived inside the
+row it deleted, so the post-delete refresh unmounted the 10-second window. The toast now lives in a
+layout-level host (`RecycleToastHost`).

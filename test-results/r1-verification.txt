@@ -29,3 +29,82 @@ R1 verification evidence (increment: staff role + Recycle Bin engine + conversio
 RESULT: the R1 foundation is demonstrated end to end on a real replica set. UI (Recycle Bin page,
         ConfirmDialog naming the item, 10 s Undo toast, bulk select) and the daily scheduled job
         remain, then the remaining no-control record types.
+
+================================================================================
+ROUND 2 — R1 §E4 (UI), §E5 (daily job) and §E6 (controls), 2026-11-12
+================================================================================
+
+WHAT WAS BUILT
+  §E4  ConfirmSubmit names the item and states "moves to the Recycle Bin for 30 days";
+       ActionFeedback grew action buttons and a 10-second window when they are offered;
+       DeleteRow (dialog -> soft delete -> Undo toast -> Archive when blocked), ArchiveRow,
+       RowControls, BulkDeleteBar + BulkSelectAll, BinRow (Restore, Delete forever behind a
+       typed name), /[locale]/admin/recycle-bin (type filter, search, days left), nav entry,
+       server actions in src/actions/recycle.ts, all strings in bn.json and en.json.
+  §E5  /api/admin/jobs/daily: purgeExpired (Cloudinary assets first) + trimOldLogs
+       (CenterSettings.logRetentionMonths, default 12), CRON_SECRET bearer auth with a
+       constant-time compare and a 32-character minimum, vercel.json cron 0 19 * * *
+       (= 01:00 Asia/Dhaka), CRON_SECRET documented in .env.example.
+  §E6  Controls for every participating kind: editorial kinds, courses, study materials,
+       portal notices, FAQs/facilities, achievements, practice tests, lecture sheets, class
+       groups and Center exams. The two window.confirm("Permanently delete…") dialogs are
+       gone. Media keeps its own card dialog, now naming the file.
+  Also The toast moved to a layout-level host (RecycleToastHost): a successful delete
+       refreshes the list, which unmounted the row and took the Undo window with it.
+       Staff got list access (getListAccess/requireListAccess) WITHOUT authoring — an
+       earlier change to getStaffPermission had widened saveEditorial, the center-exam and
+       model-test actions, which is more than "archive/hide, never delete".
+
+CI ROUNDS (each failure was in test fixtures or in a real defect the test caught)
+  43248637357 FAIL  R1.1: the new aggregate/distinct/bulkWrite/populate block binned a class
+                    group that a live exam still used, so softDelete answered "blocked"
+                    (correct product behaviour, wrong fixture). R1.4: a synthetic
+                    CenterStudent had a 10-digit guardian phone.
+  43251016741 FAIL  R1.1: two Editorial fixtures in the daily-job block lacked the required
+                    title.en. R1.4: sign-in silently failed and the suite asserted on a page
+                    it never reached; sign-in now proves the same database (the app must
+                    serve the post the test wrote), proves the stored hash, verifies
+                    /api/auth/session, retries, and falls back to the real login form.
+  43252922954 FAIL  R1.1: CenterSmsLog requires a batch and a student, which the retention
+                    trim does not care about — the two log rows are written straight into the
+                    collection. R1.4: rows on /en render the English title while the engine's
+                    own name is Bangla-first; the selectors now use each correctly.
+  43255509835 FAIL  R1.4 exposed a REAL defect: purgeForeverItem compared the typed name
+                    against findById(), which the auto-hide rule empties for a binned row, so
+                    Delete forever could never succeed. It now reads with binFilter.
+  43256265117 FAIL  R1.4 exposed a second REAL defect: the Undo toast was rendered inside the
+                    row, so the post-delete refresh unmounted it. Fixed by the layout host.
+  43257693604 FAIL  R1.4: POST /api/admin/public-sheets answers 403 without an Origin header
+                    matching NEXTAUTH_URL and Host; Playwright sends none by default.
+  43258474938 PASS  16 PASS, 0 FAIL, 0 NOT TESTED (of 16), 145 s, Node 22.23.4.
+                    https://github.com/NurTheDev/diction/actions/runs/43258474938
+
+EVIDENCE LINES (verbatim from that run)
+  R1.1  "Recycle Bin engine: reference-blocked delete with exact counts, 30-day bin, restore,
+         purge, audit rows, every query shape hidden, and the daily job (401 without the
+         secret; purges only expired rows and trims old logs) passed."
+  R1.3  "Recycle coverage: 12 schemas carry the bin fields; 12 financial/audit/student types
+         cannot be hidden; find/findOne/count/distinct/findOneAnd*/update*/delete*/aggregate/
+         bulkWrite are covered; estimatedDocumentCount is the documented exception; public
+         kinds revalidate their routes; the client kind lists match the registry."
+  R1.4  "Recycle Bin UI: named 30-day ConfirmDialog, delete + Undo (row and public page), bulk
+         select + delete + Undo, blocked delete showing \"2 student(s) use this class\" with a
+         working Archive, delete + restore from the bin with type filter and search, Delete
+         forever gated on the typed name and on Super Admin, the same dialog and Undo on the
+         client-fetched lecture-sheet list, staff able to archive and restore but never to
+         delete, content_editor seeing no destructive control, no overflow at 360/768/1440, no
+         page errors, and an audit row per move — against the disposable test database."
+  R1.5  "Daily job: bearer-secret auth (401 when missing, wrong, short or non-Bearer; refuses
+         with no secret configured), vercel.json schedules it daily at 01:00 Asia/Dhaka, logs
+         trim after 12 months."
+
+NOT COVERED / NOT TESTED (stated plainly)
+  - The nine record types that are not part of the engine yet have no delete control: trial
+    slots, trial bookings, admissions, contact messages, hero banners, teachers (faculty),
+    portal accounts, legacy academic exams, model tests. Next wave of §E6.
+  - The media card soft-deletes and names the file, but has no Undo button; restore happens
+    from the Recycle Bin page.
+  - The daily job is proved against the disposable database and by its auth contract; it has
+    not run on a real Vercel deployment (that needs the owner's project and CRON_SECRET).
+  - NOTHING HERE IS "VERIFIED" UNTIL THE OWNER RUNS `npm run verify` AND SENDS
+    verify-output.zip. See docs/R1-START-HERE.md for the click list.
