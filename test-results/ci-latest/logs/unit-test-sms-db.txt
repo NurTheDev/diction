@@ -1,26 +1,22 @@
 --- tests/sms-send.integration.ts (exit 1) ---
-Error: CenterStudent validation failed: holds.0.recordedBy: Path `recordedBy` is required.
-    at ValidationError.inspect (/home/runner/work/diction/diction/node_modules/mongoose/lib/error/validation.js:52:26)
-    at formatValue (node:internal/util/inspect:897:19)
-    at inspect (node:internal/util/inspect:409:10)
-    at formatWithOptionsInternal (node:internal/util/inspect:2643:40)
-    at formatWithOptions (node:internal/util/inspect:2505:10)
-    at console.value (node:internal/console/constructor:366:14)
-    at console.error (node:internal/console/constructor:433:61)
-    at <anonymous> (/home/runner/work/diction/diction/tests/sms-send.integration.ts:313:29) {
-  errors: {
-    'holds.0.recordedBy': ValidatorError: Path `recordedBy` is required.
-        at validate (/home/runner/work/diction/diction/node_modules/mongoose/lib/schemaType.js:1440:13)
-        at SchemaType.doValidate (/home/runner/work/diction/diction/node_modules/mongoose/lib/schemaType.js:1424:7)
-        at /home/runner/work/diction/diction/node_modules/mongoose/lib/document.js:3151:18
-        at process.processTicksAndRejections (node:internal/process/task_queues:84:11) {
-      properties: [Object],
-      kind: 'required',
-      path: 'recordedBy',
-      value: undefined,
-      reason: undefined,
-      [Symbol(mongoose#validatorError)]: true
-    }
-  },
-  _message: 'CenterStudent validation failed'
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
+    'held',
+    'invalid_phone',
+    'missing_phone',
++   'missing_phone',
+    'opted_out',
+    'removed'
+  ]
+
+    at run (/home/runner/work/diction/diction/tests/sms-send.integration.ts:166:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: [Array],
+  expected: [Array],
+  operator: 'deepStrictEqual',
+  diff: 'simple'
 }
