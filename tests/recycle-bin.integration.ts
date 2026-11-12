@@ -154,7 +154,7 @@ async function run(){
     const report=await ran.json() as {ok:boolean;purged:number;trim:{smsLog:number;activityLog:number}};
     assert.equal(report.ok,true);
     assert.equal(report.purged,1,'only the expired row was purged');
-    assert.deepEqual(report.trim,{smsLog:1,activityLog:0},'only the 13-month-old SMS log was trimmed');
+    assert.deepEqual(report.trim,{smsLog:1,activityLog:0,proofMilestones:0},'only the 13-month-old SMS log was trimmed; no milestone was due');
     assert.equal(await Editorial.countDocuments({_id:expired._id,...binFilter}),0,'the expired row is gone');
     assert.equal(await mongoose.connection.db!.collection('editorials').countDocuments({_id:expired._id}),0,'gone from storage, not just from queries');
     assert.equal(await Editorial.countDocuments({_id:fresh._id,...binFilter}),1,'a row still inside its 30 days survives');
