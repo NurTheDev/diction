@@ -288,14 +288,19 @@ async function run(){
     const staff=await signIn('staff',360);
     await staff.page.goto(`${origin}/en/admin/content?kind=blog`,{waitUntil:'domcontentloaded',timeout:180000});
     assert.ok(staff.page.url().includes('/admin/content'),`staff must reach the content list; landed on ${staff.page.url()}`);
+    // The list streams in after the shell, so wait for a rendered control BEFORE asserting
+    // absence — an absence check on a still-loading page would pass for the wrong reason.
+    await staff.page.getByRole('button',{name:'Archive',exact:true}).first().waitFor({state:'visible',timeout:60000});
     assert.equal(await staff.page.getByRole('button',{name:'Delete',exact:true}).count(),0,'staff sees no Delete anywhere on the list');
     assert.equal(await staff.page.locator('.admin-bulk-bar').count(),0,'staff gets no bulk delete bar');
     assert.ok(await staff.page.getByRole('button',{name:'Archive',exact:true}).first().isVisible(),'staff can archive');
     await staff.page.goto(`${origin}/en/admin/recycle-bin`,{waitUntil:'domcontentloaded',timeout:180000});
     assert.ok(staff.page.url().includes('/admin/recycle-bin'),`staff must reach the Recycle Bin; landed on ${staff.page.url()}`);
+    await staff.page.getByRole('button',{name:'Restore',exact:true}).first().waitFor({state:'visible',timeout:60000});
     assert.ok(await staff.page.getByRole('button',{name:'Restore',exact:true}).first().isVisible(),'staff can restore');
     assert.equal(await staff.page.getByRole('button',{name:'Delete forever',exact:true}).count(),0,'Delete forever is Super Admin only');
     await staff.page.goto(`${origin}/en/admin/students/classes`,{waitUntil:'domcontentloaded',timeout:180000});
+    await staff.page.getByRole('button',{name:'Archive',exact:true}).first().waitFor({state:'visible',timeout:60000});
     assert.equal(await staff.page.getByRole('button',{name:'Delete',exact:true}).count(),0,'staff sees no Delete on class management either');
     assert.deepEqual(staff.errors,[],`page errors as staff: ${staff.errors.join(' | ')}`);
     await staff.context.close();
@@ -303,6 +308,7 @@ async function run(){
     const editor=await signIn('content_editor',360);
     await editor.page.goto(`${origin}/en/admin/content?kind=blog`,{waitUntil:'domcontentloaded',timeout:180000});
     assert.ok(editor.page.url().includes('/admin/content'),`content_editor must reach the blog list; landed on ${editor.page.url()}`);
+    await editor.page.locator('table.admin-table tbody tr').first().waitFor({timeout:60000});
     assert.equal(await editor.page.getByRole('button',{name:'Delete',exact:true}).count(),0,'content_editor sees no Delete');
     assert.equal(await editor.page.getByRole('button',{name:'Archive',exact:true}).count(),0,'content_editor sees no Archive either — archiving is the staff floor');
     await editor.page.goto(`${origin}/en/admin/recycle-bin`,{waitUntil:'domcontentloaded',timeout:180000});
