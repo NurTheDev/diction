@@ -37,15 +37,35 @@ export function addRecycleFields(schema:Schema):void{
     purgeAt:{type:Date,default:null},
   });
   schema.index({purgeAt:1},{partialFilterExpression:{purgeAt:{$type:'date'}}});
+  const liveCondition={$not:{$type:'date'}} as const;
   const hideBinned=function(this:{options?:{recycleAny?:boolean};getFilter:()=>Record<string,unknown>}){
     if(this.options?.recycleAny)return;
     const filter=this.getFilter();
     if(!filter||typeof filter!=='object'||'deletedAt' in filter)return;
-    filter.deletedAt={$not:{$type:'date'}};
+    filter.deletedAt=liveCondition;
   };
-  for(const hook of ['find','findOne','countDocuments','findOneAndUpdate','findOneAndReplace','findOneAndDelete','updateOne','updateMany','deleteOne','deleteMany']){
+  for(const hook of ['find','findOne','countDocuments','distinct','findOneAndUpdate','findOneAndReplace','findOneAndDelete','updateOne','updateMany','deleteOne','deleteMany']){
     schema.pre(hook as never,hideBinned as never);
   }
+  // Aggregations bypass query middleware, so the bin filter is unshifted as a $match stage unless
+  // the pipeline already speaks about deletedAt or the caller opts out.
+  schema.pre('aggregate',function(this:{options?:{recycleAny?:boolean};pipeline:()=>Record<string,unknown>[]}){
+    if(this.options?.recycleAny)return;
+    const pipeline=this.pipeline();
+    if(!Array.isArray(pipeline)||pipeline.some(stage=>JSON.stringify(stage).includes('deletedAt')))return;
+    pipeline.unshift({$match:{deletedAt:liveCondition}});
+  } as never);
+  // bulkWrite carries its own filters, so each operation's filter is rewritten in place.
+  const injectFilter=(filter:Record<string,unknown>|undefined):void=>{
+    if(!filter||typeof filter!=='object'||'deletedAt' in filter)return;
+    filter.deletedAt=liveCondition;
+  };
+  schema.pre('bulkWrite',function(this:unknown,next:()=>void,operations:Record<string,{filter?:Record<string,unknown>}>[]=[]){
+    for(const operation of operations||[]){
+      for(const key of ['updateOne','updateMany','deleteOne','deleteMany','replaceOne'])injectFilter(operation?.[key]?.filter);
+    }
+    next();
+  } as never);
 }
 
 /** Documents not in the bin: deletedAt missing (pre-R1 rows) or null. */

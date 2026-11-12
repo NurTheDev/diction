@@ -41,6 +41,7 @@ export const requirements:Requirement[]=[
   // ── R1 · delete, archive, restore, Recycle Bin ─────────────────────────────
   {id:'R1.1',milestone:'R1',text:'Recycle Bin engine: soft delete with a 30-day purge date, restore, delete blocked with real reference counts, and purge only after retention',bn:'রিসাইকেল বিন: ৩০ দিনে মুছে যাওয়া, ফেরত, রেফারেন্স থাকলে আটকে যাওয়া ও মেয়াদ শেষে পার্জ',proof:{kind:'unit',ref:'test:recycle:db'}},
   {id:'R1.2',milestone:'R1',text:'Staff role exists: creatable by super admin, sees admin lists, can archive but never delete, cannot open roles/audit/ai',bn:'স্টাফ রোল: আর্কাইভ করতে পারে, মুছে ফেলতে পারে না, রোল/অডিট/এআই দেখতে পারে না',proof:{kind:'unit',ref:'test:staff-role'}},
+  {id:'R1.3',milestone:'R1',text:'Auto-hide invariant: every query shape (find, findOne, count, distinct, aggregate, bulkWrite, updates, populate) skips binned rows; payments, students, logs and snapshots can never be hidden; public routes revalidate on delete/restore/purge',bn:'অটো-হাইড নিয়ম: সব কোয়েরি আকৃতি বিন করা রো বাদ দেয়; ফি/শিক্ষার্থী/লগ কখনো লুকায় না; পাবলিক পেজ সঙ্গে সঙ্গে refresh হয়',proof:{kind:'unit',ref:'test:recycle:coverage'}},
 ];
 
 export function milestones():string[]{return [...new Set(requirements.map(r=>r.milestone))]}

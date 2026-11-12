@@ -27,6 +27,7 @@ import {binFilter,liveFilter,purgeAtFor,RECYCLE_RETENTION_DAYS} from '@/models/r
 import {audit} from '@/lib/admin/helpers';
 import {getCloudinary} from '@/lib/cloudinary';
 import {formatNumber} from '@/lib/admin/format';
+import {revalidatePath} from 'next/cache';
 
 export type RecycleKind='editorial'|'course'|'material'|'media'|'portalNotice'|'faq'|'facility'|'achievementRecord'|'practiceTest'|'publicSheet'|'classGroup'|'centerExam';
 
@@ -42,6 +43,8 @@ export interface RecycleKindDef{
   nameOf:(doc:AnyDoc)=>string;
   references?:(id:string)=>Promise<ReferenceCount[]>;
   assets?:(doc:AnyDoc)=>CloudAsset[];
+  /** Public routes that render this kind, so delete/restore/purge can revalidate them. */
+  publicPaths?:(doc:AnyDoc)=>string[];
 }
 
 const localized=(doc:AnyDoc,field:string):string=>{
@@ -52,8 +55,9 @@ const localized=(doc:AnyDoc,field:string):string=>{
 };
 
 export const recycleRegistry:RecycleKindDef[]=[
-  {kind:'editorial',labelBn:'ব্লগ/নোটিশ/ভিডিও',labelEn:'Blog / notice / video',model:()=>Editorial,nameOf:d=>localized(d,'title')||d.slug},
-  {kind:'course',labelBn:'কোর্স ও প্যাকেজ',labelEn:'Course or package',model:()=>Course,nameOf:d=>localized(d,'title')||d.slug},
+  {kind:'editorial',labelBn:'ব্লগ/নোটিশ/ভিডিও',labelEn:'Blog / notice / video',model:()=>Editorial,nameOf:d=>localized(d,'title')||d.slug,
+   publicPaths:d=>{const root=d.kind==='notice'?'/notices':d.kind==='gallery'?'/gallery':'/blog';return d.slug?[root,`${root}/${d.slug}`]:[root]}},
+  {kind:'course',labelBn:'কোর্স ও প্যাকেজ',labelEn:'Course or package',model:()=>Course,nameOf:d=>localized(d,'title')||d.slug,publicPaths:()=>['/courses']},
   {kind:'material',labelBn:'স্টাডি ম্যাটেরিয়াল',labelEn:'Study material',model:()=>LearningMaterial,nameOf:d=>localized(d,'title')},
   {kind:'media',labelBn:'মিডিয়া লাইব্রেরি',labelEn:'Media library',model:()=>MediaFile,nameOf:d=>String(d.publicId||d.url).split('/').pop()||'media',
    references:async id=>{
@@ -70,11 +74,13 @@ export const recycleRegistry:RecycleKindDef[]=[
    },
    assets:d=>d.storage==='mongo'||!d.publicId?[]:[{publicId:String(d.publicId),resource:'image'}]},
   {kind:'portalNotice',labelBn:'পোর্টাল নোটিশ',labelEn:'Portal notice',model:()=>PortalNotice,nameOf:d=>localized(d,'title')},
-  {kind:'faq',labelBn:'সচরাচর জিজ্ঞাসা',labelEn:'FAQ',model:()=>FAQContent,nameOf:d=>localized(d,'question')||d.key},
-  {kind:'facility',labelBn:'সুবিধা ও বৈশিষ্ট্য',labelEn:'Facility or feature',model:()=>FacilityContent,nameOf:d=>localized(d,'title')||d.key},
-  {kind:'achievementRecord',labelBn:'অর্জন',labelEn:'Achievement',model:()=>AchievementRecord,nameOf:d=>d?.card?.name||d.slug},
-  {kind:'practiceTest',labelBn:'অনুশীলনী পরীক্ষা',labelEn:'Practice test',model:()=>PracticeTest,nameOf:d=>d.title||d.slug},
-  {kind:'publicSheet',labelBn:'লেকচার শিট',labelEn:'Lecture sheet',model:()=>PublicSheet,nameOf:d=>localized(d,'title')||d.slug},
+  {kind:'faq',labelBn:'সচরাচর জিজ্ঞাসা',labelEn:'FAQ',model:()=>FAQContent,nameOf:d=>localized(d,'question')||d.key,publicPaths:()=>['','/about']},
+  {kind:'facility',labelBn:'সুবিধা ও বৈশিষ্ট্য',labelEn:'Facility or feature',model:()=>FacilityContent,nameOf:d=>localized(d,'title')||d.key,publicPaths:()=>['','/facilities']},
+  {kind:'achievementRecord',labelBn:'অর্জন',labelEn:'Achievement',model:()=>AchievementRecord,nameOf:d=>d?.card?.name||d.slug,publicPaths:()=>['']},
+  {kind:'practiceTest',labelBn:'অনুশীলনী পরীক্ষা',labelEn:'Practice test',model:()=>PracticeTest,nameOf:d=>d.title||d.slug,
+   publicPaths:d=>d.slug?['/practice-tests',`/practice-tests/${d.slug}`]:['/practice-tests']},
+  {kind:'publicSheet',labelBn:'লেকচার শিট',labelEn:'Lecture sheet',model:()=>PublicSheet,nameOf:d=>localized(d,'title')||d.slug,
+   publicPaths:d=>d.slug?['/lecture-sheets',`/lecture-sheets/${d.slug}`]:['/lecture-sheets']},
   {kind:'classGroup',labelBn:'ক্লাস গ্রুপ',labelEn:'Class group',model:()=>CenterClassGroup,nameOf:d=>`${localized(d,'name')||'class'} ${d.academicYear||''}`.trim(),
    references:async id=>{
      const [students,exams]=await Promise.all([
@@ -93,6 +99,20 @@ export const recycleRegistry:RecycleKindDef[]=[
    }},
 ];
 
+/**
+ * Refresh the public routes that render a kind, so a delete, restore or purge is visible on the
+ * website immediately instead of at the next ISR expiry. Outside a request context (unit tests,
+ * scripts) there is no cache to invalidate and revalidatePath throws — that is expected and safe
+ * to ignore, because those callers never served a cached page.
+ */
+export function revalidateKind(kind:RecycleKind,doc:AnyDoc|null):void{
+  const def=kindDef(kind);
+  const paths=def.publicPaths?def.publicPaths(doc||({} as AnyDoc)):[];
+  for(const locale of ['bn','en'])for(const route of paths){
+    try{revalidatePath(`/${locale}${route}`)}catch{/* no request context: nothing cached to refresh */}
+  }
+}
+
 export function kindDef(kind:RecycleKind):RecycleKindDef{
   const def=recycleRegistry.find(entry=>entry.kind===kind);
   if(!def)throw new Error('UNKNOWN_RECYCLE_KIND');
@@ -107,7 +127,7 @@ export function blockedMessage(refs:ReferenceCount[],bn:boolean):string{
 }
 
 export type SoftDeleteResult=
-  |{status:'ok';purgeAt:Date}
+  |{status:'ok';purgeAt:Date;name:string}
   |{status:'blocked';refs:ReferenceCount[];messageBn:string;messageEn:string}
   |{status:'missing'};
 
@@ -118,10 +138,12 @@ export async function softDelete(kind:RecycleKind,id:string,actor:string,now:Dat
   const blocking=refs.filter(ref=>ref.count>0);
   if(blocking.length)return {status:'blocked',refs:blocking,messageBn:blockedMessage(blocking,true),messageEn:blockedMessage(blocking,false)};
   const purgeAt=purgeAtFor(now);
+  const doc=await def.model().findById(id).lean<AnyDoc>();
   const updated=await def.model().updateOne({_id:id,...liveFilter},{$set:{deletedAt:now,deletedBy:actor,purgeAt}});
   if(!updated.matchedCount)return {status:'missing'};
   await audit(actor,`recycle.delete:${kind}`,id);
-  return {status:'ok',purgeAt};
+  revalidateKind(kind,doc);
+  return {status:'ok',purgeAt,name:def.nameOf(doc||({} as AnyDoc))};
 }
 
 export type RestoreResult={status:'ok'}|{status:'missing'}|{status:'not-in-bin'};
@@ -134,6 +156,7 @@ export async function restoreRecord(kind:RecycleKind,id:string,actor:string):Pro
     return live?{status:'not-in-bin'}:{status:'missing'};
   }
   await audit(actor,`recycle.restore:${kind}`,id);
+  revalidateKind(kind,await def.model().findById(id).lean<AnyDoc>());
   return {status:'ok'};
 }
 
@@ -172,6 +195,7 @@ export async function purgeExpired(now:Date=new Date(),actor?:string):Promise<Pu
           if(result.result!=='ok'&&result.result!=='not found')assetFailures++;
         }catch{assetFailures++}
       }
+      revalidateKind(def.kind,doc);
       await def.model().deleteOne({_id:doc._id},{recycleAny:true} as never);
       // AdminAudit.actor is a required User ref, so the unattended daily job records its totals in
       // its own report/log; a human-triggered purge (Super Admin "delete forever") names the actor.

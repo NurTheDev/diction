@@ -312,6 +312,7 @@ async function main():Promise<void>{
     await stepUnitSuites(ctx,'test:unit:core','R0.7','Core unit suites');
     await stepUnitSuites(ctx,'test:center','R0.8','Center unit suites');
     await stepUnitSuites(ctx,'test:staff-role','R1.2','Staff role: schema, guards and nav visibility');
+    await stepUnitSuites(ctx,'test:recycle:coverage','R1.3','Auto-hide coverage: query shapes, protected types, revalidation map');
   }else{
     for(const r of requirements)if(!ctx.results[r.id])mark(ctx,r.id,'NOT TESTED','dependencies are not installed');
   }
