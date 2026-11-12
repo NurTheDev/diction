@@ -1,2 +1,101 @@
-25 suites from "test:unit:core"
-all passed
+--- tests/intake.test.ts (exit 0) ---
+Intake schema and availability tests passed.
+
+
+--- tests/admin.test.ts (exit 0) ---
+Admin validation tests passed.
+
+
+--- tests/academic.test.ts (exit 0) ---
+Academic validation tests passed.
+
+
+--- tests/study.test.ts (exit 0) ---
+Study feature validation tests passed.
+
+
+--- tests/seed.test.ts (exit 0) ---
+Seed and faculty validation tests passed.
+
+
+--- tests/editorial.test.ts (exit 0) ---
+Editorial validation and sanitization tests passed.
+
+
+--- tests/model-test.test.ts (exit 0) ---
+Model test validation and scoring tests passed.
+
+
+--- tests/site-content.test.ts (exit 0) ---
+Site-content validation tests passed.
+
+
+--- tests/site-settings.test.ts (exit 0) ---
+Site-settings validation tests passed.
+Verified public-facts validation tests passed.
+Official website URL validation passed.
+
+
+--- tests/course.test.ts (exit 0) ---
+Course validation tests passed.
+
+
+--- tests/recovery.test.ts (exit 0) ---
+Password recovery validation tests passed.
+
+
+--- tests/hero.test.ts (exit 0) ---
+Homepage banner validation tests passed.
+
+
+--- tests/materials.test.ts (exit 0) ---
+Learning material validation tests passed.
+
+
+--- tests/fees.test.ts (exit 0) ---
+Fee validation and integer-currency tests passed.
+
+
+--- tests/theme.test.ts (exit 0) ---
+Theme validation and contrast tests passed.
+
+
+--- tests/portal-notices.test.ts (exit 0) ---
+Private portal notice validation tests passed.
+
+
+--- tests/youtube.test.ts (exit 0) ---
+YouTube channel validation and cursor tests passed.
+
+
+--- tests/achievement.test.ts (exit 0) ---
+Achievement validation and model consent guard passed.
+Unsafe achievement query and bulk writes fail closed.
+
+
+--- tests/staff-role.test.ts (exit 0) ---
+Staff role: present in auth and managed roles, creatable, sees admin lists but not roles/audit/ai; restricted roles unchanged.
+
+
+--- tests/recycle-policy.test.ts (exit 0) ---
+Recycle policy: exact Bangla/English blocked sentences, 30-day retention, live-vs-bin filters and registry integrity.
+
+
+--- tests/env-origin.test.ts (exit 0) ---
+Canonical-origin and production HTTPS environment validation passed.
+
+
+--- tests/achievement-flags.test.ts (exit 0) ---
+Achievement workflow remains off unless both flags are explicitly enabled.
+
+
+--- tests/public-sheet.test.ts (exit 0) ---
+Public sheet input tests passed.
+
+
+--- tests/practice.test.ts (exit 0) ---
+Unicode practice CSV and validation passed.
+
+
+--- tests/verify-report.test.ts (exit 0) ---
+Verify harness: report never claims PASS without evidence, one line per requirement, reasons escaped, ZIP round-trips through yauzl with intact binary content, and every registered requirement points at a real proof.

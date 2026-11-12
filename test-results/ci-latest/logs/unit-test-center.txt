@@ -1,2 +1,34 @@
-9 suites from "test:center"
-all passed
+--- tests/center-data-mode.test.ts (exit 0) ---
+Database mode: test and production names separated; invalid values fail closed; attached tests resolve the same database the app serves.
+
+
+--- tests/center-month-status.test.ts (exit 0) ---
+Center month status and phone normalization tests passed.
+
+
+--- tests/center-dues.test.ts (exit 0) ---
+Due calculations: Dhaka cutoff, partial, hold, changed fees, waiver and bounded totals passed.
+
+
+--- tests/center-due-csv.test.ts (exit 0) ---
+Due CSV formula escaping, Unicode and quoting passed.
+
+
+--- tests/center-exam-marks.test.ts (exit 0) ---
+Exam grading, per-subject pass, absent and tie ranking passed.
+
+
+--- tests/center-import-compile.test.ts (exit 0) ---
+Review compiler rejects unresolved markers, red flags and missing data; explicit corrections preserved.
+
+
+--- tests/center-import-preview.test.ts (exit 0) ---
+Spreadsheet preview parsing, color warnings, markers, varied fees and CSV passed.
+
+
+--- tests/center-workbook-review.test.ts (exit 0) ---
+Whole XLSX one-pass preview: 2 tabs, 17 students, raw ৳226400 reconciles; collision defaults, same-student receipts, override and hold details checked. No import performed.
+
+
+--- tests/center-sms-provider.test.ts (exit 0) ---
+SMS adapter: segment estimation, default gate, submitted-not-delivered and no-retry unknown outcome passed.
