@@ -128,7 +128,9 @@ async function run(){
     await row(su.page,EN.undo).getByRole('button',{name:'Delete',exact:true}).click();
     const dialog=su.page.getByRole('dialog');
     await dialog.waitFor();
-    assert.match(await dialog.locator('h2').innerText(),new RegExp(TITLES.undo.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')),'the dialog names the item');
+    // The row dialog is named from the list, so on /en it carries the English title; the bin rows
+    // and the forever dialog are named by the engine, which is Bangla-first.
+    assert.match(await dialog.locator('h2').innerText(),new RegExp(EN.undo.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')),'the dialog names the item');
     assert.match(await dialog.locator('p').first().innerText(),/Recycle Bin for 30 days/,'the dialog states the real 30-day consequence');
     assert.ok(!(await dialog.innerText()).includes('cannot be undone'),'the dialog does not claim irreversibility where undo exists');
     await dialog.getByRole('button',{name:'Yes, delete'}).click();

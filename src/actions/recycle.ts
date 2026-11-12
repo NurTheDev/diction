@@ -3,6 +3,7 @@ import {revalidatePath} from 'next/cache';
 import {getLocale} from 'next-intl/server';
 import {requireAdmin,requireArchiver,getStaff} from '@/lib/admin/guard';
 import {softDelete,restoreRecord,purgeOne,archiveRecord,kindDef,type RecycleKind} from '@/lib/admin/recycle';
+import {binFilter} from '@/models/recycle';
 import {idSchema} from '@/schemas/admin';
 import {z} from 'zod';
 import type {ActionState} from './admin';
@@ -103,7 +104,8 @@ export async function purgeForeverItem(_:ActionState,form:FormData):Promise<Acti
     const kind=kindSchema.safeParse(form.get('kind')),id=idSchema.safeParse(form.get('id'));
     if(!kind.success||!id.success)return {status:'error'};
     const def=kindDef(kind.data as RecycleKind);
-    const doc=await def.model().findById(id.data).lean<Record<string,unknown>>();
+    // The record is binned, so the read must opt out of the auto-hide rule.
+    const doc=await def.model().findOne({_id:id.data,...binFilter}).lean<Record<string,unknown>>();
     const expected=doc?def.nameOf(doc as never):'';
     const typed=String(form.get('confirmName')||'').trim();
     if(!expected||typed!==expected)return {status:'conflict'};
