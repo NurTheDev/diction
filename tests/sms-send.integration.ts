@@ -150,13 +150,15 @@ async function run(){
     // 5. Skip reasons: removed, opted out, held (fee message), missing and invalid numbers.
     const removed=await makeStudent(900,{status:'removed'});
     const opted=await makeStudent(901,{smsOptOut:true});
-    const held=await makeStudent(902,{holds:[{start:{year:2026,month:1},reason:'বকেয়া'}]});
+    const held=await makeStudent(902,{holds:[{start:{year:2026,month:1},reason:'বকেয়া',recordedBy:actor._id}]});
     const noPhone=await makeStudent(903,{guardianPhone:''});
-    const badPhone=await makeStudent(904,{guardianPhone:'017111'});
+    // The student schema rejects an invalid number, so the bad number is carried on the candidate
+    // (a plain object) instead — which is exactly where a bad import or a legacy typo surfaces.
+    const badPhone={...candidate(await makeStudent(904)),guardianPhone:'017111'};
     const goodOne=await makeStudent(905);
     const mixed=await buildSmsPlan({
       requestId:randomUUID(),
-      students:[candidate(removed),candidate(opted),candidate(held),candidate(noPhone),candidate(badPhone),candidate(goodOne)],
+      students:[candidate(removed),candidate(opted),candidate(held),candidate(noPhone),badPhone,candidate(goodOne)],
       templateKey:'due_reminder',audience:'guardian',
     });
     assert.equal(mixed.recipientCount,1,'only the reachable, willing, non-held student is sent to');
@@ -171,14 +173,14 @@ async function run(){
     const sibA=await makeStudent(910,{guardianPhone:'01799999999'});
     const sibB=await makeStudent(911,{guardianPhone:'01799999999',name:{bn:'দ্বিতীয় ভাই'}});
     const grouped=await buildSmsPlan({
-      requestId:randomUUID(),students:[candidate(sibA,{due_amount:500}),candidate(sibB,{due_amount:700})],
+      requestId:randomUUID(),students:[candidate(sibA,{due_amount:550}),candidate(sibB,{due_amount:770})],
       templateKey:'due_reminder',audience:'guardian',onePerPhone:true,
     });
     assert.equal(grouped.recipientCount,1,'siblings on one number get a single message');
-    assert.ok(grouped.items[0].message.includes('1200'),'the guardian is told the summed total');
+    assert.ok(grouped.items[0].message.includes('1320'),'the guardian is told the summed total, not one child’s share');
     assert.deepEqual(grouped.items[0].studentIds.sort(),[String(sibA._id),String(sibB._id)].sort());
     const ungrouped=await buildSmsPlan({
-      requestId:randomUUID(),students:[candidate(sibA,{due_amount:500}),candidate(sibB,{due_amount:700})],
+      requestId:randomUUID(),students:[candidate(sibA,{due_amount:550}),candidate(sibB,{due_amount:770})],
       templateKey:'due_reminder',audience:'guardian',onePerPhone:false,
     });
     assert.equal(ungrouped.recipientCount,2,'without the option each child gets their own message');
