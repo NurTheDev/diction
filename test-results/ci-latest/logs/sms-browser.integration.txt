@@ -1,10 +1,1 @@
-locator.waitFor: Timeout 60000ms exceeded.
-Call log:
-  - waiting for locator('section:has(h2:has-text("Batches")) span.admin-feedback').first() to be visible
-
-    at run (/home/runner/work/diction/diction/tests/sms-browser.integration.ts:184:96) {
-  log: [
-    `  - waiting for locator('section:has(h2:has-text("Batches")) span.admin-feedback').first() to be visible`
-  ],
-  name: 'TimeoutError'
-}
+SMS centre: the settings form saves and unticked auto-send stays off, an invalid institute number is refused without changing anything, a test message reaches only the operator’s own number and is logged, a template edit is stored with derived chips and marked edited, the history filter isolates failed rows, an explicit retry re-sends only those rows and then disappears, the Bangla page matches, nothing overflows at 360 or 1440, staff see no SMS link or form, and no credential appears in the served HTML.
