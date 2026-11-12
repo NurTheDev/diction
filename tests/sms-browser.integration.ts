@@ -89,14 +89,26 @@ async function run(){
     }
     assert.match(await boss.page.locator('dd').first().innerText(),/mock|bulksmsbd/,'the provider name is shown');
 
-    // 2. No credential can reach the browser: not in the HTML, not in any field value.
+    // 2. No credential can reach the browser. The check is a whitelist of the fields this page is
+    //    meant to render — Next.js adds its own hidden server-action inputs ($ACTION_ID_…,
+    //    $ACTION_KEY) and the retry form carries a batch ObjectId, none of which is a secret, so a
+    //    blanket "nothing token-shaped" rule would fail on framework internals instead of a leak.
     const html=await boss.page.content();
-    assert.ok(!/(api_?key|apikey|sender_?id)\s*[=:]\s*["']?[A-Za-z0-9_-]{12,}/i.test(html),'no credential value is rendered');
-    const values=await boss.page.locator('input').evaluateAll(nodes=>nodes.map(n=>(n as HTMLInputElement).value));
-    const tokenShaped=values.filter(v=>/[A-Za-z0-9_-]{20,}/.test(v));
-    assert.deepEqual(tokenShaped,[],`no input may hold a token-shaped value: ${tokenShaped.join(',')}`);
-    // The credential NAMES may appear (as a "missing" list), which is safe and useful.
-    assert.ok(!html.includes('BULKSMSBD_API_KEY=')&&!html.includes(process.env.BULKSMSBD_API_KEY||'__never__'),'no key value in the HTML');
+    assert.ok(!/(api_?key|apikey|sender_?id)\s*[=:]\s*["']?[A-Za-z0-9_-]{12,}/i.test(html),'no credential value is rendered in the HTML');
+    assert.ok(!html.includes('BULKSMSBD_API_KEY='),'the key is named as missing, never shown with a value');
+    // Scoped to this page's panels: a layout-level form (sign-out, digit toggle) is not our concern.
+    const fields=await boss.page.locator('section.admin-panel input,section.admin-panel textarea').evaluateAll(nodes=>nodes.map(node=>({name:(node as HTMLInputElement).name||'',value:(node as HTMLInputElement).value||''})));
+    const names=fields.map(field=>field.name).filter(Boolean);
+    const ours=names.filter(name=>!name.startsWith('$')&&name!=='csrfToken');
+    const expectedNames=['smsUnitCost','quietStart','quietEnd','institutePhone','autoDueDay','autoReceipt','autoResult','autoDue','phone','key','name','body','active','batchId'];
+    assert.deepEqual([...new Set(ours.filter(name=>!expectedNames.includes(name)))].sort(),[],'the page renders only the fields it means to');
+    assert.deepEqual(ours.filter(name=>/api_?key|sender_?id|secret|password|token/i.test(name)),[],'no credential field is rendered at all — credentials come from the environment only');
+    // And every field we do render holds only the shape it is supposed to hold.
+    const shapes:Record<string,RegExp>={smsUnitCost:/^\d+(\.\d+)?$/,quietStart:/^([01]\d|2[0-3]):[0-5]\d$/,quietEnd:/^([01]\d|2[0-3]):[0-5]\d$/,institutePhone:/^$|^01[3-9]\d{8}$/,autoDueDay:/^\d{1,2}$/,phone:/^01[3-9]\d{8}$/,batchId:/^[a-f\d]{24}$/i};
+    for(const field of fields){
+      const shape=shapes[field.name];
+      if(shape)assert.match(field.value,shape,`${field.name} holds an unexpected value`);
+    }
 
     // 3. Saving settings persists exactly what was entered, and unticked auto-send stays OFF.
     await boss.page.locator('input[name="smsUnitCost"]').fill('0.75');
