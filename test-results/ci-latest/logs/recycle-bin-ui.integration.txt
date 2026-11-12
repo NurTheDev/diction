@@ -1,10 +1,9 @@
-locator.click: Timeout 30000ms exceeded.
-Call log:
-  - waiting for locator('table.admin-table tbody tr').filter({ hasText: 'রিসাইকেল নমুনা — আনডু' }).getByRole('button', { name: 'Delete', exact: true })
-
-    at run (/home/runner/work/diction/diction/tests/recycle-bin-ui.integration.ts:126:83) {
-  log: [
-    "  - waiting for locator('table.admin-table tbody tr').filter({ hasText: 'রিসাইকেল নমুনা — আনডু' }).getByRole('button', { name: 'Delete', exact: true })"
-  ],
-  name: 'TimeoutError'
+AssertionError [ERR_ASSERTION]: the dialog names the item
+    at run (/home/runner/work/diction/diction/tests/recycle-bin-ui.integration.ts:131:12) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: 'Delete Recycle sample undo?',
+  expected: /রিসাইকেল নমুনা — আনডু/,
+  operator: 'match',
+  diff: 'simple'
 }
