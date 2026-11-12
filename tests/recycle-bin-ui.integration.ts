@@ -241,7 +241,8 @@ async function run(){
     // ── 6b. the client-fetched lists (lecture sheets) use the same dialog and Undo ───────────
     const sheetTitle='রিসাইকেল নমুনা শিট';
     const pdf=Buffer.from('%PDF-1.4\n% synthetic recycle sample\n%%EOF');
-    const created=await su.context.request.post(`${origin}/api/admin/public-sheets`,{multipart:{
+    // The upload route rejects a cross-origin or origin-less POST with 403, so send the header.
+    const created=await su.context.request.post(`${origin}/api/admin/public-sheets`,{headers:{origin},multipart:{
       titleBn:sheetTitle,titleEn:'Recycle sample sheet',descriptionBn:'',descriptionEn:'',className:'',subject:'',
       file:{name:'recycle-sample.pdf',mimeType:'application/pdf',buffer:pdf},
     }});
