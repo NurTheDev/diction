@@ -6,7 +6,8 @@ import assert from 'node:assert/strict';
 import {preflight,testDbName} from './helpers/env-preflight';
 import {User} from '../src/models/User';
 import {Editorial} from '../src/models/Editorial';
-import {CenterClassGroup,CenterStudent,CenterExam,CenterExamResult} from '../src/models/CenterRecords';
+import {CenterClassGroup,CenterStudent,CenterExam,CenterExamResult,CenterSmsLog} from '../src/models/CenterRecords';
+import {GET as dailyJob} from '../src/app/api/admin/jobs/daily/route';
 import {AdminAudit} from '../src/models/AdminAudit';
 import {softDelete,restoreRecord,binList,binCounts,purgeExpired} from '../src/lib/admin/recycle';
 import {liveFilter,binFilter} from '../src/models/recycle';
@@ -102,7 +103,36 @@ async function run(){
       assert.equal(await AdminAudit.countDocuments({action}),1,`audit row for ${action}`);
     }
     assert.equal(await Editorial.countDocuments(binFilter),0);
-    console.log('Recycle Bin engine: reference-blocked delete with exact counts, 30-day bin, restore, purge and audit rows passed.');
+
+    // 7. The daily job (§E5) end to end: refused without the bearer secret, and when it runs it
+    //    purges only expired rows and trims logs past the retention window.
+    const jobSecret='j'.repeat(40);
+    process.env.CRON_SECRET=jobSecret;
+    const jobUrl='http://localhost:3111/api/admin/jobs/daily';
+    const expired=await Editorial.create({kind:'blog',slug:"recycle-expired",title:{bn:'মেয়াদ শেষ নমুনা'},published:true});
+    assert.equal((await softDelete('editorial',String(expired._id),actorId)).status,'ok');
+    const thirteenMonths=new Date(Date.now()-13*30*24*60*60*1000),lastWeek=new Date(Date.now()-7*24*60*60*1000);
+    await Editorial.updateOne({_id:expired._id,...binFilter},{$set:{purgeAt:new Date(Date.now()-60_000),deletedAt:thirteenMonths}});
+    await CenterSmsLog.create({phone:'+8801700000000',message:'synthetic',segments:1,status:'sent',createdAt:thirteenMonths});
+    await CenterSmsLog.create({phone:'+8801700000001',message:'synthetic',segments:1,status:'sent',createdAt:lastWeek});
+    const fresh=await Editorial.create({kind:'blog',slug:"recycle-fresh",title:{bn:'তাজা নমুনা'},published:true});
+    assert.equal((await softDelete('editorial',String(fresh._id),actorId)).status,'ok');
+
+    const refused=await dailyJob(new Request(jobUrl));
+    assert.equal(refused.status,401,'the job refuses an unauthenticated call');
+    assert.equal(await Editorial.countDocuments({_id:expired._id,...binFilter}),1,'a refused job purges nothing');
+
+    const ran=await dailyJob(new Request(jobUrl,{headers:{authorization:`Bearer ${jobSecret}`}}));
+    assert.equal(ran.status,200,await ran.clone().text());
+    const report=await ran.json() as {ok:boolean;purged:number;trim:{smsLog:number;activityLog:number}};
+    assert.equal(report.ok,true);
+    assert.equal(report.purged,1,'only the expired row was purged');
+    assert.deepEqual(report.trim,{smsLog:1,activityLog:0},'only the 13-month-old SMS log was trimmed');
+    assert.equal(await Editorial.countDocuments({_id:expired._id,...binFilter}),0,'the expired row is gone');
+    assert.equal(await mongoose.connection.db!.collection('editorials').countDocuments({_id:expired._id}),0,'gone from storage, not just from queries');
+    assert.equal(await Editorial.countDocuments({_id:fresh._id,...binFilter}),1,'a row still inside its 30 days survives');
+    assert.equal(await CenterSmsLog.countDocuments({}),1,'the recent SMS log survives');
+    console.log('Recycle Bin engine: reference-blocked delete with exact counts, 30-day bin, restore, purge, audit rows, every query shape hidden, and the daily job (401 without the secret; purges only expired rows and trims old logs) passed.');
   }finally{
     await mongoose.disconnect();
     await mongo.stop();
