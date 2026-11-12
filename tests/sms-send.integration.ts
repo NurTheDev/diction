@@ -59,7 +59,11 @@ async function run(){
     const actor=await User.create({name:'SMS Actor',email:'sms-actor@example.test',passwordHash:await bcrypt.hash('Sms-Only-2026!',12),role:'admin',active:true});
     const actorId=String(actor._id);
     const group=await CenterClassGroup.create({name:{bn:'এসএমএস ক্লাস',en:'SMS Class'},academicYear:2026});
-    await CenterSettings.create({key:'main',smsUnitCost:0.5,quietStart:'21:00',quietEnd:'07:00',institutePhone:'01711000000'});
+    // The quiet window starts EMPTY (start equals end), because CI can run at any Dhaka hour: with
+    // the real 21:00–07:00 default a run at 02:00 Dhaka would correctly queue every send and the
+    // "it went out now" assertions below would fail for the wrong reason. Phase 8 sets a real
+    // window built around `now` to prove queueing, then clears it again.
+    await CenterSettings.create({key:'main',smsUnitCost:0.5,quietStart:'00:00',quietEnd:'00:00',institutePhone:'01711000000'});
 
     // One student factory: a valid guardian number by default, everything the schema requires.
     async function makeStudent(index,over={}){
