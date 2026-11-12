@@ -152,6 +152,18 @@ Both cost a CI round in the R1 second wave (runs 43273572460 and 43274692208):
 If two browser suites that share no code both time out on their first server action, suspect the
 action layer itself before suspecting the tests.
 
+A third trap, from the R1 third wave (runs 43283794682 and 43285236170), costs a round on its own:
+
+3. **Never spread or destructure a Mongoose sub-document.** `proof-bin.ts` rewrote a milestone row
+   with `{...row,deletedAt:now}` and `{deletedAt,purgeAt,...rest}=row`. A sub-document's fields are
+   not own enumerable properties, so both wrote back an object with no `year` and no `title`, the
+   `required` validators rejected the parent document, and the action answered `{status:'error'}` —
+   which surfaces as a missing toast and a 60-second `waitFor` timeout, not as a validation error.
+   Read with `.lean()` (POJOs) and write the whole array back with `updateOne` + `runValidators:true`.
+   Related: a seeded `SiteSettingsContent` needs non-empty `social.youtube`/`social.facebook` —
+   `required` on a String rejects `''`. And a `useActionState` effect that reloads must depend on
+   the whole state object, not `state.status`, because status stays `'ok'` across two toggles.
+
 ## Manual check list ("what I click")
 
 Each milestone ships a `docs/R<n>-START-HERE.md` with the click-through list, in Bangla and English,

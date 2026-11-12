@@ -141,3 +141,30 @@ ROUND 4 — the §E6 second wave, and two ways to break every server action (202
                     https://github.com/NurTheDev/diction/actions/runs/43277249842
   Evidence line: "Recycle coverage: 21 schemas carry the bin fields; 15 financial/audit/student
   types cannot be hidden; …" and the R1.4 line now names the second-wave lists.
+
+ROUND 5 — the §B third wave: proof milestones and role disable, plus two sub-document traps (2026-11-12)
+  Delivered: R1.6 social-proof milestones got their own in-document bin (the CMS record is
+  single-row, {key:'main'}, so the 21-kind registry cannot hold it) — named ConfirmDialog with the
+  30-day copy, deletedAt/purgeAt on each milestone, the Undo toast, a bin section with days left
+  and Restore, saves that re-merge binned rows, a public reader that filters them out, and a daily
+  job that purges expired ones. R1.7 added CenterSettings.disabledRoles, read by getAdmin/getStaff/
+  getArchiver, with a superadmin-only setRoleDisabled action that refuses to switch off its own
+  role and audits every move; /bn|en/admin/roles renders the four managed roles with a toggle.
+  docs/R1-COVERAGE.md gained §4 (reports/totals/exports unaffected) and the §1/§3 proof paragraphs.
+  43283794682 FAIL  two causes. (a) R1.1's SiteSettingsContent fixture used social:{youtube:'',
+                    facebook:''} — an empty string fails the required validator, so the seed threw.
+                    (b) proof-bin spread and destructured Mongoose SUB-DOCUMENTS; a sub-document's
+                    fields are not own enumerable properties, so the rewritten milestone lost
+                    year/title and the save failed validation. The action answered {status:'error'},
+                    the toast never appeared and the browser test timed out waiting for it.
+  43285236170 FAIL  RoleToggle reloaded on useEffect(...,[state.status]); status stays 'ok' across
+                    two successful toggles, so re-enabling a role never refreshed the list and the
+                    test waited for a button that had no reason to change. Fixed by depending on the
+                    whole state object. R1.1's trim assertion also grew proofMilestones:0.
+  43286435533 PASS  18 PASS, 0 FAIL, 0 NOT TESTED (of 18) — the run R1.6 and R1.7 rest on.
+                    https://github.com/NurTheDev/diction/actions/runs/43286435533
+  Evidence line: "Admin controls: milestone delete names the milestone and bins it for 30 days with
+  Undo and bin restore, a disabled managed role is refused every admin page and returns when
+  re-enabled, and every move writes an audit row."
+  New trap for docs/VERIFY.md: never spread a Mongoose sub-document — read .lean() or mutate the
+  field on the parent document.
