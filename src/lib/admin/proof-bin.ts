@@ -32,28 +32,31 @@ function absoluteIndex(list:ProofMilestone[],view:number,live:boolean):number{
 }
 
 export async function deleteProofMilestone(view:number,actor:string,now:Date=new Date()):Promise<{status:'ok';name:string}|{status:'missing'}>{
-  const doc=await SiteSettingsContent.findOne({key:'main'});
-  const list:ProofMilestone[]=doc?.proof?.milestones||[];
+  // Read lean and write the whole array back: milestone rows are Mongoose sub-documents, and
+  // spreading or destructuring a sub-document does not yield its fields, so in-place mutation
+  // failed validation once on CI (run 43283794682). POJOs in, $set out, validators on.
+  const stored=await SiteSettingsContent.findOne({key:'main'}).select('proof').lean();
+  const list=(stored?.proof?.milestones||[]) as ProofMilestone[];
   const at=absoluteIndex(list,view,true);
   if(at<0)return {status:'missing'};
   const name=milestoneName(list[at]);
   list[at]={...list[at],deletedAt:now,purgeAt:purgeAtFor(now)};
-  if(doc){doc.markModified('proof.milestones');await doc.save()}
+  await SiteSettingsContent.updateOne({key:'main'},{$set:{'proof.milestones':list}},{runValidators:true});
   await audit(actor,'proof.milestone.delete',name);
   revalidateHome();
   return {status:'ok',name};
 }
 
 export async function restoreProofMilestone(view:number,actor:string):Promise<{status:'ok';name:string}|{status:'missing'}>{
-  const doc=await SiteSettingsContent.findOne({key:'main'});
-  const list:ProofMilestone[]=doc?.proof?.milestones||[];
+  const stored=await SiteSettingsContent.findOne({key:'main'}).select('proof').lean();
+  const list=(stored?.proof?.milestones||[]) as ProofMilestone[];
   const at=absoluteIndex(list,view,false);
   if(at<0)return {status:'missing'};
   const name=milestoneName(list[at]);
   const {deletedAt,purgeAt,...rest}=list[at] as ProofMilestone&Record<string,unknown>;
   void deletedAt;void purgeAt;
   list[at]=rest as ProofMilestone;
-  if(doc){doc.markModified('proof.milestones');await doc.save()}
+  await SiteSettingsContent.updateOne({key:'main'},{$set:{'proof.milestones':list}},{runValidators:true});
   await audit(actor,'proof.milestone.restore',name);
   revalidateHome();
   return {status:'ok',name};
@@ -61,12 +64,12 @@ export async function restoreProofMilestone(view:number,actor:string):Promise<{s
 
 /** Called by /api/admin/jobs/daily: milestones whose 30 days are up leave the document for good. */
 export async function purgeExpiredProofMilestones(now:Date=new Date()):Promise<number>{
-  const doc=await SiteSettingsContent.findOne({key:'main'});
-  const list:ProofMilestone[]=doc?.proof?.milestones||[];
+  const stored=await SiteSettingsContent.findOne({key:'main'}).select('proof').lean();
+  const list=(stored?.proof?.milestones||[]) as ProofMilestone[];
   const kept=list.filter(m=>!m.deletedAt||!m.purgeAt||m.purgeAt.getTime()>now.getTime());
   if(kept.length===list.length)return 0;
   for(const gone of list.filter(m=>!kept.includes(m)))await audit('system','proof.milestone.purge',milestoneName(gone));
-  if(doc&&doc.proof){doc.proof.milestones=kept as never;doc.markModified('proof.milestones');await doc.save()}
+  await SiteSettingsContent.updateOne({key:'main'},{$set:{'proof.milestones':kept}},{runValidators:true});
   revalidateHome();
   return list.length-kept.length;
 }

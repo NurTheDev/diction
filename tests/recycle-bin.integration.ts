@@ -88,7 +88,7 @@ async function run(){
     const exam=await CenterExam.create({name:{bn:'নমুনা পরীক্ষা'},type:'monthly',date:'2026-01-02',classGroups:[group._id],subjects:[{name:{bn:'বাংলা'},fullMarks:100,passMarks:33}],gradeBands:[{min:0,label:'F'},{min:80,label:'A+'}],status:'draft'});
     await CenterExamResult.create({exam:exam._id,student:(await CenterStudent.findOne({studentId:'SYNTH-R1'}).lean())._id,classGroup:group._id,marks:[{subject:exam.subjects[0]._id,obtained:80,absent:false}],total:80,fullTotal:100,percentage:80,grade:'A+',recordedBy:actor._id});
     // Exempt types are untouched by the rule, and the daily job trims expired proof milestones.
-    await SiteSettingsContent.create({key:'main',name:{bn:'n',en:'n'},address:{bn:'a',en:'a'},logoUrl:'/x.png',social:{youtube:'',facebook:''},theme:{primary:'#123456',action:'#123456',success:'#123456',info:'#123456'},proof:{published:false,studentCount:null,studentMinimum:false,rating:null,ratingCount:null,milestones:[
+    await SiteSettingsContent.create({key:'main',name:{bn:'n',en:'n'},address:{bn:'a',en:'a'},logoUrl:'/x.png',social:{youtube:'https://youtube.com/@dictioncoaching',facebook:'https://facebook.com/dictioncoaching'},theme:{primary:'#123456',action:'#123456',success:'#123456',info:'#123456'},proof:{published:false,studentCount:null,studentMinimum:false,rating:null,ratingCount:null,milestones:[
       {year:2024,title:{bn:'l',en:'l'}},
       {year:2023,title:{bn:'d',en:'d'},deletedAt:new Date(Date.now()-31*86400000),purgeAt:new Date(Date.now()-86400000)},
       {year:2025,title:{bn:'f',en:'f'},deletedAt:new Date(),purgeAt:new Date(Date.now()+29*86400000)}]}});
