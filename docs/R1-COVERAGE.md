@@ -25,6 +25,16 @@ deliberate opt-out.
 | `estimatedDocumentCount` | **not covered, on purpose** — it cannot carry a filter. Its only caller is the database-usage card (`src/lib/center/database-usage.ts`), where counting stored rows, bin included, is the correct number. Asserted as absent in the coverage test. | always counts stored rows |
 | `insertOne/create/insertMany` | irrelevant — new documents get `deletedAt:null` from the schema default | — |
 
+**Proof, per operation.** `tests/recycle-coverage.test.ts` §3 reads the registered middleware off a
+participating schema and asserts a pre-hook for `find`, `findOne`, `countDocuments`, `distinct`,
+`findOneAndUpdate`, `findOneAndReplace`, `findOneAndDelete`, `updateOne`, `updateMany`, `deleteOne`,
+`deleteMany`, `aggregate` and `bulkWrite`, and asserts `estimatedDocumentCount` has none.
+`tests/recycle-bin.integration.ts` (R1.1) proves the same rule live against a replica set: a binned
+row is invisible to plain `find`/`countDocuments`, immune to an unflagged `updateOne`, visible to
+`binList`, and an `aggregate`, a `distinct`, a `bulkWrite` filter and a `populate` over a binned
+reference each behave as the table says. `tests/recycle-policy.test.ts` proves the opt-out
+contract (`liveFilter`, `binFilter`, `purgeAtFor`, `kindDef`) at the unit level.
+
 Deliberate opt-outs by caller, today:
 
 | Caller | Why it opts out |
@@ -71,9 +81,49 @@ coverage test asserts both lists.
 - ISR/cache: `softDelete`, `restoreRecord` and `purgeExpired` each call `revalidateKind()`, which
   revalidates both locales of the kind's public routes (`publicPaths` in the registry: blog/notice/
   gallery slugs, `/courses`, `/about`+`/facilities` for FAQ/facility, home for achievements,
-  `/practice-tests/<slug>`, `/lecture-sheets/<slug>`). Kinds with no public page (materials, media,
-  portal notices, class groups, center exams) have `publicPaths === undefined`, asserted in the
+  `/practice-tests/<slug>`, `/lecture-sheets/<slug>`), home for the hero banner, `/teacher`, and
+  `/trial-class` for slots; the milestone bin revalidates home and `/about`). Kinds with no public
+  page (materials, media, portal notices, class groups, center exams, bookings, admissions,
+  messages, accounts, legacy exams, model tests) have `publicPaths === undefined`, asserted in the
   coverage test. Outside a request context (unit tests, scripts) `revalidatePath` throws and the
   call is intentionally swallowed — there is no cache to refresh there.
-- The browser tests for §E4 will add the end-user proof: delete a blog row, assert the public URL
-  stops serving it without waiting for ISR expiry.
+- **Proof, per claim.** `tests/recycle-coverage.test.ts` §4 asserts which kinds declare public
+  routes and which deliberately declare none. `tests/recycle-bin-ui.integration.ts` (R1.4) proves the
+  operator-visible half in a real browser: a public blog page answers 404 immediately after the
+  delete toast (no cache window), and answers 200 again after Undo; the bin page and the public list
+  refresh in the same round-trip. `tests/recycle-bin.integration.ts` (R1.1) proves the purge path
+  revalidates too, because `purgeExpired` calls the same `revalidateKind()`. The sitemap needs no
+  revalidation call: it is `force-dynamic`, so the next request rebuilds it from readers that already
+  hide binned rows.
+
+## 4. Reports, totals and exports are not accidentally affected
+
+Three classes of reader, three answers:
+
+1. **Exempt types (payments, students, waivers, logs, snapshots, audit, results, attempts).**
+   They carry no `deletedAt` field (§2) *and no auto-hide middleware at all*: `tests/recycle-coverage.test.ts`
+   §7 reads the hook map off `CenterPayment`, `CenterStudent`, `AdminAudit` and `CenterSmsLog` and
+   asserts there is no `find`/`findOne`/`countDocuments`/`aggregate`/`bulkWrite` pre-hook on any of
+   them. A rule with no hook and no field cannot filter a query, so every report, total, ledger and
+   export over these types — the daily collection, due snapshots, the SMS log, payment history, the
+   audit page — sees every row exactly as before R1.
+2. **Participating types.** Exclusion from lists, counts and aggregates *is* the delete semantics an
+   operator asked for; nothing "report-shaped" reads them except the storage card, which uses
+   `estimatedDocumentCount` and must keep counting stored rows, bin included. That intention is
+   asserted live in `tests/recycle-bin.integration.ts` (R1.1): while a row is binned,
+   `estimatedDocumentCount()` equals the raw collection count and is strictly greater than the
+   filtered `countDocuments()`. The admissions export (`/api/admin/admissions/export`) reads
+   `Admission.find`, so a binned admission leaves the export for the same 30 days it leaves the
+   list — a deletion, not an accident, and restorable.
+3. **The milestone bin (third wave).** Milestones bin inside the single settings document, so two
+   extra guarantees are coded and tested: `saveSocialProof` merges the binned rows back on every
+   save (a form save can never empty the bin behind the operator's back), and the public reader
+   filters binned milestones before parsing (`src/lib/content/settings.ts`). `tests/admin-controls-browser.integration.ts`
+   (R1.6) proves delete → bin → Undo → restore in the browser and that the bin shows days left;
+   `tests/recycle-bin.integration.ts` (R1.1) proves `purgeExpiredProofMilestones` removes only the
+   expired row and keeps the live and the still-restorable ones; `tests/recycle-coverage.test.ts` §7
+   asserts the milestone sub-schema carries `deletedAt`/`purgeAt`.
+
+Nothing in R1 changed a money total, a student count or an export column; the only readers that
+changed behaviour are the ones whose behaviour *is* the feature.
+

@@ -142,6 +142,8 @@ engine (21 participating schemas), each with the named dialog, the 10-second Und
 and the bin; reference blocks guard a slot with booked trials, an admission already converted to a
 student, a legacy exam with saved results, a model test with saved attempts, and a portal account
 that holds a staff role or backs a legacy student profile (those two may only be disabled). The
-media card now raises the layout-level Undo toast like every other delete. **Still owed:** testimonial
-/ social-proof controls and a disable path for managed roles (both §B), a real Vercel cron run, and
-the owner's own `npm run verify` output.
+media card now raises the layout-level Undo toast like every other delete. **Third wave delivered** (the last two §B rows): social-proof milestones bin inside the settings
+ document with the named dialog, 30-day restore and daily-job purge (`R1.6`), and managed roles can
+ be disabled as a whole, which signs their holders out of every admin page until re-enabled (`R1.7`).
+ **Still owed:** a real Vercel cron run — now a go-live checklist item in R7 (`docs/SPEC.md`), not an
+ R1 gate, owner decision 2026-11-12 — and the owner's hand test of the final R1 build.

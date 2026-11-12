@@ -1330,7 +1330,11 @@
     "ratingLabel": "Rating: {rating} out of 5, based on {count} reviews",
     "historyTitle": "Our journey",
     "historyTag": "Milestones",
-    "historyDesc": "Milestones shared by the institution."
+    "historyDesc": "Milestones shared by the institution.",
+    "binTitle": "Recycle Bin (milestones)",
+    "binHelp": "Deleted milestones stay here for 30 days; the daily job then removes them for good.",
+    "daysLeft": "days left",
+    "emptyBin": "The bin is empty."
   },
   "splash": {
     "title": "Welcome to Diction Coaching",

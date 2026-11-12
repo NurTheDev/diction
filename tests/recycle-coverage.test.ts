@@ -16,7 +16,7 @@ import {CenterClassGroup,CenterExam,CenterStudent,CenterPayment,CenterFeeWaiver,
 import {User} from '../src/models/User';
 import {Admission,ContactMessage,Slot,TrialBooking} from '../src/models/Intake';
 import {HeroBanner} from '../src/models/HeroBanner';
-import {TeacherContent} from '../src/models/PublicContent';
+import {TeacherContent,SiteSettingsContent} from '../src/models/PublicContent';
 import {Exam,Result,Attendance,Student as AcademicStudent} from '../src/models/Academic';
 import {ModelTest,TestAttempt} from '../src/models/ModelTest';
 import {AdminAudit} from '../src/models/AdminAudit';
@@ -72,6 +72,17 @@ assert.deepEqual([...archivableKinds],recycleRegistry.filter(def=>def.archiveSet
 //    {status:'error'} to all nine new kinds; CI caught it on the slot flow. This is the guard.
 for(const kind of recycleKinds)assert.ok(kindSchema.safeParse(kind).success,`the server actions accept ${kind}`);
 assert.equal(kindSchema.safeParse('nope').success,false,'the server actions refuse an unknown kind');
+
+// 7. Exempt types carry no auto-hide middleware at all, so every report, total and export over
+//    them sees every row — the rule cannot filter what it has no hook on. The social-proof
+//    milestones, which bin inside their document, carry the bin fields instead.
+for(const [name,model] of [['CenterPayment',CenterPayment],['CenterStudent',CenterStudent],['AdminAudit',AdminAudit],['CenterSmsLog',CenterSmsLog]] as const){
+  const pres=(model.schema as any).s.hooks._pres as Map<string,unknown[]>;
+  for(const hook of ['find','findOne','countDocuments','aggregate','bulkWrite'])assert.ok(!pres.has(hook),`${name} must have no auto-hide ${hook} hook`);
+}
+const milestonePath=(SiteSettingsContent.schema as any).path('proof.milestones');
+assert.ok(milestonePath?.schema?.path('deletedAt'),'milestones carry deletedAt');
+assert.ok(milestonePath?.schema?.path('purgeAt'),'milestones carry purgeAt');
 for(const kind of archivableKinds)assert.equal(canArchiveKind(kind),true,`${kind} can be archived`);
 for(const kind of recycleKinds.filter(k=>!(archivableKinds as readonly string[]).includes(k)))assert.equal(canArchiveKind(kind),false,`${kind} has no archive path`);
 

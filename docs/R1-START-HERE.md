@@ -142,6 +142,26 @@ own: an account holding a staff role may only be disabled, and an account a lega
 points at stays until the profile moves. On all nine lists staff see Archive (where the kind has
 an archive path) and never Delete.
 
+### H. Social-proof milestones (§E6 third wave)
+
+1. As **demo-super** → **সেটিংস** → **সাইট সেটিংস** (`/bn/admin/site-settings`) → tab **প্রুফ / Proof**.
+2. On a milestone row click **মুছুন / Delete**: the dialog names the milestone and states the 30-day
+   rule → **Yes, delete** → toast with **Undo** → click **Undo** → the milestone is back in the form.
+3. Delete it again: the **রিসাইকেল বিন (মাইলফলক) / Recycle Bin (milestones)** section below lists it
+   with **দিন বাকি / days left** and a **ফেরত আনুন / Restore** button → Restore → back in the form.
+4. Saving the form at any point never empties that bin; the daily job purges milestones whose
+   30 days are up.
+
+### I. Disabling a managed role (§E6 third wave)
+
+1. As **demo-super** → `/bn/admin/roles` → section **রোল নিষ্ক্রিয় করা / Disable a role**.
+2. Click **নিষ্ক্রিয় করুন / Disable** on **পরীক্ষা ব্যবস্থাপক / Exam manager** → the badge flips to
+   **নিষ্ক্রিয় / Disabled**.
+3. In a private window sign in as an exam manager and open `/bn/admin/model-tests`: you are sent to
+   the login page — a disabled role keeps no admin page at all.
+4. Back as super admin click **সক্রিয় করুন / Enable** → the exam manager reaches the page again. No
+   account was deleted or edited at any point; your own role cannot be switched off.
+
 ### G. The daily job (§E5)
 
 The job lives at `/api/admin/jobs/daily` and is scheduled by `vercel.json` once a day
@@ -168,10 +188,9 @@ schedule. With no secret, or a secret shorter than 32 characters, the job refuse
 
 ## 3. What R1 does **not** cover yet (stated plainly)
 
-- **Testimonials / social proof still have no delete or archive control** — `saveSocialProof`
-  only. They are the last list from `docs/R1-AUDIT.md` §B without controls.
-- **Roles need a disable path.** They are access control, deliberately outside the Recycle Bin, but
-  today a managed role can only be edited, not switched off in one place.
+- **The first real run of the daily job on Vercel** is a go-live checklist item in R7
+  (`docs/SPEC.md` → R7 → go-live checklist), not an R1 gate — owner decision 2026-11-12. GitHub
+  Actions is the accepted automated verification; the hand test of this build is the owner's.
 - **Portal accounts are the one auth type inside the bin**, deliberately: a binned account cannot
   sign in and restores within 30 days, but staff-role accounts and accounts a legacy student
   profile points at are reference-blocked and can only be disabled.

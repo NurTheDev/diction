@@ -335,6 +335,19 @@ be disabled because serverless hosting has no fixed IP; sender ID), backups, upg
 Atlas plan, and a go-live checklist: real data import day, a manual backup first, rotate any exposed
 credentials, one real test SMS to the owner's own number.
 
+### Go-live checklist (owner-maintained from R1 onward)
+
+1. Set `CRON_SECRET` (≥32 chars) in the Vercel project environment; confirm `vercel.json`'s
+   `0 19 * * *` schedule appears in the Vercel Crons panel.
+2. **First real scheduled-job run:** after the first 01:00 Asia/Dhaka cron, read the run log and
+   confirm `{"ok":true,...}` with the expected `purged` / `trim` / `proofMilestones` numbers.
+   (Proven against the disposable database and by its auth contract in R1 — runs 43277249842 and
+   43278522383 — but a real deployment run is a go-live item, not an R1 gate, owner decision
+   2026-11-12.)
+3. Manual backup before the real data import day; rotate any credential that ever appeared in a
+   chat or screenshot; one real test SMS to the owner's own number.
+4. Run `npm run verify` on the go-live commit and keep the `verify-output.zip` with the release.
+
 ---
 
 ## Spec change log

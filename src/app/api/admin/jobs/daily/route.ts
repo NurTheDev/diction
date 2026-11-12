@@ -2,6 +2,7 @@ import {NextResponse} from 'next/server';
 import {cronAuthorized} from '@/lib/admin/cron';
 import {purgeExpired} from '@/lib/admin/recycle';
 import {trimOldLogs} from '@/lib/admin/cron';
+import {purgeExpiredProofMilestones} from '@/lib/admin/proof-bin';
 
 export const dynamic='force-dynamic';
 export const maxDuration=60;
@@ -17,11 +18,11 @@ export async function GET(request:Request){
     return NextResponse.json({error:'unauthorized'},{status:401});
   }
   try{
-    const [purge,trim]=await Promise.all([purgeExpired(),trimOldLogs()]);
+    const [purge,trim,proofMilestones]=await Promise.all([purgeExpired(),trimOldLogs(),purgeExpiredProofMilestones()]);
     const purged=purge.reduce((sum,report)=>sum+report.purged,0);
     const assetFailures=purge.reduce((sum,report)=>sum+report.assetFailures,0);
     if(assetFailures)console.error(`Daily job: ${assetFailures} Cloudinary asset(s) could not be destroyed; the records were still purged.`);
-    return NextResponse.json({ok:true,purged,assetFailures,trim});
+    return NextResponse.json({ok:true,purged,assetFailures,trim:{...trim,proofMilestones}});
   }catch(error){
     console.error('Daily job failed.',error);
     return NextResponse.json({error:'unavailable'},{status:503});

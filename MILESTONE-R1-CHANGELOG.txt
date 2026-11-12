@@ -11,4 +11,10 @@
     already converted to a student, saved results or attempts, and for portal accounts a staff role
     or a legacy student profile, which may only be disabled). The media card raises the same
     layout-level Undo toast as every other delete.
+7b. Third wave of §E6, the last two §B rows: social-proof milestones bin inside the settings
+    document with the named dialog, the 30-day rule, Undo, a bin with days left and Restore, saves
+    that never empty the bin, and a daily-job purge of expired milestones (R1.6); managed roles can
+    be disabled as a whole — every guard reads CenterSettings.disabledRoles, so a disabled role keeps
+    no admin page until re-enabled, your own role cannot be switched off, and each switch writes an
+    audit row (R1.7).
 7. Evidence: verify-plan grew R1.1-R1.5; GitHub Actions run 43258474938 reported 16 PASS / 0 FAIL / 0 NOT TESTED in 145s, and the R1.4 browser suite caught two real defects that were then fixed (Delete forever compared the typed name against a read the auto-hide rule empties; the Undo toast was unmounted by the refresh it triggered). Still owed: nine record types outside the engine (trial slots, bookings, admissions, messages, banners, teachers, portal accounts, legacy exams, model tests), an Undo button on the media card, a real Vercel cron run, and the owner's own `npm run verify` output before R1 can be called verified (docs/R1-START-HERE.md).

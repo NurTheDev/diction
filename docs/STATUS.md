@@ -314,8 +314,9 @@ Undo toast as every other delete. `R1.4` grew the matching browser flows.
 
 1. Testimonials / social proof still have no delete or archive control, and managed roles still
    need a disable path (`docs/R1-AUDIT.md` §B).
-2. The daily job has not run on a real Vercel deployment; that needs the owner's project and a
-   `CRON_SECRET` of at least 32 characters.
+2. The daily job has not run on a real Vercel deployment. Owner decision 2026-11-12: that first
+   real run is a **go-live checklist item in R7** (`docs/SPEC.md` → R7 → go-live checklist), not an
+   R1 gate.
 3. Two orphaned components (`center-import-preview.tsx`, `center-cash-form.tsx`) still await an
    owner ruling, and R0 is still untagged pending the owner's `verify-output.zip`.
 
