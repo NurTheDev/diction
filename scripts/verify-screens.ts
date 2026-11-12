@@ -44,7 +44,8 @@ export async function captureScreens(opts:{origin:string;mongoUri:string;outDir:
   await mkdir(opts.outDir,{recursive:true});
 
   const mongoose=(await import('mongoose')).default;
-  if(mongoose.connection.readyState!==1)await mongoose.connect(opts.mongoUri,{dbName:'dictioncoaching'});
+  const openedHere=mongoose.connection.readyState!==1;
+  if(openedHere)await mongoose.connect(opts.mongoUri,{dbName:'dictioncoaching'});
   const connection=mongoose.connection;
   // A previous browser test may have cleared the rate-limit or user collections.
   await connection.collection('ratelimits').deleteMany({}).catch(()=>{});
@@ -87,6 +88,7 @@ export async function captureScreens(opts:{origin:string;mongoUri:string;outDir:
     await context.close();
   }finally{
     await browser.close();
+    if(openedHere&&mongoose.connection.readyState!==0)await mongoose.disconnect().catch(()=>{});
   }
   return result;
 }

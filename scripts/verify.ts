@@ -345,7 +345,11 @@ async function main():Promise<void>{
   console.log(`   report:      verify-report.md`);
   console.log(`   screenshots: screenshots/${milestone.toLowerCase()}/ (${screenshotFiles.length})`);
   console.log(`   send back:   verify-output.zip (${Math.round((await readFile('verify-output.zip')).length/1024)} KB)\n`);
-  process.exitCode=exitCodeFor(s);
+  const code=exitCodeFor(s);
+  process.exitCode=code;
+  // Exit explicitly: a stray socket or child handle would otherwise keep a CI job alive until its
+  // timeout. Everything is written and flushed before this point.
+  process.exit(code);
 }
 
 main().catch(async error=>{
