@@ -26,6 +26,8 @@ export function screenPlan(_milestone:string):ScreenTarget[]{
     {path:'/bn/admin/center-exams',label:'center-exams'},
     {path:'/bn/admin/admissions',label:'admissions'},
     {path:'/bn/admin/content?kind=blog',label:'blog'},
+    {path:'/bn/admin/recycle-bin',label:'recycle-bin'},
+    {path:'/en/admin/recycle-bin',label:'recycle-bin-en'},
   ];
 }
 

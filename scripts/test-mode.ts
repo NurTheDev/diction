@@ -7,7 +7,10 @@ import {randomBytes} from 'node:crypto';
 import {readFile,writeFile} from 'node:fs/promises';
 import {sourceFingerprint} from './test-build-fingerprint';
 import {User} from '../src/models/User';
-import {CenterClassGroup} from '../src/models/CenterRecords';
+import {CenterClassGroup,CenterStudent} from '../src/models/CenterRecords';
+import {Editorial} from '../src/models/Editorial';
+import {Course} from '../src/models/Course';
+import {FAQContent} from '../src/models/PublicContent';
 
 async function runStep(label:string,args:string[],env:NodeJS.ProcessEnv){
   console.log(`\nSTARTING TEST MODE: ${label} — first startup may take several minutes. Please wait.`);
@@ -39,8 +42,26 @@ async function main(){
     const dbName='dictioncoaching_test';
     await mongoose.connect(mongo.getUri(),{dbName});
     if(process.env.CENTER_DATA_MODE!=='test'||mongoose.connection.name!==dbName||!['127.0.0.1','localhost'].includes(mongoose.connection.host))throw Error('Demo admin requires isolated local test database');
-    await User.create({name:'Demo Admin',email:'demo-admin@example.test',passwordHash:await bcrypt.hash('DemoOnly-2026!',12),role:'admin',active:true});
-    await CenterClassGroup.insertMany([{name:{bn:'ক্লাস ৭',en:'Class 7'},academicYear:2026,shift:'All'},{name:{bn:'ক্লাস ৯ BS',en:'Class 9 BS'},academicYear:2026,shift:'All'}]);
+    const demoHash=await bcrypt.hash('DemoOnly-2026!',12);
+    // R1 needs all three roles on screen: super admin (Delete forever), admin (Delete) and staff
+    // (Archive and Restore only). Disposable accounts in a disposable database.
+    await User.create([{name:'Demo Admin',email:'demo-admin@example.test',passwordHash:demoHash,role:'admin',active:true},
+      {name:'Demo Super Admin',email:'demo-super@example.test',passwordHash:demoHash,role:'superadmin',active:true},
+      {name:'Demo Staff',email:'demo-staff@example.test',passwordHash:demoHash,role:'staff',active:true}]);
+    const [classSeven,classNine]=await CenterClassGroup.insertMany([{name:{bn:'ক্লাস ৭',en:'Class 7'},academicYear:2026,shift:'All'},{name:{bn:'ক্লাস ৯ BS',en:'Class 9 BS'},academicYear:2026,shift:'All'}]);
+    // Two students in Class 7 so the reference-blocked delete has a real count to show.
+    await CenterStudent.insertMany([
+      {studentId:'DEMO-1',name:{bn:'নমুনা শিক্ষার্থী এক',en:'Demo student one'},classGroup:classSeven._id,guardianPhone:'01711111111',startMonth:{year:2026,month:1},feeHistory:[{effectiveFrom:{year:2026,month:1},amount:1000}]},
+      {studentId:'DEMO-2',name:{bn:'নমুনা শিক্ষার্থী দুই',en:'Demo student two'},classGroup:classSeven._id,guardianPhone:'01722222222',startMonth:{year:2026,month:1},feeHistory:[{effectiveFrom:{year:2026,month:1},amount:1000}]},
+    ]);
+    // Something to delete, restore and purge in every list the Recycle Bin covers.
+    await Editorial.insertMany([
+      {kind:'blog',slug:'demo-blog-one',title:{bn:'নমুনা ব্লগ এক',en:'Demo blog one'},body:{bn:'এটি একটি নমুনা লেখা।',en:'Sample body.'},published:true},
+      {kind:'blog',slug:'demo-blog-two',title:{bn:'নমুনা ব্লগ দুই',en:'Demo blog two'},body:{bn:'আরেকটি নমুনা লেখা।',en:'Another sample.'},published:true},
+      {kind:'notice',slug:'demo-notice',title:{bn:'নমুনা নোটিশ',en:'Demo notice'},summary:{bn:'নমুনা ঘোষণা।',en:'Sample notice.'},published:false},
+    ]);
+    await Course.create({slug:'demo-course',grade:'9',subject:'math',title:{bn:'নমুনা কোর্স',en:'Demo course'},description:{bn:'নমুনা বিবরণ।',en:'Sample description.'},published:true});
+    await FAQContent.create({key:'demo-faq',question:{bn:'নমুনা প্রশ্ন?',en:'Sample question?'},answer:{bn:'নমুনা উত্তর।',en:'Sample answer.'},published:true});
     await mongoose.disconnect();
     // Published for `npm run verify`, which attaches tests and the screenshot pass to this run.
     // Local in-memory replica set with no credentials; the real MONGODB_URI is never printed.
@@ -52,6 +73,8 @@ async function main(){
     console.log('\nDISPOSABLE TEST MODE — all data disappears when stopped.');
     console.log(`Open ${origin}/bn/admin`);
     console.log('Demo admin: demo-admin@example.test / DemoOnly-2026!');
+    console.log('Demo super admin: demo-super@example.test / DemoOnly-2026!  (Recycle Bin → Delete forever)');
+    console.log('Demo staff: demo-staff@example.test / DemoOnly-2026!  (Archive and Restore, never Delete)');
     console.log('Database is an in-memory replica set; real MONGODB_URI is ignored. Ctrl+C to stop.\n');
     const env={...buildEnv,MONGODB_URI:mongo.getUri()};
     child=spawn(process.execPath,[require.resolve('next/dist/bin/next'),'start','-H','0.0.0.0','-p',String(port)],{cwd:process.cwd(),env,stdio:'inherit'});

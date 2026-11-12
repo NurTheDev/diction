@@ -115,13 +115,13 @@ async function run(){
     const jobSecret='j'.repeat(40);
     process.env.CRON_SECRET=jobSecret;
     const jobUrl='http://localhost:3111/api/admin/jobs/daily';
-    const expired=await Editorial.create({kind:'blog',slug:"recycle-expired",title:{bn:'মেয়াদ শেষ নমুনা'},published:true});
+    const expired=await Editorial.create({kind:'blog',slug:'recycle-expired',title:{bn:'মেয়াদ শেষ নমুনা',en:'Expired sample'},body:{bn:'লেখা',en:'text'},published:true});
     assert.equal((await softDelete('editorial',String(expired._id),actorId)).status,'ok');
     const thirteenMonths=new Date(Date.now()-13*30*24*60*60*1000),lastWeek=new Date(Date.now()-7*24*60*60*1000);
     await Editorial.updateOne({_id:expired._id,...binFilter},{$set:{purgeAt:new Date(Date.now()-60_000),deletedAt:thirteenMonths}});
     await CenterSmsLog.create({phone:'+8801700000000',message:'synthetic',segments:1,status:'sent',createdAt:thirteenMonths});
     await CenterSmsLog.create({phone:'+8801700000001',message:'synthetic',segments:1,status:'sent',createdAt:lastWeek});
-    const fresh=await Editorial.create({kind:'blog',slug:"recycle-fresh",title:{bn:'তাজা নমুনা'},published:true});
+    const fresh=await Editorial.create({kind:'blog',slug:'recycle-fresh',title:{bn:'তাজা নমুনা',en:'Fresh sample'},body:{bn:'লেখা',en:'text'},published:true});
     assert.equal((await softDelete('editorial',String(fresh._id),actorId)).status,'ok');
 
     const refused=await dailyJob(new Request(jobUrl));

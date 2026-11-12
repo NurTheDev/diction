@@ -66,12 +66,49 @@ async function run(){
   const stored=slug=>mongoose.connection.db.collection('editorials').countDocuments({slug});
   const publicBlog=async slug=>{const response=await fetch(`${origin}/en/blog/${slug}`);return {status:response.status,body:await response.text()}};
 
+  // Same-database probe, before any sign-in: if the app does not serve the post this test just
+  // wrote, the two are on different databases and every later assertion would be meaningless.
+  const probe=await fetch(`${origin}/en/blog/${SLUGS.undo}`);
+  assert.equal(probe.status,200,`the app does not serve the synthetic blog post this test just wrote (HTTP ${probe.status}, TEST_MONGO_DB=${process.env.TEST_MONGO_DB||'(unset)'}) — test and app are on different databases`);
+  const written=await User.findOne({email:accounts.superadmin}).select('+passwordHash').lean();
+  assert.ok(written&&await bcrypt.compare(password,written.passwordHash),'the synthetic super admin is stored with a matching password hash');
+
   const browser=await chromium.launch();
   try{
     async function signIn(role,width=1440){
       const context=await browser.newContext({viewport:{width,height:900}});
-      const csrf=await (await context.request.get(`${origin}/api/auth/csrf`)).json();
-      await context.request.post(`${origin}/api/auth/callback/credentials`,{timeout:180000,headers:{origin,'content-type':'application/x-www/form-urlencoded'},form:{csrfToken:csrf.csrfToken,identifier:accounts[role],password,callbackUrl:`${origin}/en/admin`}});
+      const notes=[];
+      let session=null;
+      for(let attempt=1;attempt<=3&&!session?.user;attempt++){
+        const csrfResponse=await context.request.get(`${origin}/api/auth/csrf`);
+        const csrf=await csrfResponse.json();
+        const form={csrfToken:csrf.csrfToken,identifier:accounts[role],password,callbackUrl:`${origin}/en/admin`};
+        const headers={origin,'content-type':'application/x-www-form-urlencoded'};
+        // Attempt 1 mirrors the screenshot pass (do not follow the 302); later attempts follow it.
+        const callback=attempt===1
+          ? await context.request.post(`${origin}/api/auth/callback/credentials`,{maxRedirects:0,timeout:180000,headers,form}).catch(error=>({status:()=>`error: ${(error as Error).message.slice(0,80)}`} as never))
+          : await context.request.post(`${origin}/api/auth/callback/credentials`,{timeout:180000,headers,form});
+        session=await context.request.get(`${origin}/api/auth/session`).then(response=>response.json()).catch(()=>null);
+        notes.push(`attempt ${attempt}: csrf ${csrfResponse.status()} token=${csrf.csrfToken?'yes':'no'}, callback ${callback.status()}, session ${JSON.stringify(session).slice(0,160)}`);
+        if(!session?.user)await new Promise(resolve=>setTimeout(resolve,2000));
+      }
+      if(!session?.user){
+        // Last resort: the real login form, which posts to the server action instead of the REST callback.
+        const form=await context.newPage();
+        await form.goto(`${origin}/en/login`,{waitUntil:'domcontentloaded',timeout:180000});
+        if(await form.locator('input[name=identifier]').count()){
+          await form.locator('input[name=identifier]').fill(accounts[role]);
+          await form.locator('input[name=password]').fill(password);
+          await form.locator('button.button-navy').first().click();
+          await form.waitForURL(/\/(en|bn)\/(admin|portal|dashboard)/,{timeout:60000}).catch(()=>{});
+          session=await context.request.get(`${origin}/api/auth/session`).then(response=>response.json()).catch(()=>null);
+          notes.push(`form login landed on ${form.url()}, session ${JSON.stringify(session).slice(0,160)}`);
+        }else{
+          notes.push('the login form was not rendered at /en/login (auth services reported as not configured)');
+        }
+        await form.close();
+      }
+      if(!session?.user)throw Error(`sign-in as ${role} failed — ${notes.join(' | ')}`);
       const page=await context.newPage(),errors=[];
       page.on('pageerror',error=>errors.push(error.message));
       page.on('dialog',dialog=>dialog.accept());
