@@ -14,22 +14,29 @@ import {PracticeTest} from '../src/models/PracticeTest';
 import {PublicSheet} from '../src/models/PublicSheet';
 import {CenterClassGroup,CenterExam,CenterStudent,CenterPayment,CenterFeeWaiver,CenterActivityLog,CenterSmsLog,CenterSmsBatch,CenterDueSnapshot,CenterImportBatch,CenterWorkbookBatch,CenterExamResult} from '../src/models/CenterRecords';
 import {User} from '../src/models/User';
+import {Admission,ContactMessage,Slot,TrialBooking} from '../src/models/Intake';
+import {HeroBanner} from '../src/models/HeroBanner';
+import {TeacherContent} from '../src/models/PublicContent';
+import {Exam,Result,Attendance,Student as AcademicStudent} from '../src/models/Academic';
+import {ModelTest,TestAttempt} from '../src/models/ModelTest';
 import {AdminAudit} from '../src/models/AdminAudit';
 import {recycleKinds,archivableKinds,canArchiveKind} from '../src/lib/admin/recycle-kinds';
 import {recycleRegistry} from '../src/lib/admin/recycle';
 
-// 1. The twelve schemas that carry deletedAt / deletedBy / purgeAt.
-const participating=[['Editorial',Editorial],['Course',Course],['LearningMaterial',LearningMaterial],['MediaFile',MediaFile],['PortalNotice',PortalNotice],['FAQContent',FAQContent],['FacilityContent',FacilityContent],['AchievementRecord',AchievementRecord],['PracticeTest',PracticeTest],['PublicSheet',PublicSheet],['CenterClassGroup',CenterClassGroup],['CenterExam',CenterExam]] as const;
-assert.equal(participating.length,12);
+// 1. The twenty-one schemas that carry deletedAt / deletedBy / purgeAt.
+const participating=[['Editorial',Editorial],['Course',Course],['LearningMaterial',LearningMaterial],['MediaFile',MediaFile],['PortalNotice',PortalNotice],['FAQContent',FAQContent],['FacilityContent',FacilityContent],['AchievementRecord',AchievementRecord],['PracticeTest',PracticeTest],['PublicSheet',PublicSheet],['CenterClassGroup',CenterClassGroup],['CenterExam',CenterExam],['Admission',Admission],['Slot',Slot],['TrialBooking',TrialBooking],['ContactMessage',ContactMessage],['HeroBanner',HeroBanner],['TeacherContent',TeacherContent],['User',User],['Exam',Exam],['ModelTest',ModelTest]] as const;
+assert.equal(participating.length,21);
 for(const [name,model] of participating){
   assert.ok((model.schema as any).path('deletedAt'),`${name} has deletedAt`);
   assert.ok((model.schema as any).path('purgeAt'),`${name} has purgeAt`);
 }
-assert.deepEqual(participating.map(([n])=>n).sort(),recycleRegistry.map(entry=>({editorial:'Editorial',course:'Course',material:'LearningMaterial',media:'MediaFile',portalNotice:'PortalNotice',faq:'FAQContent',facility:'FacilityContent',achievementRecord:'AchievementRecord',practiceTest:'PracticeTest',publicSheet:'PublicSheet',classGroup:'CenterClassGroup',centerExam:'CenterExam'}[entry.kind])).sort(),'the registry and the schemas are the same twelve types');
+assert.deepEqual(participating.map(([n])=>n).sort(),recycleRegistry.map(entry=>({editorial:'Editorial',course:'Course',material:'LearningMaterial',media:'MediaFile',portalNotice:'PortalNotice',faq:'FAQContent',facility:'FacilityContent',achievementRecord:'AchievementRecord',practiceTest:'PracticeTest',publicSheet:'PublicSheet',classGroup:'CenterClassGroup',centerExam:'CenterExam',slot:'Slot',trialBooking:'TrialBooking',admission:'Admission',contactMessage:'ContactMessage',heroBanner:'HeroBanner',teacher:'TeacherContent',portalAccount:'User',exam:'Exam',modelTest:'ModelTest'}[entry.kind])).sort(),'the registry and the schemas are the same twenty-one types');
 
 // 2. Financial, audit and student records are NOT auto-hidden: they have no deletedAt at all, so
 //    the rule cannot touch them. Students keep their own removed status; payments are voided.
-for(const [name,model] of [['CenterStudent',CenterStudent],['CenterPayment',CenterPayment],['CenterFeeWaiver',CenterFeeWaiver],['CenterActivityLog',CenterActivityLog],['AdminAudit',AdminAudit],['CenterSmsLog',CenterSmsLog],['CenterSmsBatch',CenterSmsBatch],['CenterDueSnapshot',CenterDueSnapshot],['CenterImportBatch',CenterImportBatch],['CenterWorkbookBatch',CenterWorkbookBatch],['CenterExamResult',CenterExamResult],['User',User]] as const){
+//    (Portal accounts — the User schema — joined the bin in the §E6 second wave, with staff-role
+//    accounts reference-blocked; every other auth-adjacent or money-adjacent type stays outside.)
+for(const [name,model] of [['CenterStudent',CenterStudent],['CenterPayment',CenterPayment],['CenterFeeWaiver',CenterFeeWaiver],['CenterActivityLog',CenterActivityLog],['AdminAudit',AdminAudit],['CenterSmsLog',CenterSmsLog],['CenterSmsBatch',CenterSmsBatch],['CenterDueSnapshot',CenterDueSnapshot],['CenterImportBatch',CenterImportBatch],['CenterWorkbookBatch',CenterWorkbookBatch],['CenterExamResult',CenterExamResult],['AcademicStudent',AcademicStudent],['Result',Result],['Attendance',Attendance],['TestAttempt',TestAttempt]] as const){
   assert.equal((model.schema as any).path('deletedAt'),undefined,`${name} must never be auto-hidden`);
 }
 
@@ -45,11 +52,11 @@ assert.ok(!pres.has('estimatedDocumentCount'),'estimatedDocumentCount is intenti
 // model's hook hides binned documents (proved against a live database in recycle-bin.integration).
 
 // 4. Public kinds know their routes, so delete/restore/purge can revalidate them.
-for(const kind of ['editorial','course','faq','facility','achievementRecord','practiceTest','publicSheet'] as const){
+for(const kind of ['editorial','course','faq','facility','achievementRecord','practiceTest','publicSheet','slot','heroBanner','teacher'] as const){
   const def=recycleRegistry.find(entry=>entry.kind===kind)!;
   assert.equal(typeof def.publicPaths,'function',`${kind} revalidates its public routes`);
 }
-for(const kind of ['material','media','portalNotice','classGroup','centerExam'] as const){
+for(const kind of ['material','media','portalNotice','classGroup','centerExam','trialBooking','admission','contactMessage','portalAccount','exam','modelTest'] as const){
   const def=recycleRegistry.find(entry=>entry.kind===kind)!;
   assert.equal(def.publicPaths,undefined,`${kind} has no public page to revalidate`);
 }

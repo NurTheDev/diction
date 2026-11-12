@@ -23,6 +23,11 @@ import {AchievementRecord} from '@/models/AchievementRecord';
 import {PracticeTest} from '@/models/PracticeTest';
 import {PublicSheet} from '@/models/PublicSheet';
 import {CenterClassGroup,CenterExam,CenterExamResult,CenterStudent} from '@/models/CenterRecords';
+import {Admission,ContactMessage,Slot,TrialBooking} from '@/models/Intake';
+import {User} from '@/models/User';
+import {Exam,Result,Student as AcademicStudent} from '@/models/Academic';
+import {ModelTest,TestAttempt} from '@/models/ModelTest';
+import {managedStaffRoles} from '@/schemas/admin-staff';
 import {binFilter,liveFilter,purgeAtFor,RECYCLE_RETENTION_DAYS} from '@/models/recycle';
 import {audit} from '@/lib/admin/helpers';
 import {getCloudinary} from '@/lib/cloudinary';
@@ -100,6 +105,48 @@ export const recycleRegistry:RecycleKindDef[]=[
    references:async id=>{
      const results=await CenterExamResult.countDocuments({exam:id});
      return results?[{count:results,bn:'জন শিক্ষার্থীর ফল এই পরীক্ষায় সংরক্ষিত',en:'saved result(s) belong to this exam'}]:[];
+   }},
+  // ── second wave (§E6): the record types that had no destructive control at all ────────────
+  {kind:'slot',labelBn:'ট্রায়াল ক্লাস স্লট',labelEn:'Trial class slot',model:()=>Slot,
+   nameOf:d=>[d.grade,d.subject,d.startAt?new Date(d.startAt).toISOString().slice(0,10):''].filter(Boolean).join(' · '),
+   publicPaths:()=>['/trial-class'],archiveSet:{enabled:false},
+   references:async id=>{
+     const bookings=await TrialBooking.countDocuments({slot:id,status:'booked'});
+     return bookings?[{count:bookings,bn:'টি বুকিং এই স্লটে নির্ধারিত',en:'booking(s) are scheduled in this slot'}]:[];
+   }},
+  {kind:'trialBooking',labelBn:'ট্রায়াল বুকিং',labelEn:'Trial booking',model:()=>TrialBooking,nameOf:d=>d.studentName||d.reference},
+  {kind:'admission',labelBn:'ভর্তি আবেদন',labelEn:'Admission application',model:()=>Admission,nameOf:d=>d.studentName||d.reference,
+   references:async id=>{
+     const doc=await Admission.findById(id).select('status').lean<AnyDoc>();
+     return doc&&doc.status==='enrolled'?[{count:1,bn:'টি ভর্তি ইতোমধ্যে শিক্ষার্থীতে রূপান্তরিত',en:'admission(s) already converted to a student'}]:[];
+   }},
+  {kind:'contactMessage',labelBn:'যোগাযোগ বার্তা',labelEn:'Contact message',model:()=>ContactMessage,nameOf:d=>d.name||d.reference},
+  {kind:'heroBanner',labelBn:'হিরো ব্যানার',labelEn:'Hero banner',model:()=>HeroBanner,nameOf:d=>d.key||'home',
+   publicPaths:()=>[''],archiveSet:{published:false}},
+  {kind:'teacher',labelBn:'শিক্ষক পরিচিতি',labelEn:'Teacher profile',model:()=>TeacherContent,nameOf:d=>localized(d,'name')||d.slug,
+   publicPaths:()=>['/teacher'],archiveSet:{published:false}},
+  {kind:'portalAccount',labelBn:'পোর্টাল অ্যাকাউন্ট',labelEn:'Portal account',model:()=>User,nameOf:d=>d.email||d.phone||d.name,
+   archiveSet:{active:false},
+   references:async id=>{
+     const doc=await User.findById(id).select('role').lean<AnyDoc>();
+     if(!doc)return [];
+     const refs:ReferenceCount[]=[];
+     if((managedStaffRoles as readonly string[]).includes(doc.role))refs.push({count:1,bn:'টি অ্যাকাউন্ট স্টাফ ভূমিকায় — নিষ্ক্রিয় করুন, মুছবেন না',en:'account(s) hold a staff role — disable instead of deleting'});
+     const profiles=await AcademicStudent.countDocuments({user:id});
+     if(profiles)refs.push({count:profiles,bn:'টি শিক্ষার্থী প্রোফাইল এই অ্যাকাউন্ট ব্যবহার করে',en:'student profile(s) use this account'});
+     return refs;
+   }},
+  {kind:'exam',labelBn:'পরীক্ষা (পুরোনো একাডেমিক)',labelEn:'Legacy academic exam',model:()=>Exam,nameOf:d=>d.titleBn||d.titleEn,
+   archiveSet:{published:false},
+   references:async id=>{
+     const results=await Result.countDocuments({exam:id});
+     return results?[{count:results,bn:'টি সংরক্ষিত ফল এই পরীক্ষায়',en:'saved result(s) belong to this exam'}]:[];
+   }},
+  {kind:'modelTest',labelBn:'মডেল টেস্ট',labelEn:'Model test',model:()=>ModelTest,nameOf:d=>d.titleBn||d.titleEn,
+   archiveSet:{published:false},
+   references:async id=>{
+     const attempts=await TestAttempt.countDocuments({test:id});
+     return attempts?[{count:attempts,bn:'টি সংরক্ষিত চেষ্টা এই টেস্টে',en:'saved attempt(s) belong to this test'}]:[];
    }},
 ];
 

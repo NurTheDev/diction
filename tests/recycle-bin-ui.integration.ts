@@ -23,6 +23,7 @@ import {chromium} from 'playwright';
 import {preflight,testDbName} from './helpers/env-preflight';
 import {User} from '../src/models/User';
 import {Editorial} from '../src/models/Editorial';
+import {Slot,TrialBooking,ContactMessage} from '../src/models/Intake';
 import {CenterClassGroup,CenterStudent} from '../src/models/CenterRecords';
 import {AdminAudit} from '../src/models/AdminAudit';
 import {binFilter} from '../src/models/recycle';
@@ -265,6 +266,45 @@ async function run(){
     await sheetCard.waitFor({timeout:60000});
     assert.equal(await mongoose.connection.db.collection('publicsheets').countDocuments({_id:new mongoose.Types.ObjectId(sheetId),deletedAt:{$type:'date'}}),0,'Undo brought the sheet back into the client-fetched list');
 
+    // ── 10. second wave: trial slots and contact messages get the same dialog and Undo ───────
+    const slotStart=new Date(Date.now()+2*24*60*60*1000);
+    const slot=await Slot.create({grade:'6',subject:'math',startAt:slotStart,endAt:new Date(slotStart.getTime()+3600*1000),capacity:2});
+    const slotName=`6 · math · ${slotStart.toISOString().slice(0,10)}`;
+    await su.page.goto(`${origin}/en/admin/slots`,{waitUntil:'domcontentloaded',timeout:180000});
+    const slotRow=su.page.locator('table.admin-table tbody tr').first();
+    await slotRow.waitFor({timeout:60000});
+    await slotRow.getByRole('button',{name:'Delete',exact:true}).click();
+    const slotDialog=su.page.getByRole('dialog');
+    await slotDialog.waitFor();
+    assert.match(await slotDialog.locator('h2').innerText(),new RegExp(slotName.replace(/[.*+?^${}()|[\\]\\]/g,'\\$&')),'the slot dialog names the slot');
+    await slotDialog.getByRole('button',{name:'Yes, delete'}).click();
+    await toast(su.page).getByText('Moved to the Recycle Bin.').waitFor({timeout:60000});
+    await toast(su.page).getByRole('button',{name:'Undo',exact:true}).click();
+    await toast(su.page).getByText('Restored.').waitFor({timeout:60000});
+    assert.equal((await Slot.findById(slot._id).lean())?.deletedAt,null,'Undo restored the trial slot');
+
+    await TrialBooking.create({reference:'RCB-SECOND-WAVE',slot:slot._id,studentName:'Booked Blocker',phone:'01712345678',consent:true});
+    await slotRow.getByRole('button',{name:'Delete',exact:true}).click();
+    await slotDialog.getByRole('button',{name:'Yes, delete'}).click();
+    await toast(su.page).getByText('1 booking(s) are scheduled in this slot',{exact:false}).waitFor({timeout:60000});
+    await toast(su.page).getByRole('button',{name:'Archive',exact:true}).click();
+    await toast(su.page).getByText('Archived.').waitFor({timeout:60000});
+    assert.equal((await Slot.findById(slot._id).lean())?.enabled,false,'Archive closed the slot instead of deleting it');
+
+    await ContactMessage.create({reference:'RCM-SECOND-WAVE',name:'Message Sender',message:'A second-wave contact message.',consent:true});
+    await su.page.goto(`${origin}/en/admin/messages`,{waitUntil:'domcontentloaded',timeout:180000});
+    const messageCard=su.page.locator('article.admin-message').first();
+    await messageCard.waitFor({timeout:60000});
+    await messageCard.getByRole('button',{name:'Delete',exact:true}).click();
+    const messageDialog=su.page.getByRole('dialog');
+    await messageDialog.waitFor();
+    assert.match(await messageDialog.locator('h2').innerText(),/Message Sender/,'the message dialog names the sender');
+    await messageDialog.getByRole('button',{name:'Yes, delete'}).click();
+    await toast(su.page).getByText('Moved to the Recycle Bin.').waitFor({timeout:60000});
+    await toast(su.page).getByRole('button',{name:'Undo',exact:true}).click();
+    await toast(su.page).getByText('Restored.').waitFor({timeout:60000});
+    assert.equal((await ContactMessage.findOne({reference:'RCM-SECOND-WAVE'}).lean())?.deletedAt,null,'Undo restored the contact message');
+
     // ── 8a. Bangla strings and Bangla digits on the bin page ─────────────────────────────────
     await su.page.goto(`${origin}/bn/admin/recycle-bin`,{waitUntil:'domcontentloaded',timeout:180000});
     await su.page.locator('h1').filter({hasText:'রিসাইকেল বিন'}).waitFor({timeout:60000});
@@ -272,7 +312,7 @@ async function run(){
 
     // ── 8b. no overflow at 360 / 768 / 1440 on both pages ────────────────────────────────────
     for(const width of [360,768,1440]){
-      for(const path of ['/en/admin/content?kind=blog','/en/admin/recycle-bin','/en/admin/students/classes']){
+      for(const path of ['/en/admin/content?kind=blog','/en/admin/recycle-bin','/en/admin/students/classes','/en/admin/slots','/en/admin/messages']){
         await su.page.setViewportSize({width,height:900});
         await su.page.goto(origin+path,{waitUntil:'domcontentloaded',timeout:180000});
         const size=await su.page.evaluate(()=>({scroll:document.documentElement.scrollWidth,client:document.documentElement.clientWidth}));
@@ -302,6 +342,9 @@ async function run(){
     await staff.page.goto(`${origin}/en/admin/students/classes`,{waitUntil:'domcontentloaded',timeout:180000});
     await staff.page.getByRole('button',{name:'Archive',exact:true}).first().waitFor({state:'visible',timeout:60000});
     assert.equal(await staff.page.getByRole('button',{name:'Delete',exact:true}).count(),0,'staff sees no Delete on class management either');
+    await staff.page.goto(`${origin}/en/admin/slots`,{waitUntil:'domcontentloaded',timeout:180000});
+    await staff.page.getByRole('button',{name:'Archive',exact:true}).first().waitFor({state:'visible',timeout:60000});
+    assert.equal(await staff.page.getByRole('button',{name:'Delete',exact:true}).count(),0,'staff sees no Delete on trial slots either');
     assert.deepEqual(staff.errors,[],`page errors as staff: ${staff.errors.join(' | ')}`);
     await staff.context.close();
 
