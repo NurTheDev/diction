@@ -1,0 +1,2 @@
+--- tests/sms-recipients.test.ts (exit 0) ---
+SMS recipients: removed and opted-out students are never sent to, held students are excluded from fee messages only, missing/invalid numbers are reported with reasons, every accepted phone shape normalizes to 01XXXXXXXXX, siblings group into one message with a summed total (refused when the amount is ambiguous), and 500 recipients batch into five chunks of 100.

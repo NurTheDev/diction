@@ -1,0 +1,2 @@
+--- tests/sms-templates.test.ts (exit 0) ---
+SMS templates: the five spec bodies match byte-for-byte, chips substitute without inventing values, an unknown chip stays visible, and fee-relatedness and auto-send keys are declared per template.

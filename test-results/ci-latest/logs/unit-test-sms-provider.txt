@@ -1,0 +1,2 @@
+--- tests/sms-provider.test.ts (exit 0) ---
+SMS provider: the three documented endpoints and their parameters are used exactly, Bangla goes as type=unicode and ASCII as text, the many-to-many body is 88<number>,<message> pairs, balance parses from text and JSON, all 19 published response codes read as Bangla, and the API key is validated, redacted and never returned, logged or sent to a browser.

@@ -1,0 +1,2 @@
+--- tests/sms-quiet.test.ts (exit 0) ---
+SMS quiet hours: the midnight-crossing 21:00–07:00 default and a same-day window are both evaluated correctly in Dhaka time, invalid or empty settings disable quiet hours instead of blocking sends, and the queue flush time is computed exactly.

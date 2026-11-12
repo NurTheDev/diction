@@ -1,0 +1,14 @@
+--- tests/sms-send.integration.ts (exit 1) ---
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+'queued' !== 'done'
+
+    at run (/home/runner/work/diction/diction/tests/sms-send.integration.ts:119:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: 'queued',
+  expected: 'done',
+  operator: 'strictEqual',
+  diff: 'simple'
+}
