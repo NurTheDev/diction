@@ -313,6 +313,7 @@ async function main():Promise<void>{
     await stepUnitSuites(ctx,'test:center','R0.8','Center unit suites');
     await stepUnitSuites(ctx,'test:staff-role','R1.2','Staff role: schema, guards and nav visibility');
     await stepUnitSuites(ctx,'test:recycle:coverage','R1.3','Auto-hide coverage: query shapes, protected types, revalidation map');
+    await stepUnitSuites(ctx,'test:cron','R1.5','Daily scheduled job: bearer-secret auth and vercel.json schedule');
   }else{
     for(const r of requirements)if(!ctx.results[r.id])mark(ctx,r.id,'NOT TESTED','dependencies are not installed');
   }

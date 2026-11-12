@@ -1503,7 +1503,8 @@
       "centerDailyCash": "Cash collection",
       "centerSheetView": "Sheet view",
       "centerStudents": "Students",
-      "centerExams": "Center exams"
+      "centerExams": "Center exams",
+      "recycleBin": "Recycle Bin"
     },
     "search": "Search menu",
     "noMenuResults": "No menu items found",
@@ -1770,7 +1771,21 @@
     "restoreDraft": "An unfinished copy was found in this tab.",
     "restore": "Restore previous text",
     "discard": "Discard copy",
-    "localFailed": "A temporary copy could not be kept. Save your work."
+    "localFailed": "A temporary copy could not be kept. Save your work.",
+    "deleteNamed": "Delete {name}?",
+    "softBody": "This moves to the Recycle Bin for 30 days. You can restore it from there until then.",
+    "movedBin": "Moved to the Recycle Bin.",
+    "restoredBin": "Restored.",
+    "bulkSelected": "{count} selected",
+    "bulkDelete": "Delete selected",
+    "bulkRestore": "Restore selected",
+    "archive": "Archive",
+    "archived": "Archived.",
+    "deleteAction": "Delete",
+    "selectedNone": "Select at least one row",
+    "undoDelete": "Undo",
+    "deleteFailed": "That could not be done.",
+    "selectAll": "Select all"
   },
   "adminModules": {
     "teachersDesc": "Add teachers’ photos, qualifications and introductions.",
@@ -1924,5 +1939,28 @@
     "conflict": "This record changed elsewhere. Reload the page and try again.",
     "saveChanges": "Save changes",
     "editHint": "Class and fee cannot be changed here, to protect their history."
+  },
+  "recycleBin": {
+    "title": "Recycle Bin",
+    "sub": "Deleted items stay here for 30 days, then leave automatically.",
+    "empty": "The Recycle Bin is empty.",
+    "search": "Search",
+    "filterAll": "All types",
+    "daysLeft": "{days} days left",
+    "restore": "Restore",
+    "forever": "Delete forever",
+    "foreverTitle": "Delete forever: {name}?",
+    "foreverBody": "Type the name exactly to confirm. This cannot be undone.",
+    "foreverHint": "Name: {name}",
+    "purged": "Deleted forever.",
+    "kind": "Type",
+    "name": "Name",
+    "deleted": "Deleted",
+    "failed": "That could not be done.",
+    "cancel": "Cancel",
+    "restored": "Restored.",
+    "nameMismatch": "The name did not match, so nothing was deleted.",
+    "daysLeftHeader": "Days left",
+    "noResults": "Nothing matched that search."
   }
 }

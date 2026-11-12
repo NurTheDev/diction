@@ -9,5 +9,5 @@ export async function getStaff(){const user=await getCurrentUser();return user&&
 /** Archive/hide is the staff floor (owner decision 2026-11-12): staff, admin and super admin. Delete stays behind requireAdmin. */
 export async function getArchiver(){const user=await getCurrentUser();return user&&['superadmin','admin','staff'].includes(user.role)?user:null}
 export async function requireArchiver(){const archiver=await getArchiver();if(!archiver)throw new Error('UNAUTHORIZED');return archiver}
-export async function getStaffPermission(permission:StaffPermission){const user=await getStaff();if(!user)return null;return user.role==='admin'||user.role==='superadmin'||(permission==='content'&&user.role==='content_editor')||(permission==='exams'&&user.role==='exam_manager')?user:null}
+export async function getStaffPermission(permission:StaffPermission){const user=await getStaff();if(!user)return null;return user.role==='admin'||user.role==='superadmin'||user.role==='staff'||(permission==='content'&&user.role==='content_editor')||(permission==='exams'&&user.role==='exam_manager')?user:null}
 export async function requireStaffPermission(permission:StaffPermission){const user=await getStaffPermission(permission);if(!user)throw new Error('UNAUTHORIZED');return user}
