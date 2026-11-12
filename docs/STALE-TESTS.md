@@ -8,6 +8,7 @@ Supersedes the root `STALE-TESTS-REPORT.md` (now a pointer to this file).
 | `tests/center-exams-browser.integration.ts` | **Repaired, kept** — `npm run test:browser:exams` | No — blocked by environment (§4) |
 | `tests/workbook-preview-browser.integration.ts` | **Repaired, kept** — `npm run test:browser:workbook-preview` | No — blocked by environment (§4) |
 | `tests/retired/center-import-browser.integration.ts.retired` | **Retired** — tests a UI that no longer exists | n/a |
+| `tests/retired/center-cash-browser.integration.ts.retired` | **Retired during the R1 audit (2026-11-12)** — a fourth stale test the brief did not list; see §6 | n/a |
 
 All three originally failed for the same environmental reason: `next start` needs a production build
 and the earlier sandbox could not complete one. Once they could run, their *real* staleness showed.
@@ -166,3 +167,29 @@ TEST_ORIGIN=http://127.0.0.1:3100 TEST_MONGO_URI='mongodb://127.0.0.1:27017/dict
 TEST_ORIGIN=http://127.0.0.1:3100 TEST_MONGO_URI='mongodb://127.0.0.1:27017/dictioncoaching?replicaSet=testset' npm run test:browser:exams
 npm run test:browser:workbook-preview    # starts test-mode itself when TEST_ORIGIN is unset
 ```
+
+## 6. A fourth stale test found during the R1 audit: `center-cash-browser.integration.ts` — retired
+
+The brief named three stale tests. The R1 delete/archive audit (`docs/R1-AUDIT.md`) surfaced a fourth,
+on static evidence — it cannot be run in this sandbox, so the evidence is code inspection, and the
+conclusion should be confirmed by a run on the owner's machine.
+
+Why it cannot pass:
+
+1. **Route is now a redirect.** The test opens `/bn/admin/students/<id>/collect`. That page is four
+   lines long and only does `redirect('/${locale}/admin/students/collect?student=<id>')`.
+2. **Component is orphaned.** It waits for `.center-cash-form` and for the `<details>` labelled
+   "লেনদেন বাতিল করুন". Both exist only in `src/components/admin/center-cash-form.tsx`, which no file
+   in `src/` imports (verified by a whole-tree orphan sweep — it was the only admin component with no
+   importer).
+3. **Hidden date input.** It does `form.locator('[name=paidOn]').fill('2026-01-02')`. In the live UI
+   `paidOn` is the hidden input of the `BanglaDate` widget — the exact failure mode fixed in §1.
+
+What is still covered: the cash-collection feature is live in
+`src/components/admin/center-daily-collection.tsx` (rendered by `/admin/students/collect`), and its
+server logic is covered by `tests/center-cash-batch.integration.ts` and
+`tests/center-daily-cash.integration.ts` (atomic multi-month entry, receipt checks, replay
+protection, reasoned void).
+
+**Coverage lost and owed:** no browser test drives the live daily-collection screen. Rewriting it is
+small and belongs with the payment screens — scheduled for R1/R2, tracked in `docs/STATUS.md` §3.

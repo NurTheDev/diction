@@ -67,7 +67,7 @@ message instead of minutes of retries and a raw stack trace (`tests/helpers/env-
 | Admin auth, roles (`superadmin`, `admin`, `content_editor`, `exam_manager`), audit log | working | ran today (unit) + code read (`src/lib/admin/guard.ts`, `permitted()` in `nav-items.ts`). |
 | Class groups, students, profile, active/hold/removed + restore | working | prior log (`milestone-1/2`), code read. `purgeAt` is stored but automatic purge is **missing** (R6). |
 | Workbook import wizard (dry run, decisions, reconciliation, CSV, undo, idempotent) | working | prior log + ran today (parser/compiler unit suites). |
-| Fee collection (search, 12 tiles, receipt, void with reason, history) | working | prior log + ran today (month-status, cash rules). |
+| Fee collection (search, 12 tiles, receipt, void with reason, history) | working | prior log + ran today (month-status, cash rules). **Browser coverage gap:** `center-cash-browser` was retired in R0 as a fourth stale test (`docs/STALE-TESTS.md` §6); the live screen is `center-daily-collection.tsx` and its server logic is still covered by `center-cash-batch` / `center-daily-cash`. Rewriting the browser test is owed in R1/R2. |
 | Class/year sheet view + Excel export | working | prior log; `students/fees-grid/export/route.ts`. |
 | Due list (live) + CSV export | **partial** | code read: class filter + CSV only. The M3-4 changelog also claims month filter, select-all, Excel and print/PDF — **those are not in the code**. |
 | Month-end due snapshots — manual button | working | code read + prior log. Gated by `CENTER_DUE_SNAPSHOT_WRITE_ENABLED` (off by default) and a confirm checkbox (which §4 of the SPEC forbids for common tasks — review in R1/R6). |
@@ -145,10 +145,19 @@ Answered 2026-11-12:
 
 Still open:
 
-4. `src/components/admin/center-import-preview.tsx` (15.7 KB) is **orphaned** — nothing imports it
+4. **Two orphaned components**: `src/components/admin/center-import-preview.tsx` (15.7 KB) and
+   `src/components/admin/center-cash-form.tsx` — a whole-tree sweep found these are the only admin
+   components nothing imports. — nothing imports it
    since the single-sheet importer was replaced by the workbook review flow. Recommendation: keep it
    for now (harmless, git-tracked) and decide during the R1 audit, which lists every admin screen
    anyway. Say the word and I will delete it.
+
+## 6.1 R1 audit (step 1 of R1) — complete
+
+`docs/R1-AUDIT.md`: every destructive control that exists today (9 hard deletes, 8 soft/void), every
+record type with no delete at all (18), the shared UI to reuse (`ConfirmSubmit` dialog, `ActionFeedback`
+toast) and what must change in it, plus the R1 build order. Two extra findings: a fourth stale test
+(retired) and a second orphaned component.
 
 ## 7. Next milestone
 
