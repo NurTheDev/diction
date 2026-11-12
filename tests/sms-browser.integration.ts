@@ -97,10 +97,11 @@ async function run(){
     assert.ok(!/(api_?key|apikey|sender_?id)\s*[=:]\s*["']?[A-Za-z0-9_-]{12,}/i.test(html),'no credential value is rendered in the HTML');
     assert.ok(!html.includes('BULKSMSBD_API_KEY='),'the key is named as missing, never shown with a value');
     // Scoped to this page's panels: a layout-level form (sign-out, digit toggle) is not our concern.
-    const fields=await boss.page.locator('section.admin-panel input,section.admin-panel textarea').evaluateAll(nodes=>nodes.map(node=>({name:(node as HTMLInputElement).name||'',value:(node as HTMLInputElement).value||''})));
+    const fields=await boss.page.locator('section.admin-panel input,section.admin-panel textarea,section.admin-panel select').evaluateAll(nodes=>nodes.map(node=>({name:(node as HTMLInputElement).name||'',value:(node as HTMLInputElement).value||''})));
     const names=fields.map(field=>field.name).filter(Boolean);
     const ours=names.filter(name=>!name.startsWith('$')&&name!=='csrfToken');
-    const expectedNames=['smsUnitCost','quietStart','quietEnd','institutePhone','autoDueDay','autoReceipt','autoResult','autoDue','phone','key','name','body','active','batchId'];
+        // Settings, the test number, the template editor, the batch retry id and the history filter.
+    const expectedNames=['smsUnitCost','quietStart','quietEnd','institutePhone','autoDueDay','autoReceipt','autoResult','autoDue','phone','key','name','body','active','batchId','status','template','q'];
     assert.deepEqual([...new Set(ours.filter(name=>!expectedNames.includes(name)))].sort(),[],'the page renders only the fields it means to');
     assert.deepEqual(ours.filter(name=>/api_?key|sender_?id|secret|password|token/i.test(name)),[],'no credential field is rendered at all — credentials come from the environment only');
     // And every field we do render holds only the shape it is supposed to hold.
