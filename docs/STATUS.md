@@ -1,6 +1,10 @@
 # STATUS — Diction Coaching Center
 
-Last updated: **2026-11-12** (R0 — stabilize and document).
+Last updated: **2026-11-12** (R0 — stabilize and document, plus the owner's verification protocol).
+
+**Status vocabulary (agreed with the owner):** *code complete, awaiting owner verification* until the
+owner runs `npm run verify` and sends back an all-PASS report; *verified* only after that. Never
+"done" on unit tests alone. Protocol: `docs/VERIFY.md`.
 Legend: **working** (demonstrated) · **partial** (works with limits) · **missing** (not built) ·
 **blocked** (built, but cannot be demonstrated in this environment).
 
@@ -22,6 +26,14 @@ Raw log: `test-results/r0-cold-start-20261112.txt`, summary: `test-results/r0-ve
 | 4 | `next build --webpack` (run by `test-mode`) | **PASS** — "✓ Compiled successfully in 50s", "✓ Generating static pages (173/173)". The old "build OOMs in the sandbox" caveat in `STALE-TESTS-REPORT.md` does **not** apply to a 3.9 GB machine. |
 | 5 | `npm run test-mode` (whole command) | **BLOCKED at step 5 only** — it builds fine, then must download a MongoDB binary from `fastdl.mongodb.org`, which this sandbox's network allowlist refuses (`ECONNRESET`, 3 retries, exit 1). Nothing before that step failed. |
 | 6 | Browser + Mongo integration tests (13 files) | **BLOCKED** — same reason, plus Playwright's Chromium CDN (`cdn.playwright.dev`) is refused. |
+
+**The single command for the owner is now `npm run verify`** — it checks Node and dependencies, runs
+every unit suite, installs the test browser if missing, starts the disposable database and the app,
+signs in as the demo admin, takes 360 px and 1440 px screenshots of 13 pages, runs the browser tests,
+and writes `verify-report.md` + `screenshots/<milestone>/` + `verify-output.zip` (one line per
+requirement: PASS / FAIL / NOT TESTED and why). Run in this sandbox on 2026-11-12 it reported
+**5 PASS, 0 FAIL, 6 NOT TESTED (INCOMPLETE)** — the six unproven lines are all the ones that need the
+MongoDB download or the browser, and each says so.
 
 **On the owner's machine (normal internet) the expected cold start is:**
 `npm ci` → `npx playwright install chromium` (once) → `npm run test-mode` → open
@@ -114,28 +126,58 @@ gate, the snapshot gate and the SMS gate currently do exactly that. R2 and R5 mu
 exams into normal features (mock provider first), and the snapshot confirm checkbox should be
 revisited in R6.
 
-## 6. Decisions needed from the owner
+## 6. Owner decisions
 
-1. `src/components/admin/center-import-preview.tsx` (15.7 KB) is **orphaned** — nothing imports it
-   since the single-sheet importer was replaced by the workbook review flow. Delete it, or keep it
-   for a future single-sheet path? (Its test is retired — `docs/STALE-TESTS.md` §3.)
-2. Items 1-5 in §4 above: rebuild as specified, or drop them from the plan? They are scheduled as
-   R6 (scheduler + reports), R3/R5 (portal), R1 (admission → student) unless you say otherwise.
-3. Two PASS claims in `milestone-3-4-verification.txt` have no test file behind them (§4 item 6).
-   Treat those two features as not delivered — agreed?
+Answered 2026-11-12:
+
+1. **Verification protocol** — one command `npm run verify` that installs the browser if missing,
+   starts the isolated database, runs unit + browser tests and takes 360/1440 screenshots; writes
+   `verify-report.md` (one line per requirement: PASS / FAIL / NOT TESTED and why), saves
+   `screenshots/<milestone>/` and bundles `verify-output.zip` to send back; README carries numbered
+   copy-paste steps for a non-technical person; status words as above; a failing run comes back to me
+   and I fix it and send a complete new ZIP. **Implemented — see `docs/VERIFY.md`.**
+2. **Staff role for R1** — add a real `staff` role (archive/hide, no delete) rather than reusing
+   `content_editor`. R1 must add it to the User model, the sidebar `permitted()` map and every
+   server-side check.
+3. **The five documented-but-missing features** — keep them in their scheduled milestones (R1 builds
+   only the scheduler infrastructure its 30-day purge needs; portal linking stays R3/R5; legacy
+   conversion R6; admission → student is the admissions row of the R1 audit). Nothing is dropped.
+
+Still open:
+
+4. `src/components/admin/center-import-preview.tsx` (15.7 KB) is **orphaned** — nothing imports it
+   since the single-sheet importer was replaced by the workbook review flow. Recommendation: keep it
+   for now (harmless, git-tracked) and decide during the R1 audit, which lists every admin screen
+   anyway. Say the word and I will delete it.
 
 ## 7. Next milestone
 
 **R1 — delete/archive everywhere.** Starting facts already gathered: six legacy content modules
-hard-delete today; no model has `deletedAt`; there is no Recycle Bin page; `deleteMedia` already
-implements reference-blocking + Cloudinary destroy and is the pattern to generalise; roles are
-`superadmin`/`admin`/`content_editor`/`exam_manager`, so R1's "Staff can Archive/Hide" needs a role
-decision (map Staff → `content_editor`, or add a role).
+hard-delete today (`deleteEditorial`, `deleteCourse`, `deleteMaterial`, `deleteMedia`,
+`deletePortalNotice`, `deleteSiteContent` — all `deleteOne`, no restore); no model has `deletedAt`;
+there is no Recycle Bin page; `deleteMedia` already implements reference-blocking plus Cloudinary
+destroy and is the pattern to generalise; roles are `superadmin`/`admin`/`content_editor`/
+`exam_manager` and R1 adds **`staff`** (archive/hide, no delete) per §6.2. R1 must also create the
+scheduled-job infrastructure its 30-day purge needs, since no scheduler exists at all (§4 item 1),
+and every R1 requirement gets a line in `scripts/verify-plan.ts` before delivery.
 
-## 8. সংক্ষেপে (owner summary)
+## 8. Verification harness (new in R0)
+
+| Piece | Status | Evidence |
+| --- | --- | --- |
+| `npm run verify` orchestrator | working · **partially blocked here** | ran end to end in this sandbox: 32 unit suites PASS, build PASS, 6 requirements correctly NOT TESTED with reasons, report + zip written |
+| `verify-report.md` rendering | working | ran today; `tests/verify-report.test.ts` proves one line per requirement and no PASS without evidence |
+| `verify-output.zip` writer | working | ran today; round-tripped through `yauzl` with intact binary content |
+| Requirement registry (`verify-plan.ts`) | working | 11 R0 requirements; the unit test asserts every entry points at a real script or test file |
+| Screenshot pass (360/1440) | **blocked here** | needs the browser + the running app; will run on the owner's machine |
+| `README.md` steps for a non-technical person | working | new top section "Start here: verify this build in one command" + a failure/fix table |
+
+## 9. সংক্ষেপে (owner summary)
 
 - আজ যা যা পরীক্ষা করা হয়েছে: `npm ci`, টাইপচেক, ৩১টি ইউনিট টেস্ট এবং পূর্ণ প্রোডাকশন বিল্ড — সব পাস।
 - এই স্যান্ডবক্স থেকে MongoDB ও ব্রাউজার ডাউনলোড করা যায় না, তাই `npm run test-mode` ও ব্রাউজার টেস্ট এখানে চালানো সম্ভব হয়নি। আপনার কম্পিউটারে (সাধারণ ইন্টারনেট) এগুলো চলবে; এটি প্রোজেক্টের সমস্যা নয়।
 - পুরোনো ডকুমেন্টে যা "শেষ" লেখা ছিল, তার কয়েকটি আসলে কোডে নেই: মাস-শেষের স্বয়ংক্রিয় স্ন্যাপশট (cron), পুরোনো ফি রূপান্তর, পোর্টাল লিংক, "ভর্তি সম্পন্ন → শিক্ষার্থী", এবং বকেয়া তালিকার Excel/প্রিন্ট। বিস্তারিত §4-এ।
 - তিনটি পুরোনো ব্রাউজার টেস্টের সমাধান হয়েছে: দুটি ঠিক করা, একটি অবসর দেওয়া — কারণসহ `docs/STALE-TESTS.md`-এ।
-- পরের ধাপ R1 (ডিলিট/আর্কাইভ/রিসাইকেল বিন)। আপনার অনুমোদনের অপেক্ষায়।
+- নতুন: `npm run verify` — একটিমাত্র কমান্ডে ইউনিট টেস্ট, ব্রাউজার টেস্ট, ৩৬০/১৪৪০ স্ক্রিনশট এবং `verify-report.md` + `verify-output.zip` তৈরি হবে। এই স্যান্ডবক্সে চালিয়ে দেখা গেছে: ৫টি PASS, ০টি FAIL, ৬টি NOT TESTED (কারণসহ)।
+- আপনার তিনটি সিদ্ধান্ত নোট করা হয়েছে (§6): ভেরিফিকেশন প্রোটোকল, নতুন `staff` রোল, এবং বাকি ফিচারগুলো নিজ নিজ মাইলস্টোনেই থাকবে।
+- পরের ধাপ R1 (ডিলিট/আর্কাইভ/রিসাইকেল বিন) — শুরু করার আগে আপনার অনুমোদন চাই।

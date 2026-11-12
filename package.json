@@ -10,7 +10,7 @@
     "seed": "tsx scripts/seed.ts",
     "seed:check": "tsx scripts/seed.ts --validate-only",
     "test": "npm run test:unit:core && npm run test:center",
-    "test:unit:core": "tsx tests/intake.test.ts && tsx tests/admin.test.ts && tsx tests/academic.test.ts && tsx tests/study.test.ts && tsx tests/seed.test.ts && tsx tests/editorial.test.ts && tsx tests/model-test.test.ts && tsx tests/site-content.test.ts && tsx tests/site-settings.test.ts && tsx tests/course.test.ts && tsx tests/recovery.test.ts && tsx tests/hero.test.ts && tsx tests/materials.test.ts && tsx tests/fees.test.ts && tsx tests/theme.test.ts && tsx tests/portal-notices.test.ts && tsx tests/youtube.test.ts && tsx tests/achievement.test.ts && tsx tests/env-origin.test.ts && tsx tests/achievement-flags.test.ts && tsx tests/public-sheet.test.ts && tsx tests/practice.test.ts",
+    "test:unit:core": "tsx tests/intake.test.ts && tsx tests/admin.test.ts && tsx tests/academic.test.ts && tsx tests/study.test.ts && tsx tests/seed.test.ts && tsx tests/editorial.test.ts && tsx tests/model-test.test.ts && tsx tests/site-content.test.ts && tsx tests/site-settings.test.ts && tsx tests/course.test.ts && tsx tests/recovery.test.ts && tsx tests/hero.test.ts && tsx tests/materials.test.ts && tsx tests/fees.test.ts && tsx tests/theme.test.ts && tsx tests/portal-notices.test.ts && tsx tests/youtube.test.ts && tsx tests/achievement.test.ts && tsx tests/env-origin.test.ts && tsx tests/achievement-flags.test.ts && tsx tests/public-sheet.test.ts && tsx tests/practice.test.ts && tsx tests/verify-report.test.ts",
     "test:center": "tsx tests/center-data-mode.test.ts && tsx tests/center-month-status.test.ts && tsx tests/center-dues.test.ts && tsx tests/center-due-csv.test.ts && tsx tests/center-exam-marks.test.ts && tsx tests/center-import-compile.test.ts && tsx tests/center-import-preview.test.ts && tsx tests/center-workbook-review.test.ts && tsx --conditions=react-server tests/center-sms-provider.test.ts",
     "test:mongo": "tsx scripts/mongo-for-tests.ts",
     "test:browser:exams": "tsx tests/center-exams-browser.integration.ts",
@@ -24,7 +24,8 @@
     "test:content-sheets": "tsx tests/content-sheets.integration.ts",
     "test:public-learning": "tsx tests/public-learning.integration.ts",
     "test:staff-blog": "tsx tests/roles-editorial.integration.ts",
-    "test-mode": "tsx scripts/test-mode.ts"
+    "test-mode": "tsx scripts/test-mode.ts",
+    "verify": "tsx scripts/verify.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

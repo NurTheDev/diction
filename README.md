@@ -1,3 +1,43 @@
+## Start here: verify this build in one command
+
+Copy and paste these four lines, one at a time. Nothing here touches your real database —
+verification runs against a disposable database that is destroyed at the end.
+
+1. Install **Node.js 22.13 or newer** (Node 22 LTS is fine): <https://nodejs.org> — then check with
+   `node -v`.
+2. In the project folder (the one that contains `package.json`):
+   ```bash
+   npm ci
+   ```
+3. Run the verification:
+   ```bash
+   npm run verify
+   ```
+   First run takes 5-15 minutes (it builds the app, installs the test browser if missing and
+   downloads a disposable MongoDB). Later runs are much faster.
+4. Send back **`verify-output.zip`** from the project folder. It contains:
+   - `verify-report.md` — one line per requirement: ✅ PASS, ❌ FAIL or ⚠️ NOT TESTED with the reason
+   - `screenshots/r0/…` — every key page at **360 px** (mobile) and **1440 px** (desktop)
+   - `logs/…` — the raw output of each step
+
+To check only one milestone: `npm run verify -- --milestone=r1`.
+To skip the app/database part (unit tests only): `npm run verify -- --skip-app`.
+
+**If a step fails**, look for the message and do this:
+
+| You see | Do this |
+| --- | --- |
+| `npm ERR! code EUSAGE` / `npm ci` fails | Delete `node_modules` and `package-lock.json` changes, then run `npm ci` again. |
+| `Node v18…` or "older than the required 22.13" | Install Node 22 LTS from nodejs.org and open a new terminal. |
+| `Download failed for url "https://fastdl.mongodb.org/…"` | Your network/firewall blocks MongoDB's download server. Retry on a normal connection (not a restricted office/school network), or install MongoDB yourself and run `MONGOMS_SYSTEM_BINARY=/path/to/mongod npm run verify`. |
+| `Playwright Chromium is missing` / `cdn.playwright.dev` unreachable | Run `npx playwright install chromium` (on Linux also `npx playwright install-deps`, which may need administrator rights). |
+| `EADDRINUSE` / port 3111 busy | Use another port: `npm run verify -- --port=3200`. |
+| Build killed with exit code 137 | Out of memory. Close other programs and retry; the build needs about 1.5 GB free. |
+
+Full details, what each step does and how requirements are registered: **[`docs/VERIFY.md`](docs/VERIFY.md)**.
+Status words used in this project: **"code complete, awaiting owner verification"** until your run
+comes back all PASS; **"verified"** only after that. Never "done" on unit tests alone.
+
 ## Disposable test mode (5 steps)
 1. Install Node.js 22.23.4 and run `npm ci`.
 2. Run `npm run test-mode`; it prints STARTING while it typechecks and checks the included prebuilt test app. If application files changed, it rebuilds. The first run may download MongoDB; Linux needs its runtime libraries.

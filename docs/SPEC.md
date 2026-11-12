@@ -86,6 +86,25 @@ exists but exam writes are disabled by default.
   Say plainly what you could not test. **Then stop and wait for approval before the next milestone.**
 - Order: **R0, R1, R2, R3, R4, R5, R6, R7.**
 
+### 5.1 Verification protocol (added by the owner on 2026-11-12)
+
+1. Provide ONE command, `npm run verify`, that does everything on the owner's machine: starts the
+   isolated test database, installs the Playwright browser if missing, runs the unit tests and the
+   browser tests, and takes screenshots at 360 px and 1440 px.
+2. It writes `verify-report.md` with one line per requirement (PASS / FAIL / NOT TESTED and why),
+   saves screenshots to `screenshots/<milestone>/`, and bundles both into `verify-output.zip` that
+   the owner can send back.
+3. The README has numbered copy-paste steps for a non-technical person (Node version, `npm ci`,
+   `npm run verify`, where the report is, what to do if a step fails, with the likely error messages).
+4. Milestone status words: **"code complete, awaiting owner verification"** until the owner sends
+   passing output; **"verified"** only after that. **Never "done" on unit tests alone.**
+5. Every milestone also ships the short "what I click" list so each feature can be checked by hand in
+   about ten minutes.
+6. If a test fails on the owner's machine, they paste the output; fix it and send a complete new ZIP.
+
+Implementation: `scripts/verify*.ts`, requirement registry in `scripts/verify-plan.ts`, details in
+`docs/VERIFY.md`. Every new requirement gets a registry entry **before** delivery.
+
 ---
 
 ## R0. Stabilize and document (first)
@@ -323,3 +342,4 @@ credentials, one real test SMS to the owner's own number.
 | Date | Change |
 | --- | --- |
 | 2026-11-12 | Spec captured verbatim from the owner's brief (R0 item 3). R0 findings recorded in `docs/STATUS.md`; no requirement was weakened or removed. |
+| 2026-11-12 | Owner added §5.1 verification protocol (`npm run verify`, report, screenshots, `verify-output.zip`, status vocabulary). Owner decisions recorded in `docs/STATUS.md` §6: add a real `staff` role in R1; keep the five documented-but-missing features in their scheduled milestones. |

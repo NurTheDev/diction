@@ -8,3 +8,7 @@ node_modules
 
 # Private, temporary review photos (never commit)
 test-assets/
+
+# npm run verify: the zip is a transfer artefact; the report and screenshots are kept as evidence
+verify-output/
+verify-output.zip

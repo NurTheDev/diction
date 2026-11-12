@@ -1,0 +1,92 @@
+/**
+ * Signed-in screenshot pass for `npm run verify`: every listed page at 360 px (mobile) and
+ * 1440 px (desktop), plus a horizontal-overflow measurement, saved to screenshots/<milestone>/.
+ *
+ * Runs against an already-started app (test mode) and its disposable database. It creates no
+ * records of its own except the demo admin, and only when that admin is missing.
+ */
+import {mkdir} from 'node:fs/promises';
+import path from 'node:path';
+
+export type ScreenTarget={path:string;label:string;waitFor?:string};
+
+/** Baseline pages for R0. Later milestones append their own pages here. */
+export function screenPlan(_milestone:string):ScreenTarget[]{
+  return [
+    {path:'/bn',label:'public-home-bn'},
+    {path:'/en',label:'public-home-en'},
+    {path:'/bn/login',label:'sign-in'},
+    {path:'/bn/admin',label:'admin-overview'},
+    {path:'/bn/admin/students',label:'students-list'},
+    {path:'/bn/admin/students/collect',label:'daily-collection'},
+    {path:'/bn/admin/students/fees-grid',label:'class-sheet'},
+    {path:'/bn/admin/students/dues',label:'due-list'},
+    {path:'/bn/admin/students/import',label:'workbook-import'},
+    {path:'/bn/admin/students/removed',label:'removed-students'},
+    {path:'/bn/admin/center-exams',label:'center-exams'},
+    {path:'/bn/admin/admissions',label:'admissions'},
+    {path:'/bn/admin/content?kind=blog',label:'blog'},
+  ];
+}
+
+export type CaptureResult={
+  files:string[];
+  failures:{path:string;error:string}[];
+  overflow:{path:string;width:number;clientWidth:number;scrollWidth:number}[];
+};
+
+const slug=(target:ScreenTarget):string=>target.label||target.path.replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,'');
+
+export async function captureScreens(opts:{origin:string;mongoUri:string;outDir:string;milestone?:string;widths?:number[];timeoutMs?:number}):Promise<CaptureResult>{
+  const widths=opts.widths||[360,1440];
+  const timeout=opts.timeoutMs??90_000;
+  const result:CaptureResult={files:[],failures:[],overflow:[]};
+  await mkdir(opts.outDir,{recursive:true});
+
+  const mongoose=(await import('mongoose')).default;
+  if(mongoose.connection.readyState!==1)await mongoose.connect(opts.mongoUri,{dbName:'dictioncoaching'});
+  const connection=mongoose.connection;
+  // A previous browser test may have cleared the rate-limit or user collections.
+  await connection.collection('ratelimits').deleteMany({}).catch(()=>{});
+  const {User}=await import('../src/models/User');
+  if(!await User.exists({email:'demo-admin@example.test'})){
+    const bcrypt=(await import('bcryptjs')).default;
+    await User.create({name:'Demo Admin',email:'demo-admin@example.test',passwordHash:await bcrypt.hash('DemoOnly-2026!',12),role:'admin',active:true});
+  }
+
+  const {chromium}=await import('playwright');
+  const browser=await chromium.launch();
+  try{
+    const context=await browser.newContext({viewport:{width:1440,height:900}});
+    const csrf=await (await context.request.get(`${opts.origin}/api/auth/csrf`)).json();
+    await context.request.post(`${opts.origin}/api/auth/callback/credentials`,{
+      maxRedirects:0,timeout,
+      headers:{origin:opts.origin,'content-type':'application/x-www-form-urlencoded'},
+      form:{csrfToken:csrf.csrfToken,identifier:'demo-admin@example.test',password:'DemoOnly-2026!',callbackUrl:`${opts.origin}/bn/admin`},
+    }).catch(()=>{/* a 302 with maxRedirects:0 surfaces as an error in some versions */});
+
+    const page=await context.newPage();
+    for(const target of screenPlan(opts.milestone||'')){
+      try{
+        await page.goto(opts.origin+target.path,{waitUntil:'domcontentloaded',timeout});
+        if(target.waitFor)await page.locator(target.waitFor).first().waitFor({timeout:20_000});
+        else await page.waitForLoadState('networkidle',{timeout:15_000}).catch(()=>{});
+        for(const width of widths){
+          await page.setViewportSize({width,height:900});
+          await page.waitForTimeout(400);
+          const metrics=await page.evaluate(()=>({clientWidth:document.documentElement.clientWidth,scrollWidth:document.documentElement.scrollWidth}));
+          result.overflow.push({path:target.path,width,...metrics});
+          const file=path.join(opts.outDir,`${slug(target)}-${width}.png`);
+          await page.screenshot({path:file,fullPage:true});
+          result.files.push(path.relative(process.cwd(),file).split(path.sep).join('/'));
+        }
+      }catch(error){
+        result.failures.push({path:target.path,error:String((error as Error).message).split('\n')[0]});
+      }
+    }
+    await context.close();
+  }finally{
+    await browser.close();
+  }
+  return result;
+}

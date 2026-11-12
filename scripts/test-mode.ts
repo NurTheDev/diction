@@ -41,6 +41,10 @@ async function main(){
     await User.create({name:'Demo Admin',email:'demo-admin@example.test',passwordHash:await bcrypt.hash('DemoOnly-2026!',12),role:'admin',active:true});
     await CenterClassGroup.insertMany([{name:{bn:'ক্লাস ৭',en:'Class 7'},academicYear:2026,shift:'All'},{name:{bn:'ক্লাস ৯ BS',en:'Class 9 BS'},academicYear:2026,shift:'All'}]);
     await mongoose.disconnect();
+    // Published for `npm run verify`, which attaches tests and the screenshot pass to this run.
+    // Local in-memory replica set with no credentials; the real MONGODB_URI is never printed.
+    console.log(`TEST_ORIGIN=${origin}`);
+    console.log(`TEST_MONGO_URI=${mongo.getUri()}`);
     console.log('\nDISPOSABLE TEST MODE — all data disappears when stopped.');
     console.log(`Open ${origin}/bn/admin`);
     console.log('Demo admin: demo-admin@example.test / DemoOnly-2026!');

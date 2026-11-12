@@ -139,3 +139,20 @@ WHAT COULD NOT BE TESTED IN THIS SESSION (stated plainly)
 RESULT: the ZIP is complete and runnable. Every step of the cold start passes except the MongoDB
         binary download, which this sandbox's network allowlist refuses. On the owner's machine
         that step downloads mongod (~90 MB) and then serves http://localhost:3000/bn/admin.
+
+======================================================================
+[8] npm run verify — the owner's one-command verification harness (added in R0)
+----------------------------------------------------------------------
+  Run 1 (after a package.json change, so the app was rebuilt from scratch):
+    === INCOMPLETE: 5 PASS, 0 FAIL, 6 NOT TESTED (of 11) ===   in 73s
+    ✓ Compiled successfully in 19.5s · 173/173 static pages · 23/23 core suites · 9/9 Center suites
+  Run 2 (reusing the fingerprint-matched build):
+    === INCOMPLETE: 5 PASS, 0 FAIL, 6 NOT TESTED (of 11) ===   in 26s
+  The 6 NOT TESTED lines are exactly the ones that need the MongoDB download or the Chromium
+  download; each line names the blocked host and the fix. Exit code 0 (INCOMPLETE is not FAIL).
+  Output: verify-report.md (committed), verify-output.zip (git-ignored), screenshots/r0/ (0 files
+  here — no browser). Harness logic itself is unit-tested: tests/verify-report.test.ts, which
+  round-trips the generated ZIP through yauzl and proves no requirement can be reported PASS
+  without a recorded result.
+RESULT: the harness works and reports honestly. On a machine that can download MongoDB and Chromium
+        the same command is expected to report 11 PASS.
