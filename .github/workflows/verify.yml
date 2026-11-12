@@ -14,9 +14,17 @@ on:
     branches:
       - arena/c33e6ed1-diction
   workflow_dispatch:
+    inputs:
+      publish_screenshots:
+        description: Also commit the 360/1440 screenshots to the branch (they are several MB)
+        type: boolean
+        default: false
 
 permissions:
-  contents: read
+  # read to check out; write only so the last step can commit the text evidence back to this branch
+  # (artifacts and logs live on hosts this project's agent sandbox cannot reach, so the report is
+  # committed instead of only uploaded). The commit message carries [skip ci] to avoid a loop.
+  contents: write
 
 concurrency:
   group: verify-${{ github.ref }}
@@ -70,6 +78,30 @@ jobs:
             echo ""
             cat verify-report.md || echo "_No report was written — see the log above._"
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit the report and step logs back to this branch
+        if: always()
+        env:
+          PUBLISH_SCREENSHOTS: ${{ inputs.publish_screenshots }}
+        run: |
+          set -e
+          mkdir -p test-results/ci-latest/logs
+          cp -f verify-report.md test-results/ci-latest/verify-report.md
+          # Keep the committed logs small: the last 400 lines of each step is enough to diagnose.
+          for f in verify-output/logs/*.txt; do
+            [ -e "$f" ] || continue
+            tail -n 400 "$f" > "test-results/ci-latest/logs/$(basename "$f")"
+          done
+          # next build rewrites this generated file; restore it so the tree is clean for the rebase.
+          git checkout -- next-env.d.ts 2>/dev/null || true
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add verify-report.md test-results/ci-latest
+          if [ "$PUBLISH_SCREENSHOTS" = "true" ]; then git add -f screenshots || true; fi
+          if git diff --cached --quiet; then echo "Evidence unchanged; nothing to commit."; exit 0; fi
+          git commit -m "ci: verification evidence for ${GITHUB_SHA:0:7} [skip ci]"
+          git pull --rebase origin "$GITHUB_REF_NAME"
+          git push origin "HEAD:$GITHUB_REF_NAME"
 
       - name: Upload report, screenshots and verify-output.zip
         if: always()
