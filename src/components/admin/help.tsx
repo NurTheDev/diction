@@ -1,0 +1,5 @@
+'use client';
+import {useTranslations} from 'next-intl';
+import {usePathname} from '@/i18n/navigation';
+import {useSearchParams} from 'next/navigation';
+export function AdminHelp(){const t=useTranslations('adminWork'),path=usePathname(),params=useSearchParams();const paths:Record<string,string>={'/admin':'overviewHelp','/admin/admissions':'admissionsHelp','/admin/bookings':'bookingsHelp','/admin/slots':'slotsHelp','/admin/messages':'messagesHelp','/admin/faculty':'teachersHelp','/admin/courses':'coursesHelp','/admin/site-settings':'settingsHelp','/admin/achievements':'achievementsHelp','/admin/hero':'bannerHelp'};let key=paths[path]||Object.entries(paths).find(([p])=>p!=='/admin'&&path.startsWith(p+'/'))?.[1]||'helpSteps';if(path==='/admin/content'){const kind=params.get('kind')||'blog';key=kind==='notice'?'noticeHelp':kind==='video'?'videosHelp':kind==='gallery'?'galleryHelp':'blogHelp'}const steps=t.raw(key) as string[];return <details className="admin-help-panel"><summary className="admin-mini-button">{t('help')}</summary><div className="admin-help-popover"><h2>{t('helpTitle')}</h2><ol>{steps.map(step=><li key={step}>{step}</li>)}</ol></div></details>}

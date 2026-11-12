@@ -1,0 +1,11 @@
+import {z} from 'zod';
+import {securePassword} from './recovery';
+const localized=z.object({bn:z.string().trim().min(1),en:z.string().trim().min(1)});
+const localizedOptional=z.object({bn:z.string(),en:z.string()});
+const teacher=z.object({slug:z.string().regex(/^[a-z0-9-]+$/),name:localized,qualification:localized,director:z.boolean(),published:z.boolean(),order:z.number().int().min(0),photoUrl:z.string()});
+const facility=z.object({key:z.string().min(1),kind:z.enum(['facility','activity']),title:localized,description:localizedOptional,published:z.boolean(),order:z.number().int().min(0)});
+const faq=z.object({key:z.string().min(1),question:localized,answer:localized,published:z.boolean(),order:z.number().int().min(0)});
+const color=z.string().regex(/^#[0-9a-f]{6}$/i);
+const settings=z.object({key:z.literal('main'),name:localized,address:localized,logoUrl:z.string().startsWith('/'),social:z.object({youtube:z.string().url(),facebook:z.string().url()}),theme:z.object({primary:color,action:color,success:color,info:color})});
+export const seedSchema=z.object({teachers:z.array(teacher).length(7),facilities:z.array(facility).length(13),faqs:z.array(faq).min(1),siteSettings:settings});
+export const seedAdminSchema=z.object({SEED_ADMIN_EMAIL:z.string().trim().email().max(254).transform(v=>v.toLowerCase()),SEED_ADMIN_PASSWORD:securePassword});

@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import {createBatchSchema,editBatchSchema,removeEnrollmentSchema,enrollSchema,examSchema,attendanceEntrySchema,markEntrySchema,portalAccountSchema} from '../src/schemas/academic';
+const id='507f1f77bcf86cd799439011';
+assert.equal(createBatchSchema.safeParse({titleBn:'অষ্টম শ্রেণি',titleEn:'Class Eight',grade:'8',teacher:id,scheduleBn:'',scheduleEn:''}).success,true);
+assert.equal(enrollSchema.safeParse({user:id,parent:'',grade:'4',school:'School',batch:id}).success,true);
+assert.equal(examSchema.safeParse({titleBn:'পরীক্ষা',titleEn:'Exam',batch:id,maxMarks:0}).success,false);
+assert.equal(attendanceEntrySchema.safeParse({student:id,batch:id,day:'2024-02-30',status:'present'}).success,false);
+assert.equal(attendanceEntrySchema.safeParse({student:id,batch:id,day:'2099-01-01',status:'present'}).success,false);
+assert.equal(attendanceEntrySchema.safeParse({student:id,batch:id,day:'2024-01-01',status:'present'}).success,true);
+assert.equal(markEntrySchema.safeParse({student:id,exam:id,marks:-1}).success,false);
+assert.equal(markEntrySchema.safeParse({student:id,exam:id,marks:''}).success,false);
+assert.equal(portalAccountSchema.safeParse({name:'Student Name',email:'test@example.com',password:'short',role:'student'}).success,false);
+assert.equal(portalAccountSchema.safeParse({name:'Student Name',email:'test@example.com',password:'longstrongpassword',role:'superadmin'}).success,false);
+const edited=editBatchSchema.parse({id,titleBn:'অষ্টম শ্রেণি',titleEn:'Class Eight',teacher:id,scheduleBn:'',scheduleEn:'',grade:'12'});assert.equal('grade' in edited,false);
+assert.equal(removeEnrollmentSchema.safeParse({student:id,batch:'invalid'}).success,false);
+console.log('Academic validation tests passed.');

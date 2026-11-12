@@ -1,0 +1,2 @@
+/** Normalize Bangladeshi mobile input; never silently strip letters or arbitrary prefixes. */
+export function normalizePhone(raw:string):string|null{const text=raw.trim().replace(/[০-৯]/g,c=>String('০১২৩৪৫৬৭৮৯'.indexOf(c)));if(!/^[+\d\s().-]*$/.test(text))return null;let digits=text.replace(/[\s().-]/g,'');if(digits.startsWith('+880'))digits='0'+digits.slice(4);else if(digits.startsWith('880'))digits='0'+digits.slice(3);else if(/^1[3-9]\d{8}$/.test(digits))digits='0'+digits;return /^01[3-9]\d{8}$/.test(digits)?digits:null}

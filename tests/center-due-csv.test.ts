@@ -1,0 +1,2 @@
+import assert from 'node:assert/strict';import {csvCell,dueCsv} from '../src/lib/center/due-csv';
+assert.equal(csvCell('=cmd()'),`"'=cmd()"`);assert.equal(csvCell('  +cmd'),`"'  +cmd"`);assert.equal(csvCell('a"b'),`"a""b"`);const csv=dueCsv([{studentId:'=1+1',name:'ছাত্র',months:'2026-01: 300',total:300}]);assert(csv.startsWith('\ufeff'));assert(csv.includes(`"'=1+1"`));console.log('Due CSV formula escaping, Unicode and quoting passed.');

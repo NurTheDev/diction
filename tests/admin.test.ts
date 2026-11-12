@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';
+import {createSlug} from '../src/lib/admin/slug';
+import {safeImage} from '../src/lib/safe-image';
+import {createSlotSchema,updateAdmissionSchema,capacitySchema} from '../src/schemas/admin';
+const id='507f1f77bcf86cd799439011';
+assert.equal(updateAdmissionSchema.safeParse({id,status:'approved',notes:'Reviewed'}).success,true);
+assert.equal(updateAdmissionSchema.safeParse({id,status:'admin',notes:'Reviewed'}).success,false);
+assert.equal(capacitySchema.safeParse({id,capacity:0}).success,false);
+assert.equal(createSlotSchema.safeParse({grade:'8',subject:'math',start:'2099-01-01T10:00',end:'2099-01-01T11:00',capacity:10}).success,true);
+assert.equal(createSlotSchema.safeParse({grade:'8',subject:'math',start:'2099-01-01T11:00',end:'2099-01-01T10:00',capacity:10}).success,false);
+assert.equal(createSlotSchema.safeParse({grade:'8',subject:'math',start:'2099-02-30T10:00',end:'2099-03-02T11:00',capacity:10}).success,false);
+const slug1=createSlug('Café & Algebra!');const slug2=createSlug('Café & Algebra!');assert.match(slug1,/^cafe-algebra-[a-f0-9]{12}$/);assert.notEqual(slug1,slug2);assert.match(createSlug('বাংলা','item'),/^item-[a-f0-9]{12}$/);assert(createSlug('a'.repeat(200)).length<=80);assert.equal(safeImage('/api/public-media/507f1f77bcf86cd799439011'),'/api/public-media/507f1f77bcf86cd799439011');assert.equal(safeImage('/api/public-media/../../admin'),'');
+console.log('Admin validation tests passed.');

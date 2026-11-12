@@ -1,0 +1,4 @@
+'use server';
+import {requireAdmin} from '@/lib/admin/guard';import {takeDueSnapshot} from '@/lib/center/due-snapshot';import {revalidatePath} from 'next/cache';
+export type SnapshotState={status:'idle'|'ok'|'error';message?:string;id?:string};
+export async function createDueSnapshot(_:SnapshotState,form:FormData):Promise<SnapshotState>{const actor=await requireAdmin();if(process.env.CENTER_DUE_SNAPSHOT_WRITE_ENABLED!=='true')return {status:'error',message:'DISABLED'};if(form.get('confirm')!=='YES')return {status:'error',message:'CONFIRM'};try{const out=await takeDueSnapshot(String(form.get('classId')||''),actor.id,String(form.get('requestId')||''));for(const l of ['bn','en'])revalidatePath(`/${l}/admin/students/dues`);return {status:'ok',id:out.id,message:out.replayed?'REPLAYED':'SAVED'}}catch(e){return {status:'error',message:(e as Error).message}}}

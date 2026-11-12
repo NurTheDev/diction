@@ -1,0 +1,7 @@
+'use client';
+import {useActionState} from 'react';
+import {useTranslations} from 'next-intl';
+import {Link} from '@/i18n/navigation';
+import {changePassword} from '@/actions/change-password';
+import type {RecoveryState} from '@/actions/recovery';
+export function ChangePasswordForm(){const t=useTranslations('recovery');const [state,action,pending]=useActionState(changePassword,{status:'idle'} as RecoveryState);if(state.status==='success')return <div className="notice-box" role="status"><p>{t('changed')}</p><Link href="/login" className="text-link">{t('backLogin')}</Link></div>;return <form action={action}><label htmlFor="current-password">{t('current')}</label><input id="current-password" name="current" type="password" minLength={8} maxLength={128} autoComplete="current-password" required/><label htmlFor="new-password">{t('newPassword')}</label><input id="new-password" name="password" type="password" minLength={12} maxLength={72} autoComplete="new-password" aria-describedby="password-help" required/><small id="password-help">{t('passwordHelp')}</small><label htmlFor="confirm-password">{t('confirm')}</label><input id="confirm-password" name="confirm" type="password" minLength={12} maxLength={72} autoComplete="new-password" required/><button className="button button-navy" disabled={pending}>{pending?t('saving'):t('save')}</button>{state.status!=='idle'&&<p className="alert" role="alert">{t(state.status==='invalid'?'invalidChange':state.status==='unavailable'?'sessionExpired':'error')}</p>}</form>}

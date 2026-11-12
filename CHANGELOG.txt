@@ -1,0 +1,5 @@
+1. Added editable fee/start suggestions and mid-year fee history from numeric workbook payments.
+2. Made guardian details optional, displayed missing counts and added per-class bulk fee/start entry.
+3. Added existing-database receipt decisions with transaction-time stale-conflict checks.
+4. Added a flagged-reason reconciliation breakdown without invented missing-amount adjustments.
+5. Added fingerprint-verified prebuilt test mode and a memory-limited rebuild fallback.

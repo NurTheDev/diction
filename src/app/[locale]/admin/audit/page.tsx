@@ -1,0 +1,9 @@
+import {redirect} from 'next/navigation';
+import {getTranslations} from 'next-intl/server';
+import {getAdmin} from '@/lib/admin/guard';
+import {formatDate,pageNumber} from '@/lib/admin/helpers';
+import {AdminAudit} from '@/models/AdminAudit';
+import {User} from '@/models/User';
+import {Pagination} from '@/components/admin/pagination';
+export const dynamic='force-dynamic';
+export default async function Audit({params,searchParams}:{params:Promise<{locale:string}>;searchParams:Promise<{page?:string}>}){const {locale}=await params;const admin=await getAdmin();if(admin?.role!=='superadmin')redirect(`/${locale}/admin`);const t=await getTranslations('audit');const page=pageNumber((await searchParams).page);const [count,entries]=await Promise.all([AdminAudit.countDocuments(),AdminAudit.find().sort({createdAt:-1,_id:-1}).skip((page-1)*30).limit(30).lean()]);const actors=await User.find({_id:{$in:entries.map(e=>e.actor)}}).select('name').lean();const names=new Map(actors.map(a=>[String(a._id),a.name]));return <><div className="admin-heading"><div><span className="section-tag">✦ &nbsp; {t('section')}</span><h1>{t('title')}</h1><p>{t('description')}</p></div></div><div className="notice-box">{t('warning')}</div><section className="admin-panel"><div className="admin-panel-head"><h2>{t('title')}</h2></div>{entries.length?<div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>{t('time')}</th><th>{t('actor')}</th><th>{t('action')}</th><th>{t('target')}</th></tr></thead><tbody>{entries.map(e=><tr key={String(e._id)}><td>{formatDate(e.createdAt,locale)}</td><td>{names.get(String(e.actor))||'—'}</td><td>{e.action}</td><td>{e.target}</td></tr>)}</tbody></table></div>:<div className="admin-empty">{t('empty')}</div>}<Pagination path="/admin/audit" page={page} totalPages={Math.ceil(count/30)}/></section></>}

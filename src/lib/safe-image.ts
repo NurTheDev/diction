@@ -1,0 +1,2 @@
+/** Only brand assets, public media IDs and credential-free HTTPS Cloudinary URLs are allowed. */
+export function safeImage(value:string){if(/^\/api\/public-media\/[a-f\d]{24}$/i.test(value))return value;if(/^\/brand\/[a-z0-9_-]+\.(png|jpe?g|webp)$/i.test(value))return value;try{const url=new URL(value);return url.protocol==='https:'&&url.hostname==='res.cloudinary.com'&&!url.username&&!url.password&&!url.port?url.toString():''}catch{return ''}}

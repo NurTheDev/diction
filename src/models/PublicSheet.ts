@@ -1,0 +1,5 @@
+import {Schema,model,models,Types,type Model} from 'mongoose';
+export interface IPublicSheet{slug:string;title:{bn:string;en:string};description:{bn:string;en:string};className:string;subject:string;data:Buffer;bytes:number;published:boolean;createdBy:Types.ObjectId;createdAt:Date;updatedAt:Date}
+const schema=new Schema<IPublicSheet>({slug:{type:String,required:true,unique:true,immutable:true},title:{bn:{type:String,required:true,maxlength:160},en:{type:String,default:'',maxlength:160}},description:{bn:{type:String,default:'',maxlength:1000},en:{type:String,default:'',maxlength:1000}},className:{type:String,default:'',maxlength:80},subject:{type:String,default:'',maxlength:80},data:{type:Buffer,required:true,select:false},bytes:{type:Number,required:true,min:5,max:4*1024*1024},published:{type:Boolean,default:false,index:true},createdBy:{type:Schema.Types.ObjectId,required:true,ref:'User'}},{timestamps:true});
+schema.index({published:1,createdAt:-1});
+export const PublicSheet=(models.PublicSheet as Model<IPublicSheet>)||model<IPublicSheet>('PublicSheet',schema);

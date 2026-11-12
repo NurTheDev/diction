@@ -1,0 +1,5 @@
+import {getStaffPermission} from '@/lib/admin/guard';
+import {PublicSheet} from '@/models/PublicSheet';
+import {NextResponse} from 'next/server';
+export const runtime='nodejs';export const dynamic='force-dynamic';
+export async function GET(_:Request,{params}:{params:Promise<{id:string}>}){try{const admin=await getStaffPermission('content');if(!admin)return new Response(null,{status:401,headers:{'Cache-Control':'no-store'}});const {id}=await params;if(!/^[a-f0-9]{24}$/i.test(id))return new Response(null,{status:404});const doc=await PublicSheet.findById(id).select('+data').lean();if(!doc?.data)return new Response(null,{status:404,headers:{'Cache-Control':'no-store'}});return new NextResponse(new Uint8Array(Buffer.isBuffer(doc.data)?doc.data:doc.data.buffer),{headers:{'Content-Type':'application/pdf','Content-Disposition':'inline; filename="lecture-sheet.pdf"','Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff','Content-Security-Policy':"default-src 'none'; sandbox"}})}catch{return new Response(null,{status:503,headers:{'Cache-Control':'no-store'}})}}

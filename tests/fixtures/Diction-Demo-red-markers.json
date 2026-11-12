@@ -1,0 +1,33 @@
+{
+  "note": "Cell colors from Diction-Demo-Payment-Sheet.xlsx. CSV files lose colors, so they are listed here. Coordinates match the CSV row numbers (row 1 = first line of the CSV). Meaning of each marker is decided by the owner in the import preview; do not guess.",
+  "sheets": {
+    "Class 7": {
+      "csv_file": "Diction-Demo-Class-7.csv",
+      "layout": "rows 1-3 title (merged), row 4 header (Sl., Name, Admission, January..December), then two rows per student: top row = serial, name, admission receipt no., monthly receipt nos.; bottom row = blank, phone, admission amount, monthly amounts. Column letters: A Sl, B Name, C Admission, D..O January..December.",
+      "red_fill_whole_rows": [
+        11,
+        12
+      ],
+      "red_fill_cells_not_whole_row": [
+        "H15",
+        "H16"
+      ],
+      "red_text_rows": [
+        5,
+        6,
+        15,
+        16
+      ]
+    },
+    "Class 9 BS": {
+      "csv_file": "Diction-Demo-Class-9-BS.csv",
+      "layout": "rows 1-3 title (merged), row 4 header (Sl., Name, Admission, January..December), then two rows per student: top row = serial, name, admission receipt no., monthly receipt nos.; bottom row = blank, phone, admission amount, monthly amounts. Column letters: A Sl, B Name, C Admission, D..O January..December.",
+      "red_fill_whole_rows": [
+        7,
+        8
+      ],
+      "red_fill_cells_not_whole_row": [],
+      "red_text_rows": []
+    }
+  }
+}

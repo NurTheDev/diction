@@ -1,0 +1,1 @@
+export function scoreTest(questions:{correct:number}[],answers:number[],penalty:number){const correct=questions.reduce((n,q,i)=>n+(answers[i]===q.correct?1:0),0);const wrong=questions.reduce((n,q,i)=>n+(answers[i]>=0&&answers[i]!==q.correct?1:0),0);return {correct,wrong,score:Math.round((correct-wrong*penalty)*100)/100};}

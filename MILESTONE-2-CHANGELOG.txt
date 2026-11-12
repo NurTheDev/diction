@@ -1,0 +1,5 @@
+1. Added mobile-first daily collection with Bangla digits, grouped month payments and printable receipts.
+2. Added configurable due day and shared month-status calculations, including holds and historical fee changes.
+3. Added class/year sheet with status colors, totals, print and two-row Excel export.
+4. Added student payment history, reasoned edits and voids, audit records and receipt-conflict safeguards.
+5. Added isolated demo-data browser tests and 360/1440 screenshots; preserved the legacy fee module.

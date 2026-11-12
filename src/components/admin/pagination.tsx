@@ -1,0 +1,4 @@
+import {getTranslations} from 'next-intl/server';
+import {Link} from '@/i18n/navigation';
+import {formatNumber,type Digits} from '@/lib/admin/format';
+export async function Pagination({path,page,totalPages,query,digits}:{path:string;page:number;totalPages:number;query?:Record<string,string>;digits?:Digits}){const t=await getTranslations('admin');const url=(n:number)=>`${path}?${new URLSearchParams({...query,page:String(n)}).toString()}`;return <div className="admin-pagination"><span>{t('page')} {digits?formatNumber(page,digits):page} {t('of')} {digits?formatNumber(Math.max(1,totalPages),digits):Math.max(1,totalPages)}</span><div>{page>1&&<Link className="admin-mini-button" href={url(page-1)}>{t('previous')}</Link>}{page<totalPages&&<Link className="admin-mini-button" href={url(page+1)}>{t('next')}</Link>}</div></div>}

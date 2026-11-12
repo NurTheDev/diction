@@ -1,0 +1,48 @@
+MILESTONE 2 AUTOMATED VERIFICATION — TEST-ONLY DATA
+These test decisions and inferred fees are not owner-approved financial records.
+
+
+> diction-coaching@0.1.0 typecheck
+> tsc --noEmit
+
+
+> diction-coaching@0.1.0 test
+> tsx tests/intake.test.ts && tsx tests/admin.test.ts && tsx tests/academic.test.ts && tsx tests/study.test.ts && tsx tests/seed.test.ts && tsx tests/editorial.test.ts && tsx tests/model-test.test.ts && tsx tests/site-content.test.ts && tsx tests/site-settings.test.ts && tsx tests/course.test.ts && tsx tests/recovery.test.ts && tsx tests/hero.test.ts && tsx tests/materials.test.ts && tsx tests/fees.test.ts && tsx tests/theme.test.ts && tsx tests/portal-notices.test.ts && tsx tests/youtube.test.ts && tsx tests/achievement.test.ts && tsx tests/env-origin.test.ts && tsx tests/achievement-flags.test.ts && tsx tests/public-sheet.test.ts && tsx tests/practice.test.ts
+
+Intake schema and availability tests passed.
+Admin validation tests passed.
+Academic validation tests passed.
+Study feature validation tests passed.
+Seed and faculty validation tests passed.
+Editorial validation and sanitization tests passed.
+Model test validation and scoring tests passed.
+Site-content validation tests passed.
+Site-settings validation tests passed.
+Verified public-facts validation tests passed.
+Official website URL validation passed.
+Course validation tests passed.
+Password recovery validation tests passed.
+Homepage banner validation tests passed.
+Learning material validation tests passed.
+Fee validation and integer-currency tests passed.
+Theme validation and contrast tests passed.
+Private portal notice validation tests passed.
+YouTube channel validation and cursor tests passed.
+Achievement validation and model consent guard passed.
+Unsafe achievement query and bulk writes fail closed.
+Canonical-origin and production HTTPS environment validation passed.
+Achievement workflow remains off unless both flags are explicitly enabled.
+Public sheet input tests passed.
+Unicode practice CSV and validation passed.
+Center month status and phone normalization tests passed.
+Due calculations: Dhaka cutoff, partial, hold, changed fees, waiver and bounded totals passed.
+PASS TEST ONLY: atomic two-month collection, Bangla receipt normalization, concurrent replay, cross-student reason and details, paid-month note override, and reasoned void.
+Synthetic cash: atomic multi-month, receipt checks, repeat protection, concurrent replay and reasoned void passed.
+PASS: existing receipt keep existing / skip / flagged; optional guardian, phone and default date; existing record unchanged.
+PASS: actual XLSX, 17 students including two removed with preserved payments, raw reconciliation, marked cells/waivers, re-import no duplicates, guarded non-destructive undo, rejected stale approval; second case 16 imported + 1 owner-skipped; third case explicit hold month and reason; reconciliation and undo. All amounts/guardian/choices test-only.
+
+PASS TEST ONLY test: actual 17-student XLSX, both class sheet/Excel checks, 360/1440 grid, one-month Enter, multi-month shared receipt, cross-student reason, fully-paid note override, double click, refresh protection, reasoned void/edit, today total and history; hold/removed/Dhaka/fee change and data-mode isolation.
+PASS TEST ONLY production: actual 17-student XLSX, both class sheet/Excel checks, 360/1440 grid, one-month Enter, multi-month shared receipt, cross-student reason, fully-paid note override, double click, refresh protection, reasoned void/edit, today total and history; hold/removed/Dhaka/fee change and data-mode isolation.
+
+Additional browser assertions: due-day change and audit, both class sheet cells and two-row Excel values/totals against imported valid ledger, print CSS, loaded logo and PDF generation.
+Production-mode browser suite uses a disposable local DB, not a production database.

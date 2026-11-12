@@ -1,0 +1,7 @@
+import {requireAdmin} from '@/lib/admin/guard';
+import {CenterClassGroup,CenterImportBatch,CenterWorkbookBatch} from '@/models/CenterRecords';
+import {CenterWorkbookReview} from '@/components/admin/center-workbook-review';
+import {CenterImportHistory} from '@/components/admin/center-import-history';
+import {WorkbookHistory,type WorkbookReport} from '@/components/admin/center-workbook-commit';
+export const dynamic='force-dynamic';
+export default async function Page(){await requireAdmin();const groups=await CenterClassGroup.find({active:true}).select('name academicYear shift').sort({academicYear:-1,'name.bn':1}).limit(200).lean<{_id:unknown;name:{bn:string;en:string};academicYear:number;shift?:string}[]>();const batches=await CenterImportBatch.find().select('sheet year status items.row').sort({createdAt:-1}).limit(50).lean<{_id:unknown;sheet:string;year:number;status:string;items:unknown[]}[]>();const workbooks=await CenterWorkbookBatch.find().select('status report').sort({createdAt:-1,_id:-1}).limit(30).lean<{_id:unknown;status:string;report:WorkbookReport}[]>();return <><CenterWorkbookReview groups={groups.map(g=>({id:String(g._id),name:g.name.bn,nameEn:g.name.en||'',year:g.academicYear,shift:g.shift||''}))}/><WorkbookHistory items={workbooks.map(b=>({id:String(b._id),status:b.status,report:b.report}))}/><CenterImportHistory items={batches.map(b=>({id:String(b._id),sheet:b.sheet,year:b.year,status:b.status,count:b.items.length}))}/></>}

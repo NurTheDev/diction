@@ -1,0 +1,24 @@
+MILESTONE 3 & 4 AUTOMATED VERIFICATION — TEST-ONLY DATA
+These test decisions, inferred fees and synthetic names are not owner-approved financial records.
+
+TypeScript: npx tsc --noEmit — clean.
+Production build: npm run build -- --webpack with CENTER_DATA_MODE=test DICTION_TEST_BUILD=1 MONGODB_URI='' NODE_OPTIONS=--max-old-space-size=700 — succeeded.
+
+All suites below ran against disposable MongoDB replica sets; no real database, SMS or old record was touched.
+PASS center-month-end — selected month due, pending, held, removed, immutable manual/automatic snapshot, replay.
+PASS center-account-links — student/guardian links, siblings, held/removed rules, uniqueness, replay, audit, revocation.
+PASS center-admission — admission-to-student atomic creation, required fee/class, concurrent replay, audit.
+PASS center-legacy-fee-preview — dry run keeps exact poisha, method, missing reference and voids; no writes; stale source changes fingerprint.
+PASS center-legacy-fee-migration — exact poisha, mobile/cash preserved, "পুরোনো সিস্টেম" label, voids excluded, reconciliation clean, legacy rows untouched, replay safe.
+PASS center-legacy-link — manual identity link rules and audit.
+PASS center-daily-cash / center-cash-batch / center-workbook-batch — Milestone 2 collection and workbook behaviour unchanged.
+PASS center-dues.test / center-month-status.test / center-due-snapshot — status, due day, Dhaka cutoff, holds, fee changes, snapshots.
+PASS center-students / center-fee-grid — student pages and class sheet unchanged, including paid/partial/hold/waiver/overpayment cells.
+PASS center-dues-legacy-browser — live due list, held exclusion, export, snapshot, legacy review flags, roles, responsiveness.
+PASS center-m2-browser — Milestone 2 end-to-end: actual 17-student XLSX, sheet and Excel, collection, shared receipt, void/edit, due list.
+PASS center-legacy-migration-browser — reviewed dry run, typed confirmation, exact poisha/method/no-receipt labels, legacy rows preserved.
+PASS center-portal-access-browser — linked student and guardian access, sibling isolation, held access, removed blocking, internal notes excluded.
+
+Screenshots: screenshots/milestone2/ (Milestone 2, 360/1440) and screenshots/milestone3-4/ (due list, legacy review, dry run, profile links, admission list, linked-students guardian view).
+
+Not covered: a real MongoDB/Atlas deployment, a real cron scheduler, physical printing, real SMS, and every printer/page-size combination.

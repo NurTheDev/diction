@@ -1,0 +1,4 @@
+'use client';
+import {useState} from 'react';
+import {useTranslations} from 'next-intl';
+export function AITest({enabled}:{enabled:boolean}){const t=useTranslations('aiTest');const [result,setResult]=useState(''),[busy,setBusy]=useState(false);async function test(){setBusy(true);setResult('');try{const response=await fetch('/api/admin/ai-test',{method:'POST'});const body=await response.json();const allowed=['ok','configuration','forbidden','rate','key','quota','model','provider','empty','network'];setResult(allowed.includes(body.result)?body.result:'network')}catch{setResult('network')}finally{setBusy(false)}}return <div className="notice-box"><strong>{t('title')}</strong><p>{t('description')}</p><button type="button" className="admin-mini-button" disabled={!enabled||busy} onClick={()=>void test()}>{busy?t('testing'):t('button')}</button>{result&&<p role="status">{t(result)}</p>}</div>}

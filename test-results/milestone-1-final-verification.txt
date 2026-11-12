@@ -1,0 +1,49 @@
+TEST ONLY — isolated disposable MongoDB; not owner-approved results.
+Standalone typecheck passed; webpack build passed (in-build TS temporarily disabled; config restored).
+
+> diction-coaching@0.1.0 test
+> tsx tests/intake.test.ts && tsx tests/admin.test.ts && tsx tests/academic.test.ts && tsx tests/study.test.ts && tsx tests/seed.test.ts && tsx tests/editorial.test.ts && tsx tests/model-test.test.ts && tsx tests/site-content.test.ts && tsx tests/site-settings.test.ts && tsx tests/course.test.ts && tsx tests/recovery.test.ts && tsx tests/hero.test.ts && tsx tests/materials.test.ts && tsx tests/fees.test.ts && tsx tests/theme.test.ts && tsx tests/portal-notices.test.ts && tsx tests/youtube.test.ts && tsx tests/achievement.test.ts && tsx tests/env-origin.test.ts && tsx tests/achievement-flags.test.ts && tsx tests/public-sheet.test.ts && tsx tests/practice.test.ts
+
+Intake schema and availability tests passed.
+Admin validation tests passed.
+Academic validation tests passed.
+Study feature validation tests passed.
+Seed and faculty validation tests passed.
+Editorial validation and sanitization tests passed.
+Model test validation and scoring tests passed.
+Site-content validation tests passed.
+Site-settings validation tests passed.
+Verified public-facts validation tests passed.
+Official website URL validation passed.
+Course validation tests passed.
+Password recovery validation tests passed.
+Homepage banner validation tests passed.
+Learning material validation tests passed.
+Fee validation and integer-currency tests passed.
+Theme validation and contrast tests passed.
+Private portal notice validation tests passed.
+YouTube channel validation and cursor tests passed.
+Achievement validation and model consent guard passed.
+Unsafe achievement query and bulk writes fail closed.
+Canonical-origin and production HTTPS environment validation passed.
+Achievement workflow remains off unless both flags are explicitly enabled.
+Public sheet input tests passed.
+Unicode practice CSV and validation passed.
+Class 7: 14 named students, numeric amount cells total 186000, complete numeric receipt/amount pairs 85 total 184000; CSV/XLSX identical; unresolved marks block import.
+Class 9 BS: 3 named students, numeric amount cells total 40400, complete numeric receipt/amount pairs 20 total 40400; CSV/XLSX identical; unresolved marks block import.
+Direct XLSX fixture, both tabs, full CSV values, red metadata, ambiguous markers and cross-tab receipts verified.
+Whole XLSX one-pass preview: 2 tabs, 17 students, raw ৳226400 reconciles; collision defaults, same-student receipts, override and hold details checked. No import performed.
+PASS: existing receipt keep existing / skip / flagged; optional guardian, phone and default date; existing record unchanged.
+PASS: actual XLSX, 17 students including two removed with preserved payments, raw reconciliation, marked cells/waivers, re-import no duplicates, guarded non-destructive undo, rejected stale approval; second case 16 imported + 1 owner-skipped; third case explicit hold month and reason; reconciliation and undo. All amounts/guardian/choices test-only.
+PASS TEST-ONLY existing database receipt browser: displayed existing owner and all three per-cell choices; no production data used.
+PASS test mode on disposable MongoDB: real XLSX browser 17 students (15 active/2 removed), 96 ledger lines; raw 226400 = imported 136700 + excluded 21400 + flagged 68300 + skipped 0; manual test-only adjustment 0. Replay no duplicates; undo voids ledger and waivers; imported removed student hidden, restored with gap and changed-record undo blocked; test DB isolated; CSV and screenshots 360/1440.
+PASS production mode on disposable MongoDB: real XLSX browser 17 students (15 active/2 removed), 96 ledger lines; raw 226400 = imported 136700 + excluded 21400 + flagged 68300 + skipped 0; manual test-only adjustment 0. Replay no duplicates; undo voids ledger and waivers; imported removed student hidden, restored with gap and changed-record undo blocked; test DB isolated; CSV and screenshots 360/1440.
+=== Final startup hardening and import regression (TEST ONLY) ===
+
+> diction-coaching@0.1.0 typecheck
+> tsc --noEmit
+
+PASS: existing receipt keep existing / skip / flagged; optional guardian, phone and default date; existing record unchanged.
+PASS: actual XLSX, 17 students including two removed with preserved payments, raw reconciliation, marked cells/waivers, re-import no duplicates, guarded non-destructive undo, rejected stale approval; second case 16 imported + 1 owner-skipped; third case explicit hold month and reason; reconciliation and undo. All amounts/guardian/choices test-only.
+PASS TEST-ONLY existing database receipt browser: displayed existing owner and all three per-cell choices; no production data used.
+PASS test mode on disposable MongoDB: real XLSX browser 17 students (15 active/2 removed), 96 ledger lines; raw 226400 = imported 136700 + excluded 21400 + flagged 68300 + skipped 0; manual test-only adjustment 0. Replay no duplicates; undo voids ledger and waivers; imported removed student hidden, restored with gap and changed-record undo blocked; test DB isolated; CSV and screenshots 360/1440.

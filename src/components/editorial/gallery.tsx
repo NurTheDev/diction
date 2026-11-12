@@ -1,0 +1,7 @@
+'use client';
+import {useEffect,useRef,useState} from 'react';
+import {useTranslations} from 'next-intl';
+import Image from 'next/image';
+import {ImageIcon,X} from 'lucide-react';
+import type {PublicEditorial} from '@/lib/content/editorial';
+export function Gallery({items}:{items:PublicEditorial[]}){const t=useTranslations('editorial');const p=useTranslations('pages');const [selected,setSelected]=useState<PublicEditorial|null>(null);const ref=useRef<HTMLDialogElement>(null);useEffect(()=>{if(selected&&!ref.current?.open)ref.current?.showModal()},[selected]);return <>{items.length?<div className="gallery-grid">{items.filter(x=>x.imageUrl).map(item=><button key={item.id} className="gallery-tile" onClick={()=>setSelected(item)} aria-label={`${t('gallery')}: ${item.title}`}><Image src={item.imageUrl} alt={item.title} fill sizes="(max-width:700px) 50vw, 33vw"/><span>{item.title}</span></button>)}</div>:<div className="empty-state"><div className="empty-icon"><ImageIcon size={27}/></div><h2>{p('galleryTag')}</h2><p>{p('galleryEmpty')}</p></div>}<dialog className="gallery-dialog" ref={ref} onClose={()=>setSelected(null)} aria-label={selected?.title}><button className="dialog-close" onClick={()=>ref.current?.close()} aria-label={t('close')}><X size={20}/></button>{selected&&<><div className="gallery-dialog-image"><Image src={selected.imageUrl} alt={selected.title} fill sizes="90vw"/></div><h2>{selected.title}</h2><p>{selected.summary}</p></>}</dialog></>}

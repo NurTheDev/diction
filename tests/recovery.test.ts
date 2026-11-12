@@ -1,0 +1,6 @@
+import assert from 'node:assert/strict';
+import {securePassword,requestResetSchema,completeResetSchema} from '../src/schemas/recovery';
+import {newResetToken,hashResetToken,resetUrl} from '../src/lib/recovery';
+const token=newResetToken();assert.match(token,/^[a-f0-9]{64}$/);assert.notEqual(token,hashResetToken(token));assert.equal(hashResetToken(token),hashResetToken(token));
+assert.equal(securePassword.safeParse('short').success,false);assert.equal(securePassword.safeParse('This is a strong passphrase').success,true);assert.equal(securePassword.safeParse('আ'.repeat(30)).success,false);assert.equal(completeResetSchema.safeParse({token,password:'A long safe password',confirm:'different password'}).success,false);assert.equal(completeResetSchema.safeParse({token,password:'A long safe password',confirm:'A long safe password'}).success,true);assert.equal(requestResetSchema.parse({email:' TEST@EXAMPLE.ORG ',locale:'en'}).email,'test@example.org');
+process.env.NEXTAUTH_URL='https://coaching.example';assert.equal(resetUrl('bn',token),`https://coaching.example/bn/reset-password#token=${token}`);process.env.NEXTAUTH_URL='http://coaching.example';assert.throws(()=>resetUrl('en',token));console.log('Password recovery validation tests passed.');

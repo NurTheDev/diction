@@ -1,0 +1,8 @@
+import {getAdmin} from '@/lib/admin/guard';
+import {audit,regexEscape} from '@/lib/admin/helpers';
+import {Admission} from '@/models/Intake';
+import {statuses} from '@/schemas/admin';
+import {NextResponse} from 'next/server';
+/** Quote CSV fields and neutralize spreadsheet formula injection. */
+function csv(value:unknown){let text=String(value??'');if(/^[\t\r\n]|^[\s]*[=+\-@]/.test(text))text=`'${text}`;return `"${text.replace(/"/g,'""')}"`;}
+export async function GET(request:Request){try{const admin=await getAdmin();if(!admin)return new NextResponse('Unauthorized',{status:401});const url=new URL(request.url);const q=(url.searchParams.get('q')||'').trim().slice(0,80);const status=url.searchParams.get('status')||'';const filter:Record<string,unknown>={};if(statuses.includes(status as typeof statuses[number]))filter.status=status;if(q){const re=new RegExp(regexEscape(q),'i');filter.$or=[{studentName:re},{guardianName:re},{reference:re},{phone:re}];}const rows=await Admission.find(filter).sort({createdAt:-1}).limit(5000).lean();const lines=[['Reference','Student','Guardian','Phone','Class','Status','Submitted'],...rows.map(a=>[a.reference,a.studentName,a.guardianName,a.phone,a.grade,a.status,a.createdAt.toISOString()])];await audit(admin.id,'admissions.export',`rows:${rows.length}`);return new NextResponse('\uFEFF'+lines.map(row=>row.map(csv).join(',')).join('\r\n'),{headers:{'Content-Type':'text/csv; charset=utf-8','Content-Disposition':'attachment; filename="admissions.csv"','Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'}});}catch{return new NextResponse('Service unavailable',{status:503});}}

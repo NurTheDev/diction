@@ -1,0 +1,3 @@
+export function dhakaDay(date=new Date()){return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Dhaka',year:'numeric',month:'2-digit',day:'2-digit'}).format(date)}
+export function addDays(day:string,days:number){const date=new Date(`${day}T00:00:00Z`);date.setUTCDate(date.getUTCDate()+days);return date.toISOString().slice(0,10)}
+export function makePlan(today:string,examDate:string,subjects:string[],minutes:number){const days=Math.max(0,Math.round((new Date(`${examDate}T00:00:00Z`).getTime()-new Date(`${today}T00:00:00Z`).getTime())/86400000));return Array.from({length:Math.min(days,14)},(_,i)=>({day:addDays(today,i),subject:subjects[i%subjects.length],minutes}));}

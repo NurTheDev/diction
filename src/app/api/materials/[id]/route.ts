@@ -1,0 +1,8 @@
+import {NextResponse} from 'next/server';
+import {getCurrentUser} from '@/lib/current-user';
+import {canReadMaterial} from '@/lib/material-access';
+import {LearningMaterial} from '@/models/LearningMaterial';
+import {idSchema} from '@/schemas/admin';
+export const runtime='nodejs';
+export const dynamic='force-dynamic';
+export async function GET(_:Request,{params}:{params:Promise<{id:string}>}){try{const user=await getCurrentUser();if(!user)return NextResponse.json({error:'unauthorized'},{status:401,headers:{'Cache-Control':'private, no-store'}});const {id}=await params;if(!idSchema.safeParse(id).success)return NextResponse.json({error:'not found'},{status:404,headers:{'Cache-Control':'private, no-store'}});const item=await LearningMaterial.findById(id).select('batch published').lean();if(!item||!await canReadMaterial(user,item.batch,item.published))return NextResponse.json({error:'not found'},{status:404,headers:{'Cache-Control':'private, no-store'}});const file=await LearningMaterial.findOne({_id:id,batch:item.batch,...(['student','parent'].includes(user.role)?{published:true}:{})}).select('+data');if(!file||!file.data)return NextResponse.json({error:'not found'},{status:404,headers:{'Cache-Control':'private, no-store'}});return new Response(Uint8Array.from(file.data),{headers:{'Content-Type':'application/pdf','Content-Disposition':`attachment; filename="diction-material-${id}.pdf"`,'Content-Length':String(file.data.length),'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff','X-Robots-Tag':'noindex, nofollow'}});}catch{return NextResponse.json({error:'unavailable'},{status:503,headers:{'Cache-Control':'private, no-store'}})}}

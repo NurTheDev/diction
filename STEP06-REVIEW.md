@@ -1,0 +1,11 @@
+# Step 06 — Faculty cards and profile dialog
+
+This increment refreshes the existing public teacher grid on the homepage and Teachers page and the existing profile dialog. The broader visual overhaul remains in progress.
+
+- Cards use the existing published faculty data, role, name and qualification. Each opens the existing dialog, which displays the same full qualification and optional biography. No faculty profiles, names, qualifications, biographies or portraits were fabricated by this step.
+- The service-free preview uses the project's existing fallback faculty records, which should be checked and updated by the institution before launch. The graduation-cap symbols are decorative placeholders, not portraits. Configured sites continue to use the existing published faculty records and image handling; supplied photographs are displayed without decorative overlays.
+- No routes, business logic, database models or translation files were changed. The existing dialog requires JavaScript; the teacher names and card summaries are still rendered in the HTML without it. Hover movement is disabled under reduced motion.
+- Typecheck, all 17 unit suites and the general UX suite passed. The UX suite checked every fallback teacher in both languages at 360, 768 and 1440 pixels, including dialog content, centering, Escape, focus placement and focus return.
+- A targeted isolated production build with an ephemeral database and synthetic test-only records passed published/draft visibility, optional photos and biographies, dialog focus, responsive layouts and the homepage four-card limit. This was not the full integration suite or a live database test. An initial attempt inserted fixture data after static prerendering and therefore showed the cached fallback; inserting test records before the build resolved the test setup.
+- Review images show an actual 360px viewport and actual dialog views. Longer grid images are full-page section crops with sticky controls hidden for readability; the controls remain in the live preview.
+- The Step 02 local mobile Lighthouse median of 79/100 was below the requested 90+ target. Performance was not remeasured for this increment, so the earlier result is not a current score.

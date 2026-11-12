@@ -1,0 +1,4 @@
+import {connectDB} from '@/lib/db';
+import {Course} from '@/models/Course';
+export type PublicCourse={id:string;grade:string;subject:string;title:string;description:string;schedule:string;fee:string};
+export async function getPublicCourses(locale:string):Promise<{status:'guide'|'ready'|'error';courses:PublicCourse[]}>{if(!process.env.MONGODB_URI||!process.env.NEXTAUTH_SECRET||!process.env.NEXTAUTH_URL||(process.env.NODE_ENV!=='production'&&process.env.PREVIEW_WITHOUT_SERVICES==='1'))return {status:'guide',courses:[]};try{await connectDB();const rows=await Course.find({published:true}).sort({order:1,_id:1}).limit(300).lean();const lang=locale==='bn'?'bn':'en';return {status:'ready',courses:rows.map(r=>({id:String(r._id),grade:r.grade,subject:r.subject,title:r.title[lang],description:r.description[lang],schedule:r.schedule?.[lang]||'',fee:r.fee?.[lang]||''}))}}catch{console.error('Course list unavailable.');return {status:'error',courses:[]}}}

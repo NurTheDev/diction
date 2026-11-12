@@ -1,0 +1,5 @@
+1. Replaced the old fee menu with a live month-end due list (class/month filter, select-all, Excel, print/PDF) and a legacy fee review page.
+2. Added reviewed legacy-fee conversion that keeps exact poisha, method and reference, labels missing references “পুরোনো সিস্টেম”, skips voids and deletes nothing.
+3. Added one-student/one-guardian-many-siblings portal links with server-side, read-only access limited to linked students.
+4. Added one-click ভর্তি সম্পন্ন → student creation with an atomic, replay-safe link back to the admission.
+5. Added immutable month-end snapshots: manual “Save month-end list” plus a CRON_SECRET scheduler endpoint for 00:30 Asia/Dhaka automatic capture.

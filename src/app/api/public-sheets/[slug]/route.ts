@@ -1,0 +1,4 @@
+import {NextResponse} from 'next/server';
+import {getPublicSheet} from '@/lib/content/public-sheets';
+export const runtime='nodejs';export const dynamic='force-dynamic';
+export async function GET(_:Request,{params}:{params:Promise<{slug:string}>}){try{const {slug}=await params;const sheet=await getPublicSheet(slug,true);if(!sheet?.data)return new Response(null,{status:404,headers:{'Cache-Control':'no-store'}});return new NextResponse(new Uint8Array(Buffer.isBuffer(sheet.data)?sheet.data:sheet.data.buffer),{headers:{'Content-Type':'application/pdf','Content-Disposition':`inline; filename="${slug}.pdf"`,'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Content-Security-Policy':"default-src 'none'; sandbox"}})}catch{return new Response(null,{status:503,headers:{'Cache-Control':'no-store'}})}}

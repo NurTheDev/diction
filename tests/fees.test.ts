@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import {parseTaka,validDay,feeInvoiceSchema,feePaymentSchema,feeVoidSchema} from '../src/schemas/fees';
+import {feeStatus,money} from '../src/lib/fees';
+const id='507f1f77bcf86cd799439011',key='bfbf0b28-04cd-4073-9ac1-40a815b3d33c';
+for(const [input,expected] of [['0.01',1],['125.5',12550],['১০০০.২৫',100025],['1000000',100000000],['0',null],['1.001',null],['-5',null],['1e4',null],['1,000',null],['1000000.01',null]] as const)assert.equal(parseTaka(input),expected);
+assert(validDay('2024-02-29'));assert(!validDay('2025-02-29'));assert(!validDay('1999-12-31'));
+assert(feeInvoiceSchema.safeParse({student:id,titleBn:'পরীক্ষার ফি',titleEn:'Test fee',amount:'120.50',dueDate:'2025-01-01',idempotencyKey:key}).success);
+assert(!feePaymentSchema.safeParse({invoice:id,amount:'-1',paidDate:'2025-01-01',method:'cash',reference:'',idempotencyKey:key}).success);
+assert(!feeVoidSchema.safeParse({id,reason:'bad'}).success);
+assert.equal(feeStatus({amountMinor:100,paidMinor:0,voided:false}),'unpaid');assert.equal(feeStatus({amountMinor:100,paidMinor:1,voided:false}),'partial');assert.equal(feeStatus({amountMinor:100,paidMinor:100,voided:false}),'paid');assert.equal(feeStatus({amountMinor:100,paidMinor:0,voided:true}),'voided');assert(money(10001,'en').includes('100.01'));
+console.log('Fee validation and integer-currency tests passed.');

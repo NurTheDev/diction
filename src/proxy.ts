@@ -1,0 +1,10 @@
+import createMiddleware from 'next-intl/middleware';
+import NextAuth from 'next-auth';
+import {routing} from './i18n/routing';
+import {authConfig} from './lib/auth.config';
+import {NextResponse,type NextRequest,type NextFetchEvent} from 'next/server';
+const intl=createMiddleware(routing);
+const {auth}=NextAuth({...authConfig,secret:process.env.NEXTAUTH_SECRET});
+const protectedMiddleware=auth((req)=>{const path=req.nextUrl.pathname;const match=path.match(/^\/(bn|en)\/(admin|teacher|dashboard|parent)(?:\/|$)/);if(!match)return intl(req);const [,locale,area]=match;const role=(req.auth?.user as {role?:string}|undefined)?.role;const allowed:Record<string,string[]>={admin:['superadmin','admin','content_editor','exam_manager'],teacher:['superadmin','admin','teacher'],dashboard:['superadmin','admin','student'],parent:['superadmin','admin','parent']};if(!role)return NextResponse.redirect(new URL(`/${locale}/login?callbackUrl=${encodeURIComponent(path)}`,req.url));if(!allowed[area].includes(role))return NextResponse.redirect(new URL(`/${locale}`,req.url));if(area==='admin'&&(role==='content_editor'||role==='exam_manager')){const rest=path.replace(/^\/(bn|en)\/admin/, '');const safe=role==='content_editor'?['/content','/public-sheets']:['/model-tests','/practice-tests','/center-exams'];if(rest&&rest!=='/'&&!safe.some(p=>rest===p||rest.startsWith(p+'/')))return NextResponse.redirect(new URL(`/${locale}/admin`,req.url));}return intl(req);}) as unknown as (req:NextRequest,event:NextFetchEvent)=>ReturnType<typeof intl>;
+export default function middleware(req:NextRequest,event:NextFetchEvent){const match=req.nextUrl.pathname.match(/^\/(bn|en)\/(admin|teacher|dashboard|parent)(?:\/|$)/);if(!match)return intl(req);if(!process.env.NEXTAUTH_SECRET)return NextResponse.redirect(new URL(`/${match[1]}/login?callbackUrl=${encodeURIComponent(req.nextUrl.pathname)}`,req.url));return protectedMiddleware(req,event);}
+export const config={matcher:['/','/(bn|en)/:path*','/((?!api|_next|.*\\..*).*)']};

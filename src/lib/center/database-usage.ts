@@ -1,0 +1,6 @@
+import mongoose from 'mongoose';
+import {CenterStudent,CenterClassGroup,CenterPayment,CenterExam,CenterSmsLog} from '@/models/CenterRecords';
+type Usage={bytes:number;counts:Record<'students'|'classes'|'payments'|'exams'|'smsLogs',number>};
+const globalCache=globalThis as typeof globalThis & {centerUsageCache?:{time:number;value:Usage|null;promise?:Promise<Usage|null>}};
+/** dbStats can be restricted on Atlas free; fail closed and show unavailable rather than a fabricated zero. */
+export async function databaseUsage():Promise<Usage|null>{const c=globalCache.centerUsageCache??={time:0,value:null};if(Date.now()-c.time<60_000)return c.value;if(c.promise)return c.promise;c.promise=(async()=>{try{if(!mongoose.connection.db)return null;const [stats,students,classes,payments,exams,smsLogs]=await Promise.all([mongoose.connection.db.command({dbStats:1,scale:1}),CenterStudent.estimatedDocumentCount(),CenterClassGroup.estimatedDocumentCount(),CenterPayment.estimatedDocumentCount(),CenterExam.estimatedDocumentCount(),CenterSmsLog.estimatedDocumentCount()]);if(!Number.isFinite(stats.storageSize)||!Number.isFinite(stats.indexSize))return null;return {bytes:stats.storageSize+stats.indexSize,counts:{students,classes,payments,exams,smsLogs}}}catch{return null}})();try{c.value=await c.promise;c.time=Date.now();return c.value}finally{c.promise=undefined}}

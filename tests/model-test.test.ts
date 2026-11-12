@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import {modelTestSchema,answerSaveSchema} from '../src/schemas/model-test';
+import {scoreTest} from '../src/lib/model-test-score';
+const q={promptBn:'প্রশ্ন',promptEn:'Question',options:[{bn:'এক',en:'One'},{bn:'দুই',en:'Two'},{bn:'তিন',en:'Three'},{bn:'চার',en:'Four'}],correct:1,solutionBn:'দুই সঠিক',solutionEn:'Two is correct'};
+const test={titleBn:'মডেল টেস্ট',titleEn:'Model Test',grade:'8',minutes:10,penalty:0.25,questions:[q]};
+assert.equal(modelTestSchema.safeParse(test).success,true);
+assert.equal(modelTestSchema.safeParse({...test,minutes:0}).success,false);
+assert.equal(modelTestSchema.safeParse({...test,questions:[{...q,correct:4}]}).success,false);
+assert.equal(answerSaveSchema.safeParse({attemptId:'507f1f77bcf86cd799439011',index:0,answer:4}).success,false);
+assert.deepEqual(scoreTest([{correct:0},{correct:2},{correct:1}],[0,1,-1],0.25),{correct:1,wrong:1,score:0.75});
+console.log('Model test validation and scoring tests passed.');

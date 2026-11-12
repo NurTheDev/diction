@@ -1,0 +1,2 @@
+export function money(minor:number,locale:string){return new Intl.NumberFormat(locale==='bn'?'bn-BD':'en-BD',{style:'currency',currency:'BDT',minimumFractionDigits:2,maximumFractionDigits:2}).format(minor/100)}
+export function feeStatus(invoice:{amountMinor:number;paidMinor:number;voided:boolean}):'voided'|'paid'|'partial'|'unpaid'{return invoice.voided?'voided':invoice.paidMinor>=invoice.amountMinor?'paid':invoice.paidMinor>0?'partial':'unpaid'}

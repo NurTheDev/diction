@@ -1,0 +1,1 @@
+export default function Loading(){return <section className="portal-area" aria-busy="true"><div className="wrap portal-container"><div className="portal-card">লোড হচ্ছে... / Loading...</div></div></section>}

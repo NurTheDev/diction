@@ -1,0 +1,7 @@
+'use client';
+import {useTranslations} from 'next-intl';
+import {Link} from '@/i18n/navigation';
+import {CheckCircle2,ArrowRight} from 'lucide-react';
+export function Success({title,description,reference,onAgain,children}:{title:string;description:string;reference:string;onAgain?:()=>void;children?:React.ReactNode}){const t=useTranslations('forms');return <div className="form-card success-card" role="status"><div className="success-icon"><CheckCircle2 size={36}/></div><h2>{title}</h2><p>{description}</p><div className="reference-box"><span>{t('reference')}</span><strong>{reference}</strong></div>{children}{!onAgain&&<p>{t('notificationNote')}</p>}{onAgain?<button className="button button-navy" onClick={onAgain}>{t('startAgain')}</button>:<Link href="/" className="button button-navy">{t('returnHome')} <ArrowRight size={16}/></Link>}</div>}
+export function ErrorMessage({code}:{code:string|null}){const t=useTranslations('forms');if(!code)return null;const key=({invalid:'errorInvalid',unavailable:'errorUnavailable',rate:'errorRate',full:'errorFull',duplicate:'errorDuplicate'} as Record<string,string>)[code]||'errorUnavailable';return <div className="form-alert" role="alert">{t(key)}</div>}
+export function IntakeHero({tag,title,description}:{tag:string;title:string;description:string}){return <section className="page-hero"><div className="wrap"><span className="section-tag">✦ &nbsp; {tag}</span><h1>{title}</h1><p>{description}</p></div></section>}

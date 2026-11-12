@@ -1,0 +1,2 @@
+import {createHash} from 'node:crypto';
+export function makeChallenge(day:string,grade:string){const hash=createHash('sha256').update(`diction-math-v1:${day}:${grade}`).digest();const ordinal=Math.floor(new Date(`${day}T00:00:00Z`).getTime()/86400000);const a=2+(ordinal+Number(grade))%8,b=2+hash[1]%9,c=2+hash[2]%10;if(Number(grade)<=6)return {question:`${a} × ${b} + ${c} = ?`,answer:a*b+c};return {question:`${a}x + ${c} = ${a*b+c}  →  x = ?`,answer:b};}

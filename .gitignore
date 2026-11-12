@@ -1,0 +1,10 @@
+node_modules
+.next
+.env*
+!.env.example
+*.tsbuildinfo
+
+.integration-test-*
+
+# Private, temporary review photos (never commit)
+test-assets/

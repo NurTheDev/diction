@@ -1,0 +1,71 @@
+{
+  "name": "diction-coaching",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -H 0.0.0.0",
+    "build": "next build",
+    "start": "next start -H 0.0.0.0",
+    "typecheck": "tsc --noEmit",
+    "seed": "tsx scripts/seed.ts",
+    "seed:check": "tsx scripts/seed.ts --validate-only",
+    "test": "tsx tests/intake.test.ts && tsx tests/admin.test.ts && tsx tests/academic.test.ts && tsx tests/study.test.ts && tsx tests/seed.test.ts && tsx tests/editorial.test.ts && tsx tests/model-test.test.ts && tsx tests/site-content.test.ts && tsx tests/site-settings.test.ts && tsx tests/course.test.ts && tsx tests/recovery.test.ts && tsx tests/hero.test.ts && tsx tests/materials.test.ts && tsx tests/fees.test.ts && tsx tests/theme.test.ts && tsx tests/portal-notices.test.ts && tsx tests/youtube.test.ts && tsx tests/achievement.test.ts && tsx tests/env-origin.test.ts && tsx tests/achievement-flags.test.ts && tsx tests/public-sheet.test.ts && tsx tests/practice.test.ts",
+    "test:integration": "tsx tests/integration.test.ts",
+    "test:ux": "tsx tests/ux.test.ts",
+    "test:portal-layout": "tsx tests/portal-layout.integration.test.ts",
+    "atlas:check": "node --env-file=.env.local --import tsx scripts/check-atlas.ts",
+    "test:atlas-check": "tsx tests/atlas-check.integration.test.ts",
+    "test:achievement-workflow": "tsx tests/achievement-workflow.integration.ts",
+    "test:content-sheets": "tsx tests/content-sheets.integration.ts",
+    "test:public-learning": "tsx tests/public-learning.integration.ts",
+    "test:staff-blog": "tsx tests/roles-editorial.integration.ts",
+    "test-mode": "tsx scripts/test-mode.ts"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^5.2.2",
+    "@tiptap/extension-link": "^3.33.0",
+    "@tiptap/react": "^3.33.0",
+    "@tiptap/starter-kit": "^3.33.0",
+    "bcryptjs": "^3.0.2",
+    "cloudinary": "^2.8.0",
+    "exceljs": "^4.4.0",
+    "html-to-image": "^1.11.13",
+    "lucide-react": "^0.468.0",
+    "mongoose": "^8.19.0",
+    "motion": "^14.10.1",
+    "next": "^16.4.5",
+    "next-auth": "^5.0.0-beta.32",
+    "next-intl": "^4.3.0",
+    "pdfjs-dist": "5.7.284",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-easy-crop": "^6.2.4",
+    "react-hook-form": "^7.63.0",
+    "sanitize-html": "^2.18.1",
+    "server-only": "^0.0.1",
+    "sharp": "^0.35.5",
+    "yauzl": "^3.4.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.0",
+    "@types/node": "^20.19.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "@types/sanitize-html": "^2.16.2",
+    "@types/yauzl": "^3.4.0",
+    "mongodb-memory-server": "^11.3.0",
+    "playwright": "^1.65.0",
+    "tailwindcss": "^4.1.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0"
+  },
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "overrides": {
+    "exceljs": {
+      "uuid": "^11.1.1"
+    }
+  }
+}

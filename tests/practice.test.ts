@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict';
+import {parsePracticeCsv} from '../src/lib/practice-csv';
+import {practiceTestSchema,practiceAnswersSchema} from '../src/schemas/practice-test';
+const csv='\ufeffquestion,option1,option2,option3,option4,correct,explanation\r\n"২, ৩ যোগ কত?",৪,৫,৬,৭,2,"দুই আর তিন\nসমান পাঁচ"\r\n';
+const questions=parsePracticeCsv(csv);
+assert.equal(questions[0].prompt,'২, ৩ যোগ কত?');
+assert.equal(questions[0].options[1],'৫');
+assert.equal(questions[0].correct,1);
+assert.equal(questions[0].explanation,'দুই আর তিন\nসমান পাঁচ');
+assert(practiceTestSchema.safeParse({title:'নমুনা',subject:'গণিত',grade:'৫',questions}).success);
+assert(!practiceTestSchema.safeParse({title:'',subject:'গণিত',grade:'৫',questions}).success);
+assert(!practiceAnswersSchema.safeParse({answers:[5],save:false}).success);
+assert.throws(()=>parsePracticeCsv(csv.replace(',2,',',5,')));
+assert.throws(()=>parsePracticeCsv('bad,headers\nx,y'));
+console.log('Unicode practice CSV and validation passed.');

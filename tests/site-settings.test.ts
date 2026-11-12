@@ -1,0 +1,30 @@
+import assert from 'node:assert/strict';
+import {siteSettingsSchema,validSocial} from '../src/schemas/site-settings';
+const base={nameBn:'ডিকশন কোচিং সেন্টার',nameEn:'Diction Coaching Center',addressBn:'ঢাকা, বাংলাদেশ',addressEn:'Dhaka, Bangladesh',logoUrl:'/brand/logo.png',facebook:'https://www.facebook.com/Dictioncoachingcenter',youtube:'https://www.youtube.com/@DictionCoaching'};
+assert.equal(siteSettingsSchema.safeParse(base).success,true);
+assert.equal(siteSettingsSchema.safeParse({...base,logoUrl:'https://evil.example/logo.png'}).success,false);
+assert.equal(validSocial('https://facebook.com.evil.example/page','facebook'),false);
+assert.equal(validSocial('https://user@facebook.com/page','facebook'),false);
+assert.equal(validSocial('http://facebook.com/page','facebook'),false);
+assert.equal(validSocial('https://www.youtube.com/@DictionCoaching','youtube'),true);
+console.log('Site-settings validation tests passed.');
+
+import {socialProofSchema,emptySocialProof} from '../src/schemas/social-proof';
+assert(socialProofSchema.safeParse(emptySocialProof).success);
+const verified={published:true,studentCount:500,studentMinimum:true,rating:4.8,ratingCount:120,milestones:[{year:2011,title:{bn:'প্রতিষ্ঠা',en:'Founded'}}]};
+assert(socialProofSchema.safeParse(verified).success);
+assert(!socialProofSchema.safeParse({...verified,ratingCount:null}).success);
+assert(!socialProofSchema.safeParse({...verified,rating:5.1}).success);
+assert(!socialProofSchema.safeParse({...verified,studentCount:null}).success);
+assert(!socialProofSchema.safeParse({...verified,milestones:[{year:2200,title:{bn:'ভবিষ্যৎ',en:'Future'}}]}).success);
+assert(!socialProofSchema.safeParse({...verified,milestones:[{year:2011,title:{bn:'',en:'Founded'}}]}).success);
+assert(!socialProofSchema.safeParse({...verified,milestones:Array(9).fill(verified.milestones[0])}).success);
+console.log('Verified public-facts validation tests passed.');
+
+import {validWebsite} from '../src/schemas/site-settings';
+assert(validWebsite(''));
+assert(validWebsite('https://school.example'));
+assert(!validWebsite('http://school.example'));
+assert(!validWebsite('https://user:pass@school.example'));
+assert(!validWebsite('https://school.example/path'));
+console.log('Official website URL validation passed.');

@@ -1,0 +1,13 @@
+import {NextResponse} from 'next/server';
+import {revalidatePath} from 'next/cache';
+import {getStaffPermission} from '@/lib/admin/guard';
+import {checkRateLimit} from '@/lib/rate-limit';
+import {audit} from '@/lib/admin/helpers';
+import {boundedJson} from '@/lib/achievement-workflow';
+import {PublicSheet} from '@/models/PublicSheet';
+export const runtime='nodejs';export const dynamic='force-dynamic';
+const headers={'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'};
+async function auth(request:Request){try{const origin=request.headers.get('origin'),host=request.headers.get('host');if(!origin||!host||!process.env.NEXTAUTH_URL||new URL(origin).origin!==new URL(process.env.NEXTAUTH_URL).origin||new URL(origin).host!==host)return null;const user=await getStaffPermission('content');if(!user||!await checkRateLimit(`public-sheet:${user.id}`,30))return null;return user}catch{return null}}
+function refresh(slug:string){for(const l of ['bn','en']){revalidatePath(`/${l}/lecture-sheets`);revalidatePath(`/${l}/lecture-sheets/${slug}`)}revalidatePath('/sitemap.xml')}
+export async function POST(request:Request,{params}:{params:Promise<{id:string}>}){try{const admin=await auth(request);if(!admin)return NextResponse.json({error:'forbidden'},{status:403,headers});const {id}=await params;if(!/^[a-f0-9]{24}$/i.test(id))return NextResponse.json({error:'invalid'},{status:400,headers});let action:unknown;try{action=((await boundedJson(request,256)) as {published?:unknown}).published}catch{return NextResponse.json({error:'invalid'},{status:400,headers})}if(typeof action!=='boolean')return NextResponse.json({error:'invalid'},{status:400,headers});const doc=await PublicSheet.findOneAndUpdate({_id:id},{$set:{published:action}},{new:true,runValidators:true}).select('slug').lean();if(!doc)return NextResponse.json({error:'not_found'},{status:404,headers});await audit(admin.id,'public-sheet.publish',id);refresh(doc.slug);return NextResponse.json({ok:true},{headers})}catch{return NextResponse.json({error:'unavailable'},{status:503,headers})}}
+export async function DELETE(request:Request,{params}:{params:Promise<{id:string}>}){try{const admin=await auth(request);if(!admin)return NextResponse.json({error:'forbidden'},{status:403,headers});const {id}=await params;if(!/^[a-f0-9]{24}$/i.test(id))return NextResponse.json({error:'invalid'},{status:400,headers});const doc=await PublicSheet.findOneAndDelete({_id:id}).select('slug').lean();if(!doc)return NextResponse.json({error:'not_found'},{status:404,headers});await audit(admin.id,'public-sheet.delete',id);refresh(doc.slug);return NextResponse.json({ok:true},{headers})}catch{return NextResponse.json({error:'unavailable'},{status:503,headers})}}

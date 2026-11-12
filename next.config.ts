@@ -1,0 +1,5 @@
+import type {NextConfig} from 'next';
+import createNextIntlPlugin from 'next-intl/plugin';
+const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
+const config: NextConfig = {...(process.env.DICTION_TEST_BUILD==='1'&&process.env.CENTER_DATA_MODE==='test'?{typescript:{ignoreBuildErrors:true}}:{}),devIndicators:false,experimental:{...(process.env.DICTION_TEST_BUILD==='1'?{cpus:1,webpackMemoryOptimizations:true,webpackBuildWorker:false}:{}),serverActions:{bodySizeLimit:"3mb"}},allowedDevOrigins:['*.e2b.app','127.0.0.1','localhost'],...(process.env.INTEGRATION_TEST_ROOT?{turbopack:{root:process.env.INTEGRATION_TEST_ROOT}}:{}),images:{remotePatterns:[{protocol:'https',hostname:'res.cloudinary.com'}]}, poweredByHeader:false,async headers(){return [{source:'/:path*',headers:[{key:'X-Content-Type-Options',value:'nosniff'},{key:'Referrer-Policy',value:'strict-origin-when-cross-origin'},{key:'Permissions-Policy',value:'camera=(self), microphone=(), geolocation=()'},...(process.env.NODE_ENV==='production'&&process.env.CENTER_DATA_MODE!=='test'?[{key:'X-Frame-Options',value:'SAMEORIGIN'}]:[])]}]}};
+export default withNextIntl(config);

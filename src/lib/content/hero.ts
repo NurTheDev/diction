@@ -1,0 +1,5 @@
+import {connectDB} from '@/lib/db';
+import {HeroBanner} from '@/models/HeroBanner';
+import {heroSchema} from '@/schemas/hero';
+export type PublicHero={title1:string;title2:string;description:string;imageAlt:string;imageUrl:string};
+export async function getPublicHero(locale:string):Promise<PublicHero|null>{if(!process.env.MONGODB_URI||!process.env.NEXTAUTH_SECRET||!process.env.NEXTAUTH_URL||(process.env.NODE_ENV!=='production'&&process.env.PREVIEW_WITHOUT_SERVICES==='1'))return null;try{await connectDB();const v=await HeroBanner.findOne({key:'home',published:true}).lean();if(!v)return null;const checked=heroSchema.safeParse({title1Bn:v.title1?.bn,title1En:v.title1?.en,title2Bn:v.title2?.bn,title2En:v.title2?.en,descriptionBn:v.description?.bn,descriptionEn:v.description?.en,imageAltBn:v.imageAlt?.bn,imageAltEn:v.imageAlt?.en,imageUrl:v.imageUrl,published:v.published});if(!checked.success)return null;const lang=locale==='bn'?'bn':'en';return {title1:v.title1[lang],title2:v.title2[lang],description:v.description[lang],imageAlt:v.imageAlt[lang],imageUrl:v.imageUrl};}catch{console.error('Homepage banner unavailable; using bundled defaults.');return null}}

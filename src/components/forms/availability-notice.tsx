@@ -1,0 +1,5 @@
+import {getTranslations,getLocale} from 'next-intl/server';
+import {getPublicSettings} from '@/lib/content/settings';
+import {Link} from '@/i18n/navigation';
+import {Facebook,ArrowRight} from 'lucide-react';
+export async function AvailabilityNotice({login=false}:{login?:boolean}){const t=await getTranslations('forms');const site=await getPublicSettings(await getLocale());const preview=login&&process.env.NODE_ENV!=='production'&&process.env.PREVIEW_WITHOUT_SERVICES==='1';return <div className="form-card availability-card" role="status"><h2>{t(login?'loginOfflineTitle':'onlineOfflineTitle')}</h2><p>{t(login?'loginOfflineDesc':'onlineOfflineDesc')}</p><a className="button button-navy" href={site.facebook}><Facebook size={16}/>{t('contactFacebook')} <ArrowRight size={16}/></a><p className="social-addresses"><small>{t('socialCopyHint')} <span dir="ltr">{site.facebook}</span></small></p>{preview&&<p><Link className="text-link" href="/admin-preview">{t('openAdminPreview')}</Link><br/><small>{t('adminPreviewHelp')}</small></p>}</div>}

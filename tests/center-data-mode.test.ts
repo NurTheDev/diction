@@ -1,0 +1,2 @@
+import assert from 'node:assert/strict';import {centerDataMode,databaseName} from '../src/lib/center/data-mode';
+assert.equal(databaseName('test'),'dictioncoaching_test');assert.equal(databaseName('production'),'dictioncoaching');assert.equal(databaseName(''),'dictioncoaching');assert.equal(centerDataMode('test'),'test');assert.throws(()=>databaseName('testing'));console.log('Database mode: test and production names separated; invalid values fail closed.');
