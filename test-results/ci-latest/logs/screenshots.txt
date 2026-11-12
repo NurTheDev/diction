@@ -25,7 +25,11 @@
     "screenshots/all/admissions-360.png",
     "screenshots/all/admissions-1440.png",
     "screenshots/all/blog-360.png",
-    "screenshots/all/blog-1440.png"
+    "screenshots/all/blog-1440.png",
+    "screenshots/all/recycle-bin-360.png",
+    "screenshots/all/recycle-bin-1440.png",
+    "screenshots/all/recycle-bin-en-360.png",
+    "screenshots/all/recycle-bin-en-1440.png"
   ],
   "failures": [],
   "overflow": [
@@ -181,6 +185,30 @@
     },
     {
       "path": "/bn/admin/content?kind=blog",
+      "width": 1440,
+      "clientWidth": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "path": "/bn/admin/recycle-bin",
+      "width": 360,
+      "clientWidth": 360,
+      "scrollWidth": 360
+    },
+    {
+      "path": "/bn/admin/recycle-bin",
+      "width": 1440,
+      "clientWidth": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "path": "/en/admin/recycle-bin",
+      "width": 360,
+      "clientWidth": 360,
+      "scrollWidth": 360
+    },
+    {
+      "path": "/en/admin/recycle-bin",
       "width": 1440,
       "clientWidth": 1440,
       "scrollWidth": 1440

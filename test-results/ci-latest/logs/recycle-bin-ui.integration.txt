@@ -1,2 +1,10 @@
-Error: super admin did not reach the content list; landed on http://localhost:3111/en/login?callbackUrl=%2Fen%2Fadmin%2Fcontent — usually a TEST_MONGO_DB mismatch
-    at run (/home/runner/work/diction/diction/tests/recycle-bin-ui.integration.ts:86:56)
+locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator('table.admin-table tbody tr').filter({ hasText: 'রিসাইকেল নমুনা — আনডু' }).getByRole('button', { name: 'Delete', exact: true })
+
+    at run (/home/runner/work/diction/diction/tests/recycle-bin-ui.integration.ts:126:83) {
+  log: [
+    "  - waiting for locator('table.admin-table tbody tr').filter({ hasText: 'রিসাইকেল নমুনা — আনডু' }).getByRole('button', { name: 'Delete', exact: true })"
+  ],
+  name: 'TimeoutError'
+}
