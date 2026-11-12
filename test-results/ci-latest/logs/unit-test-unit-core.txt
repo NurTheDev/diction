@@ -1,0 +1,2 @@
+23 suites from "test:unit:core"
+all passed

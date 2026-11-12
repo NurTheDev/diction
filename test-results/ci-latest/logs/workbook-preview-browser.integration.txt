@@ -1,0 +1,1 @@
+One-command isolated test-mode admin sign-in; real XLSX auto preview 2 tabs/17 rows; raw 226400; class suggestions; bulk/per-row choices; draft save/load; CSV; screenshots 360/1440 passed. This flow is READ-ONLY: no full 17-student UI import or undo test.

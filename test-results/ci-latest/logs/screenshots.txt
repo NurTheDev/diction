@@ -1,0 +1,189 @@
+{
+  "files": [
+    "screenshots/r0/public-home-bn-360.png",
+    "screenshots/r0/public-home-bn-1440.png",
+    "screenshots/r0/public-home-en-360.png",
+    "screenshots/r0/public-home-en-1440.png",
+    "screenshots/r0/sign-in-360.png",
+    "screenshots/r0/sign-in-1440.png",
+    "screenshots/r0/admin-overview-360.png",
+    "screenshots/r0/admin-overview-1440.png",
+    "screenshots/r0/students-list-360.png",
+    "screenshots/r0/students-list-1440.png",
+    "screenshots/r0/daily-collection-360.png",
+    "screenshots/r0/daily-collection-1440.png",
+    "screenshots/r0/class-sheet-360.png",
+    "screenshots/r0/class-sheet-1440.png",
+    "screenshots/r0/due-list-360.png",
+    "screenshots/r0/due-list-1440.png",
+    "screenshots/r0/workbook-import-360.png",
+    "screenshots/r0/workbook-import-1440.png",
+    "screenshots/r0/removed-students-360.png",
+    "screenshots/r0/removed-students-1440.png",
+    "screenshots/r0/center-exams-360.png",
+    "screenshots/r0/center-exams-1440.png",
+    "screenshots/r0/admissions-360.png",
+    "screenshots/r0/admissions-1440.png",
+    "screenshots/r0/blog-360.png",
+    "screenshots/r0/blog-1440.png"
+  ],
+  "failures": [],
+  "overflow": [
+    {
+      "path": "/bn",
+      "width": 360,
+      "clientWidth": 360,
+      "scrollWidth": 360
+    },
+    {
+      "path": "/bn",
+      "width": 1440,
+      "clientWidth": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "path": "/en",
+      "width": 360,
+      "clientWidth": 360,
+      "scrollWidth": 360
+    },
+    {
+      "path": "/en",
+      "width": 1440,
+      "clientWidth": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "path": "/bn/login",
+      "width": 360,
+      "clientWidth": 360,
+      "scrollWidth": 360
+    },
+    {
+      "path": "/bn/login",
+      "width": 1440,
+      "clientWidth": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "path": "/bn/admin",
+      "width": 360,
+      "clientWidth": 360,
+      "scrollWidth": 360
+    },
+    {
+      "path": "/bn/admin",
+      "width": 1440,
+      "clientWidth": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "path": "/bn/admin/students",
+      "width": 360,
+      "clientWidth": 360,
+      "scrollWidth": 360
+    },
+    {
+      "path": "/bn/admin/students",
+      "width": 1440,
+      "clientWidth": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "path": "/bn/admin/students/collect",
+      "width": 360,
+      "clientWidth": 360,
+      "scrollWidth": 360
+    },
+    {
+      "path": "/bn/admin/students/collect",
+      "width": 1440,
+      "clientWidth": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "path": "/bn/admin/students/fees-grid",
+      "width": 360,
+      "clientWidth": 360,
+      "scrollWidth": 360
+    },
+    {
+      "path": "/bn/admin/students/fees-grid",
+      "width": 1440,
+      "clientWidth": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "path": "/bn/admin/students/dues",
+      "width": 360,
+      "clientWidth": 360,
+      "scrollWidth": 360
+    },
+    {
+      "path": "/bn/admin/students/dues",
+      "width": 1440,
+      "clientWidth": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "path": "/bn/admin/students/import",
+      "width": 360,
+      "clientWidth": 360,
+      "scrollWidth": 360
+    },
+    {
+      "path": "/bn/admin/students/import",
+      "width": 1440,
+      "clientWidth": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "path": "/bn/admin/students/removed",
+      "width": 360,
+      "clientWidth": 360,
+      "scrollWidth": 360
+    },
+    {
+      "path": "/bn/admin/students/removed",
+      "width": 1440,
+      "clientWidth": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "path": "/bn/admin/center-exams",
+      "width": 360,
+      "clientWidth": 360,
+      "scrollWidth": 360
+    },
+    {
+      "path": "/bn/admin/center-exams",
+      "width": 1440,
+      "clientWidth": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "path": "/bn/admin/admissions",
+      "width": 360,
+      "clientWidth": 360,
+      "scrollWidth": 360
+    },
+    {
+      "path": "/bn/admin/admissions",
+      "width": 1440,
+      "clientWidth": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "path": "/bn/admin/content?kind=blog",
+      "width": 360,
+      "clientWidth": 360,
+      "scrollWidth": 360
+    },
+    {
+      "path": "/bn/admin/content?kind=blog",
+      "width": 1440,
+      "clientWidth": 1440,
+      "scrollWidth": 1440
+    }
+  ]
+}
