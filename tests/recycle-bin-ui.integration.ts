@@ -64,7 +64,9 @@ async function run(){
   for(const [index,studentId] of ['SYNTH-RB-1','SYNTH-RB-2'].entries()){
     await CenterStudent.create({studentId,name:{bn:`নমুনা ছাত্র ${index+1}`},classGroup:group._id,guardianName:'অভিভাবক',guardianPhone:index?'01712345671':'01712345670',admissionDate:'2027-01-01',startMonth:{year:2027,month:1},feeHistory:[{effectiveFrom:{year:2027,month:1},amount:1000}]});
   }
-  const editorialByTitle=title=>Editorial.findOne({'title.bn':title}).lean();
+  // The auto-hide rule applies to the test as well, so the lookup mentions deletedAt to opt out
+  // and can see a row in both states.
+  const editorialByTitle=title=>Editorial.findOne({'title.bn':title,deletedAt:{$exists:true}}).lean();
   const stored=slug=>mongoose.connection.db.collection('editorials').countDocuments({slug});
   const publicBlog=async slug=>{const response=await fetch(`${origin}/en/blog/${slug}`);return {status:response.status,body:await response.text()}};
 
@@ -280,6 +282,8 @@ async function run(){
     await su.context.close();
 
     // ── 7. permissions: staff archives but never deletes; content_editor has neither ──────────
+    // Bin the last sample so the staff account has something to restore (staff cannot delete).
+    await Editorial.updateOne({'title.bn':TITLES.staff},{$set:{deletedAt:new Date(),deletedBy:new mongoose.Types.ObjectId(),purgeAt:new Date(Date.now()+30*24*60*60*1000)}});
     const staff=await signIn('staff',360);
     await staff.page.goto(`${origin}/en/admin/content?kind=blog`,{waitUntil:'domcontentloaded',timeout:180000});
     assert.ok(staff.page.url().includes('/admin/content'),`staff must reach the content list; landed on ${staff.page.url()}`);
@@ -308,7 +312,7 @@ async function run(){
     for(const action of ['recycle.delete:editorial','recycle.restore:editorial','recycle.purge:editorial','recycle.archive:classGroup']){
       assert.ok(await AdminAudit.countDocuments({action})>=1,`missing audit row for ${action}`);
     }
-    assert.equal(await Editorial.countDocuments({...binFilter,slug:{$in:Object.values(SLUGS)}}),0,'every binned sample was restored or purged; nothing is left behind');
+    assert.equal(await Editorial.countDocuments({...binFilter,slug:{$in:Object.values(SLUGS)}}),1,'only the sample binned for the staff check is left in the bin; everything else was restored or purged');
     assert.equal(await CenterClassGroup.countDocuments(binFilter),0,'the archived class was never binned');
 
     console.log('Recycle Bin UI: named 30-day ConfirmDialog, delete + Undo (row and public page), bulk select + delete + Undo, blocked delete showing "2 student(s) use this class" with a working Archive, delete + restore from the bin with type filter and search, Delete forever gated on the typed name and on Super Admin, the same dialog and Undo on the client-fetched lecture-sheet list, staff able to archive and restore but never to delete, content_editor seeing no destructive control, no overflow at 360/768/1440, no page errors, and an audit row per move — against the disposable test database.');
