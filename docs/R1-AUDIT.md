@@ -111,4 +111,12 @@ renders no destructive control.
    referenced (exact message), permission checks (admin/staff/content_editor/exam_manager), purge job
    (fake clock), activity-log entry per action, no student data in URLs or logs.
 
-**Status: R1 audit complete — code complete for step 1 only. Implementation awaits your go-ahead.**
+**Status: audit complete; implementation in progress.** Delivered so far (branch
+`arena/c33e6ed1-diction`): build-order step 2 — the `staff` role end to end; step 1 — recycle fields
+on the twelve participating schemas plus `src/lib/admin/recycle.ts` (softDelete / restoreRecord /
+binList / binCounts / purgeExpired, reference counts, exact Bangla blocked sentences) with a
+schema-level invariant that hides binned rows from every ordinary read and write; and step 3 — the
+nine hard deletes converted, with delete now `requireAdmin` everywhere. Registered as verify
+requirements R1.1 and R1.2. Still owed: step 4 (Recycle Bin page, ConfirmDialog naming the item,
+10-second Undo toast, bulk select), step 5 (the daily scheduled job + `vercel.json`) and step 6
+(the remaining no-control record types and their browser tests).

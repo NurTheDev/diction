@@ -69,7 +69,7 @@ stack trace (`tests/helpers/env-preflight.ts`).
 | --- | --- | --- |
 | Test mode (isolated DB, demo admin, one command) | working · **blocked here** | code read + prior log. Cannot start in this sandbox (no MongoDB download). |
 | Public website (bn/en, 173 routes) | working | ran today (build + unit suites). Live rendering not re-checked without a DB. |
-| Admin auth, roles (`superadmin`, `admin`, `content_editor`, `exam_manager`), audit log | working | ran today (unit) + code read (`src/lib/admin/guard.ts`, `permitted()` in `nav-items.ts`). |
+| Admin auth, roles (`superadmin`, `admin`, `staff`, `content_editor`, `exam_manager`), audit log | working | ran today (unit, incl. `tests/staff-role.test.ts`) + code read (`src/lib/admin/guard.ts`, `permitted()` in `nav-items.ts`). `staff` archives/hides but never deletes; delete is `requireAdmin` server-side. |
 | Class groups, students, profile, active/hold/removed + restore | working | prior log (`milestone-1/2`), code read. `purgeAt` is stored but automatic purge is **missing** (R6). |
 | Workbook import wizard (dry run, decisions, reconciliation, CSV, undo, idempotent) | working | prior log + ran today (parser/compiler unit suites). |
 | Fee collection (search, 12 tiles, receipt, void with reason, history) | working | prior log + ran today (month-status, cash rules). **Browser coverage gap:** `center-cash-browser` was retired in R0 as a fourth stale test (`docs/STALE-TESTS.md` §6); the live screen is `center-daily-collection.tsx` and its server logic is still covered by `center-cash-batch` / `center-daily-cash`. Rewriting the browser test is owed in R1/R2. |
@@ -85,7 +85,7 @@ stack trace (`tests/helpers/env-preflight.ts`).
 | SMS | partial | A low-level BulkSMSBD adapter + segment estimator exist and are unit-tested, gated off. **No** queue, UI, templates UI, opt-out/quiet-hours, idempotency, logs page or balance → R2. Models `CenterSmsTemplate/Batch/Log` and `CenterSettings` already exist. |
 | Visitor leads | **missing** | → R3. |
 | Teacher CV bank | **missing** | → R4. |
-| Delete / archive / Recycle Bin | **missing** | → R1. Today: `deleteEditorial`, `deleteCourse`, `deleteMaterial`, `deleteMedia`, `deletePortalNotice`, `deleteSiteContent` are **hard deletes** (`deleteOne`) with an audit entry — no soft delete, no restore, no Recycle Bin, no `deletedAt` field anywhere in `src/models` or `src/lib`. `deleteMedia` does block when the asset is referenced and destroys the Cloudinary file, which is the pattern R1 should generalise. |
+| Delete / archive / Recycle Bin | **partial (R1 in progress)** | Engine landed and CI-verified: `deletedAt/deletedBy/purgeAt` on twelve schemas, `src/lib/admin/recycle.ts` (soft delete with 30-day purge date, restore, real reference counts, purge), a schema-level invariant that hides binned rows from every ordinary read/write, and the nine former hard deletes converted to binning (`requireAdmin`). `staff` role added (archive/hide, never delete). Owed in R1: Recycle Bin page, ConfirmDialog naming the item, 10 s Undo toast, bulk select, the daily purge job, and delete/archive controls for the remaining no-control types (`docs/R1-AUDIT.md` status line). |
 | Retention/purge, reports, backup, database-usage card | missing / partial | `src/lib/center/database-usage.ts` exists; `admin/audit` exists; the rest → R6. |
 | Deployment guide | partial | `DEPLOYMENT.md`, `ATLAS-SETUP.md`, `DASHBOARD-LOGIN.md` exist but describe the missing scheduler as delivered → R7. |
 
