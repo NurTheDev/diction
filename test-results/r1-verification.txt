@@ -119,3 +119,25 @@ ROUND 3 — the one flake, named and fixed (2026-11-12)
                     page that is still loading.
   43262764742 PASS  16 PASS, 0 FAIL, 0 NOT TESTED (of 16) — the run this file's claims rest on.
                     https://github.com/NurTheDev/diction/actions/runs/43262764742
+
+ROUND 4 — the §E6 second wave, and two ways to break every server action (2026-11-12)
+  Delivered: trial slots, trial bookings, admissions, contact messages, hero banners, teacher
+  profiles, portal accounts, legacy academic exams and model tests joined the engine (21
+  participating schemas, 15 asserted never-hidden), each with the named dialog, the 10-second
+  Undo, the Archive floor and the bin; reference blocks guard booked trials, converted
+  admissions, saved results/attempts, and staff-role or student-linked portal accounts (those
+  two may only be disabled). The media card raises the layout-level Undo toast. R1.4 grew slot
+  and contact-message flows, a booked-slot blocked delete, and staff-no-Delete on slots.
+  43273572460 FAIL  the nine new kinds were refused: src/actions/recycle.ts validated the form
+                    kind against a hand-copied twelve-kind enum. Fixed by deriving it from
+                    recycleKinds, with a coverage-test guard.
+  43274692208 FAIL  twice (re-run identical): exporting that schema from the 'use server' file
+                    corrupted the whole server-action bundle at runtime — every action 500'd, so
+                    R1.4 lost its first delete toast and R0.9 its exam create, which looked like
+                    two unrelated flakes. Next only allows async functions to be exported from
+                    'use server' modules; the schema moved to recycle-kinds.ts. Both traps are
+                    written up in docs/VERIFY.md so nobody spends three CI rounds on them again.
+  43277249842 PASS  16 PASS, 0 FAIL, 0 NOT TESTED (of 16) — the run the second-wave claims rest on.
+                    https://github.com/NurTheDev/diction/actions/runs/43277249842
+  Evidence line: "Recycle coverage: 21 schemas carry the bin fields; 15 financial/audit/student
+  types cannot be hidden; …" and the R1.4 line now names the second-wave lists.

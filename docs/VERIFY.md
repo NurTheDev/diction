@@ -135,6 +135,23 @@ end-to-end evidence, including the 360/1440 screenshots, without the owner runni
 **Tags:** after the owner approves a milestone, that commit is tagged (for example `r1-verified`) so
 the approved version can always be returned to. No tag is created before approval.
 
+## Two ways to break every server action at once (recorded so nobody repeats them)
+
+Both cost a CI round in the R1 second wave (runs 43273572460 and 43274692208):
+
+1. **A hand-copied kind list.** `src/actions/recycle.ts` validated the form's `kind` against a
+   twelve-kind zod enum while the registry had grown to twenty-one, so all nine new kinds were
+   answered `{status:'error'}` and no toast ever appeared. The enum is now `z.enum(recycleKinds)`
+   and `tests/recycle-coverage.test.ts` asserts every registered kind parses through it.
+2. **A non-function export from a `'use server'` file.** Exporting that schema (to test it) from
+   the actions module corrupted the whole server-action bundle at runtime: every action in the app
+   500'd, which looked like two unrelated browser-test flakes (R1.4 and R0.9) and re-ran identically.
+   Next only allows async functions to be exported from `'use server'` modules; shared values belong
+   in a plain module (`src/lib/admin/recycle-kinds.ts` here).
+
+If two browser suites that share no code both time out on their first server action, suspect the
+action layer itself before suspecting the tests.
+
 ## Manual check list ("what I click")
 
 Each milestone ships a `docs/R<n>-START-HERE.md` with the click-through list, in Bangla and English,
