@@ -1,0 +1,31 @@
+======================================================================
+R1 verification evidence (increment: staff role + Recycle Bin engine + conversions)
+----------------------------------------------------------------------
+[1] npm run verify on GitHub Actions, milestone ALL (run 43238967977, commit 05b6f2f area),
+    138 s, Node 22.23.4:
+      ## Result: PASS - 13 PASS, 0 FAIL, 0 NOT TESTED (of 13 requirements)
+      R0.1-R0.11 all PASS (unchanged: install, typecheck, build, isolated replica set,
+      sign-in, core+center suites, exams browser flow, workbook browser flow, 26 screenshots).
+      R1.1 PASS - Recycle Bin engine against the disposable replica set:
+        tests/recycle-bin.integration.ts (1/1 suites) — blocked delete with the exact sentence
+        "২ জন শিক্ষার্থী এই ক্লাস ব্যবহার করে — মুছে ফেলা যাবে না। আর্কাইভ করুন।", no write and no
+        audit row on a blocked delete, purgeAt = delete + 30 days, bin list/counts, binned rows
+        invisible to plain find/count and immune to unflagged updateOne, restore clears every bin
+        field, purge deletes nothing before retention and everything after, an exam with a saved
+        result is reference-blocked, audit rows for delete/restore.
+      R1.2 PASS - tests/staff-role.test.ts (1/1 suites): staff in auth + managed roles, creatable,
+        sees admin lists, cannot open roles/audit/ai, restricted roles unchanged.
+    Three CI rounds were needed and each taught something, recorded here for honesty:
+      43235542307 FAIL - a bare `npm run verify` had started verifying only the newest milestone
+        (latestMilestone default); now the default is ALL. The recycle suite also read its own
+        binned row with findById, which the new invariant correctly hides.
+      43236661868 FAIL - the evidence step died with git exit 128: the workbook browser test
+        rewrites screenshots/workbook-preview-wip/*.png, which a publish_screenshots run had
+        committed; the test now writes under verify-output/ and the evidence step discards
+        tracked churn before rebasing.
+      43238291844 FAIL - the suite asserted a binned row "exists" via a plain countDocuments
+        (the invariant answering 0, correctly), and a synthetic CenterExamResult lacked the
+        required recordedBy actor.
+RESULT: the R1 foundation is demonstrated end to end on a real replica set. UI (Recycle Bin page,
+        ConfirmDialog naming the item, 10 s Undo toast, bulk select) and the daily scheduled job
+        remain, then the remaining no-control record types.
