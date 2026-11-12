@@ -89,6 +89,29 @@ the brief asks for and what is actually proven.
 | `error TS…` in the typecheck step | Real type error in the code | Send the report back — that is a FAIL, not an environment problem |
 | Report says INCOMPLETE on the owner's machine | Something could not run that should have | Send the zip back; the NOT TESTED lines say what |
 
+## Continuous verification (GitHub Actions)
+
+`.github/workflows/verify.yml` runs the same protocol on **every push to the session branch**
+(`arena/c33e6ed1-diction`) and on demand:
+
+1. `npm ci`
+2. `npx playwright install --with-deps chromium`
+3. `npm run verify`
+4. Prints `verify-report.md` into the job log **and** the job summary, then uploads
+   `verify-report.md`, `verify-output.zip`, `screenshots/` and `verify-output/logs/` as the
+   `verify-output` artifact (uploaded even when the run fails, kept 30 days).
+
+The workflow is read-only (`permissions: contents: read`): it never pushes, never opens a pull
+request, never deploys and never runs on `main`. MongoDB and Chromium caches are kept between runs so
+a repeat run takes a few minutes instead of ten.
+
+Value: GitHub's runners have normal internet access, so the two downloads this agent sandbox cannot
+make (`fastdl.mongodb.org`, Playwright's Chromium) work there. A green run with 11/11 PASS is real
+end-to-end evidence, including the 360/1440 screenshots, without the owner running anything.
+
+**Tags:** after the owner approves a milestone, that commit is tagged (for example `r1-verified`) so
+the approved version can always be returned to. No tag is created before approval.
+
 ## Manual check list ("what I click")
 
 Each milestone ships a `docs/R<n>-START-HERE.md` with the click-through list, in Bangla and English,

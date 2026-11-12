@@ -190,3 +190,28 @@ and every R1 requirement gets a line in `scripts/verify-plan.ts` before delivery
 - নতুন: `npm run verify` — একটিমাত্র কমান্ডে ইউনিট টেস্ট, ব্রাউজার টেস্ট, ৩৬০/১৪৪০ স্ক্রিনশট এবং `verify-report.md` + `verify-output.zip` তৈরি হবে। এই স্যান্ডবক্সে চালিয়ে দেখা গেছে: ৫টি PASS, ০টি FAIL, ৬টি NOT TESTED (কারণসহ)।
 - আপনার তিনটি সিদ্ধান্ত নোট করা হয়েছে (§6): ভেরিফিকেশন প্রোটোকল, নতুন `staff` রোল, এবং বাকি ফিচারগুলো নিজ নিজ মাইলস্টোনেই থাকবে।
 - পরের ধাপ R1 (ডিলিট/আর্কাইভ/রিসাইকেল বিন) — শুরু করার আগে আপনার অনুমোদন চাই।
+
+## 10. Security review of the repository (2026-11-12, owner request)
+
+Scope: all 5 commits in history (`git rev-list --all`), every tracked blob, plus `.gitignore`.
+
+**No secret was found.** Detail:
+
+| Check | Result |
+| --- | --- |
+| Tracked `.env`-like files | Only `.env.example`. Its values are placeholders: `mongodb+srv://<db_username>:<db_password>@<cluster-host>/…`, and every API key line is empty. |
+| Connection strings with credentials in history | One hit: `tests/atlas-check.integration.test.ts` uses the literal `SECRET_NEVER_PRINT_123` to prove the Atlas probe never prints credentials or URIs. A test fixture, not a secret. |
+| Cloud provider / SaaS key shapes (`AKIA…`, `sk-…`, `ghp_…`, `github_pat_…`, `xox…`, `AIza…`, `re_…`, `cloudinary://`) | No hits. |
+| Private keys (`BEGIN … PRIVATE KEY`), `*.pem`, `*.key` | No hits; now also git-ignored defensively. |
+| Admin seeding | `scripts/seed.ts` reads `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` from the environment and has no default password. |
+| Hardcoded logins in source | Only the disposable test-mode demo admin (`demo-admin@example.test` / `DemoOnly-2026!`), created **after** test mode asserts the database is a local, isolated `dictioncoaching_test` instance, and printed only to that console. It never exists in a production database. |
+| `.gitignore` | Already covered `node_modules`, `.next`, `.env*` (keeping `.env.example`), `*.tsbuildinfo`, `test-assets/`, `verify-output/`, `verify-output.zip`. Added: OS/editor noise, `*.pem`/`*.key`/`*.p12`/`.env*.local`, `*.log`, `.vercel/`, `playwright-report/`. |
+
+**One thing to confirm with the owner (not a secret, but personal-data hygiene):** the committed
+fixtures `tests/fixtures/Diction-Demo-Payment-Sheet.xlsx`, `synthetic-class-7.xlsx` and the demo CSVs
+contain student-style names (for example "Rafi Ahmed", "Tasnim Akter") and phone numbers
+(`01812345678`, `01912345678`). They are labelled demo/synthetic and the older docs state the data is
+illustrative. If any of it came from the real sheet, say so and I will regenerate the fixtures with
+obviously fake data — real student data must not live in a Git repository.
+
+**No credential was ever asked for, echoed or stored in chat or code during this work.**
