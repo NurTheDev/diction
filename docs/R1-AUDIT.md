@@ -111,12 +111,31 @@ renders no destructive control.
    referenced (exact message), permission checks (admin/staff/content_editor/exam_manager), purge job
    (fake clock), activity-log entry per action, no student data in URLs or logs.
 
-**Status: audit complete; implementation in progress.** Delivered so far (branch
-`arena/c33e6ed1-diction`): build-order step 2 — the `staff` role end to end; step 1 — recycle fields
-on the twelve participating schemas plus `src/lib/admin/recycle.ts` (softDelete / restoreRecord /
-binList / binCounts / purgeExpired, reference counts, exact Bangla blocked sentences) with a
-schema-level invariant that hides binned rows from every ordinary read and write; and step 3 — the
-nine hard deletes converted, with delete now `requireAdmin` everywhere. Registered as verify
-requirements R1.1 and R1.2. Still owed: step 4 (Recycle Bin page, ConfirmDialog naming the item,
-10-second Undo toast, bulk select), step 5 (the daily scheduled job + `vercel.json`) and step 6
-(the remaining no-control record types and their browser tests).
+**Status: audit complete; build-order steps 1-5 delivered, step 6 delivered for the twelve
+participating kinds.** On branch `arena/c33e6ed1-diction`:
+
+- **Step 2** — the `staff` role end to end (`R1.2`), and staff now also reach the admin lists through
+  `getStaffPermission()` so they can archive; delete stays `requireAdmin`.
+- **Step 1** — recycle fields on the twelve participating schemas plus `src/lib/admin/recycle.ts`
+  (softDelete / restoreRecord / binList / binCounts / purgeOne / purgeExpired / archiveRecord,
+  reference counts, exact blocked sentences in both languages) with a schema-level invariant that
+  hides binned rows from find, findOne, count, distinct, aggregate, bulkWrite, every update and
+  populate (`R1.1`, `R1.3`; written confirmation in `docs/R1-COVERAGE.md`).
+- **Step 3** — the nine hard deletes converted; delete is `requireAdmin` everywhere.
+- **Step 4** — Recycle Bin page (`/[locale]/admin/recycle-bin`: type filter, search, days left,
+  Restore, Super-Admin-only Delete forever behind a typed name), named ConfirmDialogs that state the
+  30-day rule instead of claiming permanence, 10-second Undo for single and bulk deletes, bulk select
+  on the blog/notice/video/gallery and course lists, Archive offered when a delete is blocked
+  (`R1.4`; click list in `docs/R1-START-HERE.md`).
+- **Step 5** — `/api/admin/jobs/daily` with `CRON_SECRET` bearer auth, `vercel.json` cron at 01:00
+  Asia/Dhaka, 30-day purge with Cloudinary cleanup and a 12-month log trim (`R1.5`, plus the live
+  job proof inside `R1.1`).
+- **Step 6, first wave** — controls for every participating kind: study materials, portal notices,
+  lecture sheets, practice tests, achievements, FAQs and facilities, class groups, Center exams,
+  courses and all editorial kinds. The `window.confirm('Permanently delete…')` dialogs on lecture
+  sheets and practice tests are gone.
+
+**Still owed (step 6, second wave):** the nine record types that are not part of the Recycle Bin
+engine yet — trial slots, trial bookings, admissions, contact messages, hero banners, teachers
+(faculty), portal accounts, legacy academic exams and model tests — plus the media card's Undo button
+(it names the file and soft-deletes today, but restores only from the bin).

@@ -119,8 +119,12 @@ async function run(){
     assert.equal((await softDelete('editorial',String(expired._id),actorId)).status,'ok');
     const thirteenMonths=new Date(Date.now()-13*30*24*60*60*1000),lastWeek=new Date(Date.now()-7*24*60*60*1000);
     await Editorial.updateOne({_id:expired._id,...binFilter},{$set:{purgeAt:new Date(Date.now()-60_000),deletedAt:thirteenMonths}});
-    await CenterSmsLog.create({phone:'+8801700000000',message:'synthetic',segments:1,status:'sent',createdAt:thirteenMonths});
-    await CenterSmsLog.create({phone:'+8801700000001',message:'synthetic',segments:1,status:'sent',createdAt:lastWeek});
+    // Written straight into the collection: the log schema requires a batch and a student, and the
+    // trim only cares about createdAt.
+    await mongoose.connection.db.collection('centersmslogs').insertMany([
+      {phone:'01711111111',message:'synthetic old',segments:1,status:'sent',createdAt:thirteenMonths},
+      {phone:'01722222222',message:'synthetic recent',segments:1,status:'sent',createdAt:lastWeek},
+    ]);
     const fresh=await Editorial.create({kind:'blog',slug:'recycle-fresh',title:{bn:'তাজা নমুনা',en:'Fresh sample'},body:{bn:'লেখা',en:'text'},published:true});
     assert.equal((await softDelete('editorial',String(fresh._id),actorId)).status,'ok');
 

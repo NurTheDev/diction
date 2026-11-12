@@ -30,6 +30,8 @@ import {binFilter} from '../src/models/recycle';
 const TITLES={undo:'রিসাইকেল নমুনা — আনডু',bulkA:'রিসাইকেল নমুনা — বাল্ক এক',bulkB:'রিসাইকেল নমুনা — বাল্ক দুই',bin:'রিসাইকেল নমুনা — বিন রিস্টোর',forever:'রিসাইকেল নমুনা — চিরতরে মুছে ফেলা',staff:'রিসাইকেল নমুনা — স্টাফ আর্কাইভ'};
 const SLUGS={'undo':'recycle-ui-undo','bulkA':'recycle-ui-bulk-a','bulkB':'recycle-ui-bulk-b','bin':'recycle-ui-bin','forever':'recycle-ui-forever','staff':'recycle-ui-staff'};
 const CLASS_NAME='নমুনা ক্লাস — রেফারেন্স ব্লক';
+/** What the English admin lists render. The engine's own name (dialogs, bin rows) is Bangla-first. */
+const EN={undo:'Recycle sample undo',bulkA:'Recycle sample bulkA',bulkB:'Recycle sample bulkB',bin:'Recycle sample bin',forever:'Recycle sample forever',staff:'Recycle sample staff'};
 
 async function run(){
   await preflight({mongo:true,browser:true,origin:process.env.TEST_ORIGIN||'http://127.0.0.1:3100',originTimeoutMs:process.env.TEST_ORIGIN?60000:8000,test:'tests/recycle-bin-ui.integration.ts — start the app first, then run it with TEST_ORIGIN and TEST_MONGO_URI (see STALE-TESTS-REPORT.md)'});
@@ -123,7 +125,7 @@ async function run(){
     if(!su.page.url().includes('/admin/content'))throw Error(`super admin did not reach the content list; landed on ${su.page.url()} — usually a TEST_MONGO_DB mismatch`);
     assert.equal((await publicBlog(SLUGS.undo)).status,200,'the blog post is public before the delete');
 
-    await row(su.page,TITLES.undo).getByRole('button',{name:'Delete',exact:true}).click();
+    await row(su.page,EN.undo).getByRole('button',{name:'Delete',exact:true}).click();
     const dialog=su.page.getByRole('dialog');
     await dialog.waitFor();
     assert.match(await dialog.locator('h2').innerText(),new RegExp(TITLES.undo.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')),'the dialog names the item');
@@ -134,7 +136,7 @@ async function run(){
     await toast(su.page).getByText('Moved to the Recycle Bin.').waitFor({timeout:60000});
     const undo=toast(su.page).getByRole('button',{name:'Undo',exact:true});
     assert.ok(await undo.isVisible(),'the Undo affordance is in the toast');
-    await row(su.page,TITLES.undo).waitFor({state:'detached',timeout:60000});
+    await row(su.page,EN.undo).waitFor({state:'detached',timeout:60000});
     assert.ok((await editorialByTitle(TITLES.undo)).deletedAt instanceof Date,'the record is binned, not destroyed');
     assert.equal(await stored(SLUGS.undo),1,'the row is still in storage during the 30 days');
     const gone=await publicBlog(SLUGS.undo);
@@ -142,7 +144,7 @@ async function run(){
 
     await undo.click();
     await toast(su.page).getByText('Restored.').waitFor({timeout:60000});
-    await row(su.page,TITLES.undo).waitFor({timeout:60000});
+    await row(su.page,EN.undo).waitFor({timeout:60000});
     assert.equal((await editorialByTitle(TITLES.undo)).deletedAt,null,'Undo cleared deletedAt');
     assert.equal((await publicBlog(SLUGS.undo)).status,200,'and the public page serves it again');
 
@@ -158,17 +160,17 @@ async function run(){
     assert.equal(digitsOf(await bar.innerText()),6,'select-all picks up all six blog rows');
     await su.page.locator('thead input.admin-checkbox').uncheck();
     await su.page.waitForFunction(()=>/([0]|\u09E6) selected/.test(document.querySelector('.admin-bulk-bar')?.textContent||''),{timeout:20000});
-    for(const title of [TITLES.bulkA,TITLES.bulkB])await row(su.page,title).locator('input.admin-checkbox').check();
+    for(const title of [EN.bulkA,EN.bulkB])await row(su.page,title).locator('input.admin-checkbox').check();
     await su.page.waitForFunction(()=>/([2]|\u09E8) selected/.test(document.querySelector('.admin-bulk-bar')?.textContent||''),{timeout:20000});
     assert.equal(digitsOf(await bar.innerText()),2,'two rows are selected');
     await bar.getByRole('button',{name:'Delete selected'}).click();
     await toast(su.page).getByText('Moved to the Recycle Bin.').waitFor({timeout:60000});
-    for(const title of [TITLES.bulkA,TITLES.bulkB])await row(su.page,title).waitFor({state:'detached',timeout:60000});
+    for(const title of [EN.bulkA,EN.bulkB])await row(su.page,title).waitFor({state:'detached',timeout:60000});
     assert.ok((await editorialByTitle(TITLES.bulkA)).deletedAt instanceof Date);
     assert.ok((await editorialByTitle(TITLES.bulkB)).deletedAt instanceof Date);
     await toast(su.page).getByRole('button',{name:'Undo',exact:true}).click();
     await toast(su.page).getByText('Restored.').waitFor({timeout:60000});
-    for(const title of [TITLES.bulkA,TITLES.bulkB])await row(su.page,title).waitFor({timeout:60000});
+    for(const title of [EN.bulkA,EN.bulkB])await row(su.page,title).waitFor({timeout:60000});
     assert.equal((await editorialByTitle(TITLES.bulkA)).deletedAt,null,'bulk Undo restored the first row');
     assert.equal((await editorialByTitle(TITLES.bulkB)).deletedAt,null,'bulk Undo restored the second row');
 
@@ -188,7 +190,7 @@ async function run(){
 
     // ── 5. delete + restore from the Recycle Bin page (filter, search, days left) ────────────
     await su.page.goto(`${origin}/en/admin/content?kind=blog`,{waitUntil:'domcontentloaded',timeout:180000});
-    await row(su.page,TITLES.bin).getByRole('button',{name:'Delete',exact:true}).click();
+    await row(su.page,EN.bin).getByRole('button',{name:'Delete',exact:true}).click();
     await su.page.getByRole('dialog').getByRole('button',{name:'Yes, delete'}).click();
     await toast(su.page).getByText('Moved to the Recycle Bin.').waitFor({timeout:60000});
     await su.page.goto(`${origin}/en/admin/recycle-bin`,{waitUntil:'domcontentloaded',timeout:180000});
@@ -211,7 +213,7 @@ async function run(){
 
     // ── 6. Delete forever: super admin only, exact name typed ────────────────────────────────
     await su.page.goto(`${origin}/en/admin/content?kind=blog`,{waitUntil:'domcontentloaded',timeout:180000});
-    await row(su.page,TITLES.forever).getByRole('button',{name:'Delete',exact:true}).click();
+    await row(su.page,EN.forever).getByRole('button',{name:'Delete',exact:true}).click();
     await su.page.getByRole('dialog').getByRole('button',{name:'Yes, delete'}).click();
     await toast(su.page).getByText('Moved to the Recycle Bin.').waitFor({timeout:60000});
     await su.page.goto(`${origin}/en/admin/recycle-bin`,{waitUntil:'domcontentloaded',timeout:180000});
@@ -247,7 +249,7 @@ async function run(){
     await sheetCard.getByRole('button',{name:'Delete',exact:true}).click();
     const sheetDialog=su.page.getByRole('dialog');
     await sheetDialog.waitFor();
-    assert.match(await sheetDialog.locator('h2').innerText(),/রিসাইকেল নমুনা শিট/,'the sheet dialog names the sheet, not "this item"');
+    assert.match(await sheetDialog.locator('h2').innerText(),/Recycle sample sheet/,'the sheet dialog names the sheet, not "this item"');
     assert.match(await sheetDialog.locator('p').first().innerText(),/Recycle Bin for 30 days/);
     await sheetDialog.getByRole('button',{name:'Yes, delete'}).click();
     await toast(su.page).getByText('Moved to the Recycle Bin.').waitFor({timeout:60000});
