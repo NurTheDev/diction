@@ -1,0 +1,85 @@
+# Runs the owner's verification protocol on every push to the working branch.
+#
+# `npm run verify` writes verify-report.md (one line per requirement: PASS / FAIL / NOT TESTED and
+# why), screenshots/<milestone>/ at 360 px and 1440 px, and verify-output.zip. All three are
+# uploaded as artifacts even when the run fails, and the report is also echoed into the job summary
+# so it can be read without downloading anything.
+#
+# Scope: this workflow is deliberately limited to the session branch. It never runs on main, never
+# pushes, never opens a pull request and never deploys. Permissions are read-only.
+name: verify
+
+on:
+  push:
+    branches:
+      - arena/c33e6ed1-diction
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: npm run verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Check out the branch
+        uses: actions/checkout@v4
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Cache the disposable MongoDB binary
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/mongodb-memory-server
+          key: mongod-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: mongod-${{ runner.os }}-
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: playwright-${{ runner.os }}-
+
+      - name: Install dependencies (npm ci)
+        run: npm ci
+
+      - name: Install Playwright Chromium and its system libraries
+        run: npx playwright install --with-deps chromium
+
+      - name: Run npm run verify
+        run: npm run verify
+
+      - name: Show the report in the job log and summary
+        if: always()
+        run: |
+          echo "----- verify-report.md -----"
+          cat verify-report.md || echo "(no report was written)"
+          {
+            echo "## Verification report"
+            echo ""
+            cat verify-report.md || echo "_No report was written — see the log above._"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload report, screenshots and verify-output.zip
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verify-output
+          path: |
+            verify-report.md
+            verify-output.zip
+            screenshots/
+            verify-output/logs/
+          if-no-files-found: warn
+          retention-days: 30
