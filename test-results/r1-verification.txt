@@ -108,3 +108,14 @@ NOT COVERED / NOT TESTED (stated plainly)
     not run on a real Vercel deployment (that needs the owner's project and CRON_SECRET).
   - NOTHING HERE IS "VERIFIED" UNTIL THE OWNER RUNS `npm run verify` AND SENDS
     verify-output.zip. See docs/R1-START-HERE.md for the click list.
+
+ROUND 3 — the one flake, named and fixed (2026-11-12)
+  43261332422 FAIL  R1.4 'staff can archive': isVisible() does not wait, and the admin list
+                    streams in after the shell — on a loaded runner the row controls had not
+                    arrived when the check ran. Every absence assertion in the permission
+                    section now waits for a rendered positive signal first (Archive on the
+                    content and class lists, Restore in the bin, a table row for
+                    content_editor), which also stops those checks passing vacuously on a
+                    page that is still loading.
+  43262764742 PASS  16 PASS, 0 FAIL, 0 NOT TESTED (of 16) — the run this file's claims rest on.
+                    https://github.com/NurTheDev/diction/actions/runs/43262764742
