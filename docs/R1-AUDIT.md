@@ -135,7 +135,13 @@ participating kinds.** On branch `arena/c33e6ed1-diction`:
   courses and all editorial kinds. The `window.confirm('Permanently delete…')` dialogs on lecture
   sheets and practice tests are gone.
 
-**Still owed (step 6, second wave):** the nine record types that are not part of the Recycle Bin
-engine yet — trial slots, trial bookings, admissions, contact messages, hero banners, teachers
-(faculty), portal accounts, legacy academic exams and model tests — plus the media card's Undo button
-(it names the file and soft-deletes today, but restores only from the bin).
+**Step 6, second wave — delivered** on commit `d014f67`: the nine record types that had no
+destructive control at all — trial slots, trial bookings, admissions, contact messages, hero
+banners, teachers (faculty), portal accounts, legacy academic exams and model tests — joined the
+engine (21 participating schemas), each with the named dialog, the 10-second Undo, the Archive floor
+and the bin; reference blocks guard a slot with booked trials, an admission already converted to a
+student, a legacy exam with saved results, a model test with saved attempts, and a portal account
+that holds a staff role or backs a legacy student profile (those two may only be disabled). The
+media card now raises the layout-level Undo toast like every other delete. **Still owed:** testimonial
+/ social-proof controls and a disable path for managed roles (both §B), a real Vercel cron run, and
+the owner's own `npm run verify` output.

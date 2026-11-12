@@ -89,7 +89,7 @@ every flow is clickable. **All of it disappears when you press Ctrl+C.**
 
 1. Sign in as **demo-super** → **সেটিংস** group → **রিসাইকেল বিন** (`/bn/admin/recycle-bin`).
 2. Delete one blog post first (step A) so the bin is not empty.
-3. Check: the **ধরন / Type** filter lists all twelve kinds; **খুঁজুন / Search** finds a row by name;
+3. Check: the **ধরন / Type** filter lists all twenty-one kinds; **খুঁজুন / Search** finds a row by name;
    each row shows **মুছে ফেলা হয়েছে** (the date) and **৩০ দিন বাকি / 30 days left**.
 4. Click **ফেরত আনুন / Restore** → the row leaves the bin and the record is live again.
 5. Delete another row, then click **চিরতরে মুছুন / Delete forever**:
@@ -127,6 +127,21 @@ and **practice tests** (`/bn/admin/practice-tests`) — now use the same named d
 Center exams (`/bn/admin/center-exams`) show a Delete column for admin and above; an exam with saved
 results cannot be deleted and says how many results it has. exam_manager sees no Delete column.
 
+**Second wave — the same controls on nine more lists.** Trial slots (`/bn/admin/slots`), trial
+bookings (`/bn/admin/bookings`), admissions (`/bn/admin/admissions`), contact messages
+(`/bn/admin/messages`), the home hero banner (`/bn/admin/hero`), teacher profiles
+(`/bn/admin/faculty`), portal accounts (`/bn/admin/accounts`), legacy academic exams
+(`/bn/admin/academics`) and model tests (`/bn/admin/model-tests`) now carry the same named dialog,
+the same 10-second Undo, the same Archive floor and the same bin. Try the slot list: delete the
+demo slot, Undo it, then book a trial into it (`/bn/admin/bookings` shows bookings; or create one
+from the public `/bn/trial-class` form) and delete again — the toast must refuse with the real
+count, *"1 booking(s) are scheduled in this slot — cannot be deleted. Archive it instead."*, and
+Archive closes the slot instead. Admissions refuse once converted to a student; legacy exams and
+model tests refuse once results or attempts exist. Portal accounts refuse for two reasons of their
+own: an account holding a staff role may only be disabled, and an account a legacy student profile
+points at stays until the profile moves. On all nine lists staff see Archive (where the kind has
+an archive path) and never Delete.
+
 ### G. The daily job (§E5)
 
 The job lives at `/api/admin/jobs/daily` and is scheduled by `vercel.json` once a day
@@ -153,15 +168,15 @@ schedule. With no secret, or a secret shorter than 32 characters, the job refuse
 
 ## 3. What R1 does **not** cover yet (stated plainly)
 
-- **Nine record types still have no delete control**: trial slots, trial bookings, admissions,
-  contact messages, hero banners, teachers (faculty), portal accounts, legacy academic exams and
-  model tests. They are not part of the Recycle Bin engine yet, so they cannot be soft-deleted;
-  they are the next wave of §E6 and are tracked in `docs/R1-AUDIT.md` §B.
-- **The media library card** keeps its older delete dialog. It now names the file and states the
-  30-day rule, and the delete is a soft delete, but it has no Undo button — restore happens from the
-  Recycle Bin page. Its reference-blocked message is still the shorter "This image is in use" text.
-- **Payments, students, logs, snapshots, SMS records and users are never deletable**, by design:
-  payments are voided with a reason, students keep their own `removed` status with restore, and the
-  logs are append-only (the daily job only trims them after 12 months).
+- **Testimonials / social proof still have no delete or archive control** — `saveSocialProof`
+  only. They are the last list from `docs/R1-AUDIT.md` §B without controls.
+- **Roles need a disable path.** They are access control, deliberately outside the Recycle Bin, but
+  today a managed role can only be edited, not switched off in one place.
+- **Portal accounts are the one auth type inside the bin**, deliberately: a binned account cannot
+  sign in and restores within 30 days, but staff-role accounts and accounts a legacy student
+  profile points at are reference-blocked and can only be disabled.
+- **Payments, students, logs, snapshots and SMS records are never deletable**, by design: payments
+  are voided with a reason, students keep their own `removed` status with restore, and the logs are
+  append-only (the daily job only trims them after 12 months).
 - **Nothing here is verified until you run it.** Say the word only after your own
   `=== PASS: 16 PASS … ===` output; then R1 gets tagged like R0.

@@ -22,6 +22,7 @@ import {ModelTest,TestAttempt} from '../src/models/ModelTest';
 import {AdminAudit} from '../src/models/AdminAudit';
 import {recycleKinds,archivableKinds,canArchiveKind} from '../src/lib/admin/recycle-kinds';
 import {recycleRegistry} from '../src/lib/admin/recycle';
+import {kindSchema} from '../src/actions/recycle';
 
 // 1. The twenty-one schemas that carry deletedAt / deletedBy / purgeAt.
 const participating=[['Editorial',Editorial],['Course',Course],['LearningMaterial',LearningMaterial],['MediaFile',MediaFile],['PortalNotice',PortalNotice],['FAQContent',FAQContent],['FacilityContent',FacilityContent],['AchievementRecord',AchievementRecord],['PracticeTest',PracticeTest],['PublicSheet',PublicSheet],['CenterClassGroup',CenterClassGroup],['CenterExam',CenterExam],['Admission',Admission],['Slot',Slot],['TrialBooking',TrialBooking],['ContactMessage',ContactMessage],['HeroBanner',HeroBanner],['TeacherContent',TeacherContent],['User',User],['Exam',Exam],['ModelTest',ModelTest]] as const;
@@ -65,7 +66,13 @@ for(const kind of ['material','media','portalNotice','classGroup','centerExam','
 //    button for a kind that has no archive path.
 assert.deepEqual([...recycleKinds],recycleRegistry.map(def=>def.kind),'recycleKinds lists exactly the registered kinds');
 assert.deepEqual([...archivableKinds],recycleRegistry.filter(def=>def.archiveSet).map(def=>def.kind),'archivableKinds lists exactly the kinds with an archiveSet');
+
+// 6. The server actions validate the kind against the shared vocabulary, not a hand-copied list.
+//    The second wave first shipped with a twelve-kind enum in src/actions/recycle.ts, which answered
+//    {status:'error'} to all nine new kinds; CI caught it on the slot flow. This is the guard.
+for(const kind of recycleKinds)assert.ok(kindSchema.safeParse(kind).success,`the server actions accept ${kind}`);
+assert.equal(kindSchema.safeParse('nope').success,false,'the server actions refuse an unknown kind');
 for(const kind of archivableKinds)assert.equal(canArchiveKind(kind),true,`${kind} can be archived`);
 for(const kind of recycleKinds.filter(k=>!(archivableKinds as readonly string[]).includes(k)))assert.equal(canArchiveKind(kind),false,`${kind} has no archive path`);
 
-console.log('Recycle coverage: 12 schemas carry the bin fields; 12 financial/audit/student types cannot be hidden; find/findOne/count/distinct/findOneAnd*/update*/delete*/aggregate/bulkWrite are covered; estimatedDocumentCount is the documented exception; public kinds revalidate their routes; the client kind lists match the registry.');
+console.log('Recycle coverage: 21 schemas carry the bin fields; 15 financial/audit/student types cannot be hidden; find/findOne/count/distinct/findOneAnd*/update*/delete*/aggregate/bulkWrite are covered; estimatedDocumentCount is the documented exception; public kinds revalidate their routes; the client kind lists match the registry.');

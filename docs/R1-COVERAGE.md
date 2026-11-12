@@ -35,26 +35,36 @@ Deliberate opt-outs by caller, today:
 | Backup/full export (R6, not built yet) | must export binned rows too; will use `{recycleAny:true}` — recorded here so the R6 implementer cannot forget |
 | Import undo (`CenterImportBatch`/`CenterWorkbookBatch` undo paths) | those models are **not** participating schemas (see §2), so undo is unaffected by the rule; if a future undo touches a participating type it must opt out explicitly |
 
-## 2. The twelve schemas with `deletedAt`, and the types that can never be hidden
+## 2. The twenty-one schemas with `deletedAt`, and the types that can never be hidden
 
 Carry `deletedAt/deletedBy/purgeAt` (+ the partial `purgeAt` index): **Editorial, Course,
 LearningMaterial, MediaFile, PortalNotice, FAQContent, FacilityContent, AchievementRecord,
-PracticeTest, PublicSheet, CenterClassGroup, CenterExam** — exactly the twelve entries of
-`recycleRegistry`, asserted equal in the coverage test.
+PracticeTest, PublicSheet, CenterClassGroup, CenterExam** (first wave) plus **Slot, TrialBooking,
+Admission, ContactMessage, HeroBanner, TeacherContent, User, Exam, ModelTest** (§E6 second wave) —
+exactly the twenty-one entries of `recycleRegistry`, asserted equal in the coverage test.
 
 Never hidden (no `deletedAt` field exists, so the rule structurally cannot touch them):
 **CenterStudent** (keeps its own `status:'removed'` + restore), **CenterPayment** and
 **CenterFeeWaiver** (voided with a reason, never deleted), **CenterActivityLog** and **AdminAudit**
 (write-only), **CenterSmsLog/CenterSmsBatch**, **CenterDueSnapshot** (immutable),
-**CenterImportBatch/CenterWorkbookBatch**, **CenterExamResult**, **User**. Each is asserted
-`path('deletedAt') === undefined`.
+**CenterImportBatch/CenterWorkbookBatch**, **CenterExamResult**, and the legacy student records
+**Student, Result, Attendance, TestAttempt**. Each is asserted `path('deletedAt') === undefined`.
+
+**User moved between the two lists in the second wave, deliberately.** Portal accounts (the
+`student`/`parent`/`teacher` logins) needed a real delete-with-restore, and the bin gives exactly
+that: a binned account cannot sign in, and restore brings it back within 30 days. Two reference
+blocks keep it safe — an account holding a managed staff role can only be disabled, never binned
+(`staff role — disable instead of deleting`), and an account a legacy student profile points at is
+blocked the same way. Every money, audit and student record above stays outside the engine; the
+coverage test asserts both lists.
 
 ## 3. Public pages, sitemap, ISR and revalidation
 
 - Every public reader of a participating type goes through `find`/`findOne`
   (`src/lib/content/editorial.ts`, `course.ts`, `practice-tests.ts`, `public-sheets.ts`,
-  `site-content.ts`, `achievements.ts`), so binned rows disappear from public pages, the blog,
-  lecture sheets and practice tests immediately at query time.
+  `site-content.ts`, `achievements.ts`, `hero.ts`, the `/teacher` page and the `/trial-class`
+  booking list), so binned rows disappear from public pages, the blog, lecture sheets, practice
+  tests, the home hero, the faculty page and the trial-slot list immediately at query time.
 - `src/app/sitemap.ts` is `force-dynamic` and builds from those same readers
   (`publicEditorial`, `getPublicSheets`, `practiceList`) — a binned slug leaves the sitemap on the
   next request, and there is no cached sitemap to stale.

@@ -302,16 +302,21 @@ participating record types, and GitHub Actions run
 | Delete/archive controls for every participating kind (§E6 first wave) | working | R1.4 (sheets + content + classes) |
 | Audit row per delete, restore, archive and purge | working | R1.1, R1.4 |
 
+**Second wave of §E6 (commit `d014f67`):** the nine record types that had no destructive control
+at all — trial slots, trial bookings, admissions, contact messages, hero banners, teacher profiles,
+portal accounts, legacy academic exams and model tests — joined the engine, so 21 schemas now carry
+the bin fields and 15 money/audit/student types are asserted never-hidden. Reference blocks refuse
+the deletes that would orphan history (booked trials, converted admissions, saved results or
+attempts, staff-role or student-linked accounts), and the media card raises the same layout-level
+Undo toast as every other delete. `R1.4` grew the matching browser flows.
+
 **Owed, stated plainly:**
 
-1. Nine record types are still outside the engine and have no delete control: trial slots, trial
-   bookings, admissions, contact messages, hero banners, teachers (faculty), portal accounts,
-   legacy academic exams and model tests (§E6 second wave).
-2. The media library card soft-deletes and names the file, but has no Undo button — restore is from
-   the Recycle Bin page.
-3. The daily job has not run on a real Vercel deployment; that needs the owner's project and a
+1. Testimonials / social proof still have no delete or archive control, and managed roles still
+   need a disable path (`docs/R1-AUDIT.md` §B).
+2. The daily job has not run on a real Vercel deployment; that needs the owner's project and a
    `CRON_SECRET` of at least 32 characters.
-4. Two orphaned components (`center-import-preview.tsx`, `center-cash-form.tsx`) still await an
+3. Two orphaned components (`center-import-preview.tsx`, `center-cash-form.tsx`) still await an
    owner ruling, and R0 is still untagged pending the owner's `verify-output.zip`.
 
 **Two real defects the R1.4 browser test caught** (both fixed, both recorded in
