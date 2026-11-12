@@ -31,19 +31,24 @@ Raw log: `test-results/r0-cold-start-20261112.txt`, summary: `test-results/r0-ve
 every unit suite, installs the test browser if missing, starts the disposable database and the app,
 signs in as the demo admin, takes 360 px and 1440 px screenshots of 13 pages, runs the browser tests,
 and writes `verify-report.md` + `screenshots/<milestone>/` + `verify-output.zip` (one line per
-requirement: PASS / FAIL / NOT TESTED and why). Run in this sandbox on 2026-11-12 it reported
-**5 PASS, 0 FAIL, 6 NOT TESTED (INCOMPLETE)** — the six unproven lines are all the ones that need the
-MongoDB download or the browser, and each says so.
+requirement: PASS / FAIL / NOT TESTED and why).
+
+Run **in this sandbox** on 2026-11-12 it reported **5 PASS, 0 FAIL, 6 NOT TESTED (INCOMPLETE)** — the
+six unproven lines are all the ones that need the MongoDB download or the browser, and each says so.
+The same command run **on GitHub Actions** (`.github/workflows/verify.yml`, which runs on every push
+to this branch) reported **11 PASS, 0 FAIL, 0 NOT TESTED — PASS** in 132 s on 2026-11-12, with the
+isolated replica set, the demo-admin sign-in, both browser flows and 26 screenshots at 360/1440 px
+all demonstrated. That is the first complete end-to-end proof of R0; see §11.
 
 **On the owner's machine (normal internet) the expected cold start is:**
 `npm ci` → `npx playwright install chromium` (once) → `npm run test-mode` → open
 `http://localhost:3000/bn/admin` → `demo-admin@example.test` / `DemoOnly-2026!`.
 Step 5's first run downloads MongoDB (~90 MB) and may take several minutes.
 
-This is an environment limitation of the agent sandbox, **not** a product defect. It is stated
-plainly because it is the one thing R0 could not demonstrate end to end. To make it impossible to
-mistake for a product failure, the browser tests now stop in ~1 s with a one-screen actionable
-message instead of minutes of retries and a raw stack trace (`tests/helpers/env-preflight.ts`).
+This is an environment limitation of the agent sandbox, **not** a product defect: the same steps run
+green on GitHub's runners (§11). To make it impossible to mistake for a product failure, the browser
+tests now stop in ~1 s with a one-screen actionable message instead of minutes of retries and a raw
+stack trace (`tests/helpers/env-preflight.ts`).
 
 ## 2. Verified working today (evidence: tests run in this session)
 
@@ -76,7 +81,7 @@ message instead of minutes of retries and a raw stack trace (`tests/helpers/env-
 | Legacy fee **conversion/migration** | **missing** | No conversion code (searched `poisha`, `convertLegacy`, `LegacyFee`). Only the experimental identity link (`CENTER_LEGACY_LINK_ENABLED`, off by default). |
 | Portal linking for Center students/guardians | **missing** | `/parent/*` reads the legacy `Student`/`FeeInvoice`/`FeePayment` models only. No page outside `/admin` reads `CenterStudent` or `CenterPayment`. |
 | "ভর্তি সম্পন্ন" creates a student | **missing** | `ভর্তি সম্পন্ন` is only a status **label** (`admin.enrolled`, `forms.statusEnrolled`). `CenterStudent` is created by the student form, the import batch or the workbook batch — never from an admission. |
-| Exams (create, subjects, marks, ranking, publish) | partial | ran today (grading/ranking unit) + prior log. Writes gated by `CENTER_EXAM_WRITE_ENABLED` (off in production; `npm run verify` turns it on for the disposable database so the flow is demonstrated — §11). The browser proof of create → marks → A+ → rank → publish is **not yet green**: it was the single FAIL of the first CI run (§11, cause found and fixed, awaiting a re-run). Single class per screen, ≤500 students, no unpublish/correction, no teacher scoping, no SMS/portal/PDF → R5. |
+| Exams (create, subjects, marks, ranking, publish) | partial | ran today (grading/ranking unit) + **browser flow proven on GitHub Actions** (§11): create with two subjects → marks 80+40 → total 120/150 → A+ → rank → publish, plus role scope and 360/768/1440 layout. Writes gated by `CENTER_EXAM_WRITE_ENABLED` (off in production; `npm run verify` turns it on for the disposable database). Single class per screen, ≤500 students, no unpublish/correction, no teacher scoping, no SMS/portal/PDF → R5. |
 | SMS | partial | A low-level BulkSMSBD adapter + segment estimator exist and are unit-tested, gated off. **No** queue, UI, templates UI, opt-out/quiet-hours, idempotency, logs page or balance → R2. Models `CenterSmsTemplate/Batch/Log` and `CenterSettings` already exist. |
 | Visitor leads | **missing** | → R3. |
 | Teacher CV bank | **missing** | → R4. |
@@ -178,7 +183,7 @@ and every R1 requirement gets a line in `scripts/verify-plan.ts` before delivery
 
 | Piece | Status | Evidence |
 | --- | --- | --- |
-| `npm run verify` orchestrator | working · **partially blocked here** | ran end to end in this sandbox: 32 unit suites PASS, build PASS, 6 requirements correctly NOT TESTED with reasons, report + zip written |
+| `npm run verify` orchestrator | working | ran end to end in this sandbox (32 unit suites PASS, build PASS, 6 requirements correctly NOT TESTED with reasons) **and complete on GitHub Actions: 11 PASS / 0 FAIL / 0 NOT TESTED** (§11) |
 | `verify-report.md` rendering | working | ran today; `tests/verify-report.test.ts` proves one line per requirement and no PASS without evidence |
 | `verify-output.zip` writer | working | ran today; round-tripped through `yauzl` with intact binary content |
 | Requirement registry (`verify-plan.ts`) | working | 11 R0 requirements; the unit test asserts every entry points at a real script or test file |
@@ -192,7 +197,7 @@ and every R1 requirement gets a line in `scripts/verify-plan.ts` before delivery
 - এই স্যান্ডবক্স থেকে MongoDB ও ব্রাউজার ডাউনলোড করা যায় না, তাই `npm run test-mode` ও ব্রাউজার টেস্ট এখানে চালানো সম্ভব হয়নি। আপনার কম্পিউটারে (সাধারণ ইন্টারনেট) এগুলো চলবে; এটি প্রোজেক্টের সমস্যা নয়।
 - পুরোনো ডকুমেন্টে যা "শেষ" লেখা ছিল, তার কয়েকটি আসলে কোডে নেই: মাস-শেষের স্বয়ংক্রিয় স্ন্যাপশট (cron), পুরোনো ফি রূপান্তর, পোর্টাল লিংক, "ভর্তি সম্পন্ন → শিক্ষার্থী", এবং বকেয়া তালিকার Excel/প্রিন্ট। বিস্তারিত §4-এ।
 - তিনটি পুরোনো ব্রাউজার টেস্টের সমাধান হয়েছে: দুটি ঠিক করা, একটি অবসর দেওয়া — কারণসহ `docs/STALE-TESTS.md`-এ।
-- নতুন: `npm run verify` — একটিমাত্র কমান্ডে ইউনিট টেস্ট, ব্রাউজার টেস্ট, ৩৬০/১৪৪০ স্ক্রিনশট এবং `verify-report.md` + `verify-output.zip` তৈরি হবে। এই স্যান্ডবক্সে চালিয়ে দেখা গেছে: ৫টি PASS, ০টি FAIL, ৬টি NOT TESTED (কারণসহ)।
+- নতুন: `npm run verify` — একটিমাত্র কমান্ডে ইউনিট টেস্ট, ব্রাউজার টেস্ট, ৩৬০/১৪৪০ স্ক্রিনশট এবং `verify-report.md` + `verify-output.zip` তৈরি হবে। এই স্যান্ডবক্সে: ৫টি PASS, ৬টি NOT TESTED (কারণসহ)। GitHub Actions-এ প্রতি পুশে একই কমান্ড চলে এবং শেষ রানে **১১টি-ই PASS** হয়েছে — আলাদা টেস্ট ডাটাবেস, লগইন, দুটি ব্রাউজার ফ্লো ও ২৬টি স্ক্রিনশট সহ (§11)।
 - আপনার তিনটি সিদ্ধান্ত নোট করা হয়েছে (§6): ভেরিফিকেশন প্রোটোকল, নতুন `staff` রোল, এবং বাকি ফিচারগুলো নিজ নিজ মাইলস্টোনেই থাকবে।
 - পরের ধাপ R1 (ডিলিট/আর্কাইভ/রিসাইকেল বিন) — শুরু করার আগে আপনার অনুমোদন চাই।
 
@@ -227,7 +232,9 @@ obviously fake data — real student data must not live in a Git repository.
 runners can download what this sandbox cannot (MongoDB, Chromium), so run `43223729105` was the first
 time R0 was verified **end to end** rather than partially.
 
-Result: **10 PASS, 1 FAIL** of 11 requirements, 159 s, Node 22.23.4.
+First result (run `43223729105`): **10 PASS, 1 FAIL** of 11 requirements, 159 s.
+After the fix below (run `43228385032`, commit `3660d5b`): **11 PASS, 0 FAIL, 0 NOT TESTED — PASS**,
+132 s, Node 22.23.4. R0 is now demonstrated end to end on a real machine with a real browser.
 
 Proven for the first time by that run:
 
@@ -250,11 +257,16 @@ locator.waitFor: Timeout 30000ms exceeded.
 `dictioncoaching_test`, so the sign-in was rejected and the page redirected to `/bn/login`. A wrong
 database name presents as a broken selector. Full analysis and the fix: `docs/STALE-TESTS.md` §7.
 
-**Fix (this commit):** test mode publishes `TEST_MONGO_DB`; `tests/helpers/env-preflight.ts` gained
+**Fix (commits `c812e59`, `a9c1684`):** test mode publishes `TEST_MONGO_DB`; `tests/helpers/env-preflight.ts` gained
 `testDbName()`, used by both browser tests and the screenshot pass; the invariant is asserted in
 `tests/center-data-mode.test.ts`; the exams test now fails immediately with the landing URL instead
 of timing out; and verification enables the exam write gate for the disposable database so R0.9
 demonstrates create → marks → total/grade → rank → publish rather than a disabled button.
+
+The green run's R0.9 evidence line, verbatim: "exam_manager signed in, created an exam with two
+subjects in Bangla digits, saved marks 80+40, total 120/150 graded A+, published, content_editor
+redirected, no horizontal overflow at 360/768/1440 and no page errors — against the disposable test
+database."
 
 **Where the evidence lives:** the workflow commits `verify-report.md` and
 `test-results/ci-latest/` (the report plus the last 400 lines of every step log) back to this

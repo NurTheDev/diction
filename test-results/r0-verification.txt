@@ -156,3 +156,58 @@ RESULT: the ZIP is complete and runnable. Every step of the cold start passes ex
   without a recorded result.
 RESULT: the harness works and reports honestly. On a machine that can download MongoDB and Chromium
         the same command is expected to report 11 PASS.
+
+======================================================================
+[9] npm run verify on GitHub Actions — the first complete end-to-end proof of R0
+----------------------------------------------------------------------
+  Workflow: .github/workflows/verify.yml (every push to arena/c33e6ed1-diction, plus manual
+  dispatch). Steps: checkout -> Node 22 -> restore MongoDB + Playwright caches -> npm ci ->
+  npx playwright install --with-deps chromium -> npm run verify -> report into the job log and
+  summary -> commit verify-report.md and test-results/ci-latest/ back to the branch -> upload the
+  verify-output artifact (report, verify-output.zip, screenshots/, logs/, 30 days).
+
+  Run 43223729105 (commit cfc3f1a), 159s, Node 22.23.4, runner runnervmwuk1x:
+    ## Result: FAIL - 10 PASS, 1 FAIL, 0 NOT TESTED (of 11 requirements)
+    PASS: R0.1 npm ci + Node 22.23.4 | R0.2 tsc --noEmit clean | R0.3 build, Compiled successfully
+          in 36.7s | R0.4 in-memory replica set mongodb://127.0.0.1:46629/?replicaSet=testset
+          (database dictioncoaching_test) with the real MONGODB_URI replaced by an invalid host |
+          R0.5 GET /api/auth/csrf -> 200 | R0.6 demo admin signed in, GET /bn/admin -> 200 with the
+          session cookie | R0.7 23/23 core suites | R0.8 9/9 Center suites | R0.10 workbook import
+          browser flow (2 tabs / 17 rows / raw 226400 / draft save+load / CSV / 360+1440) |
+          R0.11 26 screenshots in screenshots/r0
+    FAIL: R0.9 exams browser test
+          locator.waitFor: Timeout 30000ms exceeded.
+            - waiting for locator('h1').filter({ hasText: 'কেন্দ্রের পরীক্ষা ও ফল' }) to be visible
+          Cause: the test seeded ce-exam_manager@example.test into database `dictioncoaching` while
+          the app serves `dictioncoaching_test` (src/lib/db.ts derives the name from
+          CENTER_DATA_MODE). NextAuth found no such user, redirected to /bn/login, and the heading
+          never appeared. Not a product defect and not a UI literal: a harness database mismatch.
+          Analysis and fix: docs/STALE-TESTS.md section 7, docs/STATUS.md section 11.
+
+  Fix (commits c812e59, a9c1684, 3660d5b):
+    - scripts/test-mode.ts publishes TEST_MONGO_DB; tests/helpers/env-preflight.ts gained
+      testDbName(); both browser tests and scripts/verify-screens.ts use it instead of a literal.
+    - tests/center-data-mode.test.ts asserts the invariant, including that testDbName() in test mode
+      equals databaseName('test') and that credentials or a query string in the URI do not confuse it.
+    - The exams test fails immediately with the landing URL instead of a 30s timeout, and reports
+      which mode it ran in.
+    - Verification serves the disposable database with CENTER_EXAM_WRITE_ENABLED=true so R0.9
+      demonstrates the flow instead of asserting a disabled button (production default unchanged;
+      the gate is scheduled for removal in R5).
+
+  Run 43228385032 (commit 3660d5b), 132s, Node 22.23.4:
+    ## Result: PASS - 11 PASS, 0 FAIL, 0 NOT TESTED (of 11 requirements)
+    R0.9 evidence, verbatim: "Center exam browser: exam_manager signed in, created an exam with two
+    subjects in Bangla digits, saved marks 80+40, total 120/150 graded A+, published, content_editor
+    redirected, no horizontal overflow at 360/768/1440 and no page errors - against the disposable
+    test database."
+    R0.4 evidence: in-memory replica set at mongodb://127.0.0.1:32823/?replicaSet=testset (database
+    dictioncoaching_test); the real MONGODB_URI was replaced with an invalid host for this run.
+    Notes recorded by the run: Playwright Chromium found in the runner cache; the exam write gate was
+    enabled for the disposable database only.
+    Local re-check after the fix: npx tsc --noEmit EXIT=0, npm test EXIT=0 (32 suites), and the new
+    testDbName assertions pass.
+RESULT: R0 is demonstrated end to end on a real machine - install, typecheck, full build, isolated
+        replica set, sign-in, both browser flows, 26 screenshots at 360/1440 and every unit suite.
+        Status stays "code complete, awaiting owner verification" until the owner's own
+        verify-output.zip arrives; the word "verified" is reserved for that.

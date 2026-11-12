@@ -16,8 +16,12 @@ npm run verify
 - It uses its own throwaway database. Your real data is never touched — the command deliberately
   replaces `MONGODB_URI` with an invalid address for the run.
 - When it finishes it prints, for example:
-  `=== INCOMPLETE: 5 PASS, 0 FAIL, 6 NOT TESTED (of 11) ===`
+  `=== PASS: 11 PASS, 0 FAIL, 0 NOT TESTED (of 11 requirements) ===`
   and writes `verify-report.md`, `screenshots/r0/` and **`verify-output.zip`**.
+- That exact result was produced on GitHub Actions on 2026-11-12 in 132 s
+  (`docs/STATUS.md` §11), so 11/11 PASS is the expected outcome on your machine too.
+  In the agent sandbox the same command prints `INCOMPLETE: 5 PASS, 0 FAIL, 6 NOT TESTED`, because
+  the sandbox cannot download MongoDB or Chromium — a sandbox limit, not a defect.
 - **Send me `verify-output.zip`.** On your machine all 11 lines should be ✅ PASS.
 
 Useful variants:
