@@ -1,0 +1,2 @@
+1 suites from "test:staff-role"
+all passed

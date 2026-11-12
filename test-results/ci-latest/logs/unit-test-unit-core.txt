@@ -1,2 +1,2 @@
-23 suites from "test:unit:core"
+25 suites from "test:unit:core"
 all passed
