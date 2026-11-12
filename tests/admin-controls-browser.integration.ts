@@ -83,7 +83,8 @@ async function run(){
     await fieldsets.first().getByRole('button',{name:'Delete',exact:true}).click();
     const dialog=su.page.getByRole('dialog');
     await dialog.waitFor();
-    assert.match(await dialog.locator('h2').innerText(),/Milestone one \(2024\)/,'the milestone dialog names the milestone');
+    // The dialog is named by the engine convention, Bangla-first, even on the /en page.
+    assert.match(await dialog.locator('h2').innerText(),/মাইলফলক এক \(2024\)/,'the milestone dialog names the milestone');
     assert.match(await dialog.locator('p').first().innerText(),/Recycle Bin for 30 days/,'and states the real consequence');
     await dialog.getByRole('button',{name:'Yes, delete'}).click();
     await toast(su.page).getByText('Moved to the Recycle Bin.').waitFor({timeout:60000});
@@ -100,7 +101,7 @@ async function run(){
     await toast(su.page).getByText('Moved to the Recycle Bin.').waitFor({timeout:60000});
     const binRow=su.page.locator('.proof-bin-row');
     await binRow.first().waitFor({timeout:60000});
-    assert.match(await binRow.first().innerText(),/Milestone one \(2024\)/,'the bin names the milestone');
+    assert.match(await binRow.first().innerText(),/মাইলফলক এক \(2024\)/,'the bin names the milestone');
     assert.match(await binRow.first().innerText(),/days left/,'and shows the days left before the purge');
     await binRow.first().getByRole('button',{name:'Restore',exact:true}).click();
     await toast(su.page).getByText('Restored.').waitFor({timeout:60000});
@@ -124,7 +125,7 @@ async function run(){
     await examRow.getByRole('button',{name:'Disable',exact:true}).waitFor({timeout:60000});
     await em.page.goto(`${origin}/en/admin/model-tests`,{waitUntil:'domcontentloaded',timeout:180000});
     assert.ok(em.page.url().includes('/admin/model-tests'),`re-enabled role reaches its pages again; landed on ${em.page.url()}`);
-    assert.ok(!(await boss.page.getByRole('button',{name:'Disable',exact:true}).count())||true,'the super admin role itself is not a managed row');
+    assert.equal(await boss.page.locator('form.admin-inline').count(),4,'the four managed roles are the only disable-able rows; superadmin is not one of them');
     assert.deepEqual(em.errors,[],`page errors as exam manager: ${em.errors.join(' | ')}`);
     await em.context.close();
     await boss.context.close();

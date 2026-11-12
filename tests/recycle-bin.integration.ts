@@ -70,6 +70,12 @@ async function run(){
     // 4. Simple content deletes straight to the bin, and purge respects the 30 days.
     const post=await Editorial.create({kind:'blog',slug:'recycle-sample',title:{bn:'নমুনা',en:'Sample'},body:{bn:'লেখা',en:'text'},published:false});
     assert.equal((await softDelete('editorial',String(post._id),actorId)).status,'ok');
+    // The storage report is the one reader that must keep counting binned rows: it uses
+    // estimatedDocumentCount, which cannot carry a filter (docs/R1-COVERAGE.md §1 and §4).
+    const storedRows=await mongoose.connection.db.collection('editorials').countDocuments({});
+    const liveRows=await Editorial.countDocuments({});
+    assert.equal(await Editorial.estimatedDocumentCount(),storedRows,'estimatedDocumentCount counts stored rows, bin included');
+    assert.ok(liveRows<storedRows,'the filtered count hides the binned row the storage report still sees');
     const tooEarly=await purgeExpired(new Date());
     assert.equal(tooEarly.find(r=>r.kind==='editorial').purged,0,'nothing purges before its 30 days are up');
     assert.equal(await Editorial.countDocuments({_id:post._id,...binFilter}),1,'still in the bin, waiting out its 30 days');
@@ -81,13 +87,6 @@ async function run(){
     // 5. An exam with saved results is reference-blocked too.
     const exam=await CenterExam.create({name:{bn:'নমুনা পরীক্ষা'},type:'monthly',date:'2026-01-02',classGroups:[group._id],subjects:[{name:{bn:'বাংলা'},fullMarks:100,passMarks:33}],gradeBands:[{min:0,label:'F'},{min:80,label:'A+'}],status:'draft'});
     await CenterExamResult.create({exam:exam._id,student:(await CenterStudent.findOne({studentId:'SYNTH-R1'}).lean())._id,classGroup:group._id,marks:[{subject:exam.subjects[0]._id,obtained:80,absent:false}],total:80,fullTotal:100,percentage:80,grade:'A+',recordedBy:actor._id});
-    // The storage report is the one reader that must keep counting binned rows: it uses
-    // estimatedDocumentCount, which cannot carry a filter (docs/R1-COVERAGE.md §1 and §4).
-    const storedRows=await mongoose.connection.db.collection('editorials').countDocuments({});
-    const liveRows=await Editorial.countDocuments({});
-    assert.equal(await Editorial.estimatedDocumentCount(),storedRows,'estimatedDocumentCount counts stored rows, bin included');
-    assert.ok(liveRows<storedRows,'the filtered count hides the binned row the storage report still sees');
-
     // Exempt types are untouched by the rule, and the daily job trims expired proof milestones.
     await SiteSettingsContent.create({key:'main',name:{bn:'n',en:'n'},address:{bn:'a',en:'a'},logoUrl:'/x.png',social:{youtube:'',facebook:''},theme:{primary:'#123456',action:'#123456',success:'#123456',info:'#123456'},proof:{published:false,studentCount:null,studentMinimum:false,rating:null,ratingCount:null,milestones:[
       {year:2024,title:{bn:'l',en:'l'}},
