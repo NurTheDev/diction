@@ -1,2 +1,2 @@
 1 suites from "test:recycle:db"
-tests/recycle-bin.integration.ts:     at run (/home/runner/work/diction/diction/tests/recycle-bin.integration.ts:45:22) |     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+tests/recycle-bin.integration.ts:   code: 'ERR_ASSERTION', |   actual: 0, |   expected: 1, |   operator: 'strictEqual', |   diff: 'simple' | }
