@@ -22,7 +22,7 @@ import {ModelTest,TestAttempt} from '../src/models/ModelTest';
 import {AdminAudit} from '../src/models/AdminAudit';
 import {recycleKinds,archivableKinds,canArchiveKind} from '../src/lib/admin/recycle-kinds';
 import {recycleRegistry} from '../src/lib/admin/recycle';
-import {kindSchema} from '../src/actions/recycle';
+import {kindSchema} from '../src/lib/admin/recycle-kinds';
 
 // 1. The twenty-one schemas that carry deletedAt / deletedBy / purgeAt.
 const participating=[['Editorial',Editorial],['Course',Course],['LearningMaterial',LearningMaterial],['MediaFile',MediaFile],['PortalNotice',PortalNotice],['FAQContent',FAQContent],['FacilityContent',FacilityContent],['AchievementRecord',AchievementRecord],['PracticeTest',PracticeTest],['PublicSheet',PublicSheet],['CenterClassGroup',CenterClassGroup],['CenterExam',CenterExam],['Admission',Admission],['Slot',Slot],['TrialBooking',TrialBooking],['ContactMessage',ContactMessage],['HeroBanner',HeroBanner],['TeacherContent',TeacherContent],['User',User],['Exam',Exam],['ModelTest',ModelTest]] as const;

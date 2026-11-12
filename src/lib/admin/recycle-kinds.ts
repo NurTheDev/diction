@@ -1,7 +1,13 @@
+import {z} from 'zod';
+
 /**
  * The Recycle Bin vocabulary, kept free of any server-only import so client components can use it
  * (the registry itself lives in `src/lib/admin/recycle.ts`, which pulls in Mongoose models).
  * `tests/recycle-coverage.test.ts` asserts these lists match the registry exactly.
+ *
+ * The form-input schema lives here too, on purpose: `src/actions/recycle.ts` is a 'use server'
+ * file, and Next only allows async functions to be exported from one — exporting this schema from
+ * there broke every server action at runtime (CI runs 43274692208, twice).
  */
 export const recycleKinds=['editorial','course','material','media','portalNotice','faq','facility','achievementRecord','practiceTest','publicSheet','classGroup','centerExam','slot','trialBooking','admission','contactMessage','heroBanner','teacher','portalAccount','exam','modelTest'] as const;
 export type RecycleKind=typeof recycleKinds[number];
@@ -16,3 +22,6 @@ export const archivableKinds=['editorial','course','material','portalNotice','fa
 export function canArchiveKind(kind:RecycleKind):boolean{
   return (archivableKinds as readonly string[]).includes(kind);
 }
+
+/** What the server actions accept as a kind — derived, never hand-copied (see R1 second wave). */
+export const kindSchema=z.enum(recycleKinds);

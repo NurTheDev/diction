@@ -4,14 +4,12 @@ import {getLocale} from 'next-intl/server';
 import {requireAdmin,requireArchiver,getStaff} from '@/lib/admin/guard';
 import {softDelete,restoreRecord,purgeOne,archiveRecord,kindDef,type RecycleKind} from '@/lib/admin/recycle';
 import {binFilter} from '@/models/recycle';
-import {recycleKinds} from '@/lib/admin/recycle-kinds';
+import {kindSchema} from '@/lib/admin/recycle-kinds';
 import {idSchema} from '@/schemas/admin';
 import {z} from 'zod';
 import type {ActionState} from './admin';
 
-// Derived from the shared vocabulary on purpose: a hand-copied list here is how the second wave
-// shipped with its deletes refused — the enum said "unknown kind" for all nine new kinds.
-export const kindSchema=z.enum(recycleKinds);
+
 
 function refreshBin():void{
   for(const locale of ['bn','en'])revalidatePath(`/${locale}/admin/recycle-bin`);
