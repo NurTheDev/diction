@@ -81,6 +81,14 @@ Staff role: present in auth and managed roles, creatable, sees admin lists but n
 Recycle policy: exact Bangla/English blocked sentences, 30-day retention, live-vs-bin filters and registry integrity.
 
 
+--- tests/recycle-coverage.test.ts (exit 0) ---
+Recycle coverage: 12 schemas carry the bin fields; 12 financial/audit/student types cannot be hidden; find/findOne/count/distinct/findOneAnd*/update*/delete*/aggregate/bulkWrite are covered; estimatedDocumentCount is the documented exception; public kinds revalidate their routes.
+
+
+--- tests/cron.test.ts (exit 0) ---
+Daily job: bearer-secret auth (401 when missing, wrong, short or non-Bearer; refuses with no secret configured), vercel.json schedules it daily at 01:00 Asia/Dhaka, logs trim after 12 months.
+
+
 --- tests/env-origin.test.ts (exit 0) ---
 Canonical-origin and production HTTPS environment validation passed.
 

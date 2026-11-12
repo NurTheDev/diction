@@ -1,2 +1,14 @@
---- tests/recycle-bin.integration.ts (exit 0) ---
-Recycle Bin engine: reference-blocked delete with exact counts, 30-day bin, restore, purge and audit rows passed.
+--- tests/recycle-bin.integration.ts (exit 1) ---
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+'blocked' !== 'ok'
+
+    at run (/home/runner/work/diction/diction/tests/recycle-bin.integration.ts:89:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: 'blocked',
+  expected: 'ok',
+  operator: 'strictEqual',
+  diff: 'simple'
+}

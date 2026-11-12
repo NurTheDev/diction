@@ -1,0 +1,2 @@
+--- tests/cron.test.ts (exit 0) ---
+Daily job: bearer-secret auth (401 when missing, wrong, short or non-Bearer; refuses with no secret configured), vercel.json schedules it daily at 01:00 Asia/Dhaka, logs trim after 12 months.
