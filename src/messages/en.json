@@ -1508,7 +1508,8 @@
       "centerSheetView": "Sheet view",
       "centerStudents": "Students",
       "centerExams": "Center exams",
-      "recycleBin": "Recycle Bin"
+      "recycleBin": "Recycle Bin",
+      "sms": "SMS"
     },
     "search": "Search menu",
     "noMenuResults": "No menu items found",

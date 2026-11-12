@@ -485,3 +485,24 @@ html:lang(bn) .public-motion-root:not(.private-motion-disabled) :is(h1,h2,h3,h4)
 .admin-confirm label{display:grid;gap:6px;font-size:15px;color:#4a5072}
 .admin-confirm .admin-help{overflow-wrap:anywhere}
 @media(max-width:760px){.admin-bin-grid{grid-template-columns:minmax(0,1fr)}.admin-bin-actions{justify-content:flex-start}.admin-bulk-bar{gap:8px}}
+/* R2 · SMS centre: connection/balance/cost definition grids, template cards, toggle fieldsets. */
+.admin-defs{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin:0}
+.admin-defs>div{background:#f7f8fd;border:1px solid #e3e7f4;border-radius:10px;padding:12px 14px}
+.admin-defs dt{font-size:12px;color:#6d7490;font-weight:700;margin-bottom:4px}
+.admin-defs dd{margin:0;font-size:18px;color:#1a1d3a;font-weight:600;overflow-wrap:anywhere}
+.admin-defs dd code,.admin-help code,.admin-template code{font-size:12px;background:#eef0f9;color:#2e3192;padding:2px 6px;border-radius:6px}
+.admin-fieldset{border:1px solid #e3e7f4;border-radius:10px;padding:12px 14px;display:grid;gap:8px;margin:0}
+.admin-fieldset legend{font-size:12px;font-weight:700;color:#414870;padding:0 6px}
+.admin-check{display:flex;align-items:center;gap:8px;font-size:14px;color:#1a1d3a}
+.admin-check input{width:auto;margin:0}
+.admin-fieldset small,.admin-template small{display:block;font-size:12px;color:#6d7490}
+.admin-template{border:1px solid #e3e7f4;border-radius:10px;padding:14px;background:#fff}
+.admin-template+.admin-template{margin-top:12px}
+.admin-template h3{margin:0 0 10px;font-size:16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.admin-template form{display:grid;gap:10px}
+.admin-template label{display:grid;gap:4px;font-size:13px;color:#414870;font-weight:600}
+.admin-template input,.admin-template textarea{font:inherit;padding:8px 10px;border:1px solid #d9deee;border-radius:8px;color:#1a1d3a}
+.admin-cell-message{max-width:min(46ch,42vw);overflow-wrap:anywhere;font-size:13px}
+.admin-feedback.ok{color:#007a3d}
+@media(max-width:760px){.admin-defs{grid-template-columns:1fr 1fr}.admin-defs dd{font-size:16px}.admin-cell-message{max-width:24ch}}
+@media(max-width:420px){.admin-defs{grid-template-columns:1fr}}
