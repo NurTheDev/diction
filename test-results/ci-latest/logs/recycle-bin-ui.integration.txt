@@ -1,9 +1,3 @@
-AssertionError [ERR_ASSERTION]: the dialog names the item
-    at run (/home/runner/work/diction/diction/tests/recycle-bin-ui.integration.ts:131:12) {
-  generatedMessage: false,
-  code: 'ERR_ASSERTION',
-  actual: 'Delete Recycle sample undo?',
-  expected: /রিসাইকেল নমুনা — আনডু/,
-  operator: 'match',
-  diff: 'simple'
-}
+TypeError: Cannot read properties of null (reading 'deletedAt')
+    at run (/home/runner/work/diction/diction/tests/recycle-bin-ui.integration.ts:142:53)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
