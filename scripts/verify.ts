@@ -19,7 +19,7 @@ import {existsSync} from 'node:fs';
 import {mkdir,readFile,readdir,rm,writeFile} from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import {latestMilestone,select,type Requirement} from './verify-plan';
+import {select,type Requirement} from './verify-plan';
 import {exitCodeFor,overallStatus,renderReport,summarize,type ItemResult,type Status,type StepRecord} from './verify-report';
 import {createZip,type ZipEntry} from './verify-zip';
 import {probeHttps} from '../tests/helpers/env-preflight';
@@ -128,7 +128,7 @@ async function stepUnitSuites(ctx:Context,scriptName:string,requirementId:string
   for(const suite of suites){
     const result=await run(process.execPath,[tsxCli,...suite.flags,suite.file],{timeoutMs:240_000,echo:false,env:opts.env});
     ran++;
-    if(result.code!==0)failed.push(`${suite.file}: ${tail(result.text,2)}`);
+    if(result.code!==0)failed.push(`${suite.file}: ${tail(result.text,6)}`);
     process.stdout.write(result.code===0?'·':'F');
   }
   process.stdout.write('\n');
@@ -289,7 +289,8 @@ async function stepBrowserTests(ctx:Context):Promise<void>{
 }
 
 async function main():Promise<void>{
-  const milestone=(arg('milestone',latestMilestone())||latestMilestone()).toUpperCase();
+  // The owner's protocol verifies everything; a milestone argument narrows one delivery.
+  const milestone=(arg('milestone','all')||'all').toUpperCase();
   const port=Number(arg('port','3111'));
   const skipApp=arg('skip-app')==='true';
   const requirements=select(milestone==='ALL'?'all':milestone);

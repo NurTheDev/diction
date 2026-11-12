@@ -41,7 +41,7 @@ async function run(){
     const deleted=await softDelete('classGroup',String(group._id),actorId);
     assert.equal(deleted.status,'ok');
     assert.ok(deleted.purgeAt.getTime()-before.getTime()>=29*86400000&&deleted.purgeAt.getTime()-before.getTime()<=30*86400000+5000);
-    const binned=await CenterClassGroup.findById(group._id).lean();
+    const binned=await CenterClassGroup.findOne({_id:group._id,...binFilter}).lean();
     assert.ok(binned.deletedAt instanceof Date&&binned.purgeAt instanceof Date&&String(binned.deletedBy)===actorId);
     assert.equal((await binCounts()).classGroup,1);
     const entries=await binList('classGroup');
