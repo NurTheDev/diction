@@ -1,10 +1,1 @@
-locator.waitFor: Timeout 30000ms exceeded.
-Call log:
-  - waiting for locator('h1').filter({ hasText: 'কেন্দ্রের পরীক্ষা ও ফল' }) to be visible
-
-    at run (/home/runner/work/diction/diction/tests/center-exams-browser.integration.ts:4:2527) {
-  log: [
-    "  - waiting for locator('h1').filter({ hasText: 'কেন্দ্রের পরীক্ষা ও ফল' }) to be visible"
-  ],
-  name: 'TimeoutError'
-}
+Center exam browser: exam_manager signed in, created an exam with two subjects in Bangla digits, saved marks 80+40, total 120/150 graded A+, published, content_editor redirected, no horizontal overflow at 360/768/1440 and no page errors — against the disposable test database.
