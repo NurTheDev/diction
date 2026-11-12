@@ -1,20 +1,3 @@
---- tests/recycle-bin.integration.ts (exit 1) ---
+--- tests/recycle-bin.integration.ts (exit 0) ---
 Admin audit logging failed
-AssertionError [ERR_ASSERTION]: only the 13-month-old SMS log was trimmed
-+ actual - expected
-
-  {
-    activityLog: 0,
-+   proofMilestones: 0,
-    smsLog: 1
-  }
-
-    at run (/home/runner/work/diction/diction/tests/recycle-bin.integration.ts:157:12)
-    at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {
-  generatedMessage: false,
-  code: 'ERR_ASSERTION',
-  actual: [Object],
-  expected: [Object],
-  operator: 'deepStrictEqual',
-  diff: 'simple'
-}
+Recycle Bin engine: reference-blocked delete with exact counts, 30-day bin, restore, purge, audit rows, every query shape hidden, and the daily job (401 without the secret; purges only expired rows and trims old logs) passed.
