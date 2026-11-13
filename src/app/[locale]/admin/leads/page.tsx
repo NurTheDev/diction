@@ -110,7 +110,7 @@ export default async function Leads({params,searchParams}:{params:Promise<{local
     <div className="admin-heading"><div><h1>{t('title')}</h1><p>{t('desc')}</p></div></div>
 
     <div className="lead-tools">
-      <LeadQuickAdd open={openQuickAdd} language={language}/>
+      <LeadQuickAdd open={openQuickAdd} language={language} digits={digits}/>
       <LeadSearch language={language} digits={digits} current={current}/>
     </div>
 

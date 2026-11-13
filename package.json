@@ -47,6 +47,7 @@
     "test:lead:rules": "tsx --conditions=react-server tests/lead-rules.integration.ts",
     "test:lead:search": "tsx --conditions=react-server tests/lead-phone-search.integration.ts",
     "test:lead:sms": "tsx tests/lead-sms.test.ts && tsx --conditions=react-server tests/lead-sms.integration.ts",
+    "test:lead:dup": "tsx tests/lead-dup.test.ts && tsx --conditions=react-server tests/lead-dup.integration.ts",
     "test:lead:screens": "tsx tests/lead-screens-browser.integration.ts"
   },
   "dependencies": {

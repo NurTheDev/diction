@@ -105,6 +105,15 @@ into an artifact, dispatch the workflow with `publish_screenshots` (see
   says how many were left out and why, and the sender checks the mark *again* when it builds the send —
   so a visitor blocked after the dialog was opened is still not texted. One message per number: a second
   number in the same cell is a sibling or a parent, not a second thank-you.
+- **A number that is already on the list asks first (R3.10).** Type a number another visitor holds and
+  quick-add stops instead of writing a second row: it names who holds the number, masked, and saves
+  nothing until you choose — **ভাই-বোন হিসেবে যোগ করুন — একই পরিবার** (the new visitor joins that
+  family), **…-এর লিডে মিলিয়ে দিন** (the entry folds into that lead: empty fields fill, an extra
+  number and your note move in, no second row is written), or **আলাদা লিড হিসেবে রাখুন** (two strangers
+  sharing one number, deliberately not one family). In a visitor's drawer, **এই নাম্বারটি আরও যেসব
+  লিডে আছে** lists the mates outside the family with two buttons: **একই পরিবারে যুক্ত করুন** (both
+  leads stay, one family) and **এই লিডে মিলিয়ে নিন** (that lead folds into this one and goes to the
+  bin with its notes and numbers — the browser asks once to be sure).
 - **Who can see this:** Admin and Staff. Teachers, content editors and exam managers have no sidebar
   item, no route and no action — the guard runs before anything is read.
 

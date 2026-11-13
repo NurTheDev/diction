@@ -28,6 +28,11 @@ import {parsePhoneCell,phoneSearchDigits,phoneSearchMask,telHref,whatsappHref} f
 import {normalizeClassLabel} from './lead-class';
 import {normalizeGroup,normalizeMedium,normalizeShift,normalizeSource} from './lead-columns';
 import {
+  keyForSeparate,planLeadMerge,tieFamilyKeys,
+  type LeadDupDoc,type LeadDupNote,type LeadMergePlan,
+} from './lead-dup';
+import {restoreRecord,softDelete} from '@/lib/admin/recycle';
+import {
   CONTACTABLE_LEAD_FILTER,LEAD_STATUSES,LEAD_SOURCES,LEAD_GROUPS,LEAD_SHIFTS,LEAD_MEDIUMS,
   familyKeyFromPhones,followUpState,leadListQuery,maskPhone,nextFollowUpDay,statusToFlags,
   type FollowUpKey,type LeadGroup,type LeadMedium,type LeadShift,type LeadSource,type LeadStatus,
@@ -67,8 +72,25 @@ export interface LeadWriteOk{
   /** The family keys that were abandoned to make that merge, so an import can report it. */
   mergedFrom:string[];
   flags:LeadFlagRow[];
+  /** Set when a duplicate was answered with "merge": the write landed on an EXISTING lead, no row was created. */
+  mergedInto?:boolean;
+  /** The readable id of the lead that was folded into this one and binned, when two rows became one. */
+  sourceLeadId?:string;
+  /** Notes and phones that moved in, counted so a screen can say what the merge carried. */
+  movedNotes?:number;movedPhones?:number;
 }
-export type LeadWriteResult=LeadWriteOk|Refusal;
+/**
+ * A holder of a number, as a screen may see it (R3.10): the name, both ids, the status, the day and the
+ * MASK. Never the digits and never the family key — the key IS a number with a prefix on it.
+ */
+export interface LeadDupHolder{id:string;leadId:string;studentName:string;status:LeadStatus;date:string;masked:string}
+
+/**
+ * Quick-add's question instead of a write: this number is already on the list, here is who holds it, and
+ * nothing was saved until the operator answers with `sibling`, `merge` or `separate`.
+ */
+export interface LeadDupAsk{ok:false;code:'DUPLICATE_PHONE';holders:LeadDupHolder[];messageBn:string;messageEn:string}
+export type LeadWriteResult=LeadWriteOk|Refusal|LeadDupAsk;
 
 function lastNoteOf(doc:LeadDoc):LeadLastNote{
   const notes=(doc.notes||[]).slice().sort((a,b)=>(b.at?.getTime()||0)-(a.at?.getTime()||0));
@@ -138,10 +160,130 @@ export async function leadsWithPhone(phone:string):Promise<{id:string;leadId:str
   return rows.map(row=>({id:String(row._id),leadId:row.leadId,studentName:row.studentName,masked:maskPhone(normalized)}));
 }
 
+/**
+ * Who already holds these numbers (R3.10) — the warning behind quick-add and the "shares a number with"
+ * block in the drawer. Live rows only, newest writing last, and the number comes back as a MASK: this
+ * answer is rendered straight into a screen. `excludeFamilyKey` filters out the leads the drawer already
+ * lists as family, so the block shows only the mates the family list does not.
+ */
+export async function duplicateHolders(phones:(string|null|undefined)[],options:{excludeId?:string;excludeFamilyKey?:string|null}={}):Promise<LeadDupHolder[]>{
+  const norms=[...new Set(phones.map(phone=>String(phone||'').trim()).filter(phone=>/^01[3-9]\d{8}$/.test(phone)))];
+  if(!norms.length)return [];
+  const query:FilterQuery<unknown>={'phones.normalized':{$in:norms},deletedAt:null};
+  if(options.excludeId)query._id={$ne:options.excludeId};
+  const rows=await Lead.find(query).select('leadId studentName status date phones familyKey').sort({date:1,leadId:1}).limit(25)
+    .lean<{_id:unknown;leadId:string;studentName:string;status:LeadStatus;date:string;familyKey:string|null;phones:{normalized:string}[]}[]>();
+  return rows
+    .filter(row=>options.excludeFamilyKey===undefined||row.familyKey!==options.excludeFamilyKey)
+    .map(row=>{
+      const matched=norms.find(norm=>(row.phones||[]).some(phone=>phone.normalized===norm))||norms[0];
+      return {id:String(row._id),leadId:row.leadId,studentName:row.studentName,status:row.status,date:row.date,masked:maskPhone(matched)};
+    });
+}
+
+interface LeadFullDoc{
+  _id:unknown;leadId:string;studentName:string;guardianName:string;school:string;classLabel:string;
+  classGroup:number|null;newSession:boolean;exam:'ssc'|'hsc'|null;examYear:number|null;interestedIn:string;
+  phones:{normalized:string;original:string}[];notes:{at:Date;text:string;outcome:string;by:unknown}[];
+  flags:LeadFlagRow[];familyKey:string|null;admission:unknown;trialBooking:unknown;student:unknown;deletedAt:Date|null;
+}
+function toDupDoc(doc:LeadFullDoc):LeadDupDoc{
+  return {
+    id:String(doc._id),leadId:doc.leadId,studentName:doc.studentName,guardianName:doc.guardianName||'',
+    school:doc.school||'',classLabel:doc.classLabel||'',classGroup:doc.classGroup??null,newSession:!!doc.newSession,
+    exam:doc.exam??null,examYear:doc.examYear??null,interestedIn:doc.interestedIn||'',
+    phones:(doc.phones||[]).map(phone=>({normalized:String(phone.normalized||''),original:String(phone.original||'')})),
+    notes:(doc.notes||[]).map(note=>({at:note.at instanceof Date?note.at:new Date(note.at),text:String(note.text||''),outcome:String(note.outcome||''),by:String(note.by||'')})),
+    flags:(doc.flags||[]).map(flag=>({field:String(flag.field||''),code:String(flag.code||''),original:String(flag.original||''),messageBn:String(flag.messageBn||''),messageEn:String(flag.messageEn||''),suggested:String(flag.suggested||'')})),
+    familyKey:doc.familyKey?String(doc.familyKey):null,
+    converted:!!(doc.admission||doc.trialBooking||doc.student),binned:!!doc.deletedAt,
+  };
+}
+async function findFull(id:string):Promise<LeadDupDoc|null>{
+  if(!id||!isValidObjectId(id))return null;
+  const doc=await Lead.findById(id).lean<LeadFullDoc|null>();
+  return doc?toDupDoc(doc):null;
+}
+
+/** The write half of a merge, shared by both entry points. Fills, moves, re-points, audits — in that order. */
+async function applyPlan(target:LeadDupDoc,plan:LeadMergePlan,mergeNote:LeadDupNote,actorId:string):Promise<number>{
+  const push:FilterQuery<unknown>={notes:{$each:[...plan.notesToMove,mergeNote]}};
+  if(plan.phonesToAdd.length)push.phones={$each:plan.phonesToAdd};
+  if(plan.flagsToAdd.length)push.flags={$each:plan.flagsToAdd};
+  await Lead.updateOne({_id:target.id},{$set:{...plan.fieldPatch,familyKey:plan.familyKey},$push:push},{runValidators:true});
+  if(!plan.repointFrom)return 0;
+  const repointed=await Lead.updateMany({familyKey:plan.repointFrom},{$set:{familyKey:plan.repointTo}});
+  return repointed.modifiedCount||0;
+}
+
+/** Quick-add's "merge into that lead": the source is the FORM, not a row, so nothing is binned. */
+async function mergeQuickAddInto(targetId:string,source:LeadDupDoc,actorId:string,now:Date):Promise<LeadWriteResult>{
+  const target=await findFull(targetId);
+  if(!target)return refuse('MISSING','লিডটি খুঁজে পাওয়া যায়নি।','That lead was not found.');
+  const plan=planLeadMerge(target,source);
+  if(plan.ok===false)return plan;
+  try{
+    await applyPlan(target,plan,{at:now,text:`quick-add merge: ${source.studentName}`.slice(0,1000),outcome:'',by:actorId},actorId);
+  }catch(error){return writeRefusal(error)}
+  await audit(actorId,'lead.merge',target.leadId);
+  return {ok:true,id:target.id,leadId:target.leadId,familyKey:plan.familyKey,inheritedFrom:null,mergedLeads:0,mergedFrom:[],
+    flags:target.flags as LeadFlagRow[],mergedInto:true,movedNotes:plan.movedNotes+1,movedPhones:plan.movedPhones};
+}
+
+/**
+ * Two existing leads become one (R3.10): the SOURCE is folded into the TARGET and binned, carrying its
+ * phones, its notes with their writers and its flags; empty fields on the target fill from the source
+ * and nothing else is overwritten. The source goes through the Recycle Bin's own door (`softDelete`),
+ * so a lead an admission or a student now depends on is refused HERE with the conversion named, before
+ * the bin would refuse it with a reference count. If the write behind the binning fails, the source is
+ * restored, so a merge cannot half-happen.
+ */
+export async function mergeLeads(targetId:string,sourceId:string,actorId:string,now:Date=new Date()):Promise<LeadWriteResult>{
+  const [target,source]=await Promise.all([findFull(targetId),findFull(sourceId)]);
+  if(!target||!source)return refuse('MISSING','লিডটি খুঁজে পাওয়া যায়নি।','That lead was not found.');
+  const plan=planLeadMerge(target,source);
+  if(plan.ok===false)return plan;
+  const binned=await softDelete('lead',source.id,actorId,now);
+  if(binned.status==='blocked')return refuse('MERGE_BLOCKED',binned.messageBn,binned.messageEn);
+  if(binned.status==='missing')return refuse('MISSING','লিডটি খুঁজে পাওয়া যায়নি।','That lead was not found.');
+  let repointed=0;
+  try{
+    repointed=await applyPlan(target,plan,{at:now,text:`merge ${source.leadId} ${source.studentName}`.slice(0,1000),outcome:'',by:actorId},actorId);
+  }catch(error){
+    await restoreRecord('lead',source.id,actorId);
+    return writeRefusal(error);
+  }
+  return {ok:true,id:target.id,leadId:target.leadId,familyKey:plan.familyKey,inheritedFrom:null,mergedLeads:repointed,
+    mergedFrom:plan.repointFrom?[plan.repointFrom]:[],flags:target.flags as LeadFlagRow[],mergedInto:true,
+    sourceLeadId:source.leadId,movedNotes:plan.movedNotes+1,movedPhones:plan.movedPhones};
+}
+
+/**
+ * "Add as sibling" for two leads that STAY two leads: both wear one family key from now on. The smaller
+ * of their two keys wins and the other is re-pointed everywhere it is worn — the same rule
+ * `resolveFamilyKey()` applies when two families turn out to be one, so tying and inheriting agree.
+ */
+export async function tieLeadFamily(id:string,otherId:string,actorId:string):Promise<{ok:true;familyKey:string|null;repointed:number}|Refusal>{
+  const [self,other]=await Promise.all([findFull(id),findFull(otherId)]);
+  if(!self||!other||self.binned||other.binned)return refuse('MISSING','লিডটি খুঁজে পাওয়া যায়নি।','That lead was not found.');
+  if(self.id===other.id)return refuse('SAME_LEAD','একই লিডকে নিজের সাথে যুক্ত করা যায় না।','A lead cannot be tied to itself.');
+  const tie=tieFamilyKeys(self,other);
+  await Lead.updateMany({_id:{$in:[self.id,other.id]}},{$set:{familyKey:tie.familyKey}});
+  let repointed=0;
+  if(tie.repointFrom){
+    const rep=await Lead.updateMany({familyKey:tie.repointFrom},{$set:{familyKey:tie.repointTo}});
+    repointed=rep.modifiedCount||0;
+  }
+  await audit(actorId,'lead.family',self.leadId);
+  return {ok:true,familyKey:tie.familyKey,repointed};
+}
+
 export interface QuickLeadInput{
   studentName:string;guardianName?:string;phone?:string;classLabel?:string;school?:string;
   interestedIn?:string;source?:string;group?:string;shift?:string;medium?:string;status?:string;
   followUp?:FollowUpKey|'clear';customDay?:string;note?:string;
+  /** R3.10: the operator's answer to "this number is already here". Absent means ASK, never guess. */
+  dupChoice?:'sibling'|'merge'|'separate';dupTarget?:string;
 }
 
 /**
@@ -176,8 +318,33 @@ export async function createQuickLead(input:QuickLeadInput,actorId:string,now:Da
   const group=(LEAD_GROUPS as readonly string[]).includes(String(input.group||''))?String(input.group) as LeadGroup:'unknown';
   const shift=(LEAD_SHIFTS as readonly string[]).includes(String(input.shift||''))?String(input.shift) as LeadShift:'any';
   const medium=(LEAD_MEDIUMS as readonly string[]).includes(String(input.medium||''))?String(input.medium) as LeadMedium:'unknown';
-  const family=await resolveFamilyKey(phones.map(row=>row.normalized));
   const noteText=String(input.note||'').trim();
+  const norms=phones.map(row=>row.normalized);
+  const holders=norms.length?await duplicateHolders(norms):[];
+  // The spec's duplicate rule: WARN and SHOW before anything is written. No choice, no second lead.
+  if(holders.length&&!input.dupChoice){
+    return {ok:false,code:'DUPLICATE_PHONE',holders,
+      messageBn:'এই নাম্বারটি ভিজিটর তালিকায় আগে থেকেই আছে — দ্বিতীয় লিড বানানো হয়নি। নিচে থেকে বেছে নিন।',
+      messageEn:'This number is already on the visitor list, so no second lead was written. Choose below what to do.'};
+  }
+  if(holders.length&&input.dupChoice==='merge'){
+    const asked=String(input.dupTarget||'').trim();
+    const target=holders.find(holder=>holder.id===asked||holder.leadId===asked)||(holders.length===1?holders[0]:undefined);
+    if(!target)return refuse('BAD_DUP_TARGET','কোন্ লিডের সাথে মেলাবেন তা বেছে নিন।','Choose which existing lead to merge into.');
+    return mergeQuickAddInto(target.id,{
+      id:'',leadId:'',studentName,guardianName:String(input.guardianName||'').trim().slice(0,120),
+      school:String(input.school||'').trim().slice(0,160),classLabel:classRead.classLabel,classGroup:classRead.classGroup,
+      newSession:classRead.newSession,exam:classRead.exam??null,examYear:classRead.examYear??null,
+      interestedIn:String(input.interestedIn||'').trim().slice(0,200),phones,flags,
+      notes:noteText?[{at:now,text:noteText,outcome:'',by:actorId}]:[],familyKey:null,converted:false,binned:false,
+    },actorId,now);
+  }
+  // "Separate" is the operator saying two unrelated people share one number: the one moment a new row's
+  // key is computed from its own numbers although the number is held elsewhere. "Sibling" (and a silent
+  // save with no duplicate at all) inherits through `resolveFamilyKey`, as it always has.
+  const family=holders.length&&input.dupChoice==='separate'
+    ?{familyKey:keyForSeparate(norms),inheritedFrom:null,mergedFrom:[],mergedLeads:0}
+    :await resolveFamilyKey(norms);
   const doc={
     date:dhakaDay(now),studentName,guardianName:String(input.guardianName||'').trim().slice(0,120),
     phones,classLabel:classRead.classLabel,classGroup:classRead.classGroup,newSession:classRead.newSession,
@@ -393,7 +560,7 @@ export async function followUpBoard(now:Date=new Date(),limit=6):Promise<FollowU
 
 /** The drawer: one lead, its notes newest-first with the writer's name, and the rest of its family. */
 export interface LeadNoteView{at:Date;text:string;outcome:string;byName:string}
-export interface LeadDetail{row:LeadRow;notes:LeadNoteView[];family:LeadRow[]}
+export interface LeadDetail{row:LeadRow;notes:LeadNoteView[];family:LeadRow[];dupMates:LeadDupHolder[]}
 export async function leadDetail(id:string,now:Date=new Date()):Promise<LeadDetail|null>{
   const doc=await Lead.findById(id).lean<LeadDoc>();
   if(!doc)return null;
@@ -405,7 +572,10 @@ export async function leadDetail(id:string,now:Date=new Date()):Promise<LeadDeta
   const family=doc.familyKey
     ?(await Lead.find({familyKey:doc.familyKey,_id:{$ne:doc._id}}).sort({date:-1}).limit(20).lean<LeadDoc[]>()).map(row=>toRow(row,now))
     :[];
-  return {row:toRow(doc,now),notes,family};
+  // Number-mates outside the family (R3.10): the drawer's "shares a number with" block. Same-family
+  // leads are already listed above it, so they are excluded here and never shown twice.
+  const dupMates=await duplicateHolders((doc.phones||[]).map(phone=>phone.normalized),{excludeId:String(doc._id),excludeFamilyKey:doc.familyKey});
+  return {row:toRow(doc,now),notes,family,dupMates};
 }
 
 /**

@@ -21,7 +21,8 @@ import {useTranslations} from 'next-intl';
 import {Link,useRouter} from '@/i18n/navigation';
 import {MessageCircle,Phone,Plus,Search,UserPlus} from 'lucide-react';
 import {
-  changeLeadStatus,chooseLeadFollowUp,liftContactBlock,loadLeadDetail,quickAddLead,searchLeadsByNumber,writeLeadNote,
+  changeLeadStatus,chooseLeadFollowUp,liftContactBlock,loadLeadDetail,mergeTwoLeads,quickAddLead,
+  searchLeadsByNumber,tieLeadFamilies,writeLeadNote,
 } from '@/actions/leads';
 import {
   FOLLOW_UP_CLEAR,FOLLOW_UP_KEYS,LEAD_NOTE_OUTCOME_OPTIONS,LEAD_SOURCE_OPTIONS,LEAD_STATUS_OPTIONS,
@@ -38,7 +39,7 @@ import {formatClass,formatDate,formatNumber,formatTime,type Digits} from '@/lib/
 const IDLE_SEARCH:LeadSearchActionState={status:'idle',hits:[],total:0,masked:'',messageBn:'',messageEn:''};
 
 /** The quick-add panel: four fields is a complete lead, everything else is behind "more". */
-export function LeadQuickAdd({open=false,language='bn'}:{open?:boolean;language?:'bn'|'en'}){
+export function LeadQuickAdd({open=false,language='bn',digits='bn'}:{open?:boolean;language?:'bn'|'en';digits?:Digits}){
   const t=useTranslations('leads');
   const [state,action,pending]=useActionState(quickAddLead,idleLeadForm);
   const [expanded,setExpanded]=useState(open),[more,setMore]=useState(false),[followUp,setFollowUp]=useState('');
@@ -86,10 +87,26 @@ export function LeadQuickAdd({open=false,language='bn'}:{open?:boolean;language?
         {followUp==='custom'&&<label>{t('customDay')}<input className="admin-input" name="customDay" type="date"/></label>}
         <label>{t('note')}<input className="admin-input" name="note" maxLength={1000} autoComplete="off"/></label>
       </>}
+      {/* R3.10: the number typed is already on the list. The form keeps what was typed — nothing is reset
+          until a save succeeds — and the three answers are three submit buttons, so the choice travels in
+          the same post as the fields it applies to and never as a second round trip. */}
+      {state.status==='dup'&&<div className="lead-dup" role="alert" data-dup-ask="true">
+        <p className="admin-feedback error">{leadFormMessage(state,language)}</p>
+        <ul className="lead-notes lead-family">{(state.holders||[]).map(holder=><li key={holder.id}>
+          <strong>{holder.studentName}</strong>{' '}
+          <span className="admin-help">{holder.leadId} · {statusLabel(holder.status,language)} · {formatDate(holder.date,digits,language)}</span>{' '}
+          <span className="admin-badge">{holder.masked}</span>
+          <button type="submit" name="dupMerge" value={holder.id} className="admin-mini-button" disabled={pending}>{t('dupMergeInto',{name:holder.studentName})}</button>
+        </li>)}</ul>
+        <div className="lead-form-foot">
+          <button type="submit" name="dupChoice" value="sibling" className="admin-mini-button" disabled={pending}>{t('dupSibling')}</button>
+          <button type="submit" name="dupChoice" value="separate" className="admin-mini-button" disabled={pending}>{t('dupSeparate')}</button>
+        </div>
+      </div>}
       <div className="lead-form-foot">
         <button type="submit" className="button button-navy" disabled={pending}><Plus size={18} aria-hidden="true"/>{pending?t('loading'):t('saveAnother')}</button>
         <p className="admin-help">{t('enterSaves')}</p>
-        {state.status!=='idle'&&<p role="status" className={`admin-feedback ${state.status==='ok'?'':'error'}`}>{leadFormMessage(state,language)}</p>}
+        {state.status!=='idle'&&state.status!=='dup'&&<p role="status" className={`admin-feedback ${state.status==='ok'?'':'error'}`}>{leadFormMessage(state,language)}</p>}
       </div>
     </form>
   </section>;
@@ -232,9 +249,9 @@ export function LeadRowControls({row,language='bn'}:{row:LeadRowView;language?:'
  * The drawer's contents, shared with the lead's own page: fields, the numbers as masks plus their dial
  * destinations, the flags the importer or quick-add left behind, the notes timeline and the family.
  */
-function LeadDetailBody({seed,detail,loading,noteState,noteAction,notePending,language,digits,sms=null}:{
+function LeadDetailBody({seed,detail,loading,noteState,noteAction,notePending,reload,language,digits,sms=null}:{
   seed:LeadDrawerSeed;detail:LeadDetailView|null;loading:boolean;noteState:LeadFormState;
-  noteAction:(payload:FormData)=>void;notePending:boolean;language:'bn'|'en';digits:Digits;
+  noteAction:(payload:FormData)=>void;notePending:boolean;reload:()=>void;language:'bn'|'en';digits:Digits;
   /**
    * Present only where the screen loaded the visitor template catalog (R3.9). Absent means no Send SMS
    * here at all — the drawer a NUMBER SEARCH opens is a lookup of somebody else's family, not a place to
@@ -243,6 +260,16 @@ function LeadDetailBody({seed,detail,loading,noteState,noteAction,notePending,la
   sms?:LeadSmsKit|null;
 }){
   const t=useTranslations('leads');
+  const [mergeState,mergeAction,mergePending]=useActionState(mergeTwoLeads,idleLeadForm);
+  const [tieState,tieAction,tiePending]=useActionState(tieLeadFamilies,idleLeadForm);
+  // A merge or a tie changes this very drawer (family, notes, numbers), so it is read again after one.
+  useEffect(()=>{
+    if(mergeState.status!=='ok'&&tieState.status!=='ok')return;
+    reload();
+  },[mergeState,tieState,reload]);
+  function confirmMerge(event:FormEvent<HTMLFormElement>){
+    if(!window.confirm(t('dupMergeConfirm')))event.preventDefault();
+  }
   const row=detail?.row;
   const phones=row?.phones||seed.phones;
   const classText=row?.classGroup?formatClass(row.classGroup,digits,language):(row?.classLabel||seed.classLabel||'');
@@ -311,6 +338,25 @@ function LeadDetailBody({seed,detail,loading,noteState,noteAction,notePending,la
     {!!(detail?.family||[]).length&&<><h3>{t('family')}</h3>{/* Its own class beside `lead-notes`: the timeline and the family are two lists, and a test (or a stylesheet) that means one of them must be able to say which. */}<ul className="lead-notes lead-family">{detail!.family.map(member=><li key={member.id}>
       <Link href={`/admin/leads/${member.id}`}>{member.studentName}</Link> <span className="admin-help">{member.leadId} · {statusLabel(member.status,language)}</span>
     </li>)}</ul></>}
+    {/* R3.10: leads outside the family that hold one of this lead's numbers. Two deliberate answers:
+        tie them into one family (both leads stay), or fold the other one into this one (it is binned,
+        behind the browser's own confirm). Neither is offered for a lead already in the family list. */}
+    {!!(detail?.dupMates||[]).length&&<><h3>{t('dupMatesTitle')}</h3>
+      <ul className="lead-notes lead-family" data-dup-mates="true">{detail!.dupMates.map(mate=><li key={mate.id}>
+        <strong>{mate.studentName}</strong> <span className="admin-help">{mate.leadId} · {statusLabel(mate.status,language)}</span> <span className="admin-badge">{mate.masked}</span>
+        <span className="admin-inline">
+          <form action={tieAction} className="admin-inline">
+            <input type="hidden" name="id" value={seed.id}/><input type="hidden" name="otherId" value={mate.id}/>
+            <button type="submit" className="admin-mini-button" disabled={mergePending||tiePending}>{t('dupTie')}</button>
+          </form>
+          <form action={mergeAction} className="admin-inline" onSubmit={confirmMerge}>
+            <input type="hidden" name="targetId" value={seed.id}/><input type="hidden" name="sourceId" value={mate.id}/>
+            <button type="submit" className="admin-mini-button" disabled={mergePending||tiePending}>{t('dupMerge')}</button>
+          </form>
+        </span>
+      </li>)}</ul>
+      {(mergeState.status!=='idle'||tieState.status!=='idle')&&<p role="status" className={`admin-feedback ${mergeState.status==='error'||tieState.status==='error'?'error':''}`}>{leadFormMessage(mergeState,language)||leadFormMessage(tieState,language)}</p>}
+    </>}
   </>;
 }
 
@@ -332,9 +378,13 @@ function useLeadDetail(seed:LeadDrawerSeed,initial:LeadDetailView|null){
   // A note that was just written has to appear in the timeline, so the detail is read again after one.
   useEffect(()=>{
     if(noteState.status!=='ok')return;
-    void loadLeadDetail(seed.id).then(loaded=>{if(loaded)setDetail(loaded)});
-  },[noteState,seed.id]);
-  return {detail,loading,load,noteState,noteAction,notePending};
+    reload();
+  },[noteState,seed.id]);// eslint-disable-line react-hooks/exhaustive-deps
+  function reload(){
+    setLoading(true);
+    void loadLeadDetail(seed.id).then(loaded=>{if(loaded)setDetail(loaded);setLoading(false)});
+  }
+  return {detail,loading,load,reload,noteState,noteAction,notePending};
 }
 
 /** The detail drawer: the same `<dialog>` sheet the admissions and bookings rows already open. */
@@ -343,7 +393,7 @@ export function LeadDetailDrawer({seed,initial=null,autoOpen=false,language='bn'
 }){
   const t=useTranslations('leads');
   const dialog=useRef<HTMLDialogElement>(null),trigger=useRef<HTMLButtonElement>(null);
-  const {detail,loading,load,noteState,noteAction,notePending}=useLeadDetail(seed,initial);
+  const {detail,loading,load,reload,noteState,noteAction,notePending}=useLeadDetail(seed,initial);
   function openDialog(){dialog.current?.showModal();void load()}
   useEffect(()=>{if(autoOpen)openDialog()},[]);// eslint-disable-line react-hooks/exhaustive-deps
   return <>
@@ -351,7 +401,7 @@ export function LeadDetailDrawer({seed,initial=null,autoOpen=false,language='bn'
     <dialog className="overview-drawer" ref={dialog} aria-label={t('fields')} onClose={()=>trigger.current?.focus()}>
       <header><h2>{seed.studentName}</h2><button type="button" className="admin-mini-button" onClick={()=>dialog.current?.close()}>{t('close')}</button></header>
       <p className="admin-help">{t('leadId')} {seed.leadId}</p>
-      <LeadDetailBody seed={seed} detail={detail} loading={loading} noteState={noteState} noteAction={noteAction} notePending={notePending} language={language} digits={digits} sms={sms}/>
+      <LeadDetailBody seed={seed} detail={detail} loading={loading} noteState={noteState} noteAction={noteAction} notePending={notePending} reload={reload} language={language} digits={digits} sms={sms}/>
     </dialog>
   </>;
 }
@@ -360,6 +410,6 @@ export function LeadDetailDrawer({seed,initial=null,autoOpen=false,language='bn'
 export function LeadDetailInline({seed,initial,language='bn',digits='bn',sms=null}:{
   seed:LeadDrawerSeed;initial:LeadDetailView|null;language?:'bn'|'en';digits?:Digits;sms?:LeadSmsKit|null;
 }){
-  const {detail,loading,noteState,noteAction,notePending}=useLeadDetail(seed,initial);
-  return <LeadDetailBody seed={seed} detail={detail} loading={loading} noteState={noteState} noteAction={noteAction} notePending={notePending} language={language} digits={digits} sms={sms}/>;
+  const {detail,loading,reload,noteState,noteAction,notePending}=useLeadDetail(seed,initial);
+  return <LeadDetailBody seed={seed} detail={detail} loading={loading} noteState={noteState} noteAction={noteAction} notePending={notePending} reload={reload} language={language} digits={digits} sms={sms}/>;
 }

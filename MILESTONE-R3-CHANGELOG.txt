@@ -352,9 +352,22 @@ Wave A — foundations, no UI:
     b2-visitor-sms-one-1440). It sends nothing: a browser send would write rows the other sections'
     counts do not expect, and the database suite already proves the write end to end.
 
-Owed, stated plainly: the duplicate-phone "add as sibling / merge these two" dialog (the detection, the
-inherited family key and the family list in the drawer are live; the two-record decision is not), the
-convert-to-admission / book-a-trial / mark-not-interested hand-offs, the import wizard with dry run,
+21. Duplicate phones became a decision the operator makes (R3.10). Quick-add given a number another
+    live lead holds now asks instead of writing a second row: the holders are named and masked, with
+    no digits and no family key anywhere in the question, and nothing is saved until one of three
+    answers is pressed — add as sibling (the new row inherits the holder family key and the save says
+    from whom), merge into a named lead (the entry folds in filling only empty fields and moving extra
+    numbers and the entry note, writing no row at all), or keep as a separate lead (no family key, so
+    two strangers on one number are not one family). A visitor's drawer lists the number-mates outside
+    the family and offers tie (both leads stay, one key) and merge (the mate is folded in and binned
+    with its notes and numbers, its family re-pointed to the surviving key); a mate that became an
+    admission, a trial or a student is refused by name, and a merge that fails behind the binning
+    restores its source. Proven by tests/lead-dup.test.ts and tests/lead-dup.integration.ts (registry
+    row R3.10, the registry now 37 rows) and by section 11 of the browser suite, which photographs the
+    question at 360 px and 1440 px and the drawer's mates block at 1440 px.
+
+Owed, stated plainly: the convert-to-admission / book-a-trial / mark-not-interested hand-offs, the
+import wizard with dry run (its merge step can reuse R3.10's planner as it stands),
 preview, flagged rows, unknown-column mapping, Bangla comments as the first note, undo and idempotent
 re-import, and the funnel reports with CSV export. Two decisions are the owner's and not the code's: the
 Overview is behind requireAdmin(), so a staff account does not see the follow-up widget and reaches the

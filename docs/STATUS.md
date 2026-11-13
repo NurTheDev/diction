@@ -571,9 +571,10 @@ horizontal overflow at 360 px on each screen, and writes the eleven review scree
 `scripts/verify-screens.ts` also photographs `/bn/admin/leads`, `?new=1` and `?followUp=today` for
 R0.11. Operator guide: `docs/R3-START-HERE.md`.
 
-**Not in this wave, stated plainly:** the duplicate-phone "add as sibling / merge" dialog, the SMS entry
-point (R3.9), convert-to-admission and book-a-trial hand-offs, the import wizard, the funnel reports and
-CSV export (wave C). And one consequence of an existing guard: the Overview is behind `requireAdmin()`,
+**Since this wave, stated plainly:** the visitor SMS entry point (R3.9) and the duplicate-phone
+"add as sibling / merge" decision (R3.10) both landed with their own registry rows and screenshots in
+`screenshots/r3/`. **Not in any wave yet:** convert-to-admission and book-a-trial hand-offs, the import
+wizard, the funnel reports and CSV export (wave C). And one consequence of an existing guard: the Overview is behind `requireAdmin()`,
 so a **staff** account does not see the follow-up widget — staff reach the same queue through the
 sidebar's Follow-ups item. Widening the Overview is a decision about every widget on it, so it is left
 to the owner.

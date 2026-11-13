@@ -2061,6 +2061,13 @@
     "smsBlockedRow": "Left out",
     "smsExcluded": "{count} left out — do not contact",
     "smsNoPhoneCount": "{count} have no number",
-    "smsHelp": "The selected visitors get a thank-you message."
+    "smsHelp": "The selected visitors get a thank-you message.",
+    "dupMergeInto": "Merge into {name}'s lead",
+    "dupSibling": "Add as sibling — same family",
+    "dupSeparate": "Keep as a separate lead",
+    "dupMatesTitle": "Shares this number with",
+    "dupTie": "Tie to one family",
+    "dupMerge": "Merge into this lead",
+    "dupMergeConfirm": "Every note and number of the other lead moves here, and that lead goes to the bin. Are you sure?"
   }
 }

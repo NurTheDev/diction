@@ -346,6 +346,8 @@ async function main():Promise<void>{
       {needsDb:true,env:{TEST_ORIGIN:ctx.origin,TEST_MONGO_URI:ctx.mongoUri,TEST_MONGO_DB:ctx.mongoDb}});
     await stepUnitSuites(ctx,'test:lead:sms','R3.9','The visitor SMS entry point: a lead as an SMS candidate, the bulk selection behind it, the log rows and the 24-hour repeat warning that point at the lead, and the dialog refusals — pure rules first, then against the disposable database',
       {needsDb:true,env:{TEST_ORIGIN:ctx.origin,TEST_MONGO_URI:ctx.mongoUri,TEST_MONGO_DB:ctx.mongoDb}});
+    await stepUnitSuites(ctx,'test:lead:dup','R3.10','Duplicate phones: the quick-add question with masked holders, the sibling and separate keys, a merge that only fills and moves, the bin and the family re-point behind merging two leads, and the refusal of a converted source — pure planner first, then the disposable database',
+      {needsDb:true,env:{TEST_ORIGIN:ctx.origin,TEST_MONGO_URI:ctx.mongoUri,TEST_MONGO_DB:ctx.mongoDb}});
     await stepScreens(ctx);
     await stepBrowserTests(ctx);
     (ctx as Context&{stop?:()=>void}).stop?.();

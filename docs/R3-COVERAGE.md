@@ -463,10 +463,10 @@ Written by the suite into `screenshots/r3/`, committed to the branch by a `workf
 
 ## 9. What is still not done, stated plainly
 
-1. **No duplicate-phone screen of its own.** `duplicatePhoneGroups()` and `leadsWithPhone()` are built
-   and proven, quick-add reports when a new lead joined an existing family, and the drawer lists that
-   family — but there is no "add as sibling / merge these two" dialog yet. That is a decision about two
-   records, not a field on one, and it belongs with the import wizard's merge step (wave C).
+1. **The duplicate-phone decision is done (R3.10, §11).** What remains of the old gap is only the
+   import wizard's own merge step: when the wizard arrives (wave C) its "siblings with the same phone
+   are flagged, not blocked" rule can reuse `duplicateHolders()` and `planLeadMerge()` exactly as they
+   stand, because both were written to be called from a dry run.
 2. **No import wizard.** `lead-columns.ts` holds the header and value rules the wizard will use, and
    `importSource`/`importBatch`/`flags[]` are already in the schema for it, but nothing reads an xlsx
    yet. Wave C.
@@ -591,3 +591,63 @@ due reminder and no receipt, the drawer's single-lead send, and a staff account 
 photographs `b2-visitor-sms-{360,1440}`, `b2-visitor-sms-dialog-{360,1440}`,
 `b2-visitor-sms-template-{360,1440}`, `b2-visitor-sms-drawer-1440` and `b2-visitor-sms-one-1440` into
 `screenshots/r3/`. No message is sent from the browser suite.
+
+## 11. Duplicate phones: warn, show, sibling or merge (R3.10)
+
+The spec's one sentence — "Duplicate phone detection: warn and show existing leads; allow 'add as
+sibling' (`familyKey`) or merge" — is now a behaviour on both screens that write leads.
+
+### The question
+
+Quick-add given a number another LIVE lead holds answers with the question instead of a second row:
+`createQuickLead()` returns `DUPLICATE_PHONE` carrying every holder (name, readable id, status, day
+and the MASK — no digits and no family key, because the key IS a number with a prefix on it), and
+nothing is written until the operator answers. The form keeps what was typed; the three answers are
+three submit buttons, so the choice travels in the same post as the fields it applies to.
+
+### The three answers
+
+- **Add as sibling** — the new row inherits the holder's family key through `resolveFamilyKey()`,
+  exactly as a silent save always did; the save message says who it was inherited from.
+- **Merge into <name>** — the entry folds into the named lead: empty fields fill, extra numbers and
+  the entry note move in, nothing the target already has is overwritten, and no row is created. The
+  audit row is `lead.merge` against the readable id, never against a number.
+- **Keep as a separate lead** — the new row carries NO family key at all. Computing one from its own
+  numbers would have echoed the holder's key back (the smallest normalized number of a shared number
+  is the same number), and two strangers on one shop number are not one family. The drawer's
+  number-mate block still finds both, and a tie can make them a family on purpose later.
+
+### Merging two existing leads
+
+The drawer lists the leads that hold one of this lead's numbers and are NOT already in its family
+list (`dupMates` on `LeadDetail`, filtered by `excludeFamilyKey`). Each mate offers two deliberate
+actions: **tie** (both leads stay, both wear one key — the smaller of their two keys, the same rule
+`resolveFamilyKey()` applies when two families turn out to be one) and **merge** (the mate folds into
+the lead open in the drawer and is binned through `softDelete()`, carrying every phone, note and flag
+the target lacks; its family is re-pointed to the surviving key). A mate that became an admission, a
+trial or a student is refused by name (`SOURCE_CONVERTED`) before the Recycle Bin would refuse it by
+reference count, and if the write behind the binning fails the source is restored, so a merge cannot
+half-happen. The merge button asks once through the browser's own confirm; the tie button does not,
+because a tie bins nothing.
+
+### What is deliberately not here
+
+There is still no duplicate screen of its own: `duplicatePhoneGroups()` remains unused by any screen
+until the import wizard needs a flagged-rows view, and the wizard's merge step is the only place a
+third merge entry point would earn its keep.
+
+### Proof
+
+`tests/lead-dup.test.ts` proves the planner with no database: fills only and never overwrites, moves
+phones by normalized number keeping the target's spelling, moves notes whole with their writers,
+keeps the target family key and re-points the source's, refuses a converted source and a binned
+either side, and the sibling / separate / tie key matrix. `npm run test:lead:dup` adds the
+disposable-database half: the question writes nothing and leaks no digits and no key; sibling
+inherits and says from whom; separate carries no key; a quick-add merge fills, moves and audits the
+readable id; merging two leads bins the source, lists it in the bin, re-points its family and leaves
+a converted source live and refused by name; tying puts both leads on one key; and the drawer's block
+empties once a tie makes the mates family. Registry row R3.10 (the registry is 37 rows now) points at
+that suite, and section 11 of `tests/lead-screens-browser.integration.ts` drives the whole flow in a
+browser — the question at 360 px and 1440 px (`b2-visitor-dup-360`, `b2-visitor-dup-1440`) and the
+drawer's mates block at 1440 px (`b2-visitor-dup-drawer-1440`) — accepting the browser's own confirm
+in front of one merge, on purpose.

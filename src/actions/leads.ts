@@ -22,8 +22,8 @@
 import {revalidatePath} from 'next/cache';
 import {requireArchiver} from '@/lib/admin/guard';
 import {
-  addLeadNote,createQuickLead,leadDetailByKey,searchLeadsByPhone,setContactPermission,setLeadFollowUp,
-  updateLeadStatus,
+  addLeadNote,createQuickLead,leadDetailByKey,mergeLeads,searchLeadsByPhone,setContactPermission,
+  setLeadFollowUp,tieLeadFamily,updateLeadStatus,
 } from '@/lib/leads/leads';
 import {
   detailView,FOLLOW_UP_CLEAR,searchHitViews,
@@ -34,6 +34,11 @@ import type {FollowUpKey} from '@/lib/leads/vocab';
 /** The Visitors list and the Overview both change when a lead does, in either locale. */
 function refreshLeads():void{
   for(const locale of ['bn','en']){revalidatePath(`/${locale}/admin/leads`);revalidatePath(`/${locale}/admin`)}
+}
+/** A merge or a tie also changes the two leads' own pages, so those caches go too. */
+function refreshLeadPage(id:string):void{
+  if(!id)return;
+  for(const locale of ['bn','en'])revalidatePath(`/${locale}/admin/leads/${id}`);
 }
 
 function refused(error:unknown):LeadFormState{
@@ -79,16 +84,57 @@ export async function quickAddLead(_:LeadFormState|null,form:FormData):Promise<L
   try{
     const staff=await requireArchiver();
     const followUp=text(form,'followUp');
+    // R3.10: the duplicate question is answered by whichever button the operator pressed. A merge button
+    // carries the lead it names; the sibling and separate buttons carry only the choice.
+    const dupMerge=text(form,'dupMerge');
+    const dupChoice=text(form,'dupChoice');
     const result=await createQuickLead({
       studentName:text(form,'studentName'),guardianName:text(form,'guardianName'),phone:text(form,'phone'),
       classLabel:text(form,'classLabel'),school:text(form,'school'),interestedIn:text(form,'interestedIn'),
       source:text(form,'source'),status:text(form,'status'),
       followUp:(followUp&&followUp!==FOLLOW_UP_CLEAR?followUp as FollowUpKey:followUp===FOLLOW_UP_CLEAR?'clear':undefined),
       customDay:text(form,'customDay')||undefined,note:text(form,'note'),
+      dupChoice:dupMerge?'merge':dupChoice==='sibling'||dupChoice==='separate'?dupChoice:undefined,
+      dupTarget:dupMerge||undefined,
     },String(staff.id));
+    if(result.ok===false&&'holders' in result){
+      // The question, not an error: the form keeps what was typed and the panel lists who holds the number.
+      return {status:'dup',holders:result.holders,messageBn:result.messageBn,messageEn:result.messageEn};
+    }
     if(result.ok===false)return {status:'error',messageBn:result.messageBn,messageEn:result.messageEn,field:result.code};
     refreshLeads();
+    if(result.mergedInto){
+      return {status:'ok',leadId:result.leadId,messageBn:`${result.leadId} লিডে মিলিয়ে দেওয়া হয়েছে — নতুন লিড বানানো হয়নি।`,messageEn:`Merged into ${result.leadId} — no new lead was written.`};
+    }
     return {status:'ok',leadId:result.leadId,messageBn:`সংরক্ষিত হয়েছে — ${result.leadId}${result.inheritedFrom?` · একই পরিবারের ${result.inheritedFrom} লিডের সাথে যুক্ত`:''}`,messageEn:`Saved — ${result.leadId}${result.inheritedFrom?` · joined to ${result.inheritedFrom} in the same family`:''}`};
+  }catch(error){return refused(error)}
+}
+
+/**
+ * R3.10, the drawer's merge: one lead folds into the one open in the drawer and lands in the Recycle
+ * Bin, carrying its phones, its notes and its flags. The rule layer refuses a source that became an
+ * admission, a trial or a student, so a conversion can never be binned by a merge.
+ */
+export async function mergeTwoLeads(_:LeadFormState|null,form:FormData):Promise<LeadFormState>{
+  try{
+    const staff=await requireArchiver();
+    const result=await mergeLeads(text(form,'targetId'),text(form,'sourceId'),String(staff.id));
+    if(result.ok===false)return {status:'error',messageBn:result.messageBn,messageEn:result.messageEn,field:result.code};
+    refreshLeads();refreshLeadPage(result.id);
+    return {status:'ok',leadId:result.leadId,
+      messageBn:`${result.sourceLeadId} কে ${result.leadId}-এ মিলিয়ে দেওয়া হয়েছে — ${result.movedNotes||0}টি নোট ও ${result.movedPhones||0}টি নাম্বারসহ; পুরনো লিডটি বিনে আছে।`,
+      messageEn:`${result.sourceLeadId} was merged into ${result.leadId} with ${result.movedNotes||0} notes and ${result.movedPhones||0} numbers; the old lead is in the bin.`};
+  }catch(error){return refused(error)}
+}
+
+/** R3.10, "add as sibling" for two leads that stay two leads: both wear one family key afterwards. */
+export async function tieLeadFamilies(_:LeadFormState|null,form:FormData):Promise<LeadFormState>{
+  try{
+    const staff=await requireArchiver();
+    const result=await tieLeadFamily(text(form,'id'),text(form,'otherId'),String(staff.id));
+    if(result.ok===false)return {status:'error',messageBn:result.messageBn,messageEn:result.messageEn,field:result.code};
+    refreshLeads();refreshLeadPage(text(form,'id'));refreshLeadPage(text(form,'otherId'));
+    return {status:'ok',messageBn:'দুটি লিড এখন একই পরিবারে যুক্ত।',messageEn:'Both leads now tie to the same family.'};
   }catch(error){return refused(error)}
 }
 

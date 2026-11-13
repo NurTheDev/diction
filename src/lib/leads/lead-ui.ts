@@ -24,14 +24,22 @@ export type LeadListFiltersShape=Omit<Parameters<typeof leadListQuery>[0],'local
 
 /** What every lead form action hands back to `useActionState`. */
 export type LeadFormState={
-  status:'idle'|'ok'|'error';
+  status:'idle'|'ok'|'error'|'dup';
   messageBn:string;
   messageEn:string;
   /** Set on a successful quick-add, so the panel can say which id it wrote. */
   leadId?:string;
   /** Which field a refusal was about, so the panel can point at it. */
   field?:string;
+  /** R3.10: the leads already holding a number quick-add was given, while the operator chooses. */
+  holders?:LeadDupHolderView[];
 };
+
+/**
+ * A duplicate-phone holder as a screen may see it (R3.10): name, both ids, status, day and the MASK.
+ * No digits and no family key — the same two absences `LeadRowView` keeps, for the same reason.
+ */
+export interface LeadDupHolderView{id:string;leadId:string;studentName:string;status:LeadStatus;date:string;masked:string}
 
 export const idleLeadForm:LeadFormState={status:'idle',messageBn:'',messageEn:''};
 
@@ -115,7 +123,11 @@ export interface LeadRowView{
 }
 export type LeadNoteText={at:Date;text:string;outcome:string}|null;
 export interface LeadNoteView{at:Date;text:string;outcome:string;byName:string}
-export interface LeadDetailView{row:LeadRowView;notes:LeadNoteView[];family:LeadRowView[]}
+export interface LeadDetailView{
+  row:LeadRowView;notes:LeadNoteView[];family:LeadRowView[];
+  /** Number-mates outside the family: the drawer's "shares this number with" block (R3.10). */
+  dupMates:LeadDupHolderView[];
+}
 
 /** What `leads.ts` hands a screen: structurally the same row, with raw numbers still on it. */
 export interface LeadRowSource{
@@ -151,8 +163,8 @@ export function rowView(row:LeadRowSource):LeadRowView{
   return {...shown,phones:phoneViews(row.phones),flags:(row.flags||[]).map(({original:_original,...flag})=>flag)};
 }
 
-export function detailView(detail:{row:LeadRowSource;notes:{at:Date;text:string;outcome:string;byName:string}[];family:LeadRowSource[]}):LeadDetailView{
-  return {row:rowView(detail.row),notes:detail.notes||[],family:(detail.family||[]).map(rowView)};
+export function detailView(detail:{row:LeadRowSource;notes:{at:Date;text:string;outcome:string;byName:string}[];family:LeadRowSource[];dupMates?:LeadDupHolderView[]}):LeadDetailView{
+  return {row:rowView(detail.row),notes:detail.notes||[],family:(detail.family||[]).map(rowView),dupMates:detail.dupMates||[]};
 }
 
 /**
