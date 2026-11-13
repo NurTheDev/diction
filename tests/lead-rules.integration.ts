@@ -121,7 +121,7 @@ async function run(){
     assert.equal(await Lead.countDocuments({familyKey:`fam:${P1}`}),4,'one family, four leads, one query');
     assert.equal(await Lead.countDocuments({familyKey:`fam:${P2}`}),0,'and nothing is left under the abandoned key');
     const holders=await leadsWithPhone(P1);
-    assert.equal(holders.length,2,'the number is now on two leads, found by one indexed lookup');
+    assert.equal(holders.length,3,'the number is now on three leads — the original, the sibling and the bridge — found by one indexed lookup');
     assert.equal(holders[0].masked,maskPhone(P1),'reported masked');
     assert.ok(!JSON.stringify(holders).includes(P1),'and a duplicate-phone lookup never carries the raw number');
     assert.deepEqual(await leadsWithPhone('0170000000'),[],'a number nobody holds answers with nothing, not an error');
@@ -143,8 +143,11 @@ async function run(){
     assert.equal((await listLeads({classGroup:'99'},now)).total,await Lead.countDocuments(),'an out-of-range class filter is ignored rather than trusted');
     assert.equal((await listLeads({status:'nonsense'},now)).total,await Lead.countDocuments(),'and so is a status outside the vocabulary');
     await updateLeadStatus(one.id,'called',actorId,now);
+    // Hoisted, because an `await` inside a `.some()` callback is not inside an async function — the one
+    // thing `@ts-nocheck` at the top of this file hides from tsc and esbuild still refuses to build.
+    const oneLeadId=(await read(one.id)).leadId;
     const byStatus=await listLeads({status:'called'},now);
-    assert.ok(byStatus.rows.some(row=>row.leadId===(await read(one.id)).leadId),'a real status filter narrows the list');
+    assert.ok(byStatus.rows.some(row=>row.leadId===oneLeadId),'a real status filter narrows the list');
     const paged=await listLeads({perPage:2,page:2},now);
     assert.equal(paged.rows.length,2,'the list pages');
     assert.equal(paged.page,2);
@@ -189,22 +192,26 @@ async function run(){
     // ---- 8. Notes: the drawer's timeline, newest first, with the writer's name.
     assert.equal((await addLeadNote(one.id,'   ','',actorId,now)).code,'NO_NOTE');
     assert.equal((await addLeadNote(one.id,'ক'.repeat(1001),'',actorId,now)).code,'NOTE_TOO_LONG');
-    const first=await addLeadNote(one.id,'কল করা হয়েছিল, পরে আবার ফোন চাইলেন','call_back_later',actorId,now);
+    // Three distinct timestamps, because two notes written "at the same moment" would leave the order
+    // of the timeline resting on insertion order — and the drawer promises newest first, not "whatever
+    // the array happened to hold".
+    const first=await addLeadNote(one.id,'কল করা হয়েছিল, পরে আবার ফোন চাইলেন','call_back_later',actorId,new Date(now.getTime()+30000));
     assert.equal(first.ok,true);assert.equal(first.noteCount,2);
     await addLeadNote(one.id,'দ্বিতীয় নোট','',actorId,new Date(now.getTime()+60000));
     const detail=await leadDetail(one.id,now);
-    assert.equal(detail.notes[0].text,'দ্বিতীয় নোট','the timeline is newest first');
+    assert.deepEqual(detail.notes.map(note=>note.text),['দ্বিতীয় নোট','কল করা হয়েছিল, পরে আবার ফোন চাইলেন','অভিভাবক কল করতে নিষেধ করেছেন'],'the timeline is newest first, all three notes in order');
     assert.equal(detail.notes[1].outcome,'call_back_later','and an outcome is kept with the note that earned it');
     assert.ok(detail.notes.every(note=>note.byName==='Lead Keeper'),'every note names its writer, resolved from the user record');
-    assert.ok(detail.family.some(row=>row.leadId===(await read(sibling.id)).leadId),'the drawer shows the rest of the family');
-    assert.ok(!detail.family.some(row=>row.leadId===(await read(one.id)).leadId),'but not the lead itself');
+    const siblingLeadId=(await read(sibling.id)).leadId;
+    assert.ok(detail.family.some(row=>row.leadId===siblingLeadId),'the drawer shows the rest of the family');
+    assert.ok(!detail.family.some(row=>row.leadId===oneLeadId),'but not the lead itself');
     assert.equal(await leadDetail(new mongoose.Types.ObjectId().toString(),now),null,'a lead that is not there answers with null');
 
     // ---- 9. Bulk SMS: the guard is not overridable, and what it excluded is reported.
     await updateLeadStatus(one.id,'do_not_contact',actorId,now);
     const phoneless=await Lead.create({leadId:await nextLeadId(now),date:today,studentName:'নাম্বার ছাড়া লিড',phones:[]});
     const send=await contactableLeads({});
-    assert.ok(!send.recipients.some(row=>row.leadId===(await read(one.id)).leadId),'a do-not-contact lead is not in the recipient list');
+    assert.ok(!send.recipients.some(row=>row.leadId===oneLeadId),'a do-not-contact lead is not in the recipient list');
     assert.ok(send.excludedDoNotContact>=1,'and the dialog can say how many were left out, instead of dropping them silently');
     assert.ok(send.withoutPhone>=1,'as it can say how many had no number to send to');
     assert.ok(send.recipients.every(row=>/^01[3-9]\d{8}$/.test(row.phone)&&row.masked===maskPhone(row.phone)),'every recipient carries a usable number and a mask for logs');
