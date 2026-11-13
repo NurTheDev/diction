@@ -719,6 +719,7 @@ async function run(){
     assert.ok(askText.includes(MASK_1),'the number is shown as its mask');
     assert.ok(!askText.includes(P1),'and never as digits');
     assert.equal(await Lead.countDocuments({studentName:DUP}),0,'nothing was written while the question stands');
+    assert.equal(await dupPanel.locator('input[name="phone"]').inputValue(),P1,'and the question keeps what was typed, so an answer carries the entry it applies to');
     await noOverflow(boss.page,'the duplicate question at 360');
     await shot(boss.page,'b2-visitor-dup-360');
     // (b) The same question at desk width, then the sibling answer.

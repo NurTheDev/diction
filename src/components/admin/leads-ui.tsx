@@ -44,6 +44,11 @@ export function LeadQuickAdd({open=false,language='bn',digits='bn'}:{open?:boole
   const [state,action,pending]=useActionState(quickAddLead,idleLeadForm);
   const [expanded,setExpanded]=useState(open),[more,setMore]=useState(false),[followUp,setFollowUp]=useState('');
   const formRef=useRef<HTMLFormElement>(null),nameRef=useRef<HTMLInputElement>(null);
+  // React resets a form when its server action commits — including the commit that ASKS the duplicate
+  // question, which would erase what the operator typed before they can answer it. The submission is
+  // therefore snapshotted client-side (the operator's own typing, never served) and poured back into
+  // the fields when the question arrives, so the three answers carry the entry they apply to.
+  const snapshot=useRef<Record<string,string>>({});
   // `?new=1` — what the mobile bottom bar's plus links to — opens the panel on arrival.
   useEffect(()=>{if(open)setExpanded(true)},[open]);
   useEffect(()=>{
@@ -54,14 +59,27 @@ export function LeadQuickAdd({open=false,language='bn',digits='bn'}:{open?:boole
   // Saved: empty the panel and start the next visitor. The message keeps the id that was written.
   useEffect(()=>{
     if(state.status!=='ok')return;
-    formRef.current?.reset();setFollowUp('');nameRef.current?.focus();
+    formRef.current?.reset();setFollowUp('');nameRef.current?.focus();snapshot.current={};
   },[state]);
+  // Asked: put the typing back, so the answer's submission is the entry the question is about.
+  useEffect(()=>{
+    if(state.status!=='dup')return;
+    const form=formRef.current;
+    if(!form)return;
+    for(const [key,value] of Object.entries(snapshot.current)){
+      const el=form.querySelector<HTMLInputElement>(`input[name="${key}"],select[name="${key}"],textarea[name="${key}"]`);
+      if(el)el.value=value;
+    }
+  },[state]);
+  function captureSubmission(event:FormEvent<HTMLFormElement>){
+    snapshot.current=Object.fromEntries([...new FormData(event.currentTarget).entries()].map(([key,value])=>[key,String(value)]));
+  }
   if(!expanded){
     return <button type="button" className="button button-navy" onClick={()=>setExpanded(true)}><UserPlus size={18} aria-hidden="true"/>{t('add')}</button>;
   }
   return <section className="admin-panel" aria-label={t('addTitle')}>
     <div className="admin-panel-head"><h2>{t('addTitle')}</h2><button type="button" className="admin-mini-button" onClick={()=>setExpanded(false)}>{t('close')}</button></div>
-    <form ref={formRef} action={action} className="admin-panel-body list-filter">
+    <form ref={formRef} action={action} onSubmit={captureSubmission} className="admin-panel-body list-filter">
       <label>{t('studentName')}<input ref={nameRef} className="admin-input" name="studentName" required maxLength={120} autoComplete="off"/></label>
       <label>{t('phone')}
         <input className="admin-input" name="phone" type="text" inputMode="tel" autoComplete="off" aria-describedby="lead-quick-phone"/>
