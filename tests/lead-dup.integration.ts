@@ -115,14 +115,12 @@ async function run(){
     const moved=await mergeLeads(targetLead.id,sourceLead.id,actorId,now);
     assert.equal(moved.ok,true,`merge must succeed, got ${moved.code||''}`);
     assert.equal(moved.sourceLeadId,sourceLead.leadId);
-    const binnedRow=await read(sourceLead.id);
-    if(!binnedRow){
-      // Never seen in a local run (no MongoDB here), so the suite carries its own census: who is in the
-      // collection after the merge, and binned or live, so a vanished source names itself in CI.
-      const census=await Lead.find({}).select('leadId studentName deletedAt').lean();
-      throw Error(`the merged source vanished: id=${sourceLead.id} leadId=${sourceLead.leadId} movedOk=${moved.ok===true} movedLeadId=${moved.leadId||''} census=${JSON.stringify(census.map(row=>({leadId:row.leadId,name:row.studentName,binned:!!row.deletedAt})))}`);
-    }
-    assert.ok(binnedRow.deletedAt,'the source is in the bin afterwards');
+    // The bin HIDES: every query middleware in `addRecycleFields` injects a live-only filter unless the
+    // query itself speaks about `deletedAt`, so a plain find must no longer see the source at all…
+    assert.equal(await read(sourceLead.id),null,'a plain lookup no longer sees the merged source');
+    // …and a query that DOES speak about deletedAt finds it in the bin, with its moment of binning.
+    const binnedRow=await Lead.findOne({_id:sourceLead.id,deletedAt:{$ne:null}}).lean();
+    assert.ok(binnedRow&&binnedRow.deletedAt,'the source is in the bin afterwards');
     const bin=await binList('lead');
     assert.ok(bin.some(entry=>entry.id===sourceLead.id),'and the Recycle Bin lists it');
     const after=await Lead.findById(targetLead.id).lean();
