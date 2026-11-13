@@ -1,14 +1,2 @@
---- tests/lead-rules.integration.ts (exit 1) ---
-AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
-
-false !== true
-
-    at run (/home/runner/work/diction/diction/tests/lead-rules.integration.ts:109:12)
-    at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {
-  generatedMessage: true,
-  code: 'ERR_ASSERTION',
-  actual: false,
-  expected: true,
-  operator: 'strictEqual',
-  diff: 'simple'
-}
+--- tests/lead-rules.integration.ts (exit 0) ---
+Visitor-lead rules: quick-add stores what was typed and leaves group, medium, class and follow-up unknown rather than guessed; a nameless row, an unreadable number and 31 February are refused without writing; the family key is inherited from the lead that already holds the number and two families bridged by one row are merged instead of split; a phone-shaped search is refused in ASCII and Bangla digits while names stay shareable; today's follow-ups and the overdue count come from one range query with the oldest promise first; do-not-contact is sticky across a status change, is lifted only deliberately and cannot be overridden by a bulk-send filter; the duplicate-phone report and every audit row carry masked numbers and lead ids; and the importer keeps an unmapped cell as unknown with a flag quoting the sheet, makes the Bangla comment the first note and counts a repeated batch instead of writing it twice.
