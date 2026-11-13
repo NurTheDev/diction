@@ -24,7 +24,7 @@ import type {LeadPhoneRow,LeadFlagRow} from '@/models/Lead';
 import {User} from '@/models/User';
 import {audit,regexEscape} from '@/lib/admin/helpers';
 import {dhakaDay} from '@/lib/admin/today';
-import {parsePhoneCell} from './lead-phone';
+import {parsePhoneCell,phoneSearchDigits,phoneSearchMask,telHref,whatsappHref} from './lead-phone';
 import {normalizeClassLabel} from './lead-class';
 import {normalizeGroup,normalizeMedium,normalizeShift,normalizeSource} from './lead-columns';
 import {
@@ -259,6 +259,66 @@ async function finishCreate(doc:Record<string,unknown>,family:FamilyResolution,f
     }
   }
   return refuse('ID_BUSY','একই সময়ে আরেকটি লিড সংরক্ষিত হয়েছে। আবার চেষ্টা করুন।','Another lead was saved at the same moment. Please try again.');
+}
+
+export interface LeadSearchHit{
+  id:string;leadId:string;studentName:string;guardianName:string;classLabel:string;classGroup:number|null;
+  school:string;status:LeadStatus;doNotContact:boolean;contactable:boolean;nextFollowUp:string|null;
+  followUp:'none'|'today'|'overdue'|'later';date:string;
+  phones:{normalized:string;original:string;tel:string;whatsapp:string;masked:string}[];
+}
+/**
+ * The shape a server action returns to the search form. It lives here and not in `src/actions/leads.ts`
+ * because a 'use server' module may only export async functions — and because the client component that
+ * renders the results imports this type, which it must not do from an action file.
+ */
+export interface LeadSearchActionState{
+  status:'idle'|'found'|'empty'|'refused'|'unauthorized'|'error';
+  hits:LeadSearchHit[];total:number;masked:string;messageBn:string;messageEn:string;
+}
+
+export interface LeadPhoneSearchResult{
+  /** `found` = rows came back, `empty` = the search ran and matched nothing, `refused` = it never ran. */
+  status:'found'|'empty'|'refused';
+  hits:LeadSearchHit[];
+  total:number;
+  /** What the UI may echo back: a mask, never the digits that were typed. */
+  masked:string;
+  code:string;messageBn:string;messageEn:string;
+}
+
+/**
+ * Search the Visitors list BY NUMBER — the staff requirement, and the only path a number takes into a
+ * query. It is reached through a server action (a form submission), never through a URL: `listLeads`
+ * still refuses a phone-shaped `q`, so the two halves cannot drift.
+ *
+ * Matching is a substring match on the NORMALIZED number, which is why every way of typing it works:
+ * with or without the leading zero, with or without `+88`, in Bangla digits, with dashes and spaces, and
+ * partial — the last four off a crumpled sheet. A substring match cannot use the index the way an exact
+ * match can; that is accepted on purpose, because a coaching centre's visitor list is thousands of rows,
+ * not millions, and "find this parent" is worth more than the last millisecond.
+ *
+ * The audit row records that a search happened, with the MASK as its target: looking a parent up by
+ * number is worth accounting for, and the digits are not.
+ */
+export async function searchLeadsByPhone(raw:unknown,now:Date=new Date(),limit=25,actorId?:string):Promise<LeadPhoneSearchResult>{
+  const read=phoneSearchDigits(raw);
+  if(read.ok===false)return {status:'refused',hits:[],total:0,masked:'—',code:read.code,messageBn:read.messageBn,messageEn:read.messageEn};
+  const filter={'phones.normalized':{$regex:new RegExp(regexEscape(read.digits))}};
+  const [docs,total]=await Promise.all([
+    Lead.find(filter).sort({date:-1,createdAt:-1}).limit(limit).lean<LeadDoc[]>(),
+    Lead.countDocuments(filter),
+  ]);
+  if(actorId)await audit(actorId,'lead.phone-search',phoneSearchMask(read.digits));
+  const hits:LeadSearchHit[]=docs.map(doc=>({
+    id:String(doc._id),leadId:doc.leadId,studentName:doc.studentName,guardianName:doc.guardianName||'',
+    classLabel:doc.classLabel||'',classGroup:doc.classGroup??null,school:doc.school||'',status:doc.status,
+    doNotContact:!!doc.doNotContact,contactable:canContactRow(doc),nextFollowUp:doc.nextFollowUp||null,
+    followUp:followUpState(doc.nextFollowUp,now),date:doc.date,
+    phones:(doc.phones||[]).map(phone=>({normalized:phone.normalized,original:phone.original,tel:telHref(phone.normalized),whatsapp:whatsappHref(phone.normalized),masked:maskPhone(phone.normalized)})),
+  }));
+  return {status:hits.length?'found':'empty',hits,total,masked:phoneSearchMask(read.digits),code:'',
+    messageBn:hits.length?'':'এই নাম্বারে কোনো লিড পাওয়া যায়নি।',messageEn:hits.length?'':'No lead holds that number.'};
 }
 
 export interface LeadListParams{

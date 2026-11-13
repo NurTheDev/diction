@@ -90,6 +90,14 @@ function run(){
   assert.equal(typedNumber.href,'/bn/admin/leads','the list is still rendered, the search just posts instead');
   const typedBangla=leadListQuery({q:'০১৭১২৮১৭০৯০'});
   assert.equal(typedBangla.refusedPhone,true,'Bangla digits are recognized as a number too');
+  // A PARTIAL number is refused too, and the threshold is the number search's own minimum: a fragment
+  // short enough to slip into a URL would be long enough for the posted search to find somebody.
+  assert.equal(leadListQuery({q:'7090'}).refusedPhone,true,'the last four digits are a number search, so they post instead');
+  assert.equal(leadListQuery({q:'৭০৯০'}).refusedPhone,true,'in Bangla digits as well');
+  assert.equal(leadListQuery({q:'017-128'}).refusedPhone,true,'and with the dashes a number is typed with');
+  assert.equal(leadListQuery({q:'999'}).refusedPhone,false,'three digits is below the search minimum, so it stays an ordinary word search');
+  assert.equal(leadListQuery({q:'V-2026-0001'}).refusedPhone,false,'a lead id is not a number — it stays shareable');
+  assert.equal(leadListQuery({q:'ধানমন্ডি ৯'}).refusedPhone,false,'nor is a school with a class digit in it');
   const typedName=leadListQuery({locale:'en',q:'রাহুল',status:'new',followUp:'overdue',page:3});
   assert.equal(typedName.refusedPhone,false,'a name is a legitimate URL parameter — that is what makes a filtered list shareable');
   assert.equal(typedName.href,'/en/admin/leads?q=%E0%A6%B0%E0%A6%BE%E0%A6%B9%E0%A7%81%E0%A6%B2&status=new&followUp=overdue&page=3');

@@ -5,6 +5,10 @@
 # uploaded as artifacts even when the run fails, and the report is also echoed into the job summary
 # so it can be read without downloading anything.
 #
+# STRICT: the verify step runs with VERIFY_STRICT=1 and a second step re-reads the report, so a green
+# check on this workflow means every requirement was proven — not merely that nothing complained. A run
+# with any NOT TESTED requirement fails, and still commits the report that explains why.
+#
 # Scope: this workflow is deliberately limited to the session branch. It never runs on main, never
 # pushes, never opens a pull request and never deploys. Permissions are read-only.
 name: verify
@@ -66,7 +70,34 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run npm run verify
+        env:
+          # Strict: a NOT TESTED requirement fails this job. Without it the exit code is non-zero only
+          # when something FAILED, which is how wave A's first run came back green with 18 requirements
+          # never proven (test mode died before the typecheck, the build and the database).
+          VERIFY_STRICT: '1'
         run: npm run verify
+
+      - name: Fail unless the report says every requirement was proven
+        # Independent of the exit code above: if the report is missing, or its Result line is anything
+        # but PASS, the check goes red even if `npm run verify` somehow exited 0. The evidence steps
+        # below run on `always()`, so the report that explains the failure is still committed.
+        run: |
+          set -e
+          if [ ! -f verify-report.md ]; then
+            echo "::error::verify-report.md was not written — nothing was proven."
+            exit 1
+          fi
+          result=$(grep -m1 '^## Result:' verify-report.md || true)
+          echo "$result"
+          case "$result" in
+            '## Result: **PASS**'*) ;;
+            *) echo "::error::CI is strict — the report is not PASS: ${result:-no Result line}"; exit 1 ;;
+          esac
+          case "$result" in
+            *'0 NOT TESTED'*) ;;
+            *) echo "::error::CI is strict — some requirements were NOT TESTED: $result"; exit 1 ;;
+          esac
+          echo "Every requirement was proven on this run."
 
       - name: Show the report in the job log and summary
         if: always()

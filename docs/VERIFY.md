@@ -54,8 +54,20 @@ Two environment details that matter when reading the report:
   (missing browser, blocked download, app not running). NOT TESTED is never a silent skip, and it
   never counts as a pass.
 - Overall: **PASS** (everything proven), **INCOMPLETE** (nothing failed, some things unproven),
-  **FAIL** (something failed). The exit code is non-zero only for FAIL, so INCOMPLETE does not look
-  like a crash.
+  **FAIL** (something failed).
+
+**Exit codes, and the strict mode that CI uses (owner requirement, 2026-11-13).** On a local run the
+exit code is non-zero only for FAIL, so INCOMPLETE does not look like a crash: a person reads the
+report, and a machine without MongoDB or a browser still gets an honest INCOMPLETE plus exit 0. In CI
+that leniency is a hazard, so the workflow sets `VERIFY_STRICT=1`, and then a single NOT TESTED
+requirement fails the job as surely as a FAIL does. `scripts/verify-report.ts` owns the rule
+(`isStrict()` / `exitCodeFor()`), the log prints `STRICT: N requirement(s) were NOT TESTED, so this run
+fails even though nothing FAILED`, and the report's INCOMPLETE paragraph says the same in writing.
+
+Why: R3 wave A's first run came back **green** with `INCOMPLETE — 14 PASS, 0 FAIL, 18 NOT TESTED`,
+because test mode had died before the typecheck, the build and the database. Nothing had complained, so
+nothing had failed — and a green check that means "nothing complained" is not a green check that means
+"everything was proven". A green GitHub check now means the second thing.
 
 ## Files
 
@@ -103,7 +115,8 @@ the brief asks for and what is actually proven.
 | `EADDRINUSE` | Port busy | `npm run verify -- --port=3200` |
 | Build killed, exit 137 | Out of memory | Close other programs; the build needs ~1.5 GB free |
 | `error TS…` in the typecheck step | Real type error in the code | Send the report back — that is a FAIL, not an environment problem |
-| Report says INCOMPLETE on the owner's machine | Something could not run that should have | Send the zip back; the NOT TESTED lines say what |
+| Report says INCOMPLETE on the owner's machine | Something could not run that should have | Send the zip back; the NOT TESTED lines say what. In CI this is now a red run, not a green one |
+| CI red with `0 FAIL` and some NOT TESTED | `VERIFY_STRICT=1`: unproven is not passed | Read the NOT TESTED lines — usually test mode died early; check `logs/test-mode-stdout.txt` |
 
 ## Continuous verification (GitHub Actions)
 
@@ -112,15 +125,19 @@ the brief asks for and what is actually proven.
 
 1. `npm ci`
 2. `npx playwright install --with-deps chromium`
-3. `npm run verify`
-4. Prints `verify-report.md` into the job log **and** the job summary.
-5. Commits the evidence back to this branch: `verify-report.md` plus
+3. `npm run verify` with `VERIFY_STRICT=1`
+4. **Fails unless the report says PASS** — a second, independent gate that re-reads
+   `verify-report.md` and rejects a missing report, a Result line that is not `**PASS**`, or any count
+   other than `0 NOT TESTED`. It does not trust the exit code alone, and the evidence steps below run on
+   `always()`, so the report explaining a red run is still committed to the branch.
+5. Prints `verify-report.md` into the job log **and** the job summary.
+6. Commits the evidence back to this branch: `verify-report.md` plus
    `test-results/ci-latest/` (the report and the last 400 lines of each step log). The commit
    carries the skip-ci directive so it does not start another run.
-6. Uploads `verify-report.md`, `verify-output.zip`, `screenshots/` and `verify-output/logs/` as the
+7. Uploads `verify-report.md`, `verify-output.zip`, `screenshots/` and `verify-output/logs/` as the
    `verify-output` artifact (uploaded even when the run fails, kept 30 days).
 
-Step 5 exists because a sandbox or a locked-down network can read a run's *status* but not its
+Step 6 exists because a sandbox or a locked-down network can read a run's *status* but not its
 *artifacts*: with the evidence on the branch, `git pull` is enough to see why a run failed.
 
 The workflow has `permissions: contents: write` **only** so it can push that evidence commit to this

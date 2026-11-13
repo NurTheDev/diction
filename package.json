@@ -44,7 +44,8 @@
     "test:lead:phone": "tsx tests/lead-phone.test.ts",
     "test:lead:class": "tsx tests/lead-class.test.ts",
     "test:lead:db": "tsx --conditions=react-server tests/lead-model.integration.ts",
-    "test:lead:rules": "tsx --conditions=react-server tests/lead-rules.integration.ts"
+    "test:lead:rules": "tsx --conditions=react-server tests/lead-rules.integration.ts",
+    "test:lead:search": "tsx --conditions=react-server tests/lead-phone-search.integration.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

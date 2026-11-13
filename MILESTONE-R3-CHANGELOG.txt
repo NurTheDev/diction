@@ -110,6 +110,29 @@ Wave A — foundations, no UI:
     (b) listLeads() floors the page size at 5 and ceilings it at 100, so ?perPage=1 cannot ask for a
         five-hundred-page list. The suite now pins both ends instead of assuming a page size it asked for.
 
+15. Owner requirement (2026-11-13): CI is strict. The workflow sets VERIFY_STRICT=1, exitCodeFor() in
+    scripts/verify-report.ts fails on a single NOT TESTED requirement, and a second workflow step re-reads
+    verify-report.md and rejects anything but "**PASS**" with "0 NOT TESTED" — independent of the exit
+    code. Evidence steps stay on always(), so a red run still commits the report that explains it. Local
+    runs keep the old exit-code behaviour on purpose (--skip-app, or a machine with no MongoDB and no
+    browser, still exits 0 with an honest INCOMPLETE report). This is the permanent answer to wave A's
+    first run coming back green with 18 requirements never proven.
+
+16. Owner requirement (2026-11-13): staff can search the Visitors list BY NUMBER, and the number never
+    travels in a URL, a log or an analytics event. phoneSearchDigits() reads (Bangla digits, +88/0088,
+    dashes, brackets, a leading zero present or absent, a fragment down to four digits, refusals that
+    count the digits without quoting them); searchLeadsByPhone() matches (one substring query on
+    phones.normalized, which is why every spelling works and why a number stored behind a label is found;
+    total beside a limited hits array; empty is not an error; a binned lead is not resurrected);
+    src/actions/leads.ts::searchLeadsByNumber() is the only door (a guarded server action, i.e. a form
+    submission). leadListQuery()'s refusal threshold is now PHONE_SEARCH_MIN_DIGITS, the search's own
+    minimum, so a fragment cannot slip into a URL through the name box. Proven by
+    tests/lead-phone-search.integration.ts, registered as R3.7 (registry 34), with the reading rules also
+    pinned in R3.3's pure suite and the URL refusals re-asserted in context. The suite captures console
+    output across every search, checks every audit target is a mask, and scans all of src/ for fourteen
+    tracking globals and asserts zero — so there is no analytics event for a number to travel in, and
+    adding one later fails this test and asks the question.
+
 Owed, stated plainly: the sidebar group ভিজিটর, quick-add (one tap from the sidebar and the mobile
 bottom bar, Enter saves), the list with search/filters/status chips/inline status/call/WhatsApp/
 next-follow-up buttons, the detail drawer with its notes timeline, duplicate-phone detection with

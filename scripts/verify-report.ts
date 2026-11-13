@@ -42,8 +42,30 @@ export function overallStatus(s:Summary):'PASS'|'FAIL'|'INCOMPLETE'{
   return 'PASS';
 }
 
-/** Non-zero only when something actually failed, so "INCOMPLETE" does not look like a crash. */
-export function exitCodeFor(s:Summary):number{return s.fail>0?1:0}
+/**
+ * Strict mode, switched on by CI with `VERIFY_STRICT=1`.
+ *
+ * Wave A's first run is the reason this exists: nothing FAILED, the job was green, and the report said
+ * `INCOMPLETE — 14 PASS, 0 FAIL, 18 NOT TESTED`, because test mode had died before the typecheck, the
+ * build and the database. A green check that means "nothing complained" is not a green check that means
+ * "everything was proven", and only the second one is worth having.
+ */
+export function isStrict():boolean{
+  const value=String(process.env.VERIFY_STRICT||'').trim().toLowerCase();
+  return value==='1'||value==='true'||value==='yes'||value==='on';
+}
+
+/**
+ * Non-zero when something failed — and, in strict mode, also when anything was left NOT TESTED.
+ * Local runs keep the old behaviour on purpose: `npm run verify -- --skip-app`, or a machine with no
+ * MongoDB and no browser, still exits 0 with an honest INCOMPLETE report, because a person reads the
+ * report rather than the exit code. CI reads the exit code, so in CI INCOMPLETE is a failure.
+ */
+export function exitCodeFor(s:Summary,strict:boolean=isStrict()):number{
+  if(s.fail>0)return 1;
+  if(strict&&s.notTested>0)return 1;
+  return 0;
+}
 
 const badge=(status:Status):string=>status==='PASS'?'✅ PASS':status==='FAIL'?'❌ FAIL':'⚠️ NOT TESTED';
 
@@ -78,7 +100,7 @@ export function renderReport(input:ReportInput):string{
     ? 'Every requirement for this milestone was demonstrated on this machine. This build can be called **verified**.'
     : overall==='FAIL'
       ? 'At least one requirement failed. Send `verify-output.zip` back — the failing evidence line says which one.'
-      : 'Nothing failed, but some requirements could not be proven here. Each NOT TESTED line says why and what would make it run.');
+      : `Nothing failed, but some requirements could not be proven here. Each NOT TESTED line says why and what would make it run.${isStrict()?' **This run is strict (`VERIFY_STRICT=1`), so INCOMPLETE fails the check: a green status means every requirement was proven, not merely that nothing complained.**':''}`);
   lines.push('');
   lines.push('## Requirements');
   lines.push('');

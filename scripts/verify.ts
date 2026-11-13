@@ -20,7 +20,7 @@ import {mkdir,readFile,readdir,rm,writeFile} from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import {select,type Requirement} from './verify-plan';
-import {exitCodeFor,overallStatus,renderReport,summarize,type ItemResult,type Status,type StepRecord} from './verify-report';
+import {exitCodeFor,isStrict,overallStatus,renderReport,summarize,type ItemResult,type Status,type StepRecord} from './verify-report';
 import {createZip,type ZipEntry} from './verify-zip';
 import {probeHttps} from '../tests/helpers/env-preflight';
 
@@ -342,6 +342,8 @@ async function main():Promise<void>{
       {needsDb:true,env:{TEST_ORIGIN:ctx.origin,TEST_MONGO_URI:ctx.mongoUri,TEST_MONGO_DB:ctx.mongoDb}});
     await stepUnitSuites(ctx,'test:lead:rules','R3.6','The visitor-lead rule layer against the disposable database: inherited family keys and merged families, refused phone-shaped searches, the follow-up board, sticky do-not-contact in a bulk send, masked duplicate reports and audit rows, and an import batch that can be counted',
       {needsDb:true,env:{TEST_ORIGIN:ctx.origin,TEST_MONGO_URI:ctx.mongoUri,TEST_MONGO_DB:ctx.mongoDb}});
+    await stepUnitSuites(ctx,'test:lead:search','R3.7','Searching the Visitors list by number — typed digits, partial numbers, Bangla digits, with or without the leading zero — and the number never travelling in a URL, a log or an analytics event',
+      {needsDb:true,env:{TEST_ORIGIN:ctx.origin,TEST_MONGO_URI:ctx.mongoUri,TEST_MONGO_DB:ctx.mongoDb}});
     await stepScreens(ctx);
     await stepBrowserTests(ctx);
     (ctx as Context&{stop?:()=>void}).stop?.();
@@ -378,11 +380,17 @@ async function main():Promise<void>{
   await writeFile('verify-output.zip',createZip(entries));
 
   const s=summarize(requirements,ctx.results);
-  console.log(`\n=== ${overallStatus(s)}: ${s.pass} PASS, ${s.fail} FAIL, ${s.notTested} NOT TESTED (of ${s.total}) ===`);
+  console.log(`\n=== ${overallStatus(s)}: ${s.pass} PASS, ${s.fail} FAIL, ${s.notTested} NOT TESTED (of ${s.total})${isStrict()?' · strict':''} ===`);
   console.log(`   report:      verify-report.md`);
   console.log(`   screenshots: screenshots/${milestone.toLowerCase()}/ (${screenshotFiles.length})`);
   console.log(`   send back:   verify-output.zip (${Math.round((await readFile('verify-output.zip')).length/1024)} KB)\n`);
   const code=exitCodeFor(s);
+  if(code!==0&&s.fail===0){
+    // Strict mode turned an INCOMPLETE report into a failure. Say why in the log, not only in the report:
+    // the whole point is that a green check must never again mean "nothing complained".
+    console.log(`STRICT: ${s.notTested} requirement(s) were NOT TESTED, so this run fails even though nothing FAILED.`);
+    console.log('        Read verify-report.md — each NOT TESTED line says what would make it run.\n');
+  }
   process.exitCode=code;
   // Exit explicitly: a stray socket or child handle would otherwise keep a CI job alive until its
   // timeout. Everything is written and flushed before this point.

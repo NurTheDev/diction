@@ -23,6 +23,7 @@
  *      depend on the zone the server happens to run in.
  */
 import {dhakaDay,dhakaToday} from '@/lib/admin/today';
+import {PHONE_SEARCH_MIN_DIGITS} from './lead-phone';
 
 export const LEAD_STATUSES=['new','called','interested','trial_booked','admitted','not_interested','no_answer','do_not_contact'] as const;
 export type LeadStatus=typeof LEAD_STATUSES[number];
@@ -194,8 +195,14 @@ export function leadListQuery(params:{
   if(text){
     // Digits, spaces, dashes and a leading + are how a number is typed; anything else is a name.
     // Bangla digits are digits: ০১৭১২৮১৭০৯০ must be refused just as firmly as 01712817090.
+    //
+    // The threshold is PHONE_SEARCH_MIN_DIGITS, not a longer run, and the two must move together: a
+    // fragment short enough to slip into a URL would be long enough for the posted number search to
+    // find somebody, so the same digit run cannot be allowed in one path and refused in the other.
+    // Searching BY NUMBER is a staff requirement — it simply travels as a form submission, never as a
+    // query parameter (see `searchLeadsByPhone` and `src/actions/leads.ts`).
     const ascii=text.replace(/[০-৯]/g,c=>String('০১২৩৪৫৬৭৮৯'.indexOf(c)));
-    if(/^[\d\s()+.-]{7,}$/.test(ascii))refusedPhone=true;else search.set('q',text);
+    if(new RegExp(`^[\\d\\s()+.-]{${PHONE_SEARCH_MIN_DIGITS},}$`).test(ascii))refusedPhone=true;else search.set('q',text);
   }
   for(const [key,value] of Object.entries({
     status:params.status,classGroup:params.classGroup,group:params.group,shift:params.shift,

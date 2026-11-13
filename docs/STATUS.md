@@ -474,6 +474,44 @@ now gets 4096 MB and the build 2048 MB, with a comment saying why they must not 
 one — a whole-program `tsc` grows with the repository, and R3 has two more waves to add.
 
 **Not started, by design:** the sidebar group **ভিজিটর**, quick-add, the list with its filters and
-inline status, the detail drawer, the Overview "Today's follow-ups" widget, duplicate detection with
+inline status, the detail drawer, the Overview "Today's follow-ups" widget, the number-search box that
+posts (the action and the rule layer exist; the screen does not), duplicate detection with
 sibling/merge, the lead entry point for `SendSmsDialog`, the import wizard, the funnel reports and CSV
-export, and `docs/R3-START-HERE.md`. Those are waves B and C.
+export, and `docs/R3-START-HERE.md`. Those are the rest of wave B and wave C.
+
+## 15. Two owner requirements added on 2026-11-13, before wave B's screens
+
+**1. CI is strict: a green check now means every requirement was proven.** `npm run verify` used to exit
+non-zero only when something FAILED, so an INCOMPLETE report — nothing failed, some things never ran —
+produced a green GitHub check. That is not a hypothetical: it is exactly what wave A's first run did
+(14 PASS, 0 FAIL, 18 NOT TESTED). The workflow now sets `VERIFY_STRICT=1`, `exitCodeFor()` in
+`scripts/verify-report.ts` fails on a single NOT TESTED requirement, and a second step re-reads
+`verify-report.md` and rejects anything but a `**PASS**` Result line with `0 NOT TESTED` — independent
+of the exit code, with the evidence steps still on `always()` so a red run commits the report that
+explains it. Local runs keep the old behaviour deliberately (`--skip-app`, or a machine with no MongoDB
+and no browser, still exits 0 with an honest INCOMPLETE report), because a person reads the report and
+CI reads the exit code. Documented in `docs/VERIFY.md`.
+
+**2. Staff can search the Visitors list by number — and the number never travels in a URL, a log or an
+analytics event.** Implemented as `phoneSearchDigits()` (reading) in `src/lib/leads/lead-phone.ts`,
+`searchLeadsByPhone()` (matching) in `src/lib/leads/leads.ts` and `searchLeadsByNumber()` (the door, a
+guarded server action) in `src/actions/leads.ts`; proven by `tests/lead-phone-search.integration.ts` as
+**R3.7** (registry 34) with the reading rules also pinned inside R3.3's pure suite.
+
+Every spelling finds the same lead: typed digits, no leading zero, Bangla digits, `+88`, `0088`, dashes,
+spaces, brackets, a four-digit fragment, a fragment from the middle, either number of a lead holding two,
+and a number stored behind a label (`বাবা ০১৭১২৮১৭০৯০`). Under four digits is refused in Bangla that
+counts the digits without quoting them.
+
+The privacy half is asserted, not promised: console output is captured across every search and holds no
+fixture number in ASCII or Bangla; every audit target is a mask (`****` below eight digits, because the
+last four of a mobile number ARE the number); the GET path stays shut — `leadListQuery()` builds nothing
+and `listLeads()` applies nothing for a digit run of `PHONE_SEARCH_MIN_DIGITS` or more, the two
+thresholds tied to one constant so they cannot drift, while names, schools and `V-2026-0001` stay
+shareable; the only hrefs carrying a number are the `tel:` and `wa.me` destinations the brief requires;
+the action exports only async functions, builds no href, reads no query parameter and logs an error
+*name* rather than a value; and the suite scans all of `src/` for fourteen tracking globals and asserts
+zero matches, so if analytics is ever added the test fails and asks whether it can see this search.
+
+A search IS audited (`lead.phone-search`, mask as the target): looking a parent up by number is worth
+accounting for, and the digits are not the account.

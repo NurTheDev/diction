@@ -2,7 +2,7 @@
 
 Every sentence of `docs/SPEC.md` §R3, answered point by point with the file that implements it and the
 test that proves it. Verify requirements **R3.1 – R3.6** are implemented (wave A foundations, plus the
-wave-B rule layer); `npm run verify` reports all 33 requirements (R0 + R1 + R2 + R3).
+wave-B rule layer); `npm run verify` reports all 34 requirements (R0 + R1 + R2 + R3).
 
 Proven, not claimed: wave A at **32 PASS / 0 FAIL / 0 NOT TESTED** (run 43381282853, evidence
 `4e6473c`) and R3.6 at **33 PASS / 0 FAIL / 0 NOT TESTED** (run 43385394912 on `494dbbd`, evidence
@@ -18,6 +18,7 @@ Nothing below is a claim from reading code: each row names a suite that runs in 
 | `tests/lead-class.test.ts` | `test:lead:class` (R3.4) | nothing but Node |
 | `tests/lead-model.integration.ts` | `test:lead:db` (R3.5) | disposable database |
 | `tests/lead-rules.integration.ts` | `test:lead:rules` (R3.6) | disposable database |
+| `tests/lead-phone-search.integration.ts` | `test:lead:search` (R3.7) | disposable database + reads `src/` |
 | `tests/recycle-coverage.test.ts` | `test:recycle:coverage` (R1) | nothing but Node — now counts 22 bin schemas, `lead` among them |
 
 **Wave order, as agreed:** A foundations (§1–§5), B screens (sidebar group **ভিজিটর**, quick-add, list,
@@ -244,7 +245,63 @@ wizard can ask "this file was already imported — 40 leads — import again?" i
 `nextLeadId()` hands out ids by reading the highest existing one, so two operators saving at once can be
 given the same id: the unique index is the real guard, and the write retries once behind it.
 
-## 7. What is still not done, stated plainly
+## 7. Searching by number, and where a number may travel — R3.7
+
+**The requirement, in the owner's words:** staff can still search leads by phone number from the
+Visitors list — typed digits, partial numbers, Bangla digits, with or without the leading zero — and the
+number must travel by form submission or server action, never in a URL, a log or an analytics event.
+Both halves are implemented and both are tested; neither is a promise.
+
+**How a number is read** (`phoneSearchDigits()` in `lead-phone.ts`, unit-proven inside R3.3's suite):
+Bangla digits are converted, every non-digit is dropped, a leading `0088` or `88` is recognised as a
+country code and removed — but only when what follows is long enough to be a national number, because a
+Bangladeshi mobile never starts with 88 — and the leading zero is kept or absent indifferently. What
+comes out is the digit run that gets matched, plus `hadCountryCode` and `hadLeadingZero` so a UI can say
+what it understood. Under four digits is refused, over fifteen is refused, and a refusal quotes **how
+many** digits were typed in Bangla numerals, never which.
+
+**How it matches** (`searchLeadsByPhone()` in `leads.ts`): one substring match on `phones.normalized`,
+which is why every spelling works — `01712817090`, `1712817090`, `০১৭১২৮১৭০৯০`, `+8801712817090`,
+`0088 017…`, `017-128-17090`, `(017) 128 17090`, `৮৮ ০১৭১২৮১৭০৯০`, the last four `7090`, a middle
+fragment `1712817`, and either number of a lead that holds two. Matching on the normalized field is also
+why a number stored behind a label (`বাবা ০১৭১২৮১৭০৯০`) is found. A substring match cannot use the
+index an exact match would: accepted deliberately, because a centre's visitor list is thousands of rows
+and "find this parent" is worth more than the last millisecond. The result reports `total` beside a
+limited `hits` array, so "two shown" is never mistaken for "two exist". A number nobody holds answers
+`empty` with a Bangla sentence; a binned lead is not resurrected by a search and is findable again the
+moment it is restored.
+
+**How it travels.** The only door is `searchLeadsByNumber()` in `src/actions/leads.ts` — a server
+action, i.e. a form submission, guarded by `requireArchiver()` (Admin and Staff; Teachers excluded). The
+GET path stays shut and the two thresholds are tied to one constant so they cannot drift:
+`leadListQuery()` refuses to build a URL containing a digit run of `PHONE_SEARCH_MIN_DIGITS` or more
+(`?q=01712817090` becomes `/bn/admin/leads`, in Bangla digits too, and so does `?q=7090`), and
+`listLeads()` refuses to apply one. A name, a school or a lead id is still a legitimate URL parameter —
+that is what makes a filtered list shareable — and `V-2026-0001` is not a number.
+
+**What is proven about leaks**, in `tests/lead-phone-search.integration.ts`:
+
+- `console.log/error/warn/info` are captured across every search and read back: no fixture number
+  appears, in ASCII or in Bangla digits, with or without its leading zero.
+- Every `lead.phone-search` audit target is a mask (`****`, or `01****90` for eight digits or more);
+  nothing with a four-digit run is audited anywhere under `lead.*`. A search *is* audited, because
+  looking a parent up by number is worth accounting for — the digits simply are not the account.
+- `phoneSearchMask()` shows nothing at all under eight digits, because the last four of a mobile number
+  are the identifying part and a "mask" of them would be the number.
+- In the returned payload the only fields carrying a full number are `tel:` and `wa.me` — the two
+  destinations the brief requires, built in one place, third-party, never a route of this app — and
+  `leadPath()` for every hit carries no digits.
+- Structurally: `src/actions/leads.ts` exports **only** async functions (one value export corrupts every
+  server action in the app), calls its guard before anything else, builds no href and reads no query
+  parameter, and its single `console.error` passes an error *name* — never the error text, because a
+  driver error can quote the value it choked on and here that value is a parent's number.
+- And there is no analytics to leak into: the suite scans every `.ts/.tsx/.js/.jsx` file under `src/` for
+  fourteen tracking globals (`gtag(`, `googletagmanager`, `dataLayer`, `fbq(`, `plausible.io`,
+  `mixpanel`, `amplitude`, `posthog`, `segment.io`, `clarity.ms`, `hotjar`, …) and asserts **zero**
+  matches. Today that is trivially true; the point is that if anybody ever adds analytics, this test
+  fails and asks "can it see the leads search?" instead of letting the question go unasked.
+
+## 8. What is still not done, stated plainly
 
 1. **There is still no screen.** No sidebar group, no quick-add, no list, no drawer, no Overview widget —
    §6 is the layer they will call, and nothing in it renders anything. The rest of wave B owns the

@@ -10,7 +10,7 @@
  * `wa.me` href the brief asks for, and in a mask — never in a route of this app, a log or an audit row.
  */
 import assert from 'node:assert/strict';
-import {parsePhoneCell,telHref,whatsappHref,maskedPhones} from '../src/lib/leads/lead-phone';
+import {parsePhoneCell,telHref,whatsappHref,maskedPhones,phoneSearchDigits,phoneSearchMask,PHONE_SEARCH_MIN_DIGITS,PHONE_SEARCH_MAX_DIGITS} from '../src/lib/leads/lead-phone';
 
 const read=(raw:unknown)=>parsePhoneCell(raw);
 const numbers=(raw:unknown)=>read(raw).phones.map(phone=>phone.normalized);
@@ -76,7 +76,38 @@ function run(){
   assert.equal(maskedPhones([]),'—','and an empty list is a dash, not an empty string');
   assert.ok(!maskedPhones(['01712817090']).includes('01712817090'),'the mask is not the number');
 
-  console.log('Visitor sheet phones: a clean number, "0 1934-595247", Bangla digits, brackets, a missing leading zero and a +880 country code all read to one normalized 01XXXXXXXXX with the original spelling kept; two numbers in one cell read as two whether they were split by a comma, a semicolon, a line break, a space or a Bangla label, and the same number twice reads once; ten digits are flagged short and never padded, a nonexistent prefix is invalid, digits left over beside a real number are reported rather than folded in, and a word instead of a number is kept as written — while an empty cell is distinguished from an unreadable one; and a number appears only in the tel: and wa.me destinations the brief requires and in a mask, never in a route of this app, a log line or an audit row.');
+  // ---- Searching BY NUMBER: reading what the operator typed, without ever echoing it back.
+  // phoneSearchDigits returns a discriminated union, so each helper narrows before it reads — the trap
+  // is `.digits` on a refusal, which is a TS2339 and, at runtime, `undefined` where a test expected a
+  // number. Three tiny readers keep the assertions below readable.
+  const digitsOf=(typed:string):string=>{const read=phoneSearchDigits(typed);return read.ok===true?read.digits:''};
+  const refusalOf=(typed:string):string=>{const read=phoneSearchDigits(typed);return read.ok===false?read.code:''};
+  const messageOf=(typed:string):string=>{const read=phoneSearchDigits(typed);return read.ok===false?read.messageBn:''};
+  const readOk=(typed:string)=>{const read=phoneSearchDigits(typed);return read.ok===true?read:null};
+  assert.deepEqual([digitsOf('01712817090'),digitsOf('1712817090')],['01712817090','1712817090'],'typed digits, with the leading zero or without it');
+  assert.equal(digitsOf('০১৭১২৮১৭০৯০'),'01712817090','Bangla digits read as the same number');
+  assert.equal(digitsOf('+8801712817090'),'01712817090','a +88 country code is removed');
+  assert.equal(digitsOf('0088 01712817090'),'01712817090','and so is 0088, with a space in the way');
+  assert.equal(readOk('8801712817090')?.hadCountryCode,true,'the reader reports that it removed one');
+  assert.equal(readOk('1712817090')?.hadLeadingZero,false,'and that the zero was missing');
+  assert.equal(digitsOf('017-128-17090'),'01712817090','dashes carry no information');
+  assert.equal(digitsOf('(017) 128 17090'),'01712817090','nor do brackets and spaces');
+  assert.equal(digitsOf('7090'),'7090','a partial number is searched as the fragment it is');
+  assert.equal(readOk('7090')?.length,PHONE_SEARCH_MIN_DIGITS,'and four digits is the shortest search allowed');
+  assert.equal(digitsOf('1712817'),'1712817','so is a fragment from the middle');
+  assert.equal(refusalOf('12'),'too_short','two digits is refused');
+  assert.ok(messageOf('12').includes('২ অঙ্ক'),'the refusal counts the digits in Bangla…');
+  assert.ok(!messageOf('12').includes('12'),'…and does not quote the digits that were typed');
+  assert.equal(refusalOf('   '),'empty','an empty box is refused, not searched');
+  assert.equal(refusalOf('0'.repeat(PHONE_SEARCH_MAX_DIGITS+1)),'too_long','and sixteen digits is not a number');
+  assert.equal(digitsOf('৭০৯০'),'7090','a Bangla fragment reads the same way');
+  assert.equal(phoneSearchMask('7090'),'****','a four-digit fragment is masked to nothing: the last four ARE the number');
+  assert.equal(phoneSearchMask('1712817'),'****','and so is anything under eight digits');
+  assert.equal(phoneSearchMask('01712817090'),'01****90','a full number is masked at both ends');
+  assert.ok(!phoneSearchMask('01712817090').includes('01712817090'),'and the mask is never the number');
+  assert.equal(phoneSearchMask(''),'****','nothing typed, nothing shown');
+
+  console.log('Visitor sheet phones: a clean number, "0 1934-595247", Bangla digits, brackets, a missing leading zero and a +880 country code all read to one normalized 01XXXXXXXXX with the original spelling kept; a number searched by typed digits, Bangla digits, a partial fragment, dashes, brackets, +88 and 0088, with the leading zero or without it, reads to the digits that are matched, refuses two digits in Bangla that counts them without quoting them, and masks anything under eight digits to nothing; two numbers in one cell read as two whether they were split by a comma, a semicolon, a line break, a space or a Bangla label, and the same number twice reads once; ten digits are flagged short and never padded, a nonexistent prefix is invalid, digits left over beside a real number are reported rather than folded in, and a word instead of a number is kept as written — while an empty cell is distinguished from an unreadable one; and a number appears only in the tel: and wa.me destinations the brief requires and in a mask, never in a route of this app, a log line or an audit row.');
 }
 
 run();
