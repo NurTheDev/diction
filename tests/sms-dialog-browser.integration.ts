@@ -121,11 +121,21 @@ async function run(){
       await dialog.waitFor({state:'visible',timeout:60000});
       await step(1).waitFor({state:'visible',timeout:60000});
     }
+    /** Exactly one .sms-step section is rendered at a time, so it says which step the dialog is on. */
+    const currentStep=async():Promise<number>=>Number(await page.locator('.sms-step').getAttribute('data-sms-step')||'1');
+    /**
+     * Walk forward to a step from wherever the dialog already is. Phases do not all start at step one
+     * — a helper that assumed they did clicked straight past the step it was asked for.
+     */
     async function toStep(n:number){
-      for(let target=2;target<=n;target++){
+      for(let hop=0;hop<4;hop++){
+        const at=await currentStep();
+        if(at===n)return;
+        assert.ok(at<n,`the dialog is on step ${at}; this phase needs step ${n} and never walks backwards`);
         await page.locator('[data-sms-next]').click();
-        await step(target).waitFor({state:'visible',timeout:60000});
+        await step(at+1).waitFor({state:'visible',timeout:60000});
       }
+      throw Error(`the dialog never reached step ${n}; it is on step ${await currentStep()}`);
     }
 
     // 1. The due list offers "Send reminder", and step one counts exactly the numbers it will use.
@@ -293,7 +303,19 @@ async function run(){
 
     // 8. The SMS page's "new message" reaches a whole class, and asks for the one value it cannot know.
     await openDialog('/bn/admin/sms','নতুন বার্তা');
-    await expectSummary(/মোট 3 নম্বর · 3 বার্তা/,'the whole class counts the payer, the merged siblings and the held student');
+    assert.equal(await page.locator('input[name="smsTemplate"][value="notice"]').count(),0,'step one offers no template picker; that is step two');
+    // A notice is the one message whose value the centre cannot know, so before the operator types it
+    // there is honestly nothing to send: {subject} is a KNOWN chip, so nobody is sent a hole — every
+    // recipient is reported incomplete instead, and the count says zero rather than promising three.
+    await expectSummary(/মোট 0 নম্বর/,'a notice with no subject counts no numbers yet');
+    assert.match(await page.locator('[data-sms-skipped]').innerText(),/তথ্য অসম্পূর্ণ/,'and the operator is told the message data is incomplete');
+    await toStep(2);
+    assert.equal(await page.locator('input[name="smsTemplate"][value="notice"]').isChecked(),true,'a notice is the default for a new message');
+    await page.locator('#sms-subject').waitFor({state:'visible',timeout:30000});
+    await page.locator('#sms-subject').fill('বার্ষিক পরীক্ষার রুটিন');
+    await page.locator('[data-sms-back]').click();
+    await step(1).waitFor({state:'visible',timeout:30000});
+    await expectSummary(/মোট 3 নম্বর · 3 বার্তা/,'with its subject the whole class counts: the payer, the merged siblings and the held student');
     const classSkips=await page.locator('[data-sms-skipped]').innerText();
     assert.match(classSkips,/অপ্ট-আউট/,'the opted-out number is still skipped');
     assert.match(classSkips,/নম্বর নেই/,'and so are the two with no guardian number');
@@ -302,10 +324,6 @@ async function run(){
     await page.locator('[data-sms-recipients] tbody tr').first().waitFor({state:'visible',timeout:30000});
     assert.match(ascii(await page.locator('[data-sms-recipients]').innerText()),/01733333336/,'the held student really is on the list for a non-fee message');
     await page.locator('[data-sms-recipients-toggle]').click();
-    await toStep(2);
-    assert.equal(await page.locator('input[name="smsTemplate"][value="notice"]').isChecked(),true,'a notice is the default for a new message');
-    await page.locator('#sms-subject').waitFor({state:'visible',timeout:30000});
-    await page.locator('#sms-subject').fill('বার্ষিক পরীক্ষার রুটিন');
     await toStep(3);
     for(let i=0;i<40&&!(await page.locator('[data-sms-preview]').first().innerText()).includes('বার্ষিক পরীক্ষার রুটিন');i++)await new Promise(resolve=>setTimeout(resolve,500));
     assert.match(await page.locator('[data-sms-preview]').first().innerText(),/বার্ষিক পরীক্ষার রুটিন/,'the subject the operator typed is in the preview');
@@ -343,7 +361,7 @@ async function run(){
     assert.equal(await worker.page.locator('[data-sms-open]').count(),0,'and no new-message control on the SMS page');
     await worker.context.close();
 
-    console.log('SendSmsDialog: one reusable four-step dialog opened from the due list, a student profile, the student list’s bulk action, the payment success screen and the SMS page — step one counts the real numbers and lists every skipped one with its reason (opted out, no number, held for a fee message; a removed student is never counted), guardian/student/both and one-message-per-phone change exactly who is included, step two offers the templates with all nine variable chips, step three previews the first messages verbatim with characters, segments and cost against the balance, step four has one green send button that made a single request for two clicks and reported sent 2 / failed 0 / skipped 3, with one stored row per (recipient, student) so the merged sibling message is traceable to both children, a receipt send carries its own number and student, a class notice asks for its subject, nothing overflows at 360px, the labels follow the page language, staff get no control, and no credential reaches the browser.');
+    console.log('SendSmsDialog: one reusable four-step dialog opened from the due list, a student profile, the student list’s bulk action, the payment success screen and the SMS page — step one counts the real numbers and lists every skipped one with its reason (opted out, no number, held for a fee message; a removed student is never counted), guardian/student/both and one-message-per-phone change exactly who is included, step two offers the templates with all nine variable chips, step three previews the first messages verbatim with characters, segments and cost against the balance, step four has one green send button that made a single request for two clicks and reported sent 2 / failed 0 / skipped 3, with one stored row per (recipient, student) so the merged sibling message is traceable to both children, a receipt send carries its own number and student, a class notice counts nothing until the operator types the one subject the centre cannot know, nothing overflows at 360px, the labels follow the page language, staff get no control, and no credential reaches the browser.');
   }finally{
     await browser.close();
     await mongoose.disconnect();

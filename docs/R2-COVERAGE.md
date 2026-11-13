@@ -55,6 +55,9 @@ and message content stays Bangla even on an English screen. `CenterSmsTemplate` 
 `edited:true` for an override. Chips substitute without inventing values; a known chip with no value
 is reported as a skip (`missing_value`) rather than rendering a hole; an **unknown** chip stays
 visible in the text and blocks the whole plan, because a typo affects every recipient identically.
+When a chip no recipient can fill drops everybody — a `notice` with no subject — nothing is left to
+send, so the endpoint refuses the send as `NO_RECIPIENTS` (409) and the preview it returns lists every
+recipient as `missing_value` with both labels, which is what tells the operator to fill the field.
 The variable set is exactly the spec's nine, and `SMS_VARIABLES` is the single source both the
 renderer and the dialog's chips read.
 

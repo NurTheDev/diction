@@ -147,11 +147,21 @@ async function run(){
     const emptyBody=await call({mode:'send',source:'class',classGroup:classId,templateKey:'custom',text:'   ',target:'guardian',requestId:randomUUID()});
     assert.equal(emptyBody.status,409);
     assert.equal(emptyBody.body.blocked,'EMPTY_MESSAGE');
+    // A notice with no subject: {subject} is a KNOWN chip, so it is never rendered as a hole. Every
+    // recipient is reported incomplete instead, which leaves nothing to send — and the send is refused
+    // with the reason, plus the preview that explains it. Only an UNKNOWN chip (a typo) blocks the
+    // whole plan as UNRENDERED_VARIABLE, because that one affects every recipient identically.
     const noSubject=await call({mode:'send',source:'class',classGroup:classId,templateKey:'notice',target:'guardian',requestId:randomUUID()});
     assert.equal(noSubject.status,409);
-    assert.equal(noSubject.body.blocked,'UNRENDERED_VARIABLE:{subject}','a notice with no subject is refused rather than sent with a hole');
+    assert.equal(noSubject.body.blocked,'NO_RECIPIENTS','a notice with no subject is refused rather than sent with a hole in it');
+    assert.equal(noSubject.body.preview.phones,0,'nobody is left to send it to');
+    const incomplete=noSubject.body.preview.skipped.filter((item:{reason:string})=>item.reason==='missing_value');
+    assert.ok(incomplete.length>=4,'and the operator is told why: every number that would have been used is reported incomplete, one row per student');
+    assert.ok(incomplete.some((item:{phone:string})=>item.phone==='01711000007'),'even the held student, whom a notice does reach, is incomplete without a subject');
+    assert.ok(noSubject.body.preview.skipped.every((item:{labelBn:string;labelEn:string})=>item.labelBn&&item.labelEn),'each reason stated in both languages');
     const withSubject=previewOf(await call({mode:'preview',source:'class',classGroup:classId,templateKey:'notice',subject:'বার্ষিক পরীক্ষার রুটিন',target:'guardian',requestId:randomUUID()}));
-    assert.equal(withSubject.blocked,null);
+    assert.equal(withSubject.blocked,null,'the same notice with its subject is not blocked at all');
+    assert.equal(withSubject.skipped.filter(item=>item.reason==='missing_value').length,0,'and nobody is incomplete any more');
     assert.ok(withSubject.recipients[0].preview.includes('বার্ষিক পরীক্ষার রুটিন'),'the subject the operator typed is in the message');
     const emptyPreview=previewOf(await call({mode:'preview',source:'class',classGroup:classId,templateKey:'custom',text:'',target:'guardian',requestId:randomUUID()}));
     assert.equal(emptyPreview.blocked,'EMPTY_MESSAGE','a preview reports the block instead of throwing');
