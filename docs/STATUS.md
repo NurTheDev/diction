@@ -347,9 +347,9 @@ the due list, a student profile, the student list's bulk action, the payment suc
 SMS page; and the three auto-sends wired behind their toggles, plus a new 07:05 Asia/Dhaka flush job.
 
 **Requirements:** R2.1–R2.9 in `scripts/verify-plan.ts` (27 in total). Green runs: 43296844437
-(wave A, 23 PASS), 43303024575 (wave B1, 24 PASS) and **43362581393 (wave B2, 26 PASS — all 26
-requirements then in the registry, 0 FAIL, 0 NOT TESTED)**, whose evidence is in
-`test-results/ci-latest/`.
+(wave A, 23 PASS), 43303024575 (wave B1, 24 PASS), 43362581393 (wave B2, 26 PASS — all 26
+requirements then in the registry) and **43374490721 (the follow-up, 27 PASS — all 27 requirements,
+0 FAIL, 0 NOT TESTED)**, whose evidence is in `test-results/ci-latest/` at `4fe49db`.
 
 **R2 follow-up (the owner's two requests, before the real provider goes on):** an *Automatic SMS
 problems* card on the SMS page and the Overview, and `docs/SMS-GOLD-LIVE.md`. The card exists because
@@ -364,8 +364,9 @@ batch was ever created, then resolves the row against the admin who clicked and 
 (`sms.autoretry`). A toggle that is off, a class with nobody overdue and a message queued for quiet
 hours are not problems and are never recorded. Requirement **R2.9**
 (`tests/sms-auto-problem.integration.ts`, `test:sms:problem`) proves it against the disposable database,
-including that the payment is saved first and stays saved. The green run for this change set is named in
-the sentence above once CI reports it.
+including that the payment is saved first and stays saved. Its evidence: run **43374490721** on commit
+`3dca7ef`, all PASS, with the suite's own claim line in
+`test-results/ci-latest/logs/unit-test-sms-problem.txt`.
 
 **Two real defects wave B2's own suites caught, both now fixed:** a shared guardian number was never
 merged, because sibling totals are localized (`৩০০০`) and the sum was parsed with `Number()`, which
