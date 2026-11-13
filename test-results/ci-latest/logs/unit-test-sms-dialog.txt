@@ -1,16 +1,14 @@
 --- tests/sms-dialog.integration.ts (exit 1) ---
-AssertionError [ERR_ASSERTION]: a notice with no subject is refused rather than sent with a hole
-+ actual - expected
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
 
-+ 'NO_RECIPIENTS'
-- 'UNRENDERED_VARIABLE:{subject}'
+3 !== 1
 
-    at run (/home/runner/work/diction/diction/tests/sms-dialog.integration.ts:152:12)
+    at run (/home/runner/work/diction/diction/tests/sms-dialog.integration.ts:192:12)
     at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {
-  generatedMessage: false,
+  generatedMessage: true,
   code: 'ERR_ASSERTION',
-  actual: 'NO_RECIPIENTS',
-  expected: 'UNRENDERED_VARIABLE:{subject}',
+  actual: 3,
+  expected: 1,
   operator: 'strictEqual',
   diff: 'simple'
 }
