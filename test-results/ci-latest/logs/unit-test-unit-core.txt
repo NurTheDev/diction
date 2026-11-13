@@ -105,25 +105,5 @@ Public sheet input tests passed.
 Unicode practice CSV and validation passed.
 
 
---- tests/verify-report.test.ts (exit 1) ---
-AssertionError [ERR_ASSERTION]: NOT TESTED alone must not look like a crash
-
-1 !== 0
-
-    at run (/home/runner/work/diction/diction/tests/verify-report.test.ts:59:10)
-    at assert (/home/runner/work/diction/diction/tests/verify-report.test.ts:127:1)
-    at Object.<anonymous> (/home/runner/work/diction/diction/tests/verify-report.test.ts:127:76)
-    at Module._compile (node:internal/modules/cjs/loader:1781:14)
-    at Object.transformer (/home/runner/work/diction/diction/node_modules/tsx/dist/register-B1c7OH6V.cjs:22:2188)
-    at Module.load (node:internal/modules/cjs/loader:1505:32)
-    at Function._load (node:internal/modules/cjs/loader:1309:12)
-    at wrapModuleLoad (node:internal/modules/cjs/loader:254:19)
-    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:335:3)
-    at ModuleWrap.<anonymous> (node:internal/modules/esm/translators:235:7) {
-  generatedMessage: false,
-  code: 'ERR_ASSERTION',
-  actual: 1,
-  expected: 0,
-  operator: 'strictEqual',
-  diff: 'simple'
-}
+--- tests/verify-report.test.ts (exit 0) ---
+Verify harness: report never claims PASS without evidence, one line per requirement, reasons escaped, ZIP round-trips through yauzl with intact binary content, and every registered requirement points at a real proof.
