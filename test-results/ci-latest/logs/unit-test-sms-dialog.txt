@@ -1,26 +1,9 @@
---- tests/sms-dialog.integration.ts (exit 1) ---
-Error: CenterSmsBatch validation failed: createdBy: Path `createdBy` is required.
-    at ValidationError.inspect (/home/runner/work/diction/diction/node_modules/mongoose/lib/error/validation.js:52:26)
-    at formatValue (node:internal/util/inspect:897:19)
-    at inspect (node:internal/util/inspect:409:10)
-    at formatWithOptionsInternal (node:internal/util/inspect:2643:40)
-    at formatWithOptions (node:internal/util/inspect:2505:10)
-    at console.value (node:internal/console/constructor:366:14)
-    at console.error (node:internal/console/constructor:433:61)
-    at <anonymous> (/home/runner/work/diction/diction/tests/sms-dialog.integration.ts:345:55) {
-  errors: {
-    createdBy: ValidatorError: Path `createdBy` is required.
-        at validate (/home/runner/work/diction/diction/node_modules/mongoose/lib/schemaType.js:1440:13)
-        at SchemaType.doValidate (/home/runner/work/diction/diction/node_modules/mongoose/lib/schemaType.js:1424:7)
-        at /home/runner/work/diction/diction/node_modules/mongoose/lib/document.js:3151:18
-        at process.processTicksAndRejections (node:internal/process/task_queues:84:11) {
-      properties: [Object],
-      kind: 'required',
-      path: 'createdBy',
-      value: undefined,
-      reason: undefined,
-      [Symbol(mongoose#validatorError)]: true
-    }
-  },
-  _message: 'CenterSmsBatch validation failed'
-}
+--- tests/sms-dialog.integration.ts (exit 0) ---
+Sent (mock) to 01711000001: ডিকশন কোচিং: শিক্ষার্থী 1 এর মার্চ মাসের ১২০০ টাকা পেয়েছি। রসিদ নং SYNTH-AUTO। 
+Sent (mock) to 01711000001: ডিকশন কোচিং: প্রিয় অভিভাবক, শিক্ষার্থী 1 এর জানুয়ারি–মার্চ মাসের ৩০০০ টাকা বকে
+Sent (mock) to 01711000002: ডিকশন কোচিং: প্রিয় অভিভাবক, শিক্ষার্থী 2 ও শিক্ষার্থী 3 এর জানুয়ারি–মার্চ মাসে
+Sent (mock) to 01711000001: ডিকশন কোচিং: শিক্ষার্থী 1 এর ফলাফল প্রকাশ হয়েছে। বিস্তারিত দেখতে পোর্টেলে লগইন 
+Sent (mock) to 01711000002: ডিকশন কোচিং: শিক্ষার্থী 2 ও শিক্ষার্থী 3 এর ফলাফল প্রকাশ হয়েছে। বিস্তারিত দেখতে
+Sent (mock) to 01711000007: ডিকশন কোচিং: শিক্ষার্থী 7 এর ফলাফল প্রকাশ হয়েছে। বিস্তারিত দেখতে পোর্টেলে লগইন 
+Sent (mock) to 01711000009: ডিকশন কোচিং: শিক্ষার্থী 9 এর ফলাফল প্রকাশ হয়েছে। বিস্তারিত দেখতে পোর্টেলে লগইন 
+SMS dialog contract: one guarded endpoint for preview, send and retry — a preview is read-only and reports recipients, skipped numbers with a reason from the closed vocabulary, the first three messages, segments and cost against the balance plus a low-balance warning; sibling grouping, guardian/student/both and the DUE-only list change exactly who is counted; an empty body or an unrendered chip is refused instead of sent; one requestId is one batch so a double-click sends nothing twice; "skip those" drops students messaged within 24 hours; retry re-sends only failed rows and refuses when there are none; quiet hours queue and the flush job sends; the three auto-send toggles are OFF by default, idempotent when on, and stored with their trigger and no creator because a job is not a person; malformed requests are refused before anything is read; and no credential appears in a response or a stored row.
