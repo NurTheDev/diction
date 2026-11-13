@@ -782,7 +782,10 @@ async function run(){
     },'the merge record landed on the named lead',90000);
     assert.equal(await Lead.countDocuments({studentName:M2}),0,'and the merge wrote no second row');
     // (f) Tying two leads that stay two: the mate block empties and the family list takes over.
+    // One submission at a time: a commit resets the form, so typing the next entry while the
+    // previous save is still in flight would type into a form React is about to empty.
     await typeAdd(T1,P7);
+    await until(async()=>(await Lead.countDocuments({studentName:T1}))===1,'the first of the pair was written',90000);
     await typeAdd(T2,P7);
     const ask4=panel(boss.page,t.addTitle).locator('[data-dup-ask]');
     await ask4.waitFor({state:'visible',timeout:90000});
