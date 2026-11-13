@@ -774,9 +774,13 @@ async function run(){
     const ask3=dupPanel.locator('[data-dup-ask]');
     await ask3.waitFor({state:'visible',timeout:90000});
     await ask3.locator('button[name="dupMerge"]').click();
-    await until(async()=>(await Lead.countDocuments({studentName:M2}))===0,'the merge wrote no second row',90000);
-    const m1=await Lead.findOne({studentName:M1}).lean<{notes:{text:string}[]}>();
-    assert.ok((m1!.notes||[]).some(note=>note.text.includes('quick-add merge')),'and the target kept a record of it');
+    // Wait for the merge RECORD, not for the absence of a row: "M2 was never written" is true the
+    // moment the question appears, so polling it would read the target before the merge commits.
+    await until(async()=>{
+      const m=await Lead.findOne({studentName:M1}).lean<{notes:{text:string}[]}>();
+      return !!m&&(m.notes||[]).some(note=>note.text.includes('quick-add merge'));
+    },'the merge record landed on the named lead',90000);
+    assert.equal(await Lead.countDocuments({studentName:M2}),0,'and the merge wrote no second row');
     // (f) Tying two leads that stay two: the mate block empties and the family list takes over.
     await typeAdd(T1,P7);
     await typeAdd(T2,P7);
