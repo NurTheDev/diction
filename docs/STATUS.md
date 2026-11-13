@@ -392,7 +392,7 @@ is not a user — silently, since all three callers are best-effort. Batches now
 
 ---
 
-## 14. R3 — Visitor leads, wave A: foundations (code complete, no screens yet)
+## 14. R3 — Visitor leads: wave A foundations + the wave-B rule layer (no screens yet)
 
 Started after the owner accepted R2 and asked for R3 in this order: **wave A foundations, wave B
 screens, wave C the import wizard**, all inside R3. Wave A is the parts that carry no UI, so every rule
@@ -423,10 +423,28 @@ And the rule behind all the parsing: **never guess.** A doubtful date, a short n
 class is flagged with the text exactly as written kept beside it; a suspicious year gets a *suggested*
 fix that nothing applies by itself.
 
-**Requirements:** R3.1–R3.5 in `scripts/verify-plan.ts` (32 in total across R0–R3). Suites:
-`test:lead:vocab`, `test:lead:date`, `test:lead:phone`, `test:lead:class` (pure) and `test:lead:db`
-(disposable database). Coverage written point by point in `docs/R3-COVERAGE.md`, including §6, which
-states what wave A does not do. The green run for wave A is named here once CI reports it.
+**Wave B opened with its rule layer,** `src/lib/leads/leads.ts` (R3.6, `tests/lead-rules.integration.ts`)
+— the decisions a screen cannot make on its own, and after it the only module besides the model that
+queries `Lead`. It writes a lead from a quick-add or from a cleaned sheet row (refusals, never repairs);
+INHERITS the family key from the lead that already holds a number and merges two families one row turns
+out to bridge; refuses a phone-shaped search at the query layer using the very function that refuses to
+put one in a URL; answers "today's follow-ups" plus the overdue count and the drawer's payload in one
+call each; keeps `doNotContact` sticky and un-overridable in a bulk-SMS selection while reporting how many
+leads that selection excluded; keeps numbers out of every error message, duplicate report and audit
+target; and counts an `importBatch` so one file cannot be imported twice. Detail in
+`docs/R3-COVERAGE.md` §6.
+
+**Requirements:** R3.1–R3.6 in `scripts/verify-plan.ts` (33 in total across R0–R3). Suites:
+`test:lead:vocab`, `test:lead:date`, `test:lead:phone`, `test:lead:class` (pure), `test:lead:db` and
+`test:lead:rules` (disposable database). Coverage written point by point in `docs/R3-COVERAGE.md`,
+including §7, which states what is still not done. **Wave A is CI-proven at 32/32** (run 43381282853,
+evidence `4e6473c`); the run that proves R3.6 is named here once CI reports it.
+
+**One defect R3.5 caught in itself, worth keeping:** its first green-capable run failed on the family key
+(`fam:01711000041` where `fam:01712817090` was expected) because the suite created a sibling with
+`familyKeyFromPhones()` over the SIBLING'S OWN numbers and then asserted it matched the first lead's. The
+assertion was wrong and the catch was the useful part: it pinned the rule `leads.ts` now implements —
+inherit the key from an indexed lookup, never recompute it, or one family splits in two by typing order.
 
 **One CI infrastructure fix this wave forced:** the first wave-A run (43379896360) came back
 **INCOMPLETE — 14 PASS, 0 FAIL, 18 NOT TESTED**, and nothing had failed. `scripts/test-mode.ts` capped

@@ -340,6 +340,8 @@ async function main():Promise<void>{
     await stepUnitSuites(ctx,'test:lead:class','R3.4','Visitor sheet class column: Roman, Bangla, "New 9", SSC/HSC batches, unmapped columns asked about');
     await stepUnitSuites(ctx,'test:lead:db','R3.5','The Lead record and its Recycle Bin participation against the disposable database',
       {needsDb:true,env:{TEST_ORIGIN:ctx.origin,TEST_MONGO_URI:ctx.mongoUri,TEST_MONGO_DB:ctx.mongoDb}});
+    await stepUnitSuites(ctx,'test:lead:rules','R3.6','The visitor-lead rule layer against the disposable database: inherited family keys and merged families, refused phone-shaped searches, the follow-up board, sticky do-not-contact in a bulk send, masked duplicate reports and audit rows, and an import batch that can be counted',
+      {needsDb:true,env:{TEST_ORIGIN:ctx.origin,TEST_MONGO_URI:ctx.mongoUri,TEST_MONGO_DB:ctx.mongoDb}});
     await stepScreens(ctx);
     await stepBrowserTests(ctx);
     (ctx as Context&{stop?:()=>void}).stop?.();

@@ -1,8 +1,8 @@
 # R3 coverage confirmation — Visitor leads, in writing
 
 Every sentence of `docs/SPEC.md` §R3, answered point by point with the file that implements it and the
-test that proves it. Verify requirements **R3.1 – R3.5** are implemented (wave A); `npm run verify`
-reports all 32 requirements (R0 + R1 + R2 + R3).
+test that proves it. Verify requirements **R3.1 – R3.6** are implemented (wave A foundations, plus the
+wave-B rule layer); `npm run verify` reports all 33 requirements (R0 + R1 + R2 + R3).
 
 Nothing below is a claim from reading code: each row names a suite that runs in CI on every push.
 
@@ -13,12 +13,14 @@ Nothing below is a claim from reading code: each row names a suite that runs in 
 | `tests/lead-phone.test.ts` | `test:lead:phone` (R3.3) | nothing but Node |
 | `tests/lead-class.test.ts` | `test:lead:class` (R3.4) | nothing but Node |
 | `tests/lead-model.integration.ts` | `test:lead:db` (R3.5) | disposable database |
+| `tests/lead-rules.integration.ts` | `test:lead:rules` (R3.6) | disposable database |
 | `tests/recycle-coverage.test.ts` | `test:recycle:coverage` (R1) | nothing but Node — now counts 22 bin schemas, `lead` among them |
 
-**Wave order, as agreed:** A foundations (this document), B screens (sidebar group **ভিজিটর**, quick-add,
-list, detail drawer, Overview widget, SMS entry point), C the import wizard and reports. Waves B and C
-add R3.6 onward and their own sections here; nothing in wave A is written against a screen that does
-not exist yet.
+**Wave order, as agreed:** A foundations (§1–§5), B screens (sidebar group **ভিজিটর**, quick-add, list,
+detail drawer, Overview widget, SMS entry point), C the import wizard and reports. Wave B opened with
+its rule layer (§6, R3.6) — the decisions a screen cannot make on its own — so the screens that follow
+have nothing left to invent. Waves B and C add R3.7 onward and their own sections here; nothing in this
+document is written against a screen that does not exist yet.
 
 ---
 
@@ -180,11 +182,70 @@ field write. A lead that has already been converted — an admission, a student 
 again. `tests/recycle-coverage.test.ts` now asserts 22 bin schemas and that the registry and the schemas
 are the same 22 types.
 
-## 6. What wave A does not do, stated plainly
+## 6. The rule layer (`src/lib/leads/leads.ts`) — R3.6
 
-1. **There is no screen yet.** No sidebar group, no quick-add, no list, no drawer, no Overview widget.
-   Wave B owns all of them, and `docs/R3-START-HERE.md` (the operator guide) will be written then,
-   because a guide to buttons that do not exist would be a lie.
+The five pure modules decide what ONE row means. This module decides what the collection around that row
+means, and it is the only place outside the model that queries `Lead` — screens and server actions call
+it. Proven by `tests/lead-rules.integration.ts` against the disposable database.
+
+**Writing a lead.** `createQuickLead()` takes what the operator typed and nothing more: a name is
+required; a number is read by `parsePhoneCell`, so Bangla digits normalize while the spelling as typed is
+kept beside it, two numbers in one box are both kept, and an unreadable one is refused with the reader's
+own Bangla sentence rather than dropped. A class label goes through `normalizeClassLabel`, which means
+`পঞ্চম শ্রেণি` — a word the reader does not hold — is stored as written with `classGroup:null` and an
+`unrecognized` flag, not bent into a number. Group, medium and shift keep their honest "we do not know"
+values, no follow-up is invented, and a `custom` follow-up of 31 February is refused. Every refusal
+returns `{ok:false,code,messageBn,messageEn}`; nothing throws at an operator and nothing is written.
+`createSheetLead()` is the importer's write and differs in one deliberate way: an unmapped vocabulary
+cell becomes `unknown`/`other` **plus** a flag quoting the sheet (`code:'unmapped'`), because "the sheet
+said something we could not read" must never be stored as "the sheet said nothing". The Bangla comment
+becomes the first note, attributed to whoever ran the import.
+
+**The family key is inherited.** `resolveFamilyKey()` does one indexed lookup on `phones.normalized` for
+every number on the new row, takes the smallest EXISTING key, and — when one row turns out to bridge two
+families — adopts the smaller key and re-points the leads holding the other, returning `mergedFrom` and
+`mergedLeads` so an import can report the merge. Recomputing the key from the new row alone would have
+chosen its own smallest number and split one family in two; R3.5 step 7 pinned that, and this module is
+the fix. A lead with no readable number gets `familyKey:null` and none is invented.
+
+**Reading the list.** `listLeads()` puts `q` through `leadListQuery()` first — the same function that
+refuses to build a URL containing a number — so a phone-shaped search is dropped at the query layer too,
+in ASCII digits and in Bangla digits, and reported as `refusedPhone` for the UI to say out loud. Names,
+guardians, schools, interests and lead ids stay searchable, because `?q=রাহুল` leaks nothing. Status,
+group, shift, medium, source and class filters are checked against the vocabulary and ignored when they
+are not in it, so a typo in a URL cannot widen or narrow a list by accident. `followUp=today|overdue|none`
+is one comparison against a Dhaka day string.
+
+**The board.** `followUpBoard()` returns today's count, the overdue count and the rows sorted oldest
+promise first, each already labelled `overdue`/`today` by `followUpState` so no component does date
+arithmetic. `leadDetail()` returns the row, its notes newest-first with the writer's NAME resolved from
+`User`, and the rest of its family — the drawer's whole payload in one call.
+
+**Do not contact, at the database.** `updateLeadStatus()` runs the status through `statusToFlags`, so
+`doNotContact` is sticky: moving the status back to `called` does not clear it. Lifting it is
+`setContactPermission()`, its own audited action, which also moves a `do_not_contact` status off itself so
+a row cannot say both. `contactableLeads()` applies `CONTACTABLE_LEAD_FILTER` as its own `$and` branch, so
+no caller-supplied filter can override it — a bulk send asking for `{doNotContact:true}` gets an empty
+list — and it returns `excludedDoNotContact` and `withoutPhone` beside the recipients, because a send
+dialog that quietly drops three parents is worse than one that says so.
+
+**Numbers stay out of logs.** A Mongo duplicate-key error quotes the value it collided on, and for a lead
+that can be a phone number, so `writeRefusal()` logs only the error code and the field names and shows the
+operator a sentence without a value in it. `duplicatePhoneGroups()` returns MASKED numbers with the lead
+ids and names beside them. Every audit row this module writes targets a `leadId`. The suite asserts all
+three, including that no `lead.*` audit target matches `01[3-9]\d{8}`.
+
+**Idempotency and ids.** `importBatchSummary()` counts a batch and names the file it came from, so the
+wizard can ask "this file was already imported — 40 leads — import again?" instead of doubling the list.
+`nextLeadId()` hands out ids by reading the highest existing one, so two operators saving at once can be
+given the same id: the unique index is the real guard, and the write retries once behind it.
+
+## 7. What is still not done, stated plainly
+
+1. **There is still no screen.** No sidebar group, no quick-add, no list, no drawer, no Overview widget —
+   §6 is the layer they will call, and nothing in it renders anything. The rest of wave B owns the
+   screens, and `docs/R3-START-HERE.md` (the operator guide) comes with them, because a guide to buttons
+   that do not exist would be a lie.
 2. **No import wizard.** `lead-columns.ts` holds the header and value rules the wizard will use, and
    `importSource`/`importBatch`/`flags[]` are already in the schema for it, but nothing reads an xlsx
    yet. Wave C.

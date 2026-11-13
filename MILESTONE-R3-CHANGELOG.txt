@@ -90,6 +90,18 @@ Wave A — foundations, no UI:
     on phones.normalized; recomputing it from the new row alone can split one family in two. The step now
     asserts both halves: the lookup finds the holder, and the freshly computed key would have been wrong.
 
+13. Wave B opened with its rule layer: src/lib/leads/leads.ts, proven by tests/lead-rules.integration.ts
+    and registered as R3.6 (registry 33). It is the only module besides the model that queries Lead, so
+    screens and server actions have nothing left to invent: createQuickLead / createSheetLead (refusals,
+    never repairs), resolveFamilyKey (inherit the key, merge two families one row bridges), leadsWithPhone,
+    listLeads (a phone-shaped q is refused at the query layer by the same leadListQuery that refuses to put
+    one in a URL), followUpBoard, leadDetail, updateLeadStatus (sticky doNotContact), setContactPermission,
+    setLeadFollowUp, addLeadNote, contactableLeads (CONTACTABLE_LEAD_FILTER as its own $and branch, so no
+    caller filter can override it, plus excludedDoNotContact and withoutPhone counts), duplicatePhoneGroups
+    (masked), importBatchSummary and readSheetValues. A Mongo duplicate-key error quotes the value it
+    collided on — for a lead that can be a number — so writeRefusal() logs only the code and the field
+    names, and no lead.* audit target is anything but a leadId.
+
 Owed, stated plainly: the sidebar group ভিজিটর, quick-add (one tap from the sidebar and the mobile
 bottom bar, Enter saves), the list with search/filters/status chips/inline status/call/WhatsApp/
 next-follow-up buttons, the detail drawer with its notes timeline, duplicate-phone detection with
