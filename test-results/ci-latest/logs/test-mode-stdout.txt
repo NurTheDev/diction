@@ -1,187 +1,26 @@
 
 STARTING TEST MODE: checking TypeScript — first startup may take several minutes. Please wait.
 
-STARTING TEST MODE: building the test application — first startup may take several minutes. Please wait.
-▲ Next.js 16.4.5 (webpack)
-✓ Running next.config.ts took 57ms
-⚠ No build cache found. Please configure build caching for faster rebuilds. Read more: https://nextjs.org/docs/messages/no-cache
-Attention: Next.js now collects completely anonymous telemetry regarding usage.
-This information is used to shape Next.js' roadmap and prioritize features.
-You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
-https://nextjs.org/telemetry
+<--- Last few GCs --->
 
-- Experiments (use with caution):
-  · cpus: 1
-  · serverActions
-  ⨯ webpackBuildWorker
-  ✓ webpackMemoryOptimizations
-
-  Creating an optimized production build ...
-✓ Compiled successfully in 34.8s
-  Skipping validation of types
-  Finished TypeScript config validation in 4ms ...
-  Collecting page data using 1 worker ...
-  Generating static pages using 1 worker (0/177) ...
-  Generating static pages using 1 worker (44/177) 
-  Generating static pages using 1 worker (88/177) 
-  Generating static pages using 1 worker (132/177) 
-✓ Generating static pages using 1 worker (177/177) in 1232ms
-  Finalizing page optimization ...
-  Collecting build traces ...
-
-Route (app)                                      Revalidate  Expire
-┌ ○ /_not-found
-├ ƒ /[locale]
-├ ƒ /[locale]/[slug]                                     1h      1y
-├   /[locale]/[slug]                                     1h      1y
-│ ├ ● /bn/teachers                                       1h      1y
-│ ├ ● /bn/facilities                                     1h      1y
-│ ├ ● /bn/contact                                        1h      1y
-│ └ ● [+17 more paths]
-├ ƒ /[locale]/account/security
-├ ƒ /[locale]/achievement-preview
-├ ƒ /[locale]/achievements
-├ ƒ /[locale]/achievements/[slug]
-├ ƒ /[locale]/admin
-├ ƒ /[locale]/admin-preview
-├ ƒ /[locale]/admin/academics
-├ ƒ /[locale]/admin/accounts
-├ ƒ /[locale]/admin/achievements
-├ ƒ /[locale]/admin/admissions
-├ ƒ /[locale]/admin/admissions/[id]
-├ ƒ /[locale]/admin/ai
-├ ƒ /[locale]/admin/audit
-├ ƒ /[locale]/admin/batches
-├ ƒ /[locale]/admin/batches/[id]
-├ ƒ /[locale]/admin/bookings
-├ ƒ /[locale]/admin/center-exams
-├ ƒ /[locale]/admin/center-exams/[id]
-├ ƒ /[locale]/admin/content
-├ ƒ /[locale]/admin/courses
-├ ƒ /[locale]/admin/faculty
-├ ƒ /[locale]/admin/fees
-├ ƒ /[locale]/admin/fees/[id]
-├ ƒ /[locale]/admin/hero
-├ ƒ /[locale]/admin/intake-setup
-├ ƒ /[locale]/admin/materials
-├ ƒ /[locale]/admin/media
-├ ƒ /[locale]/admin/messages
-├ ƒ /[locale]/admin/model-tests
-├ ƒ /[locale]/admin/portal-notices
-├ ƒ /[locale]/admin/practice-tests
-├ ƒ /[locale]/admin/public-sheets
-├ ƒ /[locale]/admin/recycle-bin
-├ ƒ /[locale]/admin/roles
-├ ƒ /[locale]/admin/site-content
-├ ƒ /[locale]/admin/site-settings
-├ ƒ /[locale]/admin/slots
-├ ƒ /[locale]/admin/sms
-├ ƒ /[locale]/admin/students
-├ ƒ /[locale]/admin/students/[id]
-├ ƒ /[locale]/admin/students/[id]/collect
-├ ƒ /[locale]/admin/students/classes
-├ ƒ /[locale]/admin/students/collect
-├ ƒ /[locale]/admin/students/dues
-├ ƒ /[locale]/admin/students/dues/snapshot/[id]
-├ ƒ /[locale]/admin/students/fees-grid
-├ ƒ /[locale]/admin/students/fees-grid/export
-├ ƒ /[locale]/admin/students/import
-├ ƒ /[locale]/admin/students/legacy-review
-├ ƒ /[locale]/admin/students/removed
-├   /[locale]/admission
-│ ├ ● /bn/admission
-│ └ ● /en/admission
-├   /[locale]/admission/track
-│ ├ ● /bn/admission/track
-│ └ ● /en/admission/track
-├ ● /[locale]/blog/[slug]
-├ ƒ /[locale]/dashboard
-├ ƒ /[locale]/dashboard/fees
-├ ƒ /[locale]/dashboard/fees/[id]
-├ ƒ /[locale]/dashboard/history
-├ ƒ /[locale]/dashboard/materials
-├ ƒ /[locale]/dashboard/model-tests
-├ ƒ /[locale]/dashboard/model-tests/[id]
-├ ƒ /[locale]/dashboard/model-tests/mistakes
-├ ƒ /[locale]/dashboard/notices
-├ ƒ /[locale]/dashboard/practice-history
-├ ƒ /[locale]/dashboard/study
-├ ƒ /[locale]/forgot-password
-├ ƒ /[locale]/lecture-sheets
-├ ƒ /[locale]/lecture-sheets/[slug]
-├ ƒ /[locale]/login
-├ ƒ /[locale]/parent
-├ ƒ /[locale]/parent/fees
-├ ƒ /[locale]/parent/fees/[id]
-├ ƒ /[locale]/parent/history
-├ ƒ /[locale]/parent/materials
-├ ƒ /[locale]/parent/notices
-├ ƒ /[locale]/portal
-├ ƒ /[locale]/portal-preview
-├ ƒ /[locale]/practice-tests
-├ ƒ /[locale]/practice-tests/[slug]
-├ ƒ /[locale]/reset-password
-├ ƒ /[locale]/study-buddy
-├ ƒ /[locale]/study-preview
-├ ƒ /[locale]/teacher
-├ ƒ /[locale]/teacher/materials
-├ ƒ /[locale]/teacher/notices
-├   /[locale]/trial-class
-│ ├ ● /bn/trial-class
-│ └ ● /en/trial-class
-├ ƒ /api/achievement-image/[slug]
-├ ƒ /api/admin/achievement-records
-├ ƒ /api/admin/achievement-records/[id]
-├ ƒ /api/admin/admissions/export
-├ ƒ /api/admin/ai-test
-├ ƒ /api/admin/center/dues-export
-├ ƒ /api/admin/jobs/daily
-├ ƒ /api/admin/jobs/sms-flush
-├ ƒ /api/admin/media
-├ ƒ /api/admin/practice-tests
-├ ƒ /api/admin/practice-tests/[id]
-├ ƒ /api/admin/public-sheets
-├ ƒ /api/admin/public-sheets/[id]
-├ ƒ /api/admin/public-sheets/[id]/preview
-├ ƒ /api/admin/roles
-├ ƒ /api/admin/roles/[id]
-├ ƒ /api/admin/sms/send
-├ ƒ /api/auth/[...nextauth]
-├ ƒ /api/channel-videos
-├ ƒ /api/materials
-├ ƒ /api/materials/[id]
-├ ƒ /api/practice-history/[id]
-├ ƒ /api/practice-tests/[slug]
-├ ƒ /api/practice-tests/[slug]/submit
-├ ƒ /api/public-assistant
-├ ƒ /api/public-media/[id]
-├ ƒ /api/public-sheets/[slug]
-├ ƒ /api/study-buddy
-├ ○ /manifest.webmanifest
-├ ○ /robots.txt
-└ ƒ /sitemap.xml
+[4107:0x2d36b000]    20149 ms: Scavenge 764.3 (783.1) -> 762.4 (783.4) MB, pooled: 0 MB, 0.80 / 0.00 ms  (average mu = 0.230, current mu = 0.251) allocation failure; 
+[4107:0x2d36b000]    20462 ms: Mark-Compact 764.3 (783.4) -> 760.8 (783.4) MB, pooled: 0 MB, 312.50 / 0.00 ms  (average mu = 0.220, current mu = 0.210) allocation failure; scavenge might not succeed
 
 
-ƒ Proxy (Middleware)
+<--- JS stacktrace --->
 
-○  (Static)   prerendered as static content
-●  (SSG)      prerendered as static HTML (uses generateStaticParams)
-ƒ  (Dynamic)  server-rendered on demand
+FATAL ERROR: Ineffective mark-compacts near heap limit Allocation failed - JavaScript heap out of memory
+----- Native stack trace -----
 
-Starting disposable test database… first startup may download MongoDB.
-TEST_ORIGIN=http://localhost:3111
-TEST_MONGO_URI=mongodb://127.0.0.1:39435/?replicaSet=testset
-TEST_MONGO_DB=dictioncoaching_test
-
-DISPOSABLE TEST MODE — all data disappears when stopped.
-Open http://localhost:3111/bn/admin
-Demo admin: demo-admin@example.test / DemoOnly-2026!
-Demo super admin: demo-super@example.test / DemoOnly-2026!  (Recycle Bin → Delete forever)
-Demo staff: demo-staff@example.test / DemoOnly-2026!  (Archive and Restore, never Delete)
-Database is an in-memory replica set; real MONGODB_URI is ignored. Ctrl+C to stop.
-
-▲ Next.js 16.4.5
-- Local:         http://localhost:3111
-- Network:       http://0.0.0.0:3111
-✓ Ready in 115ms
-✓ Running next.config.ts took 69ms
+ 1: 0xe48bbe node::OOMErrorHandler(char const*, v8::OOMDetails const&) [/opt/hostedtoolcache/node/22.23.4/x64/bin/node]
+ 2: 0x1248d00 v8::Utils::ReportOOMFailure(v8::internal::Isolate*, char const*, v8::OOMDetails const&) [/opt/hostedtoolcache/node/22.23.4/x64/bin/node]
+ 3: 0x1248fd7 v8::internal::V8::FatalProcessOutOfMemory(v8::internal::Isolate*, char const*, v8::OOMDetails const&) [/opt/hostedtoolcache/node/22.23.4/x64/bin/node]
+ 4: 0x1477ee5  [/opt/hostedtoolcache/node/22.23.4/x64/bin/node]
+ 5: 0x1477f13  [/opt/hostedtoolcache/node/22.23.4/x64/bin/node]
+ 6: 0x1490fea  [/opt/hostedtoolcache/node/22.23.4/x64/bin/node]
+ 7: 0x14941b8  [/opt/hostedtoolcache/node/22.23.4/x64/bin/node]
+ 8: 0x1cfcc61  [/opt/hostedtoolcache/node/22.23.4/x64/bin/node]
+Error: checking TypeScript failed (1); test server was not started
+    at runStep (/home/runner/work/diction/diction/scripts/test-mode.ts:18:21)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async main (/home/runner/work/diction/diction/scripts/test-mode.ts:31:3)
