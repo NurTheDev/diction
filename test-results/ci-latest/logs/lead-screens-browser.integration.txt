@@ -1,11 +1,11 @@
-node:internal/process/promises:394
-    triggerUncaughtException(err, true /* fromPromise */);
-    ^
+locator.waitFor: Timeout 60000ms exceeded.
+Call log:
+  - waiting for locator('section.admin-panel').filter({ has: locator('h2').filter({ hasText: 'নতুন ভিজিটর যোগ করুন' }) }).first().locator('input[name="studentName"]') to be visible
 
-dialog.accept: Cannot accept dialog which is already handled!
-    at _Page.<anonymous> (/home/runner/work/diction/diction/tests/lead-screens-browser.integration.ts:755:49) {
-  log: [],
-  name: 'Error'
+    at typeAdd (/home/runner/work/diction/diction/tests/lead-screens-browser.integration.ts:703:59)
+    at run (/home/runner/work/diction/diction/tests/lead-screens-browser.integration.ts:768:20) {
+  log: [
+    `  - waiting for locator('section.admin-panel').filter({ has: locator('h2').filter({ hasText: 'নতুন ভিজিটর যোগ করুন' }) }).first().locator('input[name="studentName"]') to be visible`
+  ],
+  name: 'TimeoutError'
 }
-
-Node.js v22.23.4
