@@ -22,6 +22,7 @@ import {CenterClassGroup,CenterStudent,CenterSettings,CenterPayment,CenterSmsBat
 import {runSmsDialog,autoSendReceipt,autoSendClassDues,autoSendClassResults,runAutoDue,autoRequestId} from '../src/lib/center/sms-dialog';
 import {flushQueuedSms} from '../src/lib/center/sms-send';
 import {SMS_SKIP_REASONS} from '../src/lib/center/sms-recipients';
+import {estimateSms} from '../src/lib/center/sms-provider';
 
 const API_KEY='sk-dialog-integration-9a1c';
 const SENDER_ID='DictionTestSender';
@@ -189,8 +190,14 @@ async function run(){
     assert.equal(await CenterSmsLog.countDocuments({batch:batchId,status:'sent',phone:'01711000002'}),2,'so the one message the guardian got is recorded against each of her two children');
     assert.equal(await CenterSmsLog.countDocuments({batch:batchId,status:'skipped'}),0,'and no row for a skip that has no number at all: SmsLog.phone is required, so those are counted on the batch instead');
     const sentRow=await CenterSmsLog.findOne({batch:batchId,status:'sent'}).lean();
-    assert.equal(sentRow.segments,1);
-    assert.equal(sentRow.cost,0.5);
+    // The stored row is the audit trail, so it is checked against its own message rather than against
+    // a number written down by hand: Bangla cannot go as GSM-7, a full reminder is longer than one
+    // 67-character segment, and the cost is those segments at the stored unit price.
+    const measured=estimateSms(sentRow.message);
+    assert.equal(measured.encoding,'Unicode','a Bangla reminder is sent as unicode, never as GSM-7');
+    assert.equal(sentRow.segments,measured.segments,'and the row carries the segments its own message really needs');
+    assert.ok(sentRow.segments>=2,'which for a reminder this long is more than one segment');
+    assert.equal(sentRow.cost,sentRow.segments*0.5,'so its stored cost is those segments times the unit cost, not a guess from today’s settings');
     assert.equal(sentRow.templateKey,'due_reminder');
     assert.equal(sentRow.month,'2026-01');
     assert.equal(sender.itemCount(),2,'the provider was asked for exactly the two messages');
