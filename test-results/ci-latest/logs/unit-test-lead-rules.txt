@@ -1,0 +1,21 @@
+--- tests/lead-rules.integration.ts (exit 1) ---
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+Error: Transform failed with 1 error:
+/home/runner/work/diction/diction/tests/lead-rules.integration.ts:147:52: ERROR: "await" can only be used inside an "async" function
+    at failureErrorWithLog (/home/runner/work/diction/diction/node_modules/esbuild/lib/main.js:1752:15)
+    at /home/runner/work/diction/diction/node_modules/esbuild/lib/main.js:1019:50
+    at responseCallbacks.<computed> (/home/runner/work/diction/diction/node_modules/esbuild/lib/main.js:886:9)
+    at handleIncomingPacket (/home/runner/work/diction/diction/node_modules/esbuild/lib/main.js:941:12)
+    at Socket.readFromStdout (/home/runner/work/diction/diction/node_modules/esbuild/lib/main.js:864:7)
+    at Socket.emit (node:events:519:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at Pipe.onStreamRead (node:internal/stream_base_commons:189:23) {
+  name: 'TransformError'
+}
+
+Node.js v22.23.4
