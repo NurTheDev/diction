@@ -349,6 +349,13 @@ SMS page; and the three auto-sends wired behind their toggles, plus a new 07:05 
 (wave A, 23 PASS) and 43303024575 (wave B1, 24 PASS); wave B2's run is recorded in
 `test-results/ci-latest/verify-report.md`.
 
+**Two real defects wave B2's own suites caught, both now fixed:** a shared guardian number was never
+merged, because sibling totals are localized (`৩০০০`) and the sum was parsed with `Number()`, which
+made every sibling pair look ambiguous and sent one guardian two messages instead of one honest total;
+and every automatic send failed `CenterSmsBatch` validation, because `createdBy` was required and a job
+is not a user — silently, since all three callers are best-effort. Batches now carry a `trigger`
+(`manual` / `auto_receipt` / `auto_due` / `auto_result`) and `createdBy` is optional.
+
 **Owed, stated plainly:**
 
 1. **The real provider is OFF.** Per §R2 it goes on only after the owner approves the mock version,

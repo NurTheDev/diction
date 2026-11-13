@@ -244,12 +244,20 @@ export interface SmsSendSummary{
   quietUntil?:string;message:string;
 }
 
+/** Who asked for this batch: an operator in the dialog, or one of the three automatic sends. */
+export type SmsBatchTrigger='manual'|'auto_receipt'|'auto_due'|'auto_result';
+
 export interface SmsExecuteOptions{
   /** The acting admin's User id. Required for a human send; the daily job passes undefined. */
   actor?:string;
   provider?:SmsProvider;
   /** Send even inside quiet hours (the operator confirmed the warning). */
   force?:boolean;
+  /**
+   * Why this batch exists. An automatic send has no actor — the daily job is not a user — so the
+   * trigger is the audit trail in place of `createdBy`, which the schema therefore does not require.
+   */
+  trigger?:SmsBatchTrigger;
   /** Drop recipients already sent this template+month in the last 24 hours ("skip those"). */
   skipDuplicates?:boolean;
   now?:Date;
@@ -279,7 +287,7 @@ export async function executeSmsPlan(plan:SmsPlan,options:SmsExecuteOptions={}):
   let batch:({_id:unknown}|null)=null;
   try{
     batch=await CenterSmsBatch.create({
-      requestId:plan.requestId,purpose:plan.purpose,createdBy:options.actor,templateKey:plan.templateKey,
+      requestId:plan.requestId,purpose:plan.purpose,createdBy:options.actor,trigger:options.trigger||'manual',templateKey:plan.templateKey,
       audience:plan.audience,recipientCount:items.length,segmentCount,estimatedCost,skippedCount,
       status:queue?'queued':'sending',quiet:queue,scheduledFor:queue?new Date(now.getTime()+msUntilQuietEnds(settings.quietStart,settings.quietEnd,now)):undefined,
     });

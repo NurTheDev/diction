@@ -24,4 +24,10 @@ Wave B2 — the dialog, the entry points and the automatic sends:
 13. New job GET /api/admin/jobs/sms-flush (same CRON_SECRET bearer policy) sends queued batches whose time has come; vercel.json schedules it at 5 1 * * * (07:05 Asia/Dhaka), just after the default quiet window closes. The daily job flushes too, so a missed schedule never strands a message. Automatic reminders created at 01:00 Dhaka are therefore delivered at 07:05 rather than in the middle of the night.
 14. tests/cron.test.ts now runs under --conditions=react-server, because the daily route imports the SMS auto-send module (server-only). The script names verify uses are unchanged. The same flag now covers test:recycle:db, because tests/recycle-bin.integration.ts imports that daily route too.
 
+15. CenterSmsBatch.createdBy is optional and every batch carries a trigger (manual, auto_receipt,
+    auto_due, auto_result). A required creator made all three automatic sends fail validation, and
+    because each caller is best-effort — a message that cannot go out must never turn a saved payment
+    into an error — the failure was silent: the toggle looked on and nothing was ever sent. The
+    trigger is the audit trail an automatic batch has instead of a person.
+
 Owed, stated plainly: Visitors and Teacher CVs as entry points (R3/R4); pending_reminder in the picker (needs the optional current-month PENDING switch); the real provider stays OFF until the owner approves the mock version, then exactly one test message to their own number, with BulkSMSBD IP whitelisting disabled for a serverless host first; a real Vercel cron run for both entries stays a go-live item; and 202 means submitted, never delivered, because the documented API has no delivery-report callback.

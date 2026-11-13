@@ -186,6 +186,9 @@ async function run(){
     assert.equal(sent.body.skipped,2,'the opted-out and the phoneless student are counted on the batch — the held one is not on the DUE list at all, because only active students are priced');
     const batchId=sent.body.batchId;
     assert.equal(await CenterSmsBatch.countDocuments(),1);
+    const manualBatch=await CenterSmsBatch.findById(batchId).lean();
+    assert.equal(String(manualBatch.createdBy),actorId,'a send from the dialog records the operator who approved it');
+    assert.equal(manualBatch.trigger,'manual','and says a person asked for it, not a job');
     assert.equal(await CenterSmsLog.countDocuments({batch:batchId,status:'sent'}),3,'one durable row per (recipient, student): the merged sibling message stays traceable to both children');
     assert.equal(await CenterSmsLog.countDocuments({batch:batchId,status:'sent',phone:'01711000002'}),2,'so the one message the guardian got is recorded against each of her two children');
     assert.equal(await CenterSmsLog.countDocuments({batch:batchId,status:'skipped'}),0,'and no row for a skip that has no number at all: SmsLog.phone is required, so those are counted on the batch instead');
@@ -263,6 +266,12 @@ async function run(){
     const receiptOn=await autoSendReceipt({student:idOf(paid),amount:1200,month:{year:2026,month:3},receiptNo:'SYNTH-AUTO'},{now});
     assert.equal(receiptOn.attempted,true);
     assert.ok(receiptOn.batchId);
+    // An automatic send is not a person, so it has no createdBy — and the schema must not require one,
+    // or every automatic message would fail validation and be swallowed by the caller's try/catch. The
+    // trigger is the audit trail in its place.
+    const receiptBatch=await CenterSmsBatch.findById(receiptOn.batchId).lean();
+    assert.equal(receiptBatch.trigger,'auto_receipt','the batch says what created it');
+    assert.equal(receiptBatch.createdBy,undefined,'and that no human did');
     const receiptRow=await CenterSmsLog.findOne({batch:receiptOn.batchId,status:'sent'}).lean();
     assert.match(receiptRow.message,/১২০০/,'the automatic receipt quotes the amount');
     assert.match(receiptRow.message,/SYNTH-AUTO/,'and the receipt number');
@@ -290,6 +299,7 @@ async function run(){
     assert.equal(dueOn.ran,true);
     assert.equal(dueOn.classes,1);
     assert.equal(dueOn.sent,2,'the overdue reminders went out: one message per phone, siblings merged');
+    assert.equal((await CenterSmsBatch.findOne({trigger:'auto_due'}).lean()).createdBy,undefined,'the job’s own batch is stored with no creator and its trigger as the record');
     const afterAutoDue=await CenterSmsBatch.countDocuments();
     const dueTwice=await runAutoDue({now:later});
     assert.equal(dueTwice.ran,true);
@@ -301,6 +311,7 @@ async function run(){
     const resultOn=await autoSendClassResults({exam:'synthetic-exam',classGroup:classId},{now});
     assert.equal(resultOn.attempted,true);
     assert.ok(resultOn.batchId);
+    assert.equal((await CenterSmsBatch.findById(resultOn.batchId).lean()).trigger,'auto_result','and a published result says so too');
     const resultRows=await CenterSmsLog.countDocuments({batch:resultOn.batchId,status:'sent'});
     assert.ok(resultRows>=3,'a result message is not about fees, so held and paid-up students get it too');
     assert.equal(await CenterSmsLog.countDocuments({batch:resultOn.batchId,phone:'01711000005'}),0,'but an opted-out number is never used');
@@ -335,7 +346,7 @@ async function run(){
       assert.ok(!JSON.stringify(row).includes(API_KEY),'no stored row carries the key');
     }
 
-    console.log('SMS dialog contract: one guarded endpoint for preview, send and retry — a preview is read-only and reports recipients, skipped numbers with a reason from the closed vocabulary, the first three messages, segments and cost against the balance plus a low-balance warning; sibling grouping, guardian/student/both and the DUE-only list change exactly who is counted; an empty body or an unrendered chip is refused instead of sent; one requestId is one batch so a double-click sends nothing twice; "skip those" drops students messaged within 24 hours; retry re-sends only failed rows and refuses when there are none; quiet hours queue and the flush job sends; the three auto-send toggles are OFF by default and idempotent when on; malformed requests are refused before anything is read; and no credential appears in a response or a stored row.');
+    console.log('SMS dialog contract: one guarded endpoint for preview, send and retry — a preview is read-only and reports recipients, skipped numbers with a reason from the closed vocabulary, the first three messages, segments and cost against the balance plus a low-balance warning; sibling grouping, guardian/student/both and the DUE-only list change exactly who is counted; an empty body or an unrendered chip is refused instead of sent; one requestId is one batch so a double-click sends nothing twice; "skip those" drops students messaged within 24 hours; retry re-sends only failed rows and refuses when there are none; quiet hours queue and the flush job sends; the three auto-send toggles are OFF by default, idempotent when on, and stored with their trigger and no creator because a job is not a person; malformed requests are refused before anything is read; and no credential appears in a response or a stored row.');
   }finally{
     await mongoose.disconnect();
     await mongo.stop();

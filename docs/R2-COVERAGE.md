@@ -174,6 +174,15 @@ All three toggles ship **OFF** and are only read at send time:
   `autoDueDay` — a missed day never turns into a surprise bulk send on the next run. Every class is
   its own batch, and `skipDuplicates` is on.
 
+None of the three has an actor, and that is a fact about the data model rather than an omission:
+`CenterSmsBatch.createdBy` is **optional**, and every batch carries a `trigger` (`manual`,
+`auto_receipt`, `auto_due`, `auto_result`) in its place. A required creator makes all three automatic
+sends fail schema validation — and because each caller is best-effort by design, since a message that
+cannot go out must never turn a saved payment into an error, that failure is silent: the toggle looks
+on and nothing is ever sent. R2.8 asserts both halves, so it cannot regress quietly: a send from the
+dialog stores the operator who approved it and `manual`; an automatic one stores no creator and its
+own trigger.
+
 Each uses `autoRequestId()`: a deterministic, UUID-shaped key derived from the natural key (receipt +
 student, exam + class, class + day), because `CenterSmsBatch.requestId` is what makes an automatic
 send idempotent. The daily job runs at 01:00 Asia/Dhaka, **inside** the default quiet window, so an

@@ -228,7 +228,8 @@ export async function autoSendReceipt(input:{student:string;amount:number;month:
     now,
   },provider);
   if(plan.blocked||!plan.recipientCount)return {attempted:true,reason:plan.blocked||'no recipient'};
-  const summary=await executeSmsPlan(plan,{provider,now});
+  // No actor: an automatic send is not a person. The batch's trigger says what created it.
+  const summary=await executeSmsPlan(plan,{provider,now,trigger:'auto_receipt'});
   return {attempted:true,batchId:summary.batchId};
 }
 
@@ -251,7 +252,7 @@ export async function autoSendClassDues(classGroup:string,options:SmsDialogOptio
   if(plan.blocked||!plan.recipientCount)return {sent:0,skipped:plan.skipped.length,reason:plan.blocked||'no recipient'};
   // No actor: this is the daily job, and audit() needs a real User ref (a 'system' actor writes
   // nothing at all). The batch and its log rows are the record; the job's response reports the counts.
-  const summary=await executeSmsPlan(plan,{provider,skipDuplicates:true,now});
+  const summary=await executeSmsPlan(plan,{provider,skipDuplicates:true,now,trigger:'auto_due'});
   return {batchId:summary.batchId,sent:summary.sent,skipped:summary.skipped,status:summary.status};
 }
 
@@ -276,7 +277,7 @@ export async function autoSendClassResults(input:{exam:string;classGroup:string}
     now,
   },provider);
   if(plan.blocked||!plan.recipientCount)return {attempted:true,reason:plan.blocked||'no recipient'};
-  const summary=await executeSmsPlan(plan,{provider,now});
+  const summary=await executeSmsPlan(plan,{provider,now,trigger:'auto_result'});
   return {attempted:true,batchId:summary.batchId};
 }
 
