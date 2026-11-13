@@ -1,3 +1,4 @@
-ReferenceError: Cannot access 'dupPanel' before initialization
-    at typeAdd (/home/runner/work/diction/diction/tests/lead-screens-browser.integration.ts:703:7)
-    at run (/home/runner/work/diction/diction/tests/lead-screens-browser.integration.ts:712:24)
+Error: timed out after 90000ms waiting for the sibling answer wrote exactly one lead
+    at until (/home/runner/work/diction/diction/tests/lead-screens-browser.integration.ts:133:36)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async run (/home/runner/work/diction/diction/tests/lead-screens-browser.integration.ts:728:5)
