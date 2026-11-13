@@ -82,6 +82,14 @@ Wave A — foundations, no UI:
     have separate heaps (typecheck 4096, build 2048) and a comment explaining why they must not be
     merged back: a whole-program typecheck grows with the repository, and R3 has two more waves.
 
+12. tests/lead-model.integration.ts, step 7: the family-key assertion was self-contradictory — it created
+    the sibling with familyKeyFromPhones() over the SIBLING'S OWN numbers and then asserted it equalled
+    the first lead's key. Run 43380395065 caught it (fam:01711000041 vs fam:01712817090), and the catch
+    is the useful part: it pinned the rule wave B's src/lib/leads/leads.ts has to implement. A new row
+    that shares a number with an existing lead must INHERIT that lead's familyKey from one indexed lookup
+    on phones.normalized; recomputing it from the new row alone can split one family in two. The step now
+    asserts both halves: the lookup finds the holder, and the freshly computed key would have been wrong.
+
 Owed, stated plainly: the sidebar group ভিজিটর, quick-add (one tap from the sidebar and the mobile
 bottom bar, Enter saves), the list with search/filters/status chips/inline status/call/WhatsApp/
 next-follow-up buttons, the detail drawer with its notes timeline, duplicate-phone detection with

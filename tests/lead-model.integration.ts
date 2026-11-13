@@ -148,8 +148,15 @@ async function run(){
     assert.ok(!contactable.some(row=>row.leadId===`V-${year}-0030`),'a bulk send built on this filter cannot find the forbidden number');
     assert.ok(contactable.length>=5,'while every ordinary lead is still reachable');
 
-    // ---- 7. Siblings: one number on two leads is found by an indexed lookup, not a scan.
-    const sibling=await Lead.create({leadId:`V-${year}-0040`,date:today,studentName:'রাহুলের বোন',phones:[{normalized:PHONE,original:PHONE},{normalized:'01711000041',original:'01711000041'}],familyKey:familyKeyFromPhones([PHONE,'01711000041'])});
+    // ---- 7. Siblings: one number on two leads is found by an indexed lookup, not a scan — and the
+    // family key is INHERITED from the lead already holding that number, never recomputed. Recomputing
+    // would tie the sibling to its own smallest number and silently split the family in two, so the
+    // lookup is asserted here rather than assumed (this is what src/lib/leads/leads.ts will call in wave B).
+    const extra='01711000041';
+    const holder=await Lead.findOne({'phones.normalized':PHONE}).lean<{leadId:string;familyKey:string}|null>();
+    assert.ok(holder&&holder.leadId===lead.leadId,'the number already on a lead is found by one indexed query');
+    assert.notEqual(familyKeyFromPhones([PHONE,extra]),holder.familyKey,'computing the key from the numbers on this row alone would have split the family in two, which is why it must be inherited');
+    const sibling=await Lead.create({leadId:`V-${year}-0040`,date:today,studentName:'রাহুলের বোন',phones:[{normalized:PHONE,original:PHONE},{normalized:extra,original:extra}],familyKey:holder.familyKey});
     const sameNumber=await Lead.find({'phones.normalized':PHONE}).lean();
     assert.equal(sameNumber.length,2,'the number that is already on a lead is found again');
     assert.deepEqual(sameNumber.map(row=>row.studentName).sort(),['রাহুল আহমেদ','রাহুলের বোন'].sort());

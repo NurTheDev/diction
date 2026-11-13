@@ -69,6 +69,12 @@ Also here: `familyKeyFromPhones()` — the smallest shared number, so siblings t
 whichever order their numbers were written in — and `archiveSuggestionDay()` / `suggestsArchive()`, the
 18-month rule, which is a **suggestion** and never an automatic delete.
 
+**The family key is inherited, never recomputed** (proven in §5, and the rule `src/lib/leads/leads.ts`
+must call in wave B): a new row that shares a number with an existing lead takes **that lead's**
+`familyKey`, because `familyKeyFromPhones()` over the new row's own numbers can return a *different* key
+and silently split one family into two. The DB suite asserts both halves — that one indexed lookup on
+`phones.normalized` finds the holder, and that the freshly computed key would have been the wrong one.
+
 ## 2. Dates (`src/lib/leads/lead-date.ts`) — R3.2
 
 One rule reads every spelling in the brief: **day first**, two-digit years mean 20xx. `2/12/2024` is 2
