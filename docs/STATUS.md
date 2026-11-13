@@ -346,8 +346,8 @@ the due list, a student profile, the student list's bulk action, the payment suc
 SMS page; and the three auto-sends wired behind their toggles, plus a new 07:05 Asia/Dhaka flush job.
 
 **Requirements:** R2.1–R2.8 in `scripts/verify-plan.ts` (26 in total). Green runs: 43296844437
-(wave A, 23 PASS) and 43303024575 (wave B1, 24 PASS); wave B2's run is recorded in
-`test-results/ci-latest/verify-report.md`.
+(wave A, 23 PASS), 43303024575 (wave B1, 24 PASS) and **43362581393 (wave B2, 26 PASS — all 26
+requirements, 0 FAIL, 0 NOT TESTED)**, whose evidence is in `test-results/ci-latest/`.
 
 **Two real defects wave B2's own suites caught, both now fixed:** a shared guardian number was never
 merged, because sibling totals are localized (`৩০০০`) and the sum was parsed with `Number()`, which
