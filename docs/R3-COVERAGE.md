@@ -59,6 +59,17 @@ instead of putting it in the query string, where it would land in browser histor
 log. A name or a school stays a URL parameter, because that is what makes a filtered list shareable
 between two admins. `maskPhone()` / `maskedPhones()` are what a log line gets.
 
+The same call also returns `numberShaped`, and the two answers are different questions. `refusedPhone`
+is *"may this travel in an address bar?"* — number-ish text of at least `PHONE_SEARCH_MIN_DIGITS`
+characters, the length at which a number search could actually find somebody. `numberShaped` is *"did a
+human type a number here?"* — digits and the punctuation a number is typed with, one digit or ten. The
+wave-B2 search box routes on the wider one, so a two-digit attempt is answered by the number rule
+("২ অঙ্ক দিয়ে নাম্বার খোঁজা যায় না — অন্তত ৪ অঙ্ক লিখুন।") rather than being sent off as a word
+search that comes back with an empty list. An empty list at a front desk reads as *"no such visitor"*,
+which is a wrong and expensive answer; the refusal says the truth. Neither threshold moved: R3.1 still
+asserts that `999` and `V-2026-0001` stay shareable as URL parameters, and R3.7 still asserts that
+`7090` does not.
+
 The two hrefs that must carry a number — the `tel:` call button and the `wa.me` link the brief asks for
 on every row — are built in `src/lib/leads/lead-phone.ts` and nowhere else. They are third-party
 destinations in the operator's own browser: never a route of this app, never a query parameter, never
@@ -323,7 +334,7 @@ things at 360 px and 1440 px so the layout can be reviewed before it is approved
 | Quick-add | `LeadQuickAdd` in `src/components/admin/leads-ui.tsx` | four fields (name, number, class, school) and a "more" toggle for the other seven; Enter saves; the panel clears itself and keeps the cursor on the name, so the next visitor is typed straight in |
 | Detail drawer | `LeadDetailDrawer` / `LeadDetailBody` | a `<dialog>` sheet with every field, the masked numbers and their two destinations, the flags' own sentences, the notes timeline (newest first, with the writer's name and the outcome) and the rest of the family |
 | The lead's own page | `src/app/[locale]/admin/leads/[id]/page.tsx` | the same contents inline, so a link can be followed from an audit row or a message; `leadDetailByKey()` accepts the Mongo id **and** the readable `V-2026-0007` |
-| Search | `LeadSearch` | one box: a name, school or id becomes a shareable `?q=`, anything phone-shaped is posted to `searchLeadsByNumber()` instead |
+| Search | `LeadSearch` | one box: a name, school or id becomes a shareable `?q=`; anything number-shaped — including a run too short to search by — is posted to `searchLeadsByNumber()`, so a short attempt is *answered* ("at least four digits") instead of returning an empty list |
 | Follow-up queue | `/admin/leads?followUp=today` (and `overdue`, `none`) | the same list, filtered and sorted oldest promise first |
 | Overview widget | `src/components/admin/lead-follow-ups.tsx` | "আজকের ফলো-আপ": today's count and the overdue count as **two numbers**, the six nearest leads, and the same row controls |
 | Sidebar | `nav-items.ts`, `sidebar.tsx` | a sixth group — **ভিজিটর** / "Admissions & leads" — with Visitors and Follow-ups; on a Visitors screen the mobile bottom bar's plus becomes "নতুন ভিজিটর" |
@@ -383,7 +394,8 @@ all five screens: it saves a lead with Enter and reads it back from the database
 status/group/medium left un-guessed), writes each of the four quick follow-up days and clears one again,
 changes a status inline, lifts a contact block, adds a note with an outcome and its writer's name, finds
 two leads that share a number from four digits — typed in Bangla digits too — refuses two digits without
-quoting them, sends a name to a URL and a number to an action, checks that a number pasted straight into
+quoting them and without turning them into a word search, sends a name to a URL and a number to an
+action, checks that a number pasted straight into
 the address bar is refused and the whole list is rendered instead, measures horizontal overflow at
 360 px on every screen, and confirms a content editor sees no visitor, no number, no sidebar item and no
 quick-add form. `tests/staff-role.test.ts` now also pins the two new nav keys: staff, admin and super

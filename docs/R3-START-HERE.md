@@ -63,9 +63,11 @@ into an artifact, dispatch the workflow with `publish_screenshots` (see
    lifting it is its own button (**যোগাযোগের অনুমতি ফিরিয়ে দিন**), because it puts a parent back on a
    calling list.
 7. **Find somebody by number.** Tap **খুঁজুন** and type the number, or just its last four digits off a
-   crumpled sheet — Bangla digits, `+88`, dashes and a missing leading zero all work. Type a *name* in
-   the same box and it becomes a link you can send to another admin; type a *number* and it never
-   becomes a link at all.
+   crumpled sheet — Bangla digits, `+88`, dashes and a missing leading zero all work. Fewer than four
+   digits is not a search and the box says so ("অন্তত ৪ অঙ্ক লিখুন") instead of showing an empty list,
+   because an empty list reads as *no such visitor* and that is the wrong answer to give a parent's
+   name. Type a *name* in the same box and it becomes a link you can send to another admin; type a
+   *number* and it never becomes a link at all.
 8. **Work today's queue.** On the Overview, "আজকের ফলো-আপ" counts today and the overdue ones
    separately, and its rows carry the same buttons. The sidebar's **ফলো-আপ** item is the same queue as a
    full list, with a badge for how many are waiting.
@@ -74,7 +76,9 @@ into an artifact, dispatch the workflow with `publish_screenshots` (see
 
 ## 3. The rules the code enforces (so nobody has to remember them)
 
-- **A number is never printed, never a link, never a log.** Screens get a mask plus `tel:`/`wa.me`. The
+- **A number is never printed, never a link, never a log.** Screens get a mask plus `tel:`/`wa.me` —
+  and a search answer carries no number either: the server action strips each hit's digits before the
+  result crosses to the browser, so a screen cannot print what it was never given. The
   family key (which is a number with `fam:` in front), a phone as written, and a flagged cell's raw text
   are stripped before anything reaches the browser. A search by number is a form post, never a URL; a
   number pasted into the address bar is refused and the unfiltered list is shown instead.

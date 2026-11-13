@@ -98,6 +98,18 @@ function run(){
   assert.equal(leadListQuery({q:'999'}).refusedPhone,false,'three digits is below the search minimum, so it stays an ordinary word search');
   assert.equal(leadListQuery({q:'V-2026-0001'}).refusedPhone,false,'a lead id is not a number — it stays shareable');
   assert.equal(leadListQuery({q:'ধানমন্ডি ৯'}).refusedPhone,false,'nor is a school with a class digit in it');
+  // `numberShaped` is the wider question the search box asks: "did a human type a number here?" A run
+  // too short to search by is still a number attempt, and the box posts it so the answer is the rule's
+  // own "at least four digits" rather than an empty list that reads as "no such visitor". What may
+  // travel in an address bar is the narrower `refusedPhone`, and that threshold did not move.
+  assert.equal(leadListQuery({q:'12'}).numberShaped,true,'two digits are a number attempt…');
+  assert.equal(leadListQuery({q:'12'}).refusedPhone,false,'…and still below the length that may not travel in a URL');
+  assert.equal(leadListQuery({q:'999'}).numberShaped,true,'three digits are a number attempt as well');
+  assert.equal(leadListQuery({q:'১২'}).numberShaped,true,'in Bangla digits too');
+  assert.equal(leadListQuery({q:'017-128'}).numberShaped,true,'and so is a partial number with its dashes');
+  assert.equal(leadListQuery({q:'V-2026-0001'}).numberShaped,false,'a lead id is not one — it stays a shareable word search');
+  assert.equal(leadListQuery({q:'ধানমন্ডি ৯'}).numberShaped,false,'nor is a school with a digit in it');
+  assert.equal(leadListQuery({q:'  '}).numberShaped,false,'and neither is a blank box');
   const typedName=leadListQuery({locale:'en',q:'রাহুল',status:'new',followUp:'overdue',page:3});
   assert.equal(typedName.refusedPhone,false,'a name is a legitimate URL parameter — that is what makes a filtered list shareable');
   assert.equal(typedName.href,'/en/admin/leads?q=%E0%A6%B0%E0%A6%BE%E0%A6%B9%E0%A7%81%E0%A6%B2&status=new&followUp=overdue&page=3');
@@ -121,7 +133,7 @@ function run(){
   assert.equal(suggestsArchive('2026-10-01',now),false,'a recent one is not');
   assert.equal(suggestsArchive('',now),false,'and neither is a lead with no date');
 
-  console.log('Visitor lead vocabulary: the brief’s eight statuses, five sources, three shifts, three mediums, four groups and four note outcomes each carry Bangla and English words with no duplicates; "Do not contact" is sticky — the status alone stops contact, the flag survives a status change and canContact() is the single gate; the five follow-up buttons compute a day in Asia/Dhaka (next week is seven days, 31 February is refused, the year rolls by calendar, and 23:59 versus 00:01 land on the right day) with today/overdue/later/none states and a midnight-to-midnight range; a number never appears in a URL this app builds — a phone-shaped search is refused as a parameter while a name or school stays shareable — and logs get a mask; a family key is the smallest shared number so siblings tie deterministically and a short number invents nothing; and archiving is suggested at 18 months by calendar, never applied.');
+  console.log('Visitor lead vocabulary: the brief’s eight statuses, five sources, three shifts, three mediums, four groups and four note outcomes each carry Bangla and English words with no duplicates; "Do not contact" is sticky — the status alone stops contact, the flag survives a status change and canContact() is the single gate; the five follow-up buttons compute a day in Asia/Dhaka (next week is seven days, 31 February is refused, the year rolls by calendar, and 23:59 versus 00:01 land on the right day) with today/overdue/later/none states and a midnight-to-midnight range; a number never appears in a URL this app builds — a phone-shaped search is refused as a parameter while a name or school stays shareable, and a run too short to search by is still recognized as a number attempt so the box can answer it instead of showing an empty list — and logs get a mask; a family key is the smallest shared number so siblings tie deterministically and a short number invents nothing; and archiving is suggested at 18 months by calendar, never applied.');
 }
 
 run();

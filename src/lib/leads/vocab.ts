@@ -187,10 +187,10 @@ export const LEAD_LIST_PATH='/admin/leads';
 export function leadListQuery(params:{
   locale?:'bn'|'en';q?:string;status?:string;classGroup?:string;group?:string;shift?:string;medium?:string;
   source?:string;from?:string;to?:string;followUp?:'today'|'overdue'|'none';page?:number;
-}):{href:string;refusedPhone:boolean}{
+}):{href:string;refusedPhone:boolean;numberShaped:boolean}{
   const locale=params.locale==='en'?'en':'bn';
   const search=new URLSearchParams();
-  let refusedPhone=false;
+  let refusedPhone=false,numberShaped=false;
   const text=String(params.q||'').trim();
   if(text){
     // Digits, spaces, dashes and a leading + are how a number is typed; anything else is a name.
@@ -202,7 +202,14 @@ export function leadListQuery(params:{
     // Searching BY NUMBER is a staff requirement — it simply travels as a form submission, never as a
     // query parameter (see `searchLeadsByPhone` and `src/actions/leads.ts`).
     const ascii=text.replace(/[০-৯]/g,c=>String('০১২৩৪৫৬৭৮৯'.indexOf(c)));
-    if(new RegExp(`^[\\d\\s()+.-]{${PHONE_SEARCH_MIN_DIGITS},}$`).test(ascii))refusedPhone=true;else search.set('q',text);
+    // `numberShaped` is what a human meant: digits and the punctuation a number is typed with, and at
+    // least one digit. `refusedPhone` is what may travel in an address bar: the same text, long enough
+    // to find somebody. They are different questions and the search box asks both — a two-digit attempt
+    // is still a number attempt, and answering it with an empty list would tell the front desk "no such
+    // visitor" when the truth is "that is too short to look anybody up by".
+    numberShaped=/^[\d\s()+.-]+$/.test(ascii)&&/\d/.test(ascii);
+    if(numberShaped&&ascii.length>=PHONE_SEARCH_MIN_DIGITS)refusedPhone=true;
+    if(!refusedPhone)search.set('q',text);
   }
   for(const [key,value] of Object.entries({
     status:params.status,classGroup:params.classGroup,group:params.group,shift:params.shift,
@@ -210,7 +217,7 @@ export function leadListQuery(params:{
   }))if(value)search.set(key,String(value));
   if(params.page&&params.page>1)search.set('page',String(params.page));
   const query=search.toString();
-  return {href:`/${locale}${LEAD_LIST_PATH}${query?`?${query}`:''}`,refusedPhone};
+  return {href:`/${locale}${LEAD_LIST_PATH}${query?`?${query}`:''}`,refusedPhone,numberShaped};
 }
 
 /**

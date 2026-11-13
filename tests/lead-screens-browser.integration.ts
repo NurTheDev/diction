@@ -313,10 +313,14 @@ async function run(){
     await search.locator('table.admin-table tbody tr').first().waitFor({state:'visible',timeout:90000});
     assert.equal(await search.locator('table.admin-table tbody tr').count(),2,'Bangla digits find the same two leads');
 
+    // Two digits is a number attempt and gets the number rule's own answer. It is NOT sent off as a word
+    // search, because an empty list would read as "no such visitor" — a wrong and expensive answer at a
+    // front desk — while the truth is "that is too short to look anybody up by".
     await search.locator('input[name="phone"]').fill('12');
     await submitSearch().click();
     await search.locator('p.admin-feedback.error').first().waitFor({state:'visible',timeout:90000});
     assert.equal(await search.locator('table.admin-table tbody tr').count(),0,'two digits are refused rather than matched against everybody');
+    assert.ok(!new URL(boss.page.url()).search.includes('q='),'and a number attempt never became a URL, not even a short one');
     const refusal=await search.locator('p.admin-feedback.error').first().innerText();
     assert.ok(refusal.includes(formatNumber(2,'bn'))&&refusal.includes(formatNumber(4,'bn')),
       `the refusal counts digits in Bangla (${refusal}) …`);
@@ -459,7 +463,7 @@ async function run(){
     await mongo.stop();
   }
 
-  console.log('Visitor screens: the list shows every lead with its status, its follow-up day and its number masked, the digits living only in the tel: and wa.me destinations and in nothing else the browser is served, and no family key reaching it at all; quick-add is one labelled tap on the mobile bottom bar, four fields with the rest behind "more", saves on Enter, reports the id it wrote, reads XII as class 12 and leaves status, group and medium un-guessed; the drawer loads the notes timeline, saves a note with an outcome and its writer’s name, and lists the family; one search box sends four digits — typed in Bangla too — to a server action that finds both leads sharing a number and refuses two digits in Bangla that counts them without quoting them, while a name travels as a shareable URL parameter and a number typed into the address bar is refused; the row controls change a status, write each of the four quick follow-up days in Dhaka, clear one again and lift a contact block deliberately; the Overview counts today’s follow-ups and the overdue ones separately, works the queue from there and moves the count with it; a content editor reaches none of it; nothing overflows horizontally at 360 px; every screen audited what it did with masked targets; and all five screens are photographed at 360 px and 1440 px in screenshots/r3.');
+  console.log('Visitor screens: the list shows every lead with its status, its follow-up day and its number masked, the digits living only in the tel: and wa.me destinations and in nothing else the browser is served, and no family key reaching it at all; quick-add is one labelled tap on the mobile bottom bar, four fields with the rest behind "more", saves on Enter, reports the id it wrote, reads XII as class 12 and leaves status, group and medium un-guessed; the drawer loads the notes timeline, saves a note with an outcome and its writer’s name, and lists the family; one search box sends four digits — typed in Bangla too — to a server action that finds both leads sharing a number and refuses two digits in Bangla that counts them without quoting them and without turning them into a word search, while a name travels as a shareable URL parameter and a number typed into the address bar is refused; the row controls change a status, write each of the four quick follow-up days in Dhaka, clear one again and lift a contact block deliberately; the Overview counts today’s follow-ups and the overdue ones separately, works the queue from there and moves the count with it; a content editor reaches none of it; nothing overflows horizontally at 360 px; every screen audited what it did with masked targets; and all five screens are photographed at 360 px and 1440 px in screenshots/r3.');
 }
 
 run().catch(error=>{console.error(error);process.exit(1)});

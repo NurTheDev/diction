@@ -137,7 +137,10 @@ export function LeadSearch({language='bn',digits='bn',current}:{language?:'bn'|'
   function onSubmit(event:FormEvent<HTMLFormElement>){
     // The typed text goes in last, so it wins over whatever `q` the page arrived with.
     const target=leadListQuery({locale:'bn',...current,q:(inputRef.current?.value||'').trim()});
-    if(target.refusedPhone)return; // phone-shaped: let the action post it, and never build a URL for it
+    // Anything number-shaped posts to the action and never becomes a URL — including a run too short to
+    // search by, because the action answers that with "at least four digits" while a text search would
+    // answer it with an empty list, and the two mean very different things to somebody at the desk.
+    if(target.numberShaped)return;
     event.preventDefault();
     setOpen(false); // a name search navigates, so the panel folds away and the filtered list is what is left
     router.push(target.href.replace(/^\/bn/,''));

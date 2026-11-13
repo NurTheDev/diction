@@ -2007,7 +2007,7 @@
     "search": "Search",
     "searchResults": "Matches",
     "filters": "Filters",
-    "filterText": "Name, institution or id",
+    "filterText": "Name, institution, id or number",
     "apply": "Apply",
     "reset": "Clear filters",
     "classGroup": "Class",
