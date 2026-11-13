@@ -1,11 +1,10 @@
-locator.waitFor: Timeout 60000ms exceeded.
-Call log:
-  - waiting for locator('section.admin-panel').filter({ has: locator('h2').filter({ hasText: 'নতুন ভিজিটর যোগ করুন' }) }).first().locator('input[name="studentName"]') to be visible
-
-    at typeAdd (/home/runner/work/diction/diction/tests/lead-screens-browser.integration.ts:703:59)
-    at run (/home/runner/work/diction/diction/tests/lead-screens-browser.integration.ts:768:20) {
-  log: [
-    `  - waiting for locator('section.admin-panel').filter({ has: locator('h2').filter({ hasText: 'নতুন ভিজিটর যোগ করুন' }) }).first().locator('input[name="studentName"]') to be visible`
-  ],
-  name: 'TimeoutError'
+AssertionError [ERR_ASSERTION]: and the target kept a record of it
+    at run (/home/runner/work/diction/diction/tests/lead-screens-browser.integration.ts:779:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
 }
