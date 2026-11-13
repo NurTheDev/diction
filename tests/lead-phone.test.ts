@@ -10,7 +10,7 @@
  * `wa.me` href the brief asks for, and in a mask — never in a route of this app, a log or an audit row.
  */
 import assert from 'node:assert/strict';
-import {parsePhoneCell,telHref,whatsappHref,maskedPhones,phoneSearchDigits,phoneSearchMask,PHONE_SEARCH_MIN_DIGITS,PHONE_SEARCH_MAX_DIGITS} from '../src/lib/leads/lead-phone';
+import {parsePhoneCell,telHref,whatsappHref,maskedPhones,phoneSearchDigits,phoneSearchMask,isNumberAttempt,PHONE_SEARCH_MIN_DIGITS,PHONE_SEARCH_MAX_DIGITS,PHONE_ATTEMPT_MAX_LENGTH} from '../src/lib/leads/lead-phone';
 
 const read=(raw:unknown)=>parsePhoneCell(raw);
 const numbers=(raw:unknown)=>read(raw).phones.map(phone=>phone.normalized);
@@ -104,10 +104,34 @@ function run(){
   assert.equal(phoneSearchMask('7090'),'****','a four-digit fragment is masked to nothing: the last four ARE the number');
   assert.equal(phoneSearchMask('1712817'),'****','and so is anything under eight digits');
   assert.equal(phoneSearchMask('01712817090'),'01****90','a full number is masked at both ends');
+
+  // ---- "Did somebody type a number here?" — ONE reading, asked by the search box, by the URL builder
+  // ---- and by the number search itself, so a browser and a server cannot answer it differently.
+  assert.equal(isNumberAttempt('12'),true,'two digits are an attempt to type a number…');
+  assert.equal(refusalOf('12'),'too_short','…and too short to look anybody up by — two facts, not one');
+  assert.equal(isNumberAttempt('১২'),true,'Bangla digits are the same attempt');
+  assert.equal(isNumberAttempt('7090'),true,'the last four off a crumpled sheet');
+  assert.equal(isNumberAttempt('+8801712817090'),true,'with its country code and its plus');
+  assert.equal(isNumberAttempt('(01712) 817-090'),true,'with the brackets and dashes a number is typed with');
+  assert.equal(isNumberAttempt('রাহুল'),false,'a name is not one');
+  assert.equal(isNumberAttempt('V-2026-0001'),false,'a lead id is not one — it stays a shareable word search');
+  assert.equal(isNumberAttempt('ধানমন্ডি ৯'),false,'nor is a school with a class digit in it');
+  assert.equal(isNumberAttempt(''),false,'and neither is an empty box');
+  assert.equal(isNumberAttempt('  '),false,'nor one holding only spaces');
+  // A paste is not a number somebody typed, and it must not reach the index as a substring query.
+  const paste='0'.repeat(PHONE_ATTEMPT_MAX_LENGTH+1);
+  assert.equal(isNumberAttempt(paste),false,`${PHONE_ATTEMPT_MAX_LENGTH+1} characters of digits is a paste, not a number`);
+  assert.equal(isNumberAttempt('0'.repeat(PHONE_ATTEMPT_MAX_LENGTH)),true,'exactly at the limit it is still read as one');
+  assert.equal(refusalOf(paste),'not_a_number','and the search says so instead of running it');
+  assert.ok(messageOf(paste).includes('নাম্বার নয়'),'in Bangla, and telling the operator what to type instead');
+  assert.ok(!messageOf(paste).includes('0'.repeat(6)),'the refusal does not quote the paste back');
+  assert.equal(refusalOf('রাহুল'),'not_a_number','a name posted to the number search is answered, not run');
+  assert.ok(messageOf('রাহুল').includes('৫'),'counting the characters typed');
+  assert.ok(!messageOf('রাহুল').includes('রাহুল'),'and never quoting them');
   assert.ok(!phoneSearchMask('01712817090').includes('01712817090'),'and the mask is never the number');
   assert.equal(phoneSearchMask(''),'****','nothing typed, nothing shown');
 
-  console.log('Visitor sheet phones: a clean number, "0 1934-595247", Bangla digits, brackets, a missing leading zero and a +880 country code all read to one normalized 01XXXXXXXXX with the original spelling kept; a number searched by typed digits, Bangla digits, a partial fragment, dashes, brackets, +88 and 0088, with the leading zero or without it, reads to the digits that are matched, refuses two digits in Bangla that counts them without quoting them, and masks anything under eight digits to nothing; two numbers in one cell read as two whether they were split by a comma, a semicolon, a line break, a space or a Bangla label, and the same number twice reads once; ten digits are flagged short and never padded, a nonexistent prefix is invalid, digits left over beside a real number are reported rather than folded in, and a word instead of a number is kept as written — while an empty cell is distinguished from an unreadable one; and a number appears only in the tel: and wa.me destinations the brief requires and in a mask, never in a route of this app, a log line or an audit row.');
+  console.log('Visitor sheet phones: a clean number, "0 1934-595247", Bangla digits, brackets, a missing leading zero and a +880 country code all read to one normalized 01XXXXXXXXX with the original spelling kept; a number searched by typed digits, Bangla digits, a partial fragment, dashes, brackets, +88 and 0088, with the leading zero or without it, reads to the digits that are matched, answers "did somebody type a number here" in one place that the search box, the URL builder and the number search all ask — two digits are an attempt and too short to search by, a lead id and a school with a class digit in it are not attempts, and a paste of forty-one digits is answered as not a number instead of being run against the index — refuses two digits in Bangla that counts them without quoting them, and masks anything under eight digits to nothing; two numbers in one cell read as two whether they were split by a comma, a semicolon, a line break, a space or a Bangla label, and the same number twice reads once; ten digits are flagged short and never padded, a nonexistent prefix is invalid, digits left over beside a real number are reported rather than folded in, and a word instead of a number is kept as written — while an empty cell is distinguished from an unreadable one; and a number appears only in the tel: and wa.me destinations the brief requires and in a mask, never in a route of this app, a log line or an audit row.');
 }
 
 run();

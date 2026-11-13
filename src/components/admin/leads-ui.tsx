@@ -35,23 +35,6 @@ import {formatClass,formatDate,formatNumber,formatTime,type Digits} from '@/lib/
 
 const IDLE_SEARCH:LeadSearchActionState={status:'idle',hits:[],total:0,masked:'',messageBn:'',messageEn:''};
 
-/**
- * Did somebody type a number in this box?
- *
- * `leadListQuery()` already answers this — `numberShaped` — and the answer is the same. What is not the
- * same is who answers it: this file is compiled into the browser bundle with its own inlined copy of
- * `vocab.ts`, so calling the vocabulary function here would make the decision twice from two builds that
- * nothing compares, and a change to one of them would be invisible until an operator noticed. Deciding
- * it here, in six lines that import nothing, means the browser's answer is the one being asserted — R3.8
- * drives this function, R3.1 drives the definition in `src/lib/leads/vocab.ts`, and both are pinned.
- */
-const NUMBER_CHARACTERS=/^[\d\s()+.-]+$/;
-function isNumberAttempt(text:string):boolean{
-  // Bangla digits are digits: ১২ is a number attempt exactly as 12 is.
-  const ascii=String(text||'').trim().replace(/[০-৯]/g,digit=>String('০১২৩৪৫৬৭৮৯'.indexOf(digit)));
-  return !!ascii&&NUMBER_CHARACTERS.test(ascii)&&/\d/.test(ascii);
-}
-
 /** The quick-add panel: four fields is a complete lead, everything else is behind "more". */
 export function LeadQuickAdd({open=false,language='bn'}:{open?:boolean;language?:'bn'|'en'}){
   const t=useTranslations('leads');
@@ -153,15 +136,17 @@ export function LeadSearch({language='bn',digits='bn',current}:{language?:'bn'|'
   },[open]);
   function onSubmit(event:FormEvent<HTMLFormElement>){
     const typed=(inputRef.current?.value||'').trim();
-    // Anything number-shaped posts to the action and never becomes a URL — including a run too short to
-    // search by, because the action answers that with "at least four digits" while a word search would
-    // answer it with an empty list, and the two mean very different things to somebody at the desk.
-    if(isNumberAttempt(typed))return;
     // The typed text goes in last, so it wins over whatever `q` the page arrived with.
     const target=leadListQuery({locale:'bn',...current,q:typed});
-    if(target.refusedPhone)return; // a number that slipped past the check above still gets no URL
+    if(target.numberShaped)return; // let the form post to the action and answer it there
     event.preventDefault();
-    setOpen(false); // a name search navigates, so the panel folds away and the filtered list is what is left
+    // Only a word search reaches this line, and a word search navigates — so folding the panel away here
+    // cannot take a posted number search with it. It once did: `preventDefault()` was called before the
+    // decision had been made, React runs this handler before the one that dispatches a form action, and
+    // stopping the submit stopped the action too. The panel folded away with no answer in it and the
+    // operator saw nothing at all, which is what four CI runs timed out on before one of them said so.
+    // R3.8 now waits on the answer AND reports what the panel was showing when it did not come.
+    setOpen(false);
     router.push(target.href.replace(/^\/bn/,''));
   }
   if(!open){

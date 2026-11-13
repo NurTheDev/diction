@@ -101,19 +101,57 @@ export function whatsappHref(normalized:string):string{
  * What it accepts, because that is how a number arrives at a coaching centre: typed digits, Bangla
  * digits, spaces, dashes, brackets, a leading `+`, the `88`/`0088` country code, a leading zero or none,
  * and a PARTIAL number — the last four digits off a crumpled sheet are enough to find the lead.
+ *
+ * What it refuses, in three distinct answers, because they are three different situations at the desk:
+ * nothing typed (`empty`), text that is not a number at all (`not_a_number` — a name or a paste), and a
+ * number too short or too long to look anybody up by (`too_short`, `too_long`). Each one says how many
+ * digits or characters were typed and never which.
  */
 export const PHONE_SEARCH_MIN_DIGITS=4;
 export const PHONE_SEARCH_MAX_DIGITS=15;
 
 export type PhoneSearchRead=
   |{ok:true;digits:string;length:number;hadCountryCode:boolean;hadLeadingZero:boolean}
-  |{ok:false;code:'empty'|'too_short'|'too_long';messageBn:string;messageEn:string};
+  |{ok:false;code:'empty'|'not_a_number'|'too_short'|'too_long';messageBn:string;messageEn:string};
+
+/**
+ * Is this text an attempt to type a NUMBER, rather than a name, a school or an id?
+ *
+ * One reading of "typed a number", used by every path that has to decide it: the search box (which
+ * posts a number attempt to an action instead of putting it in a URL), `leadListQuery()` (which refuses
+ * to build an href for one) and `phoneSearchDigits()` below (which then counts the digits in it). Two
+ * readings of the same question is how a browser and a server disagree about what an operator meant,
+ * and this file is deliberately importable from a client component — it pulls in nothing but
+ * `normalizePhone` and `formatNumber`, both plain string functions — so the browser's answer comes from
+ * here and not from a copy of a regular expression pasted into a component.
+ *
+ * It is about the CHARACTERS, not the length: `12` is a number attempt and too short to search by, and
+ * those are two different facts about it. `V-2026-0001` and `ধানমন্ডি ৯` are not number attempts, so
+ * they stay ordinary word searches that may travel in a URL.
+ */
+export function isNumberAttempt(raw:unknown):boolean{
+  const ascii=toAsciiDigits(String(raw==null?'':raw).trim());
+  return !!ascii&&ascii.length<=PHONE_ATTEMPT_MAX_LENGTH&&/^[\d\s()+.-]+$/.test(ascii)&&/[\d]/.test(ascii);
+}
+
+/**
+ * Above this many characters it is a paste, not a number somebody typed: an SMS body, an id list, a
+ * paragraph from a sheet. Still refused a URL — that rule is about digits, and it does not need a length
+ * — but answered as "that is not a number" rather than searched, so a paste cannot reach the index as a
+ * substring query and cannot come back as a page full of near misses.
+ */
+export const PHONE_ATTEMPT_MAX_LENGTH=40;
+
+/** Bangla digits are digits, everywhere in this file: ০১৭১২৮১৭০৯০ reads as 01712817090. */
+function toAsciiDigits(written:string):string{
+  return written.replace(BANGLA_DIGITS,c=>String('০১২৩৪৫৬৭৮৯'.indexOf(c)));
+}
 
 export function phoneSearchDigits(raw:unknown):PhoneSearchRead{
   const written=String(raw==null?'':raw);
   if(!written.trim())return {ok:false,code:'empty',messageBn:'নাম্বার লিখুন।',messageEn:'Type a number.'};
-  // Bangla digits are digits: ০১৭১২৮১৭০৯০ has to search as well as 01712817090.
-  const ascii=written.replace(BANGLA_DIGITS,c=>String('০১২৩৪৫৬৭৮৯'.indexOf(c)));
+  if(!isNumberAttempt(written))return {ok:false,code:'not_a_number',messageBn:`${formatNumber(written.trim().replace(/\s+/g,' ').length,'bn')} অক্ষরের লেখা কোনো নাম্বার নয় — নাম, প্রতিষ্ঠান বা আইডি লিখুন।`,messageEn:`${written.trim().length} character(s) of that is not a number — type a name, an institution or an id.`};
+  const ascii=toAsciiDigits(written);
   let digits=ascii.replace(/\D/g,'');
   let hadCountryCode=false;
   if(/^0088/.test(digits)){digits=digits.slice(4);hadCountryCode=true}

@@ -23,7 +23,7 @@
  *      depend on the zone the server happens to run in.
  */
 import {dhakaDay,dhakaToday} from '@/lib/admin/today';
-import {PHONE_SEARCH_MIN_DIGITS} from './lead-phone';
+import {isNumberAttempt,PHONE_SEARCH_MIN_DIGITS} from './lead-phone';
 
 export const LEAD_STATUSES=['new','called','interested','trial_booked','admitted','not_interested','no_answer','do_not_contact'] as const;
 export type LeadStatus=typeof LEAD_STATUSES[number];
@@ -202,13 +202,14 @@ export function leadListQuery(params:{
     // Searching BY NUMBER is a staff requirement — it simply travels as a form submission, never as a
     // query parameter (see `searchLeadsByPhone` and `src/actions/leads.ts`).
     const ascii=text.replace(/[০-৯]/g,c=>String('০১২৩৪৫৬৭৮৯'.indexOf(c)));
-    // `numberShaped` is what a human meant: digits and the punctuation a number is typed with, and at
-    // least one digit. `refusedPhone` is what may travel in an address bar: the same text, long enough
-    // to find somebody. They are different questions and the search box asks both — a two-digit attempt
-    // is still a number attempt, and answering it with an empty list would tell the front desk "no such
-    // visitor" when the truth is "that is too short to look anybody up by".
-    numberShaped=/^[\d\s()+.-]+$/.test(ascii)&&/\d/.test(ascii);
-    if(numberShaped&&ascii.length>=PHONE_SEARCH_MIN_DIGITS)refusedPhone=true;
+    // One reading of "typed a number", in `lead-phone.ts`, shared with the search box and with the
+    // number search itself. `numberShaped` is that question; `refusedPhone` adds the length at which a
+    // number search could actually find somebody, which is the length below which a fragment is still
+    // safe in a URL. The two must move together: a fragment short enough to slip into a URL would be
+    // long enough for the posted search to find somebody, so the same digit run cannot be allowed in one
+    // path and refused in the other.
+    numberShaped=isNumberAttempt(text);
+    if(numberShaped&&text.length>=PHONE_SEARCH_MIN_DIGITS)refusedPhone=true;
     if(!refusedPhone)search.set('q',text);
   }
   for(const [key,value] of Object.entries({

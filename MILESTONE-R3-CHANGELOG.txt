@@ -194,14 +194,22 @@ Wave A — foundations, no UI:
     question and posts, so typing ১২ or 12 reaches the number rule and comes back with "২ অঙ্ক দিয়ে
     নাম্বার খোঁজা যায় না — অন্তত ৪ অঙ্ক লিখুন।" rather than becoming ?q=12 and rendering an empty
     list.
-    One detail worth recording, because it cost a CI run to find: a client component cannot call
-    leadListQuery() to ask that question. It may import it — it already did, to build the href — and the
-    first version of this change read numberShaped straight off that call, which the browser then
-    answered from its own inlined copy of vocab.ts while the server answered from the module. Two
-    bundles, one decision, and no way to see them disagree from either side. LeadSearch now decides with
-    its own six-line isNumberAttempt() that imports nothing at all, keeps leadListQuery() for the href it
-    was written for, and still refuses to build a URL for anything refusedPhone. vocab.ts stays the
-    definition and R3.8 pins the copy the operator meets. That mattered more than it looks: an empty list at a front desk reads as "no such visitor",
+    Two things this cost four CI runs to find, both written down so the next person does not pay for them
+    again.
+    (1) "Typed a number" was two regular expressions — one in vocab.ts, one pasted into the component —
+    and a browser and a server that each answer that question from their own copy cannot be compared
+    from either side. It is now ONE function, isNumberAttempt() in src/lib/leads/lead-phone.ts, asked by
+    the search box (through leadListQuery().numberShaped), by the URL builder and by phoneSearchDigits()
+    itself. That module imports nothing but normalizePhone and formatNumber, so a client component may
+    import it and the browser's answer comes from the definition rather than from a copy. R3.3 pins it
+    for twelve inputs, including a paste of forty-one digits, which is answered not_a_number instead of
+    being run against the index as a substring query.
+    (2) The handler called event.preventDefault() before it had decided anything. React runs an onSubmit
+    handler before the one that dispatches a form action, so stopping the submit stopped the action: a
+    number search folded the panel away and answered nothing at all. The decision now comes first, and
+    only a word search — which navigates anyway — reaches preventDefault(). The compiled client chunk was
+    read after each change instead of being assumed correct: it calls the shared function, and the branch
+    order in the bundle is the branch order in the source. That mattered more than it looks: an empty list at a front desk reads as "no such visitor",
     which is the wrong answer to give about a parent, while the refusal says the truth — that the
     fragment is too short to look anybody up by. Neither threshold moved, and R3.1 now pins both
     answers for 12, ১২, 999, 017-128, V-2026-0001, ধানমন্ডি ৯ and a blank box. The box's own label

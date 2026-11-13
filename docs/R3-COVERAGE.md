@@ -70,12 +70,21 @@ which is a wrong and expensive answer; the refusal says the truth. Neither thres
 asserts that `999` and `V-2026-0001` stay shareable as URL parameters, and R3.7 still asserts that
 `7090` does not.
 
-The box asks with its own `isNumberAttempt()` in `src/components/admin/leads-ui.tsx` — six lines, no
-imports — and not by calling `leadListQuery()` in the browser. A client component may import that
-function, and does, for the href it builds; but the decision "is this a number?" then gets made twice,
-once from the server's module and once from the browser's inlined copy of it, and the two cannot be
-compared from either side. `vocab.ts` stays the definition (R3.1 pins it) and R3.8 pins the copy the
-operator actually meets, in the browser, for `12`, `৭০৯০` and a name.
+The reading of "typed a number" lives in ONE function — `isNumberAttempt()` in
+`src/lib/leads/lead-phone.ts` — and all three paths that need it ask that function: the search box
+(through `leadListQuery().numberShaped`), the URL builder, and `phoneSearchDigits()` itself. It was
+written twice at first, once in `vocab.ts` and once pasted into the component, which is exactly how a
+browser and a server come to disagree about what an operator meant with nothing on either side to compare
+against. `lead-phone.ts` imports nothing but `normalizePhone` and `formatNumber`, both plain string
+functions, so a client component may import it and the browser's answer comes from the definition rather
+than from a copy of a regular expression. R3.3 pins it directly; R3.1 pins the two answers
+`leadListQuery()` gives; R3.8 pins what the operator meets, in the browser.
+
+The same function refuses a **paste**: more than `PHONE_ATTEMPT_MAX_LENGTH` (40) characters is not a
+number somebody typed, and `phoneSearchDigits()` answers `not_a_number` rather than running it, so a
+paragraph copied off a sheet cannot reach the substring query and cannot come back as a page of near
+misses. A name posted to the number search gets the same answer — counted in characters, never quoted
+back, like every other refusal in this file.
 
 The two hrefs that must carry a number — the `tel:` call button and the `wa.me` link the brief asks for
 on every row — are built in `src/lib/leads/lead-phone.ts` and nowhere else. They are third-party
@@ -341,7 +350,7 @@ things at 360 px and 1440 px so the layout can be reviewed before it is approved
 | Quick-add | `LeadQuickAdd` in `src/components/admin/leads-ui.tsx` | four fields (name, number, class, school) and a "more" toggle for the other seven; Enter saves; the panel clears itself and keeps the cursor on the name, so the next visitor is typed straight in |
 | Detail drawer | `LeadDetailDrawer` / `LeadDetailBody` | a `<dialog>` sheet with every field, the masked numbers and their two destinations, the flags' own sentences, the notes timeline (newest first, with the writer's name and the outcome) and the rest of the family |
 | The lead's own page | `src/app/[locale]/admin/leads/[id]/page.tsx` | the same contents inline, so a link can be followed from an audit row or a message; `leadDetailByKey()` accepts the Mongo id **and** the readable `V-2026-0007` |
-| Search | `LeadSearch` | one box: a name, school or id becomes a shareable `?q=`; anything number-shaped — including a run too short to search by — is posted to `searchLeadsByNumber()`, so a short attempt is *answered* ("at least four digits") instead of returning an empty list |
+| Search | `LeadSearch` | one box: a name, school or id becomes a shareable `?q=`; anything number-shaped — including a run too short to search by — is posted to `searchLeadsByNumber()`, so a short attempt is *answered* ("at least four digits") instead of returning an empty list. One handler decides, and it decides **before** it touches the submit: `preventDefault()` called first also cancels the action, which is how a number search once answered nothing at all |
 | Follow-up queue | `/admin/leads?followUp=today` (and `overdue`, `none`) | the same list, filtered and sorted oldest promise first |
 | Overview widget | `src/components/admin/lead-follow-ups.tsx` | "আজকের ফলো-আপ": today's count and the overdue count as **two numbers**, the six nearest leads, and the same row controls |
 | Sidebar | `nav-items.ts`, `sidebar.tsx` | a sixth group — **ভিজিটর** / "Admissions & leads" — with Visitors and Follow-ups; on a Visitors screen the mobile bottom bar's plus becomes "নতুন ভিজিটর" |

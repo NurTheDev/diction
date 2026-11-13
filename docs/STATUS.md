@@ -559,9 +559,10 @@ number-shaped is refused by the same `leadListQuery()` that builds the href and 
 and the whole list is rendered with an explanation, rather than being quietly searched. The box asks the
 wider question — "did a human type a number?" rather than "may this travel in a URL?" — so two digits get
 the number rule's own answer ("at least four digits") instead of a word search that comes back empty and
-reads as *no such visitor*. It asks with its own six-line `isNumberAttempt()`, not by calling
-`leadListQuery()` in the browser: R3-COVERAGE rule 2 says why that duplication is deliberate. Both
-thresholds are asserted in R3.1 and neither moved.
+reads as *no such visitor*. The reading of "typed a number" is one
+function — `isNumberAttempt()` in `src/lib/leads/lead-phone.ts`, importable from a client component —
+asked by the box, by the URL builder and by the number search itself; R3-COVERAGE rule 2 records why it
+is not written twice. Both thresholds are asserted in R3.1 and neither moved.
 
 **Proof:** `tests/lead-screens-browser.integration.ts` (**R3.8**, registry 35) drives all five screens
 as an admin, a staff account and a content editor, reads every write back from the database, measures
