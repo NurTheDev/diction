@@ -262,12 +262,16 @@ async function run(){
     await drawer.locator('button',{hasText:t.addNote}).click();
     await until(async()=>{const row=await Lead.findOne({studentName:RAHUL}).lean<{notes:unknown[]}>();return ((row&&row.notes)||[]).length===2},'the note to be written');
     await drawer.locator('ul.lead-notes li',{hasText:SECOND_NOTE}).first().waitFor({timeout:90000});
-    const afterNote=await drawer.locator('ul.lead-notes').innerText();
+    const afterNote=await drawer.locator('ul.lead-notes:not(.lead-family)').innerText();
     assert.ok(afterNote.includes('আগ্রহী'),'the outcome is named beside the note');
     assert.ok(afterNote.includes(names.admin),'and so is whoever wrote it');
     const storedNotes=await Lead.findOne({studentName:RAHUL}).lean<{notes:{text:string;outcome:string}[]}>();
     assert.equal(storedNotes!.notes.length,2,'both notes are in the database');
     assert.equal(storedNotes!.notes[1].outcome,'interested');
+    // A modal drawer left open puts its backdrop over everything else on the page, so the next click
+    // would be intercepted by it rather than reaching the search button.
+    await drawer.locator('header button').click();
+    await drawer.waitFor({state:'detached',timeout:30000});
 
     await desk.page.goto(`${origin}${list}`,{waitUntil:'domcontentloaded',timeout:180000});
     await desk.page.locator('table.admin-table tbody tr',{hasText:RAHUL}).first().locator('button',{hasText:t.detail}).first().click();
@@ -350,8 +354,14 @@ async function run(){
     await until(async()=>(await followUpOf())===null,'"clear" to take the promise away');
     assert.equal(await followUpOf(),null,'and "clear" leaves no follow-up behind');
 
+    // A status chip is a real filter, and this is the last moment it can be proven: lifting the block
+    // below moves this lead off the chip it is filtered by.
+    await boss.page.goto(`${origin}${list}?status=do_not_contact`,{waitUntil:'domcontentloaded',timeout:180000});
+    await boss.page.locator('table.admin-table tbody tr',{hasText:BLOCKED}).first().waitFor({timeout:60000});
+    assert.equal(await rows(boss.page).count(),1,'the "do not contact" chip shows the one lead that is blocked');
     const blockedRow=boss.page.locator('table.admin-table tbody tr',{hasText:BLOCKED}).first();
     await blockedRow.locator('button',{hasText:t.allowContact}).first().click();
+    // The row leaves this filtered list as soon as the page revalidates, so nothing here waits on it.
     await until(async()=>(await Lead.findOne({studentName:BLOCKED}).lean<{doNotContact:boolean}>())!.doNotContact===false,'the contact block to lift');
     const unblocked=await Lead.findOne({studentName:BLOCKED}).lean<{doNotContact:boolean;status:string}>();
     assert.equal(unblocked!.doNotContact,false,'lifting the block is its own deliberate button, and it works');
@@ -400,9 +410,9 @@ async function run(){
     await boss.page.goto(`${origin}${list}?followUp=overdue`,{waitUntil:'domcontentloaded',timeout:180000});
     await boss.page.locator('table.admin-table tbody tr',{hasText:OLD}).first().waitFor({timeout:60000});
     assert.equal(await rows(boss.page).count(),1,'the overdue filter shows the one lead whose day has passed');
-    await boss.page.goto(`${origin}${list}?status=do_not_contact`,{waitUntil:'domcontentloaded',timeout:180000});
-    await boss.page.locator('table.admin-table tbody tr',{hasText:BLOCKED}).first().waitFor({timeout:60000});
-    assert.equal(await rows(boss.page).count(),1,'and a status chip is a real filter, not a decoration');
+    await boss.page.goto(`${origin}${list}?status=interested`,{waitUntil:'domcontentloaded',timeout:180000});
+    await boss.page.locator('table.admin-table tbody tr',{hasText:OLD}).first().waitFor({timeout:60000});
+    assert.equal(await rows(boss.page).count(),1,'and a second chip filters the same way — one interested lead, and only it');
     await boss.page.goto(`${origin}${list}?q=${P1}`,{waitUntil:'domcontentloaded',timeout:180000});
     await boss.page.locator('h1',{hasText:t.title}).first().waitFor({timeout:60000});
     await boss.page.locator('p.admin-feedback.error').first().waitFor({state:'visible',timeout:60000});
@@ -412,11 +422,12 @@ async function run(){
     // ---- 8. A teacher role reaches none of it.
     const teacher=await signIn('content_editor');
     await teacher.page.goto(`${origin}${list}`,{waitUntil:'domcontentloaded',timeout:180000});
-    await teacher.page.locator('body').waitFor({timeout:60000});
-    await teacher.page.waitForTimeout(3000);
+    // The guard throws before a single lead is read, and the admin error boundary is what a refused role
+    // sees — waited for as an element rather than slept on, because the shell streams in first.
+    await teacher.page.locator('h2',{hasText:bn.admin.pageUnavailable}).first().waitFor({timeout:60000});
     const teacherBody=await teacher.page.locator('body').innerText();
     assert.ok(!teacherBody.includes(RAHUL)&&!teacherBody.includes(MASK_1),'a content editor sees no visitor and no number');
-    assert.ok(teacherBody.includes(bn.admin.pageUnavailable),'the screen is refused outright rather than half-rendered');
+    assert.ok(teacherBody.includes(bn.admin.pageUnavailable),`the screen is refused outright rather than half-rendered (the page said: ${teacherBody.slice(0,120)})`);
     assert.equal(await teacher.page.locator('nav.admin-nav a[href*="/admin/leads"]').count(),0,'the sidebar has no Visitors item for that role');
     assert.equal(await teacher.page.locator('input[name="studentName"]').count(),0,'and there is no quick-add form');
 

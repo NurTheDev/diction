@@ -6,6 +6,8 @@
  * import in this file would break every screen in wave B. The rules themselves stay in `leads.ts` and
  * the vocabulary in `vocab.ts`; this module only decides how a rule's answer is *shown*.
  */
+// A type-only import: it is erased at compile time, so this file stays client-safe (see the header).
+import type {LeadSearchHit} from './leads';
 import {leadListQuery,maskPhone} from './vocab';
 import {telHref,whatsappHref} from './lead-phone';
 import {
@@ -151,4 +153,25 @@ export function rowView(row:LeadRowSource):LeadRowView{
 
 export function detailView(detail:{row:LeadRowSource;notes:{at:Date;text:string;outcome:string;byName:string}[];family:LeadRowSource[]}):LeadDetailView{
   return {row:rowView(detail.row),notes:detail.notes||[],family:(detail.family||[]).map(rowView)};
+}
+
+/**
+ * What a number search hands back to the form that asked. It lives here rather than in `leads.ts`
+ * because a client component imports it, and here rather than in `src/actions/leads.ts` because a
+ * 'use server' module may export nothing but async functions.
+ *
+ * A hit is the rule layer's `LeadSearchHit` with its phones replaced by views. The rule layer keeps the
+ * normalized number — that is what it matched on, and its own integration test reads it — while the
+ * browser is handed the mask and the two destinations, so the digits cross no wire they do not have to.
+ */
+export type LeadSearchHitView=Omit<LeadSearchHit,'phones'>&{phones:LeadPhoneView[]};
+
+export interface LeadSearchActionState{
+  status:'idle'|'found'|'empty'|'refused'|'unauthorized'|'error';
+  hits:LeadSearchHitView[];total:number;masked:string;messageBn:string;messageEn:string;
+}
+
+/** The strip, for one search answer: every phone becomes a view and nothing else is touched. */
+export function searchHitViews(hits:LeadSearchHit[]):LeadSearchHitView[]{
+  return (hits||[]).map(({phones,...hit})=>({...hit,phones:phoneViews(phones)}));
 }

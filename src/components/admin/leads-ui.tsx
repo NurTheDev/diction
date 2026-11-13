@@ -27,9 +27,9 @@ import {
   FOLLOW_UP_CLEAR,FOLLOW_UP_KEYS,LEAD_NOTE_OUTCOME_OPTIONS,LEAD_SOURCE_OPTIONS,LEAD_STATUS_OPTIONS,
   followUpBadge,followUpLabel,groupLabel,idleLeadForm,leadFormMessage,mediumLabel,noteOutcomeLabel,
   shiftLabel,sourceLabel,statusBadge,statusLabel,
-  type LeadDetailView,type LeadDrawerSeed,type LeadFormState,type LeadListFiltersShape,type LeadPhoneView,type LeadRowView,
+  type LeadDetailView,type LeadDrawerSeed,type LeadFormState,type LeadListFiltersShape,type LeadPhoneView,
+  type LeadRowView,type LeadSearchActionState,type LeadSearchHitView,
 } from '@/lib/leads/lead-ui';
-import type {LeadSearchActionState,LeadSearchHit} from '@/lib/leads/leads';
 import {leadListQuery} from '@/lib/leads/vocab';
 import {formatClass,formatDate,formatNumber,formatTime,type Digits} from '@/lib/admin/format';
 
@@ -94,7 +94,7 @@ export function LeadQuickAdd({open=false,language='bn'}:{open?:boolean;language?
 }
 
 /** One search hit is enough of a lead to open the same drawer a list row opens. */
-function seedOf(hit:LeadSearchHit):LeadDrawerSeed{
+function seedOf(hit:LeadSearchHitView):LeadDrawerSeed{
   return {
     id:hit.id,leadId:hit.leadId,studentName:hit.studentName,guardianName:hit.guardianName,date:hit.date,
     phones:hit.phones,classLabel:hit.classLabel,classGroup:hit.classGroup,school:hit.school,status:hit.status,
@@ -272,7 +272,7 @@ function LeadDetailBody({seed,detail,loading,noteState,noteAction,notePending,la
         {noteState.status!=='idle'&&<p role="status" className={`admin-feedback ${noteState.status==='ok'?'':'error'}`}>{leadFormMessage(noteState,language)}</p>}
       </div>
     </form>
-    {!!(detail?.family||[]).length&&<><h3>{t('family')}</h3><ul className="lead-notes">{detail!.family.map(member=><li key={member.id}>
+    {!!(detail?.family||[]).length&&<><h3>{t('family')}</h3>{/* Its own class beside `lead-notes`: the timeline and the family are two lists, and a test (or a stylesheet) that means one of them must be able to say which. */}<ul className="lead-notes lead-family">{detail!.family.map(member=><li key={member.id}>
       <Link href={`/admin/leads/${member.id}`}>{member.studentName}</Link> <span className="admin-help">{member.leadId} · {statusLabel(member.status,language)}</span>
     </li>)}</ul></>}
   </>;

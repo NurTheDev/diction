@@ -291,7 +291,14 @@ that is what makes a filtered list shareable — and `V-2026-0001` is not a numb
   are the identifying part and a "mask" of them would be the number.
 - In the returned payload the only fields carrying a full number are `tel:` and `wa.me` — the two
   destinations the brief requires, built in one place, third-party, never a route of this app — and
-  `leadPath()` for every hit carries no digits.
+  `leadPath()` for every hit carries no digits. `searchLeadsByPhone()` itself still returns each hit's
+  `normalized` number, because that is the field it matched on and `tests/lead-phone-search.integration.ts`
+  reads it to prove the match; what crosses to the browser is narrower — `searchHitViews()` in
+  `src/lib/leads/lead-ui.ts` replaces every hit's phones with mask-and-destination views, and
+  `searchLeadsByNumber()` in `src/actions/leads.ts` returns only that. So a wave-B screen cannot receive
+  a normalized number even by accident, and `LeadSearchActionState` (the state type a client component
+  imports) lives in `lead-ui.ts` for exactly that reason: a 'use server' module may export nothing but
+  async functions, and the type had to be somewhere a component may import it from.
 - Structurally: `src/actions/leads.ts` exports **only** async functions (one value export corrupts every
   server action in the app), calls its guard before anything else, builds no href and reads no query
   parameter, and its single `console.error` passes an error *name* — never the error text, because a
@@ -348,6 +355,9 @@ removes three things on the way:
   `tel:` and `wa.me` destinations the brief requires, and nothing else.
 - **a flag's `original`** — the raw cell text, because a cell can hold a second number that is
   perfectly valid. The flag's own sentence is printed; it already quotes what the operator needs.
+- **a search hit's `normalized`** — the rule layer keeps it (it is what the query matched on); the
+  action hands the browser `searchHitViews()` instead, so the two halves cannot drift and a component
+  cannot print what it was never given.
 
 R3.8 asserts this against the served HTML: after stripping the `tel:` and `wa.me` destinations, no
 fixture number appears anywhere in the document — not in the visible text, not in an attribute, and not

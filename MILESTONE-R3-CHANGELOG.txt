@@ -170,7 +170,12 @@ Wave A — foundations, no UI:
     sticky; lifting the block is its own button and its own action. leads.ts gained exactly two
     functions for these screens (leadDetailByKey, leadStatusCounts) and no page queries Lead.
     src/actions/leads.ts now carries six guarded actions and still exports only async functions, still
-    builds no href, reads no query parameter and logs an error name rather than a value.
+    builds no href, reads no query parameter and logs an error name rather than a value. One thing it
+    now does that it did not before: searchHitViews() strips a hit's normalized and as-written number
+    before the answer crosses to the browser, because the rule layer keeps them (that is the field it
+    matched on, and R3.7's own test reads it) while a screen may only ever hold the mask and the two
+    destinations. LeadSearchActionState moved to lead-ui.ts with it — the client component imports that
+    type, and a 'use server' module may export nothing but async functions.
     Proof: tests/lead-screens-browser.integration.ts drives all five screens as an admin, a staff
     account and a content editor, reads every write back from the database rather than trusting a
     sentence on screen (a revalidated row can unmount before its own feedback is painted), measures

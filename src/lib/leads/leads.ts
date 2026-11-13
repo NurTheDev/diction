@@ -274,15 +274,9 @@ export interface LeadSearchHit{
   followUp:'none'|'today'|'overdue'|'later';date:string;
   phones:{normalized:string;original:string;tel:string;whatsapp:string;masked:string}[];
 }
-/**
- * The shape a server action returns to the search form. It lives here and not in `src/actions/leads.ts`
- * because a 'use server' module may only export async functions — and because the client component that
- * renders the results imports this type, which it must not do from an action file.
- */
-export interface LeadSearchActionState{
-  status:'idle'|'found'|'empty'|'refused'|'unauthorized'|'error';
-  hits:LeadSearchHit[];total:number;masked:string;messageBn:string;messageEn:string;
-}
+// The shape a server action returns to the search form is `LeadSearchActionState` in `lead-ui.ts`: the
+// component that renders the results imports it, and it must not do that from a 'use server' file. It
+// also carries views rather than these hits, so a normalized number never leaves the server.
 
 export interface LeadPhoneSearchResult{
   /** `found` = rows came back, `empty` = the search ran and matched nothing, `refused` = it never ran. */

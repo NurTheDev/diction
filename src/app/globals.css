@@ -573,6 +573,7 @@ html:lang(bn) .public-motion-root:not(.private-motion-disabled) :is(h1,h2,h3,h4)
 .lead-notes{list-style:none;margin:0;padding:0;display:grid;gap:10px}
 .lead-notes li{border-top:1px solid #d9deee;padding-top:8px;overflow-wrap:anywhere}
 .lead-notes small{display:block;color:#4a5072;font-size:14px}
+.lead-family{gap:6px}
 .lead-chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
 .lead-chips a{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:6px 13px;border:1px solid #dfe3ee;border-radius:30px;background:#fff;color:#2e3192;font-size:14px;font-weight:700}
 .lead-chips a.selected{background:#2e3192;border-color:#2e3192;color:#fff}

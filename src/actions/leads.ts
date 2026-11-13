@@ -15,15 +15,20 @@
  * `location.search`. Posted to an action, it is in one request body, answered once, and gone. The action
  * returns the rows the operator is allowed to see — the list already shows numbers to staff so they can
  * dial them — but it never returns the digits that were typed, only a mask, so nothing echoes the search
- * back into a place it could be copied from.
+ * back into a place it could be copied from. The hits are stripped on the way out too
+ * (`searchHitViews`): the rule layer matches on a normalized number and keeps it, and the browser gets
+ * the mask plus the `tel:` and `wa.me` destinations, which is all a screen may hold.
  */
 import {revalidatePath} from 'next/cache';
 import {requireArchiver} from '@/lib/admin/guard';
 import {
   addLeadNote,createQuickLead,leadDetailByKey,searchLeadsByPhone,setContactPermission,setLeadFollowUp,
-  updateLeadStatus,type LeadSearchActionState,
+  updateLeadStatus,
 } from '@/lib/leads/leads';
-import {detailView,FOLLOW_UP_CLEAR,type LeadDetailView,type LeadFormState} from '@/lib/leads/lead-ui';
+import {
+  detailView,FOLLOW_UP_CLEAR,searchHitViews,
+  type LeadDetailView,type LeadFormState,type LeadSearchActionState,
+} from '@/lib/leads/lead-ui';
 import type {FollowUpKey} from '@/lib/leads/vocab';
 
 /** The Visitors list and the Overview both change when a lead does, in either locale. */
@@ -55,7 +60,7 @@ export async function searchLeadsByNumber(_:LeadSearchActionState|null,form:Form
     const staff=await requireArchiver();
     // `staff.id`, not `_id`: getCurrentUser() hands back a projected session user.
     const result=await searchLeadsByPhone(form.get('phone'),new Date(),25,String(staff.id));
-    return {status:result.status,hits:result.hits,total:result.total,masked:result.masked,messageBn:result.messageBn,messageEn:result.messageEn};
+    return {status:result.status,hits:searchHitViews(result.hits),total:result.total,masked:result.masked,messageBn:result.messageBn,messageEn:result.messageEn};
   }catch(error){
     if(String((error as Error)?.message||'')==='UNAUTHORIZED'){
       return {...IDLE,status:'unauthorized',messageBn:'ভিজিটর তালিকা দেখার অনুমতি নেই।',messageEn:'You do not have access to the visitor list.'};
