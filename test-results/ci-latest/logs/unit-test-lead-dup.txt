@@ -1,0 +1,8 @@
+--- tests/lead-dup.test.ts (exit 0) ---
+Duplicate-phone planning: a merge fills only what the target left empty and never overwrites a guardian, a school or a class; it moves every phone the target does not hold (matched on the normalized number, keeping the target spelling of a shared one), every note with its writer and its moment, and every flag the target does not already quote; it keeps the target family key and re-points the source family to it, adopts a key when the target has none and invents none when neither has one; it refuses a converted source by name and a binned lead on either side; a sibling inherits the holder key even against its own smallest number while "separate" carries no key at all; and tying two leads that stay two adopts the smaller of their keys and re-points the other.
+
+
+--- tests/lead-dup.integration.ts (exit 1) ---
+TypeError: Cannot read properties of null (reading 'deletedAt')
+    at run (/home/runner/work/diction/diction/tests/lead-dup.integration.ts:119:25)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
