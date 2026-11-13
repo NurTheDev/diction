@@ -220,7 +220,25 @@ Wave A — foundations, no UI:
     of \p{L} alone does not match Bangla, because বাবা is letter-mark-letter-mark, so \p{M} sits beside
     it; and a "-" between "+" and a property escape is read by V8 as a range and rejects the whole
     expression, so it goes last. R3.3 pins both, with the label case in Bangla digits too, and pins that
-    two numbers in one box ("01712817090,01911223344") is a sheet cell and not a search. That mattered more than it looks: an empty list at a front desk reads as "no such visitor",
+    two numbers in one box ("01712817090,01911223344") is a sheet cell and not a search.
+    R3.8's two digits kept failing after that, with a diagnostic that said the whole panel had gone: no
+    navigation, no answer, nothing to wait for. The cause was not in the box's logic at all — it was the
+    suite racing React. A form action disables the submit button while it runs and React resets the form
+    (recursivelyResetForms calls form.reset()) in the commit that carries the answer; a Playwright click
+    waits for that same button, so a value typed while the PREVIOUS search was still in flight was wiped
+    before the click landed, and the click submitted an empty box. An empty box is a word search, and a
+    word search with nothing typed builds the URL the address bar already holds — the panel folded away,
+    nothing answered, ninety seconds later the suite gave up. The four digits steps passed beside it
+    because a screenshot and an overflow measurement ran in between, which is the whole difference
+    between them: time.
+    Two changes close it. The suite now types through one helper that waits for the button to come back,
+    fills, and confirms the box still holds what it is about to submit; and it reads each answer from the
+    commit that just landed (rows for a hit, a message and no rows for a refusal) instead of from "a row
+    is visible", which the previous search's rows satisfy instantly and so proved nothing — the Bangla
+    digits step had been passing on the four digits step's results. The component learned the same lesson
+    on the operator's behalf: when the href it would push is the address bar it is standing on, it does
+    nothing at all and leaves the box open, so an emptied box can never fold the panel away with no answer
+    in it again. That mattered more than it looks: an empty list at a front desk reads as "no such visitor",
     which is the wrong answer to give about a parent, while the refusal says the truth — that the
     fragment is too short to look anybody up by. Neither threshold moved, and R3.1 now pins both
     answers for 12, ১২, 999, 017-128, V-2026-0001, ধানমন্ডি ৯ and a blank box. The box's own label

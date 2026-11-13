@@ -143,9 +143,16 @@ export function LeadSearch({language='bn',digits='bn',current}:{language?:'bn'|'
     // Only a word search reaches this line, and a word search navigates — so folding the panel away here
     // cannot take a posted number search with it. It once did: `preventDefault()` was called before the
     // decision had been made, React runs this handler before the one that dispatches a form action, and
-    // stopping the submit stopped the action too. The panel folded away with no answer in it and the
-    // operator saw nothing at all, which is what four CI runs timed out on before one of them said so.
-    // R3.8 now waits on the answer AND reports what the panel was showing when it did not come.
+    // stopping the submit stopped the action too.
+    //
+    // And it only navigates when there is somewhere to go. An empty box builds the URL the address bar
+    // already holds, and pushing that folded the panel away with nothing answered — which is what an
+    // operator meets if the box was cleared for them (React resets a form when its action commits, so the
+    // search that just answered empties it) and they press search again. Nothing typed and nothing
+    // filtered now leaves the box exactly where it is.
+    const here=new URL(window.location.href);
+    const there=new URL(target.href,here.origin);
+    if(here.pathname===there.pathname&&here.search===there.search)return;
     setOpen(false);
     router.push(target.href.replace(/^\/bn/,''));
   }

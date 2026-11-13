@@ -133,6 +133,8 @@ async function run(){
     }
   };
 
+  /** Every value the search box had to be given twice, kept because a refill is a fact worth reporting. */
+  const refills:string[]=[];
   try{
     async function signIn(role:'admin'|'staff'|'content_editor',width=1440){
       const context=await browser.newContext({viewport:{width,height:900}});
@@ -290,25 +292,81 @@ async function run(){
      * panel" is three buttons once two hits have been rendered, and Playwright refuses to pick one.
      */
     const submitSearch=()=>search.locator('form.admin-panel-body button[type="submit"]');
+    const searchInput=()=>search.locator('input[name="phone"]');
     /**
      * What the search panel is showing right now, for the message a failed assertion leaves behind. A
-     * timeout on its own says "an element never appeared"; this says what appeared instead.
+     * timeout on its own says "an element never appeared"; this says what appeared instead. The panel is
+     * counted rather than assumed, because a locator that matches no panel and one that matches two both
+     * throw and those are opposite facts — `miniButtons` is the closed panel's own button, and `tools`
+     * and `body` say whether the panel folded away or the whole page fell over to the error boundary.
      */
     const searchState=async(label:string)=>{
       const url=boss.page.url();
-      const input=await search.locator('input[name="phone"]').inputValue().catch(()=>'(no input)');
-      const feedback=await search.locator('p.admin-feedback').allInnerTexts().catch(()=>[]);
+      const panels=await search.count();
+      const mini=await boss.page.locator('div.lead-tools button.admin-mini-button',{hasText:t.search}).count();
+      const input=await searchInput().first().inputValue().catch(()=>'(no input)');
+      const disabled=await submitSearch().first().isDisabled().catch(()=>'(no button)');
+      const feedback=await boss.page.locator('p.admin-feedback').allInnerTexts().catch(()=>[]);
       const hitRows=await search.locator('table.admin-table tbody tr').count().catch(()=>-1);
-      const panelText=(await search.innerText().catch(()=>'(panel gone)')).replace(/\s+/g,' ').slice(0,200);
-      return `${label} · url=${url} · input=${JSON.stringify(input)} · feedback=${JSON.stringify(feedback)} · hitRows=${hitRows} · panel="${panelText}"`;
+      const tools=(await boss.page.locator('div.lead-tools').first().innerText().catch(()=>'(no tools)')).replace(/\s+/g,' ').slice(0,140);
+      const body=(await boss.page.locator('body').innerText().catch(()=>'(no body)')).replace(/\s+/g,' ').slice(0,180);
+      return `${label} · url=${url} · panels=${panels} · miniButtons=${mini} · input=${JSON.stringify(input)} · submitDisabled=${disabled} · feedback=${JSON.stringify(feedback)} · hitRows=${hitRows} · refills=${JSON.stringify(refills)} · tools="${tools}" · body="${body}"`;
     };
-    await boss.page.locator('div.lead-tools button',{hasText:t.search}).first().click();
-    await search.locator('input[name="phone"]').waitFor({state:'visible',timeout:30000});
-    await search.locator('input[name="phone"]').fill('7090');
-    await submitSearch().click();
+    /**
+     * Whether the search panel has finished with a submit, read in the browser and scoped to the panel by
+     * its own label: the quick-add panel sits next to it with a form of the same shape, and document
+     * order would pick that one up first.
+     *
+     * `ready` is the button coming back — a React form action disables it while the action is in flight.
+     * `found` and `refused` read the answer itself, and they read it together with two marks of the
+     * commit that carried it: the button enabled again, and the box cleared, because React resets a form
+     * when its action commits (`recursivelyResetForms` → `form.reset()`). Without those, "a row is
+     * visible" is satisfied instantly by the rows of the PREVIOUS search — still on screen, still two of
+     * them — and proves nothing about the search just submitted. That false green is what let the Bangla
+     * digits step pass on the four digits step's results while the step after it raced the same commit.
+     */
+    const searchSettled=(want:'ready'|'found'|'refused')=>boss.page.waitForFunction(({label,ask})=>{
+      const panel=document.querySelector(`section.admin-panel[aria-label="${label}"]`);
+      if(!panel)return false;
+      const form=panel.querySelector('form.admin-panel-body');
+      if(!form)return false;
+      const button=form.querySelector('button[type="submit"]') as HTMLButtonElement|null;
+      if(!button||button.disabled)return false;
+      if(ask==='ready')return true;
+      const input=form.querySelector('input[name="phone"]') as HTMLInputElement|null;
+      if(!input||input.value!=='')return false; // the commit that answered also cleared the box
+      const rows=panel.querySelectorAll('table.admin-table tbody tr').length;
+      return ask==='found'?rows>0:!!form.querySelector('p.admin-feedback')&&rows===0;
+    },{label:t.search,ask:want},{timeout:90000});
+    /**
+     * One number search, from a settled box to its answer.
+     *
+     * React resets a form when its action commits — `recursivelyResetForms` calls `form.reset()` in the
+     * commit that carries the answer — so the search that just finished empties the box, and the submit
+     * button stays disabled until that commit lands. A Playwright click waits for the button to come
+     * back, so a value typed while an earlier search is still in flight is wiped before the click ever
+     * happens: the box arrives empty, an empty box is a word search, and a word search with nothing typed
+     * has nowhere to go — the panel folded away and no answer was left to wait for. That is what the two
+     * digits step timed out on while the four digit steps beside it passed. So this waits for the button
+     * first, types, and then confirms the box still holds the value it is about to submit.
+     */
+    const searchNumber=async(value:string,want:'found'|'refused')=>{
+      await searchSettled('ready')
+        .catch(async error=>{throw Error(`the search box never came back before ${JSON.stringify(value)} — ${error.message.split('\n')[0]} · ${await searchState(`the box should have been ready for ${value}`)}`)});
+      await searchInput().fill(value);
+      if(await searchInput().inputValue()!==value){refills.push(value);await searchInput().fill(value);}
+      assert.equal(await searchInput().inputValue(),value,`the box holds ${JSON.stringify(value)} at the moment it is submitted`);
+      await submitSearch().click();
+      await searchSettled(want)
+        .catch(async error=>{throw Error(`a search for ${JSON.stringify(value)} never answered — ${error.message.split('\n')[0]} · ${await searchState(`a search for ${value} should have been answered`)}`)});
+    };
+    // The panel's own button when it is closed; when it is already open there is nothing to click, and
+    // clicking by text alone would land on the submit button inside it and search for nothing.
+    const openSearch=boss.page.locator('div.lead-tools button.admin-mini-button',{hasText:t.search});
+    if(await openSearch.count()>0)await openSearch.first().click();
+    await searchInput().waitFor({state:'visible',timeout:30000});
+    await searchNumber('7090','found');
     const hits=search.locator('table.admin-table tbody tr');
-    await hits.first().waitFor({state:'visible',timeout:90000})
-      .catch(async error=>{throw Error(`four digits never drew a result row — ${error.message.split('\n')[0]} · ${await searchState('four digits should have drawn two hits')}`)});
     assert.equal(await hits.count(),2,'four digits off a crumpled sheet find both leads that share the number');
     // `first()`, never "the row with the name in it": the search sorts by date, and two leads written in
     // the same instant have no order this suite is allowed to depend on.
@@ -321,19 +379,13 @@ async function run(){
     await noOverflow(boss.page,'the search results at 1440');
     await shot(boss.page,'b2-number-search-1440');
 
-    await search.locator('input[name="phone"]').fill('৭০৯০');
-    await submitSearch().click();
-    await search.locator('table.admin-table tbody tr').first().waitFor({state:'visible',timeout:90000})
-      .catch(async error=>{throw Error(`Bangla digits never drew a result row — ${error.message.split('\n')[0]} · ${await searchState('Bangla digits should have drawn the same two hits')}`)});
+    await searchNumber('৭০৯০','found');
     assert.equal(await search.locator('table.admin-table tbody tr').count(),2,'Bangla digits find the same two leads');
 
     // Two digits is a number attempt and gets the number rule's own answer. It is NOT sent off as a word
     // search, because an empty list would read as "no such visitor" — a wrong and expensive answer at a
     // front desk — while the truth is "that is too short to look anybody up by".
-    await search.locator('input[name="phone"]').fill('12');
-    await submitSearch().click();
-    await search.locator('p.admin-feedback.error').first().waitFor({state:'visible',timeout:90000})
-      .catch(async error=>{throw Error(`two digits never drew the number rule's refusal — ${error.message.split('\n')[0]} · ${await searchState('two digits should have drawn a refusal')}`)});
+    await searchNumber('12','refused');
     assert.equal(await search.locator('table.admin-table tbody tr').count(),0,'two digits are refused rather than matched against everybody');
     assert.ok(!new URL(boss.page.url()).search.includes('q='),'and a number attempt never became a URL, not even a short one');
     const refusal=await search.locator('p.admin-feedback.error').first().innerText();
@@ -341,7 +393,13 @@ async function run(){
       `the refusal counts digits in Bangla (${refusal}) …`);
     assert.ok(!refusal.includes('12'),'…without quoting what was typed');
 
-    await search.locator('input[name="phone"]').fill(OLD);
+    // A name is the other half of the box: it may travel in the address bar, so a filtered list can be
+    // handed to another admin, and it filters the list rather than answering inside the panel.
+    await searchSettled('ready')
+      .catch(async error=>{throw Error(`the search box never came back before a name — ${error.message.split('\n')[0]} · ${await searchState('the box should have been ready for a name')}`)});
+    await searchInput().fill(OLD);
+    if(await searchInput().inputValue()!==OLD){refills.push(OLD);await searchInput().fill(OLD);}
+    assert.equal(await searchInput().inputValue(),OLD,'the box holds the name at the moment it is submitted');
     await submitSearch().click();
     await boss.page.waitForURL(/q=/,{timeout:90000})
       .catch(async error=>{throw Error(`a name never became a shareable URL — ${error.message.split('\n')[0]} · ${await searchState('a name should have become ?q=')}`)});
@@ -480,7 +538,7 @@ async function run(){
     await mongo.stop();
   }
 
-  console.log('Visitor screens: the list shows every lead with its status, its follow-up day and its number masked, the digits living only in the tel: and wa.me destinations and in nothing else the browser is served, and no family key reaching it at all; quick-add is one labelled tap on the mobile bottom bar, four fields with the rest behind "more", saves on Enter, reports the id it wrote, reads XII as class 12 and leaves status, group and medium un-guessed; the drawer loads the notes timeline, saves a note with an outcome and its writer’s name, and lists the family; one search box sends four digits — typed in Bangla too — to a server action that finds both leads sharing a number and refuses two digits in Bangla that counts them without quoting them and without turning them into a word search, while a name travels as a shareable URL parameter and a number typed into the address bar is refused; the row controls change a status, write each of the four quick follow-up days in Dhaka, clear one again and lift a contact block deliberately; the Overview counts today’s follow-ups and the overdue ones separately, works the queue from there and moves the count with it; a content editor reaches none of it; nothing overflows horizontally at 360 px; every screen audited what it did with masked targets; and all five screens are photographed at 360 px and 1440 px in screenshots/r3.');
+  console.log('Visitor screens: the list shows every lead with its status, its follow-up day and its number masked, the digits living only in the tel: and wa.me destinations and in nothing else the browser is served, and no family key reaching it at all; quick-add is one labelled tap on the mobile bottom bar, four fields with the rest behind "more", saves on Enter, reports the id it wrote, reads XII as class 12 and leaves status, group and medium un-guessed; the drawer loads the notes timeline, saves a note with an outcome and its writer’s name, and lists the family; one search box sends four digits — typed in Bangla too — to a server action that finds both leads sharing a number and refuses two digits in Bangla that counts them without quoting them and without turning them into a word search, while a name travels as a shareable URL parameter and a number typed into the address bar is refused; the row controls change a status, write each of the four quick follow-up days in Dhaka, clear one again and lift a contact block deliberately; the Overview counts today’s follow-ups and the overdue ones separately, works the queue from there and moves the count with it; a content editor reaches none of it; nothing overflows horizontally at 360 px; every screen audited what it did with masked targets; and all five screens are photographed at 360 px and 1440 px in screenshots/r3. Each search was read from the commit that answered it — the button back and the box cleared, never the rows a previous search left on screen — and the box '+(refills.length?'had to be typed twice for '+refills.join(', ')+' because React cleared it in between':'held what was typed every time it was submitted')+'.');
 }
 
 run().catch(error=>{console.error(error);process.exit(1)});

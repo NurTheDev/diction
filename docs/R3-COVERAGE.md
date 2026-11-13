@@ -402,6 +402,26 @@ screen that puts a parent back on a calling list. Pages and components never que
 counts, the board and the drawer all come from `src/lib/leads/leads.ts` — which gained
 `leadDetailByKey()` and `leadStatusCounts()` for these screens and nothing else.
 
+### The search box, and the two things that decide what it does next
+
+`LeadSearch.onSubmit` reads the box once and asks `leadListQuery()` — the same function the page uses to
+build every list URL — for three answers: the href, `refusedPhone` (may this travel in a URL?) and
+`numberShaped` (did a human type a number?). Number-shaped text is left alone: the form posts to
+`searchLeadsByNumber()` and the answer is rendered inside the panel, never in the address bar. Anything
+else is a word search, which prevents the default, folds the panel away and pushes the href.
+
+Two details of that are load-bearing, and both were learned from a run that timed out:
+
+- **the decision comes before `preventDefault()`.** React runs a user `onSubmit` before the listener that
+  dispatches a form action, and that listener checks `defaultPrevented` — so stopping the submit stops the
+  action. Preventing first and deciding afterwards silently cancelled every number search.
+- **an empty box goes nowhere.** React resets a form when its action commits (`recursivelyResetForms`
+  calls `form.reset()` in the commit that carries the answer), so the search that just answered empties
+  the box. Pressing search again with nothing typed builds the URL the address bar already holds, and
+  pushing that folded the panel away with no answer in it — which at a front desk reads as the screen
+  breaking. The handler compares the target with `window.location` and does nothing at all when the two
+  are the same, leaving the box open.
+
 ### Proof
 
 `tests/lead-screens-browser.integration.ts` (registered as **R3.8**, `npm run test:lead:screens`) seeds
@@ -416,6 +436,14 @@ the address bar is refused and the whole list is rendered instead, measures hori
 360 px on every screen, and confirms a content editor sees no visitor, no number, no sidebar item and no
 quick-add form. `tests/staff-role.test.ts` now also pins the two new nav keys: staff, admin and super
 admin can open them; content editor and exam manager cannot.
+
+The suite drives that box through one helper, and the helper waits for the submit button to come back
+before it types. React disables the button while the action is in flight and clears the box in the commit
+that re-enables it, and a Playwright click waits for the same button — so a value typed while an earlier
+search is still running is wiped before the click lands, and the click submits an empty box instead. Each
+answer is then read from the panel that just committed (`found` means rows, `refused` means a message and
+no rows) rather than from "a row is visible", which the previous search's rows satisfy instantly while
+proving nothing about the one just submitted.
 
 `scripts/verify-screens.ts` photographs `/bn/admin/leads`, `/bn/admin/leads?new=1` and
 `/bn/admin/leads?followUp=today` at both widths for R0.11, independently of this suite.
