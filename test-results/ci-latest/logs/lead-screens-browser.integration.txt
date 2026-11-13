@@ -1,4 +1,11 @@
-Error: timed out after 90000ms waiting for the sibling answer wrote exactly one lead
-    at until (/home/runner/work/diction/diction/tests/lead-screens-browser.integration.ts:133:36)
-    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
-    at async run (/home/runner/work/diction/diction/tests/lead-screens-browser.integration.ts:728:5)
+node:internal/process/promises:394
+    triggerUncaughtException(err, true /* fromPromise */);
+    ^
+
+dialog.accept: Cannot accept dialog which is already handled!
+    at _Page.<anonymous> (/home/runner/work/diction/diction/tests/lead-screens-browser.integration.ts:755:49) {
+  log: [],
+  name: 'Error'
+}
+
+Node.js v22.23.4
