@@ -1,10 +1,3 @@
-locator.waitFor: Timeout 90000ms exceeded.
-Call log:
-  - waiting for locator('section.admin-panel[aria-label="খুঁজুন"]').locator('p.admin-feedback.error').first() to be visible
-
-    at run (/home/runner/work/diction/diction/tests/lead-screens-browser.integration.ts:321:60) {
-  log: [
-    `  - waiting for locator('section.admin-panel[aria-label="খুঁজুন"]').locator('p.admin-feedback.error').first() to be visible`
-  ],
-  name: 'TimeoutError'
-}
+Error: two digits never drew the number rule's refusal — locator.waitFor: Timeout 90000ms exceeded. · url=http://localhost:3111/bn/admin/leads · input="(no input)" · feedback=[] · hitRows=0 · panel="(panel gone)"
+    at <anonymous> (/home/runner/work/diction/diction/tests/lead-screens-browser.integration.ts:336:34)
+    at async run (/home/runner/work/diction/diction/tests/lead-screens-browser.integration.ts:335:5)
