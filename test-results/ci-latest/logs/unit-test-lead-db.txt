@@ -1,0 +1,17 @@
+--- tests/lead-model.integration.ts (exit 1) ---
+AssertionError [ERR_ASSERTION]: both tie to the same family key, whichever order their numbers were written in
++ actual - expected
+
++ 'fam:01711000041'
+- 'fam:01712817090'
+           ^
+
+    at run (/home/runner/work/diction/diction/tests/lead-model.integration.ts:156:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: 'fam:01711000041',
+  expected: 'fam:01712817090',
+  operator: 'strictEqual',
+  diff: 'simple'
+}
