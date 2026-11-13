@@ -108,8 +108,9 @@ older files are left in place as history, and this table is the authority.
    `center-legacy-migration-browser` and `center-portal-access-browser`. **Neither test file is in
    the repository**, so those two claims cannot be reproduced. (Consistent with items 3 and 4.)
 7. `CENTER-DELIVERY-STATUS.md` says the production build OOMs in a 2 GB sandbox. On 3.9 GB it builds
-   in 50 s — see §1 step 4. The memory-limited `--max-old-space-size=768` build config in
-   `scripts/test-mode.ts` is still fine, but is no longer a workaround for a real constraint here.
+   in 50 s — see §1 step 4. `scripts/test-mode.ts` used to cap **both** the typecheck and the build at
+   `--max-old-space-size=768`; that was fine until the repository outgrew it (see §14), and the two
+   steps now have separate heaps.
 8. Root `STATUS.md` was a Milestone-1 narrative, not a status file. It is preserved at
    `docs/history/MILESTONE-1-REVIEW.md`; this file is the status file from now on.
 9. The older docs cite 360/1440 screenshots in `screenshots/workbook-import/` and
@@ -426,6 +427,14 @@ fix that nothing applies by itself.
 `test:lead:vocab`, `test:lead:date`, `test:lead:phone`, `test:lead:class` (pure) and `test:lead:db`
 (disposable database). Coverage written point by point in `docs/R3-COVERAGE.md`, including §6, which
 states what wave A does not do. The green run for wave A is named here once CI reports it.
+
+**One CI infrastructure fix this wave forced:** the first wave-A run (43379896360) came back
+**INCOMPLETE — 14 PASS, 0 FAIL, 18 NOT TESTED**, and nothing had failed. `scripts/test-mode.ts` capped
+the whole-program typecheck and the build at the same `--max-old-space-size=768`; the typecheck ran out
+of memory (`FATAL ERROR: Ineffective mark-compacts near heap limit`), the test server never started, and
+every requirement that needs the app or the disposable database was reported NOT TESTED. The typecheck
+now gets 4096 MB and the build 2048 MB, with a comment saying why they must not be collapsed back into
+one — a whole-program `tsc` grows with the repository, and R3 has two more waves to add.
 
 **Not started, by design:** the sidebar group **ভিজিটর**, quick-add, the list with its filters and
 inline status, the detail drawer, the Overview "Today's follow-ups" widget, duplicate detection with

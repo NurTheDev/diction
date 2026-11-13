@@ -74,6 +74,14 @@ Wave A — foundations, no UI:
     does not do. No operator guide yet — docs/R3-START-HERE.md comes with wave B, because a guide to
     buttons that do not exist would be a lie.
 
+11. CI infrastructure: scripts/test-mode.ts capped the whole-program typecheck AND the build at the same
+    --max-old-space-size=768. Wave A pushed the typecheck over it, so the first wave-A run (43379896360)
+    came back INCOMPLETE — 14 PASS, 0 FAIL, 18 NOT TESTED — with nothing actually failing: tsc died with
+    "FATAL ERROR: Ineffective mark-compacts near heap limit", the test server never started, and every
+    requirement needing the app or the disposable database was reported NOT TESTED. The two steps now
+    have separate heaps (typecheck 4096, build 2048) and a comment explaining why they must not be
+    merged back: a whole-program typecheck grows with the repository, and R3 has two more waves.
+
 Owed, stated plainly: the sidebar group ভিজিটর, quick-add (one tap from the sidebar and the mobile
 bottom bar, Enter saves), the list with search/filters/status chips/inline status/call/WhatsApp/
 next-follow-up buttons, the detail drawer with its notes timeline, duplicate-phone detection with

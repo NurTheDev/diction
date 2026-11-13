@@ -27,8 +27,15 @@ async function main(){
   // Use the matching packaged test build when available; otherwise build before starting MongoDB or the browser.
   // The special build configuration skips Next's duplicate in-build check ONLY;
   // the standalone typecheck immediately below must pass before the build starts.
-  const buildEnv={...process.env,NODE_OPTIONS:'--max-old-space-size=768',CENTER_DATA_MODE:'test',DICTION_TEST_BUILD:'1',MONGODB_URI:'',NEXTAUTH_SECRET:secret,NEXTAUTH_URL:origin,AUTH_URL:origin,AUTH_TRUST_HOST:'true'};
-  await runStep('checking TypeScript',[require.resolve('typescript/bin/tsc'),'--noEmit'],buildEnv);
+  const buildEnv={...process.env,NODE_OPTIONS:'--max-old-space-size=2048',CENTER_DATA_MODE:'test',DICTION_TEST_BUILD:'1',MONGODB_URI:'',NEXTAUTH_SECRET:secret,NEXTAUTH_URL:origin,AUTH_URL:origin,AUTH_TRUST_HOST:'true'};
+  // Two heaps, on purpose — do not collapse them back into one. The whole-program typecheck grows with
+  // the size of the repository, and at the old shared 768 MB it ran out of memory once R3 wave A landed
+  // (run 43379896360: "FATAL ERROR: Ineffective mark-compacts near heap limit", the test server never
+  // started, and 18 requirements came back NOT TESTED instead of the suite failing for a real reason).
+  // The build keeps a smaller heap: DICTION_TEST_BUILD=1 skips Next's duplicate in-build typecheck, and
+  // MongoDB plus a browser start on the same runner afterwards.
+  const typecheckEnv={...buildEnv,NODE_OPTIONS:'--max-old-space-size=4096'};
+  await runStep('checking TypeScript',[require.resolve('typescript/bin/tsc'),'--noEmit'],typecheckEnv);
   const fingerprint=await sourceFingerprint();let prebuilt=false;
   try{prebuilt=(await readFile('.next/diction-test-source.sha256','utf8')).trim()===fingerprint;await readFile('.next/BUILD_ID');await readFile('.next/required-server-files.json')}catch{prebuilt=false}
   if(prebuilt)console.log('STARTING TEST MODE: matching prebuilt test application found; no first-page compilation needed.');
