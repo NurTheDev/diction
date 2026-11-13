@@ -471,12 +471,15 @@ Written by the suite into `screenshots/r3/`, committed to the branch by a `workf
    `importSource`/`importBatch`/`flags[]` are already in the schema for it, but nothing reads an xlsx
    yet. Wave C.
 3. **No reports and no CSV export.** Wave C.
-4. **No SMS entry point for leads — that is R3.9, the next change set.** The `visitor_thanks` template
-   exists since R2 and the dialog is source-driven, so R3.9 adds a `lead`/`leads` source kind in
-   `src/lib/center/sms-source.ts` and renders the same `SendSmsDialog` from these screens — with
-   `contactableLeads()` (and therefore `CONTACTABLE_LEAD_FILTER`) deciding who is in the list and
-   reporting who was left out. Nothing is sent while `SMS_PROVIDER=mock`, and the real provider stays
-   off until the owner has hand-tested the mock.
+4. **A staff account gets no visitor SMS at all — the owner's decision is still owed.** The send route
+   has been `getAdmin()` since R2, because a send spends real money, and R3 gives staff the Visitors
+   list. Rather than render a checkbox that ends in a 403, the picker and the drawer's Send SMS are
+   loaded only for Admin and Super Admin (`maySendSms` in both pages) and are simply absent for staff —
+   `LeadSmsPicker` renders the list unchanged when it is given no catalog. If the owner wants the front
+   desk to send visitor thank-yous, the change is one guard on the `lead`/`leads` sources only, not a
+   widening of the route for dues and receipts; until then the rule is "staff work the list, an admin
+   sends". Nothing is sent while `SMS_PROVIDER=mock`, and the real provider stays off until the owner
+   has hand-tested the mock.
 7. **The operator guide** is `docs/R3-START-HERE.md`: what to click, what should happen, and what is
    deliberately not there yet.
 5. **Permissions** (Admin and Staff, Teachers excluded) are enforced and browser-proven: both pages ask
@@ -496,3 +499,95 @@ Written by the suite into `screenshots/r3/`, committed to the branch by a `workf
    and `not_interested`, and the model already has `admission`/`trialBooking`/`student` references with
    the Recycle Bin blocking on them; what is missing is the prefilled hand-off, which is wave C's job
    together with the funnel reports.
+
+## 10. Sending a visitor an SMS (R3.9)
+
+The spec's line is short — "Send SMS (`SendSmsDialog`; `visitor_thanks` template; bulk SMS to selected;
+'Do not contact' excluded)" — and every word of it is a decision somebody had to make twice: once for the
+screen and once for the send engine that already existed.
+
+### What now exists
+
+Three entry points, all rendering the dialog R2 built, unchanged:
+
+| Where | What it sends | Request |
+| --- | --- | --- |
+| A row's drawer, and the lead's own page | one visitor | `{source:'lead',id}` |
+| The Visitors list, with rows ticked | the ticked visitors | `{source:'leads',ids}` |
+| The list's bar, "everyone on this page" | the same, one tap | `{source:'leads',ids}` |
+
+Each opens on `visitor_thanks`, and the picker holds only the templates a lead can actually fill
+(`visitorSmsDialogData()`): a due reminder, a receipt, an exam result and the pending reminder are not
+offered, because a visitor has no fee, no month, no amount and no enrolled class, and offering one would
+end in the dialog's own "a value did not render" refusal after the operator had picked people and read a
+preview. `visitor_thanks` needs only `{institute_phone}`, which is the center's own number, and `custom`
+and `notice` need nothing but words — so those stay.
+
+### The rules a visitor send keeps
+
+1. **"Do not contact" is excluded three times, and the screen says so.** A blocked row offers no checkbox
+   and shows **বাদ** instead; the bar counts the blocked leads on the page out loud, apart from the ones
+   with no number (`leadSmsTally()`); and `leadsForSms()` re-reads `canContact()` when the plan is built,
+   so a visitor blocked in the minute since the page rendered is still not texted. The exclusion itself is
+   not new code: the mark becomes the pipeline's own `smsOptOut`, so the sentence the operator reads is the
+   one R2 already writes — "অপ্ট-আউট / যোগাযোগ করবেন না" — rather than a lead-specific wording that could
+   drift from it.
+2. **One number per lead, the first one on the sheet.** A second number in the same cell belongs to a
+   sibling or a parent, and doubling a thank-you to a family that visited once is a cost nobody asked for.
+   Two leads that share one number are folded into a single message by the pipeline's own one-per-phone
+   rule — the family case handled properly, and traceable: the send writes one log row per visitor the
+   message covers.
+3. **The send covers the people on screen.** Picking is per page, and any picked id that is no longer on
+   this screen drops out of the send rather than riding along invisibly, so the number on the button is the
+   number that goes. A bulk selection resolved server-side uses `contactableLeadSelection()`, which hands
+   `leadListFilter()` the same filter the list drew — one meaning for "the leads on this screen".
+4. **A lead is not a student and is not dressed up as one.** The candidate is always `active`, with no fee
+   holds, so no fee rule (`removed`, `on_hold`, `held`) can reach somebody who was never enrolled; and no
+   chip is invented for a lead.
+5. **An empty selection is nobody.** `{source:'leads'}` with no ids, a selection of invented ids and a
+   single lead with a malformed id are all refused by the dialog, and the source resolver answers EMPTY —
+   the rule every entry point in this pipeline keeps: an entry point that lost its ids must not become
+   "everybody in the book".
+
+### Where a visitor send is written down
+
+`CenterSmsLog` gained a `lead` reference beside its `student` one, with its own
+`{templateKey,lead,month,createdAt}` index. A row carries one subject or the other, never both: a lead id
+in a `ref:'CenterStudent'` field would populate as null and read as "this message went to nobody" in
+somebody's report. The batch keeps `purpose:'visitor_thanks'` (already in the R2 enum), the cost is booked
+to the current Dhaka month even though a visitor has no fee month — because that is the month the money was
+spent in — and the audit row targets the batch id, with no phone number in it.
+
+The 24-hour repeat warning reads the `lead` rows and only those. It also looks at the previous month when
+the send is near a boundary: a thank-you at 23:00 on the last day of a month and another at 00:30 on the
+first day of the next are inside the same 24 hours but in two different months, and "we already texted this
+person today" is exactly the sentence an operator needs then. A student send still warns on its own month
+alone, because a due reminder *is* a monthly message.
+
+### Proof
+
+`test:lead:sms` (registry row **R3.9**) runs two suites:
+
+* `tests/lead-sms.test.ts` — pure, no database: the lead→candidate translation, exclusion through
+  `resolveRecipients()` with the reasons and both labels, no fee rule reaching a visitor, one message for a
+  shared number and never an ambiguous grouping, the narrowed catalog (and that every chip in it is a
+  global one), the shipped `visitor_thanks` body rendering with the center's number and no chip left
+  behind, and the three counts adding up to the rows on screen.
+* `tests/lead-sms.integration.ts` — against the disposable database, mock provider, nothing real sent:
+  `leadsForSms()` returning blocked and phoneless leads by name and never a binned one, dropping invented
+  ids and honouring its cap; the bulk selection answering the same filter as `listLeads()` and refusing to
+  be widened by a caller filter or a raw Mongo operator asking for blocked leads; the source resolver's
+  routing, subject kind and empty answers; a plan whose skipped list names the blocked visitor; a send
+  whose log rows carry `lead` and no `student`, whose batch counts the skipped, whose audit row holds a
+  batch id and no number; the repeat warning reading only the lead rows and catching a message sent two
+  hours before a month boundary; and the dialog's refusals, its re-read of permission, and one requestId
+  meaning one batch.
+
+`tests/lead-screens-browser.integration.ts` §10 drives the screen at 360 px and 1440 px: the bar and its
+two exclusion counts, a blocked row with no checkbox, the button counting what was picked, "everyone on
+this page" never picking the blocked visitor, the dialog opening on `visitor_thanks` with no
+guardian-or-student question and a preview that counted the picked visitors, the step-2 catalog holding no
+due reminder and no receipt, the drawer's single-lead send, and a staff account seeing none of it. It
+photographs `b2-visitor-sms-{360,1440}`, `b2-visitor-sms-dialog-{360,1440}`,
+`b2-visitor-sms-template-{360,1440}`, `b2-visitor-sms-drawer-1440` and `b2-visitor-sms-one-1440` into
+`screenshots/r3/`. No message is sent from the browser suite.

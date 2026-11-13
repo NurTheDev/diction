@@ -8,6 +8,7 @@ import {leadDetailByKey} from '@/lib/leads/leads';
 import {detailView} from '@/lib/leads/lead-ui';
 import {formatDate} from '@/lib/admin/format';
 import {LeadDetailInline,LeadRowControls} from '@/components/admin/leads-ui';
+import {visitorSmsDialogData} from '@/lib/center/sms-dialog-data';
 export const dynamic='force-dynamic';
 
 /**
@@ -26,6 +27,14 @@ export default async function LeadDetailPage({params}:{params:Promise<{locale:st
   const t=await getTranslations('leads');
   const found=await leadDetailByKey(String(id||'').slice(0,40));
   if(!found)notFound();
+  /**
+   * The visitor template catalog (R3.9), loaded only once the lead is known to exist AND only for a role
+   * that may press send — the SMS route is `getAdmin()` from R2, because a send spends real money, so a
+   * Staff user gets no button rather than a button that answers 403. What this page offers is the same
+   * narrowed set the list's drawer offers: `visitor_thanks` first, and nothing whose chips a lead could
+   * never fill.
+   */
+  const sms=user.role==='admin'||user.role==='superadmin'?await visitorSmsDialogData():null;
   const detail=detailView(found);
   const row=detail.row;
   return <>
@@ -40,7 +49,7 @@ export default async function LeadDetailPage({params}:{params:Promise<{locale:st
       <section className="admin-panel">
         <div className="admin-panel-head"><h2>{t('fields')}</h2></div>
         <div className="admin-panel-body">
-          <LeadDetailInline seed={row} initial={detail} language={language} digits={digits}/>
+          <LeadDetailInline seed={row} initial={detail} language={language} digits={digits} sms={sms}/>
         </div>
       </section>
       <section className="admin-panel">

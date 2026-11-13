@@ -268,13 +268,98 @@ Wave A — foundations, no UI:
     against the markup it drives is what caught the last three; only the first one had been reported by
     a run.
 
+20. R3.9 — the visitor SMS entry point (registry 36). Three ways in, one dialog: a row's drawer and the
+    lead's own page send to one visitor ({source:'lead',id}), and the Visitors list sends to the rows the
+    operator ticked ({source:'leads',ids}), with "everyone on this page" one tap above them. All three
+    open on visitor_thanks, and all three render the SendSmsDialog R2 built — unchanged, because the
+    dialog is source-driven and a new kind of subject is exactly what a source is for.
+    The translation from a lead to an SMS candidate is one pure function, leadCandidates() in
+    src/lib/leads/lead-sms.ts, and it is pure on purpose: no model, no query, no server-only import, so
+    the rule that decides whether a visitor may be texted can be proved without a database and cannot
+    drift between the list, the drawer and a bulk send. A lead becomes a candidate that is always
+    'active' — 'removed' and 'on_hold' are a student's FEE states, and inventing one for a visitor would
+    let a fee rule reach somebody who was never enrolled — with no holds, no chips, and exactly one
+    number: the first one written on the sheet. A second number in the same cell belongs to a sibling or
+    a parent, and doubling a thank-you to a family that visited once is a cost nobody asked for; two
+    leads sharing one number are folded into a single message by the pipeline's own one-per-phone rule,
+    which is the family case handled properly instead of by sending twice.
+    "Do not contact" is excluded three times, and each time is a different job. The row offers no
+    checkbox at all and shows বাদ instead, so the exclusion is visible in the list rather than only in a
+    report afterwards. The bar above the list counts the blocked leads on the page out loud, apart from
+    the ones with no number, because a promise made to a person and a gap in the sheet are different
+    problems with different fixes and an operator who cannot see the difference cannot fix either. And
+    leadsForSms() re-reads canContact() when the plan is built, so a visitor blocked in the minute since
+    the page rendered is still not texted — the screen hiding a button is a courtesy, never the gate.
+    The exclusion itself is no new code: the mark becomes the pipeline's own smsOptOut switch, so the
+    sentence the operator reads is the one R2 already writes ("অপ্ট-আউট / যোগাযোগ করবেন না") rather than
+    a lead-specific wording that could drift from it, and the skip list names each visitor beside it.
+    The catalog a Visitors screen offers is narrowed by visitorSmsDialogData(): only templates whose
+    chips a lead can actually fill — visitor_thanks (the center's own number), custom, notice and
+    teacher_opening (a subject the operator types). A due reminder, a receipt, an exam result and the
+    pending reminder are not offered, because a visitor has no fee, no month, no amount and no enrolled
+    class, and offering one would end in the dialog's own "a value did not render" refusal after the
+    operator had picked people, read a preview and pressed send. Not offering it is the rule this file
+    already applied to pending_reminder, applied for a different reason: there nothing supplies the chip
+    yet, here nothing ever will. For the same reason a visitor send offers no guardian-or-student
+    question — there is one number, so there is nothing to choose — and the request forces
+    target:'guardian' rather than trusting a radio that is not on screen: 'student' or 'both' against a
+    lead would resolve to NOBODY, and a send that quietly covers nobody is worse than a missing radio.
+    CenterSmsLog gained a lead reference beside its student one, with its own
+    {templateKey,lead,month,createdAt} index. A row carries one subject or the other, never both: a lead
+    id in a ref:'CenterStudent' field would populate as null and read as "this message went to nobody"
+    in somebody's report, which is the kind of lie that only surfaces months later. recentDuplicateStudents()
+    therefore takes the field to read, and the 24-hour repeat warning for a visitor send looks at the
+    current month AND the one before it — a thank-you at 23:00 on the last day of a month and another at
+    00:30 on the first day of the next are inside the same 24 hours but in two different months, and
+    "we already texted this person today" is exactly the sentence an operator needs then. A student send
+    still warns on its own month alone, because a due reminder IS a monthly message. The cost of a
+    visitor send is still booked to the current Dhaka month even though a visitor has no fee month,
+    because that is the month the money was spent in and monthSmsTotals() is where the owner reads it.
+    The bulk selection is contactableLeadSelection(), which hands leadListFilter() — the same function
+    the list itself filters with, extracted in this change set — the screen's own parameters, so "the
+    leads on this screen" means one set of people to the list, to the count on the button and to the
+    send. Its cap is the send pipeline's own (SMS_SELECTION_LIMIT = SMS_SOURCE_LIMIT = MAX_IDS = 1000),
+    because a selection the pipeline would cut in half would make the button promise a send it cannot
+    deliver. Picking is per page, and an id that is no longer on the screen drops out of the send rather
+    than riding along invisibly, so the number on the button is the number that goes. An empty selection,
+    a selection of invented ids and a malformed single id are refused by the dialog, and the source
+    resolver answers EMPTY for an id-less request — an entry point that lost its ids must never become
+    "everybody in the book".
+    One consequence stated plainly rather than discovered later: the send route has been getAdmin() since
+    R2, because a send spends real money, and R3 gives staff the Visitors list. So the picker and the
+    drawer's Send SMS are loaded only for Admin and Super Admin, and a staff account sees the list exactly
+    as it did before this change set — no bar, no checkboxes, no button that would answer 403. Whether
+    the front desk should be allowed to send visitor thank-yous is the owner's decision, and if the answer
+    is yes the change is one guard on the lead sources only, not a widening of the route for dues and
+    receipts. It is recorded in docs/R3-COVERAGE.md §9 item 4 and §10.
+    Proof: registry row R3.9 runs test:lead:sms, which is two suites — tests/lead-sms.test.ts (pure, runs
+    anywhere: the translation, exclusion through resolveRecipients with both labels, no fee rule reaching
+    a visitor, one message for a shared number and never an ambiguous grouping, the narrowed catalog and
+    the fact that every chip in it is a global one, the shipped visitor_thanks body rendering with the
+    center's number and no chip left behind, and the three counts adding up to the rows on screen) and
+    tests/lead-sms.integration.ts (the disposable database with a counting mock provider, nothing real
+    sent: leadsForSms returning blocked and phoneless leads by name and never a binned one, dropping
+    invented ids and honouring its cap; the selection answering the same filter as listLeads and refusing
+    to be widened by a caller filter or a raw Mongo operator asking for blocked leads; the resolver's
+    routing, subject kind and empty answers; a plan whose skipped list names the blocked visitor; a send
+    whose log rows carry lead and no student, whose batch counts the skipped, whose audit row holds a
+    batch id and no number; the repeat warning reading only the lead rows and catching a message sent two
+    hours before a month boundary; the dialog's refusals, its re-read of permission after a visitor is
+    blocked, and one requestId meaning one batch so a double-click cannot thank a visitor twice).
+    tests/lead-screens-browser.integration.ts §10 drives the screen at 360 px and 1440 px and photographs
+    the bar, the open dialog and the step-2 catalog into screenshots/r3/ (b2-visitor-sms-*,
+    b2-visitor-sms-dialog-*, b2-visitor-sms-template-*, b2-visitor-sms-drawer-1440,
+    b2-visitor-sms-one-1440). It sends nothing: a browser send would write rows the other sections'
+    counts do not expect, and the database suite already proves the write end to end.
+
 Owed, stated plainly: the duplicate-phone "add as sibling / merge these two" dialog (the detection, the
 inherited family key and the family list in the drawer are live; the two-record decision is not), the
-lead entry point for SendSmsDialog (visitor_thanks, bulk to a selection, "Do not contact" excluded) as
-R3.9, the convert-to-admission / book-a-trial / mark-not-interested hand-offs, the import wizard with
-dry run, preview, flagged rows, unknown-column mapping, Bangla comments as the first note, undo and
-idempotent re-import, and the funnel reports with CSV export. Also stated plainly: the Overview is
-behind requireAdmin(), so a staff account does not see the follow-up widget and reaches the same queue
-through the sidebar's Follow-ups item — widening the Overview is a decision about every widget on it and
-is left to the owner. No real SMS is sent at any point: SMS_PROVIDER stays mock until the owner approves
+convert-to-admission / book-a-trial / mark-not-interested hand-offs, the import wizard with dry run,
+preview, flagged rows, unknown-column mapping, Bangla comments as the first note, undo and idempotent
+re-import, and the funnel reports with CSV export. Two decisions are the owner's and not the code's: the
+Overview is behind requireAdmin(), so a staff account does not see the follow-up widget and reaches the
+same queue through the sidebar's Follow-ups item — widening the Overview is a decision about every widget
+on it; and the send route is getAdmin() from R2, so a staff account gets no visitor SMS picker at all
+rather than one that answers 403 — letting the front desk send visitor thank-yous is one guard on the
+lead sources, if that is what the owner wants. No real SMS is sent at any point: SMS_PROVIDER stays mock until the owner approves
 the mock version after their own hand test.

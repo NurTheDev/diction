@@ -583,3 +583,10 @@ html:lang(bn) .public-motion-root:not(.private-motion-disabled) :is(h1,h2,h3,h4)
 .lead-tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
 .lead-tools>.admin-panel{flex:1 1 100%}
 .lead-row{display:grid;gap:8px}
+/* R3.9 — the visitor SMS picker. The bar takes the full width of the panel head and wraps, the checkbox
+   is a 22px target because it is picked with a thumb on a phone, and the excluded count is amber rather
+   than red: nobody did anything wrong, somebody is simply not in this send. */
+.lead-sms-bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;flex:1 1 100%}
+.lead-sms-bar .admin-check{gap:8px;font-weight:600}
+.lead-sms-check{width:22px;height:22px;min-width:22px;accent-color:#2e3192}
+.lead-sms-excluded{color:#865000}

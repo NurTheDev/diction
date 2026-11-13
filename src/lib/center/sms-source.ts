@@ -2,9 +2,12 @@
  * Where a send gets its recipients from (R2).
  *
  * One resolver for every entry point — the due list, a student profile, a bulk selection on the
- * student list, a payment receipt and the SMS page's own "new message" — so the dialog, the preview
- * endpoint and the daily auto-send job all build candidates the same way. It returns plain objects;
- * every rule about who may actually be contacted stays in sms-recipients.ts and is not repeated here.
+ * student list, a payment receipt, the SMS page's own "new message", and since R3.9 one visitor lead or
+ * the whole Visitors list — so the dialog, the preview endpoint and the daily auto-send job all build
+ * candidates the same way. It returns plain objects; every rule about who may actually be contacted
+ * stays in sms-recipients.ts and is not repeated here. A lead's "do not contact" is handed over as the
+ * one switch that pipeline already respects (`smsOptOut`), so the rule stays `canContact()` in the lead
+ * rule layer and the reporting stays the skip list the dialog already renders.
  *
  * Two separate notions of month, because they answer different questions:
  *   • `monthLabel` is what the message says ("মার্চ", "জানুয়ারি–মার্চ ২০২৬") — Bangla prose with
@@ -19,13 +22,15 @@
 import 'server-only';
 import mongoose from 'mongoose';
 import {CenterClassGroup,CenterSettings,CenterStudent} from '@/models/CenterRecords';
+import {leadsForSms} from '@/lib/leads/leads';
+import {leadCandidates} from '@/lib/leads/lead-sms';
 import {formatDate,formatNumber} from '@/lib/admin/format';
 import {dhakaCalendar} from './month-status';
 import {liveClassDues} from './dues-query';
 import type {SmsCandidateStudent,SmsHoldPeriod} from './sms-recipients';
 import type {SmsVariable} from './sms-templates';
 
-export type SmsSource='dues'|'class'|'students'|'student'|'receipt';
+export type SmsSource='dues'|'class'|'students'|'student'|'receipt'|'lead'|'leads';
 
 const MONTHS_BN=['জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর'];
 /** A hard ceiling: one dialog send is bounded. A whole-school send goes class by class. */
@@ -80,7 +85,15 @@ function candidate(doc:StudentDoc,values:Partial<Record<SmsVariable,string|numbe
   };
 }
 
-export interface SmsSourceResult{candidates:SmsCandidateStudent[];className:string;monthKey:string;monthLabel:string}
+export interface SmsSourceResult{
+  candidates:SmsCandidateStudent[];className:string;monthKey:string;monthLabel:string;
+  /**
+   * Whose ids the candidates carry. A send writes one log row per recipient and per subject, and the
+   * log points a student send at `student` and a lead send at `lead` — never both, and never a lead id
+   * in a student reference, because a reference that lies is worse than a field that is empty.
+   */
+  subjectKind:'student'|'lead';
+}
 
 /**
  * Fee values for a set of student documents, from each student's own live dues. A due reminder sent
@@ -109,7 +122,7 @@ async function withFeeValues(docs:StudentDoc[],now:Date):Promise<SmsCandidateStu
   });
 }
 
-const EMPTY:SmsSourceResult={candidates:[],className:'',monthKey:'',monthLabel:''};
+const EMPTY:SmsSourceResult={candidates:[],className:'',monthKey:'',monthLabel:'',subjectKind:'student'};
 
 async function classNames(ids:string[]):Promise<Map<string,string>>{
   const valid=ids.filter(id=>mongoose.isValidObjectId(id));
@@ -144,7 +157,7 @@ export async function candidatesFromDues(classGroup:string,now=new Date()):Promi
     if(!doc)return [];
     return [candidate(doc,{class:className,month:monthLabel(row.months,now),due_amount:bn(row.total),due_date:dueDate})];
   });
-  return {candidates,className,monthKey:monthKey(allMonths,now),monthLabel:monthLabel(allMonths,now)};
+  return {candidates,className,monthKey:monthKey(allMonths,now),monthLabel:monthLabel(allMonths,now),subjectKind:'student'};
 }
 
 /**
@@ -182,6 +195,7 @@ async function finish(docs:StudentDoc[],now:Date):Promise<SmsSourceResult>{
     className:groups.length===1?names.get(groups[0])||'':'',
     monthKey:monthKey([],now),
     monthLabel:monthLabel([{year:today.year,month:today.month}],now),
+    subjectKind:'student',
   };
 }
 
@@ -204,6 +218,34 @@ export async function candidatesFromReceipt(input:{student:string;amount:number;
     className,
     monthKey:monthKey([input.month],now),
     monthLabel:label,
+    subjectKind:'student',
+  };
+}
+
+/**
+ * Visitors (R3.9): one lead, or the list the operator is looking at.
+ *
+ * A lead is not a student and is not dressed up as one. It has no fee holds, no `removed` state and no
+ * guardian/student pair of numbers — it has one number, the first one written on the sheet, and a sticky
+ * "do not contact" mark. So the mark becomes the pipeline's own opt-out switch and a lead with no number
+ * becomes the pipeline's own `missing_phone` skip, which means the dialog reports both BY NAME with the
+ * reason beside them instead of the send quietly covering fewer people than the operator asked for.
+ *
+ * The ids come from the caller and are re-read here: `contactableLeads()` decided who was in the bulk
+ * send when the page rendered, and `canContact()` decides again now, because a visitor blocked in the
+ * minute since must not be texted. With no ids this resolves to NOBODY — an entry point that meant
+ * "the list on screen" and lost its ids must not become "everybody in the book".
+ */
+async function candidatesFromLeads(ids:string[],now:Date):Promise<SmsSourceResult>{
+  const rows=await leadsForSms(ids,SMS_SOURCE_LIMIT);
+  return {
+    // The translation itself lives in `src/lib/leads/lead-sms.ts`, pure and testable without a database,
+    // because it is a rule about visitors rather than a query about the center.
+    candidates:leadCandidates(rows),
+    className:'',
+    monthKey:monthKey([],now),
+    monthLabel:'',
+    subjectKind:'lead',
   };
 }
 
@@ -217,5 +259,7 @@ export async function resolveSmsSource(request:{
   if(request.source==='receipt'&&request.receipt)return candidatesFromReceipt(request.receipt,now);
   if(request.source==='student'&&request.id)return candidatesFromIds([request.id],now);
   if(request.source==='students'&&request.ids?.length)return candidatesFromIds(request.ids,now);
+  if(request.source==='lead'&&request.id)return candidatesFromLeads([request.id],now);
+  if(request.source==='leads'&&request.ids?.length)return candidatesFromLeads(request.ids,now);
   return EMPTY;
 }

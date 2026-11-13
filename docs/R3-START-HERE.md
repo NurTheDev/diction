@@ -71,6 +71,16 @@ into an artifact, dispatch the workflow with `publish_screenshots` (see
 8. **Work today's queue.** On the Overview, "আজকের ফলো-আপ" counts today and the overdue ones
    separately, and its rows carry the same buttons. The sidebar's **ফলো-আপ** item is the same queue as a
    full list, with a badge for how many are waiting.
+9. **Thank them by SMS** (Admin only — see §4). Every row that may be texted has a checkbox in the
+   **এসএমএস** column; one visitor's drawer has **এসএমএস পাঠান**. Tick the rows you mean, or tick
+   **এই পৃষ্ঠার সবাইকে বাছুন**, and the button above the list says how many are in the send
+   (**নির্বাচিত ২ জনকে এসএমএস**). It opens the same four-step dialog the fee reminders use, already on
+   **ভিজিটর ধন্যবাদ**, with the center's own number in the body and no question about guardian or
+   student — a visitor has one number, the first one written on the sheet. Read the preview, then send.
+   The line above the list also tells you who is *not* in it: **১ জন বাদ — যোগাযোগ করবেন না** and
+   **১ জনের নাম্বার নেই**. Those rows have no checkbox at all; the blocked one says **বাদ** and the one
+   with no number says **নাম্বার নেই**, so nothing has to be remembered. Two visitors who share a number
+   are one message, not two.
 
 ---
 
@@ -91,6 +101,10 @@ into an artifact, dispatch the workflow with `publish_screenshots` (see
   key instead of starting a second family, and the panel says so when it happens.
 - **Archiving is a suggestion.** A lead older than eighteen months can be suggested for archiving;
   nothing is ever deleted on its own, and a lead has no archive path in the Recycle Bin at all.
+- **"যোগাযোগ করবেন না" means no SMS either.** The row offers no checkbox, the count above the list
+  says how many were left out and why, and the sender checks the mark *again* when it builds the send —
+  so a visitor blocked after the dialog was opened is still not texted. One message per number: a second
+  number in the same cell is a sibling or a parent, not a second thank-you.
 - **Who can see this:** Admin and Staff. Teachers, content editors and exam managers have no sidebar
   item, no route and no action — the guard runs before anything is read.
 
@@ -98,9 +112,14 @@ into an artifact, dispatch the workflow with `publish_screenshots` (see
 
 ## 4. What R3 deliberately does not include yet
 
-- **SMS to visitors.** The `visitor_thanks` template has existed since R2, but the lead entry point for
-  the send dialog is **R3.9** — the next change set. Nothing is sent anywhere today: `SMS_PROVIDER`
-  stays unset/mock and no real message has ever left this repository.
+- **SMS to visitors is built (R3.9) but has never sent a real message.** `SMS_PROVIDER` stays
+  unset/mock, so pressing send writes the log and the cost and delivers nothing until the owner hands
+  the real key over. That hand-over is the one step nobody has taken yet, on purpose.
+- **A staff account sees no SMS picker at all.** Sending costs money, so the send route has asked for
+  Admin since R2; rather than show a checkbox that would answer *refused*, the visitor list gives staff
+  exactly what it gave before — the list, the call links, the follow-ups. Whether the front desk should
+  be allowed to send visitor thank-yous is the owner's decision; if yes, it is one guard on the visitor
+  sources only, not a widening of the route for dues and receipts.
 - **The import wizard** (xlsx/csv, dry run, preview, flagged rows, unknown-column questions, Bangla
   comments as the first note, undo, idempotent re-import) — wave C. The reading rules it needs are
   already written and proven (R3.2–R3.4); nothing reads a spreadsheet yet.

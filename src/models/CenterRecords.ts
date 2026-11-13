@@ -30,9 +30,13 @@ smsBatchSchema.index({status:1,scheduledFor:1});
 // batch and student are CONTEXT, not required refs: a connection test to the operator's own number
 // and a visitor/teacher message have neither, and the durable facts are the phone, the text, the
 // segments and the cost. Real sends always set both (src/lib/center/sms-send.ts).
-const smsLogSchema=new Schema({batch:{type:Schema.Types.ObjectId,ref:'CenterSmsBatch'},student:{type:Schema.Types.ObjectId,ref:'CenterStudent'},phone:{type:String,required:true},message:{type:String,required:true,maxlength:2000},segments:{type:Number,required:true,min:1},cost:{type:Number,min:0,default:0},templateKey:String,month:String,providerCode:String,providerMessage:String,status:{type:String,enum:['sent','failed','skipped','queued'],required:true},reason:String,sentAt:Date},{timestamps:true});smsLogSchema.index({student:1,createdAt:-1});smsLogSchema.index({batch:1,status:1});smsLogSchema.index({createdAt:1});
+const smsLogSchema=new Schema({batch:{type:Schema.Types.ObjectId,ref:'CenterSmsBatch'},student:{type:Schema.Types.ObjectId,ref:'CenterStudent'},lead:{type:Schema.Types.ObjectId,ref:'Lead'},phone:{type:String,required:true},message:{type:String,required:true,maxlength:2000},segments:{type:Number,required:true,min:1},cost:{type:Number,min:0,default:0},templateKey:String,month:String,providerCode:String,providerMessage:String,status:{type:String,enum:['sent','failed','skipped','queued'],required:true},reason:String,sentAt:Date},{timestamps:true});smsLogSchema.index({student:1,createdAt:-1});smsLogSchema.index({batch:1,status:1});smsLogSchema.index({createdAt:1});
 // R2: the 24-hour "same template/student/month was already sent" warning reads this index.
 smsLogSchema.index({templateKey:1,student:1,month:1,createdAt:-1});
+// R3.9: the same warning for a visitor send, which points at the lead and never at a student. One row
+// carries one subject or the other, so a `ref:'CenterStudent'` field is never asked to hold a lead id —
+// a reference that populates as null is a lie that only shows up in somebody's report.
+smsLogSchema.index({templateKey:1,lead:1,month:1,createdAt:-1});
 
 /**
  * An automatic send that did not go out. All three auto-sends are best-effort ON PURPOSE — a message

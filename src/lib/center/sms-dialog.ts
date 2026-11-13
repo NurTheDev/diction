@@ -33,7 +33,7 @@ import {
 } from './sms-auto-problems';
 
 export type SmsDialogMode='preview'|'send'|'retry';
-export type SmsDialogSource='dues'|'class'|'students'|'student'|'receipt';
+export type SmsDialogSource='dues'|'class'|'students'|'student'|'receipt'|'lead'|'leads';
 
 /** CenterSmsBatch.requestId is constrained to a 36-character UUID; anything else cannot be stored. */
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -146,7 +146,7 @@ export async function runSmsDialog(input:SmsDialogInput,actor:string,options:Sms
   }
 
   const source=String(input.source||'');
-  if(source!=='dues'&&source!=='class'&&source!=='students'&&source!=='student'&&source!=='receipt')return bad('source');
+  if(source!=='dues'&&source!=='class'&&source!=='students'&&source!=='student'&&source!=='receipt'&&source!=='lead'&&source!=='leads')return bad('source');
   const templateKey=String(input.templateKey||'');
   if(!isSmsTemplateKey(templateKey))return bad('templateKey');
   const target=String(input.target||'guardian');
@@ -162,8 +162,10 @@ export async function runSmsDialog(input:SmsDialogInput,actor:string,options:Sms
   if(source==='dues'||source==='class'){
     if(!mongoose.isValidObjectId(String(input.classGroup||'')))return bad('classGroup');
   }
-  if(source==='student'&&!mongoose.isValidObjectId(String(input.id||'')))return bad('id');
-  if(source==='students'&&!idList(input.ids).length)return bad('ids');
+  // One student or one visitor is an id; a selection of either is a list of ids. A visitor send with no
+  // ids is refused rather than read as "everybody in the book" (R3.9).
+  if((source==='student'||source==='lead')&&!mongoose.isValidObjectId(String(input.id||'')))return bad('id');
+  if((source==='students'||source==='leads')&&!idList(input.ids).length)return bad('ids');
   const raw=input.receipt&&typeof input.receipt==='object'?input.receipt:undefined;
   const [receiptYear,receiptMonth]=String(raw?.month||'').split('-').map(Number);
   const receipt=raw?{
@@ -195,6 +197,7 @@ export async function runSmsDialog(input:SmsDialogInput,actor:string,options:Sms
       audience:target,
       onePerPhone:groupSiblings,
       month:resolved.monthKey||undefined,
+      subjectKind:resolved.subjectKind,
       globalValues:{class:resolved.className||undefined,subject:subject||undefined},
       now,
     },provider),

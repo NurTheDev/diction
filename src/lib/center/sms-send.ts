@@ -32,6 +32,13 @@ export interface SmsSettingsRow{
   autoReceipt:boolean;autoResult:boolean;autoDue:boolean;autoDueDay:number;
 }
 
+/** The `YYYY-MM` key before a `YYYY-MM` key. An unreadable key answers itself, never a wrong month. */
+export function previousMonthKey(month:string):string{
+  const [year,part]=String(month||'').split('-').map(Number);
+  if(!Number.isFinite(year)||!Number.isFinite(part)||part<1||part>12)return month;
+  return part===1?`${year-1}-12`:`${year}-${String(part-1).padStart(2,'0')}`;
+}
+
 export async function loadSmsSettings():Promise<SmsSettingsRow>{
   const row=await CenterSettings.findOne({key:'main'}).lean<Partial<SmsSettingsRow>&{smsUnitCost?:number}|null>();
   const unitCost=Number(row?.smsUnitCost);
@@ -113,6 +120,11 @@ export interface SmsPlanInput{
   globalValues?:Partial<Record<SmsVariable,string|number|null>>;
   /** Fee month for the duplicate warning; defaults to the current Dhaka month. */
   month?:string;
+  /**
+   * Whose ids `students` carries. A visitor send (R3.9) points its log rows and its 24-hour duplicate
+   * warning at the lead; everything else is a student send and stays exactly as it was.
+   */
+  subjectKind?:'student'|'lead';
   now?:Date;
 }
 
@@ -123,6 +135,8 @@ export interface SmsPlan{
   requestId:string;
   templateKey:string;
   purpose:string;
+  /** Carried from the input, because the log write and the retry have to know whose id a row holds. */
+  subjectKind:'student'|'lead';
   audience:SmsAudience;
   month:string;
   body:string;
@@ -151,6 +165,7 @@ export async function buildSmsPlan(input:SmsPlanInput,provider:SmsProvider=creat
   const now=input.now||new Date();
   const settings=await loadSmsSettings();
   const month=input.month||dhakaMonthKey(now);
+  const subjectKind=input.subjectKind||'student';
   const custom=!!input.customText;
   const templateKey=custom?'custom':String(input.templateKey||'custom');
 
@@ -202,14 +217,22 @@ export async function buildSmsPlan(input:SmsPlanInput,provider:SmsProvider=creat
   const segmentCount=items.reduce((sum,item)=>sum+item.segments,0);
   const estimatedCost=estimatedSmsCost(segmentCount,settings.unitCost);
   const balance=await provider.balance();
-  const duplicates=await recentDuplicateStudents(templateKey,resolved.recipients.flatMap(r=>r.studentIds),month,now);
+  /**
+   * A visitor send warns on a 24-HOUR window, but the log row it reads back carries the month its cost was
+   * booked to — so a thank-you sent at 23:00 on the last day of a month and another at 00:30 on the first
+   * day of the next fall in the same 24 hours and in two different months. Looking at both keeps the
+   * warning honest at the boundary, which is exactly when "we already texted this person today" matters.
+   * A student send stays on its own month, because a due reminder IS a monthly message.
+   */
+  const duplicateMonths=subjectKind==='lead'?[month,previousMonthKey(month)]:month;
+  const duplicates=await recentDuplicateStudents(templateKey,resolved.recipients.flatMap(r=>r.studentIds),duplicateMonths,now,24,subjectKind==='lead'?'lead':'student');
 
   // An unrendered {chip} means the operator picked a variable we have no value for.
   const unrendered=items.find(item=>/\{\w+\}/.test(item.message));
   const blocked=!body.trim()?'EMPTY_MESSAGE':unrendered?`UNRENDERED_VARIABLE:${unrendered.message.match(/\{\w+\}/)?.[0]}`:null;
 
   return {
-    requestId:input.requestId,templateKey,purpose,audience:input.audience,month,body,
+    requestId:input.requestId,templateKey,purpose,subjectKind,audience:input.audience,month,body,
     items,skipped,groupingRefused:resolved.groupingRefused,duplicates,
     recipientCount:items.length,segmentCount,estimatedCost,unitCost:settings.unitCost,
     balance,lowBalance:balance.ok&&estimatedCost>balance.balance,
@@ -221,20 +244,24 @@ export async function buildSmsPlan(input:SmsPlanInput,provider:SmsProvider=creat
 
 function emptyPlan(input:SmsPlanInput,templateKey:string,month:string,settings:SmsSettingsRow,now:Date,blocked:string):SmsPlan{
   return {
-    requestId:input.requestId,templateKey,purpose:'custom',audience:input.audience,month,body:'',
+    requestId:input.requestId,templateKey,purpose:'custom',subjectKind:input.subjectKind||'student',audience:input.audience,month,body:'',
     items:[],skipped:[],groupingRefused:[],duplicates:[],recipientCount:0,segmentCount:0,
     estimatedCost:0,unitCost:settings.unitCost,balance:{ok:false},lowBalance:false,
     quiet:inQuietHours(settings.quietStart,settings.quietEnd,now),quietUntil:quietUntilLabel(settings.quietEnd),blocked,
   };
 }
 
-/** Students who already received this template for this month within the last `hours`. */
-export async function recentDuplicateStudents(templateKey:string,studentIds:string[],month:string,now:Date=new Date(),hours=24):Promise<string[]>{
+/**
+ * Subjects who already received this template for this month within the last `hours`. `field` says which
+ * subject the ids are: a student send warns from the `student` rows, a visitor send from the `lead` rows
+ * (R3.9), and the two never mix — a lead id in a student reference would warn about the wrong person.
+ */
+export async function recentDuplicateStudents(templateKey:string,studentIds:string[],month:string|string[],now:Date=new Date(),hours=24,field:'student'|'lead'='student'):Promise<string[]>{
   if(!templateKey||templateKey==='custom'||!studentIds.length)return [];
   const since=new Date(now.getTime()-hours*60*60*1000);
-  const rows=await CenterSmsLog.find({templateKey,month,student:{$in:studentIds},status:{$in:['sent','queued']},createdAt:{$gte:since}})
-    .select('student').limit(5000).lean<{student?:unknown}[]>();
-  return [...new Set(rows.map(row=>String(row.student)).filter(id=>id&&id!=='undefined'))];
+  const rows=await CenterSmsLog.find({templateKey,month:Array.isArray(month)?{$in:month}:month,[field]:{$in:studentIds},status:{$in:['sent','queued']},createdAt:{$gte:since}})
+    .select(field).limit(5000).lean<Record<'student'|'lead',unknown>[]>();
+  return [...new Set(rows.map(row=>String(row[field]??'')).filter(id=>id&&id!=='undefined'))];
 }
 
 export interface SmsSendSummary{
@@ -304,21 +331,24 @@ export async function executeSmsPlan(plan:SmsPlan,options:SmsExecuteOptions={}):
   // Log rows are the durable plan: skipped numbers keep their reason, and queued messages wait here
   // until the window closes. A skip with no phone at all (removed / opted out / missing number) is
   // counted on the batch instead, because SmsLog.phone is required and must stay a real number.
+  // One subject per row: a visitor send points at the lead, a student send at the student, and neither
+  // id ever goes in the other's reference.
+  const subjectOf=(id:string):{student?:string;lead?:string}=>plan.subjectKind==='lead'?{lead:id}:{student:id};
   const pendingRows:PendingRow[]=[];
   for(const item of items){
     // One row per (recipient, student): a sibling-grouped message stays traceable to every child.
     for(const studentId of item.studentIds){
-      pendingRows.push({batch:batchId,student:studentId,phone:item.phone,message:item.message,segments:item.segments,cost:item.cost,templateKey:plan.templateKey,month:plan.month,status:'queued'});
+      pendingRows.push({batch:batchId,...subjectOf(studentId),phone:item.phone,message:item.message,segments:item.segments,cost:item.cost,templateKey:plan.templateKey,month:plan.month,status:'queued'});
     }
   }
   const skippedRows:PendingRow[]=[];
   for(const entry of plan.skipped){
     if(!entry.phone)continue;
-    skippedRows.push({batch:batchId,student:entry.studentId,phone:entry.phone,message:plan.body||'',segments:1,cost:0,templateKey:plan.templateKey,month:plan.month,status:'skipped',reason:entry.reason});
+    skippedRows.push({batch:batchId,...subjectOf(entry.studentId),phone:entry.phone,message:plan.body||'',segments:1,cost:0,templateKey:plan.templateKey,month:plan.month,status:'skipped',reason:entry.reason});
   }
   for(const item of duplicateSkips){
     for(const studentId of item.studentIds){
-      skippedRows.push({batch:batchId,student:studentId,phone:item.phone,message:item.message,segments:1,cost:0,templateKey:plan.templateKey,month:plan.month,status:'skipped',reason:'duplicate'});
+      skippedRows.push({batch:batchId,...subjectOf(studentId),phone:item.phone,message:item.message,segments:1,cost:0,templateKey:plan.templateKey,month:plan.month,status:'skipped',reason:'duplicate'});
     }
   }
   if(skippedRows.length)await CenterSmsLog.insertMany(skippedRows,{ordered:false});
@@ -344,7 +374,7 @@ export async function executeSmsPlan(plan:SmsPlan,options:SmsExecuteOptions={}):
 }
 
 /** One log row per (recipient, student) so a sibling-grouped message is traceable to every child. */
-interface PendingRow{_id?:unknown;batch:string;student?:string;phone:string;message:string;segments:number;cost:number;templateKey:string;month:string;status:string;reason?:string}
+interface PendingRow{_id?:unknown;batch:string;student?:string;lead?:string;phone:string;message:string;segments:number;cost:number;templateKey:string;month:string;status:string;reason?:string}
 
 /**
  * Send in provider-sized chunks. Rows are grouped by phone because the provider answers once per

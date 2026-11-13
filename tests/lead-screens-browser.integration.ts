@@ -35,6 +35,8 @@ import {User} from '../src/models/User';
 import {AdminAudit} from '../src/models/AdminAudit';
 import {Lead} from '../src/models/Lead';
 import {createQuickLead,updateLeadStatus} from '../src/lib/leads/leads';
+import {CenterSmsTemplate} from '../src/models/CenterRecords';
+import {defaultTemplate} from '../src/lib/center/sms-templates';
 import {followUpLabel,statusLabel} from '../src/lib/leads/lead-ui';
 import {maskPhone} from '../src/lib/leads/vocab';
 import {dhakaDay} from '../src/lib/admin/today';
@@ -536,6 +538,153 @@ async function run(){
       assert.ok(actions.includes(expected),`driving the screens audited ${expected} (saw: ${actions.join(', ')||'nothing'})`);
     }
     assert.ok(audits.every(row=>!/01[3-9]\d{8}/.test(row.target)),'and no audit target anywhere holds a number');
+
+    /**
+     * ---- 10. R3.9 · Send SMS from the Visitors list: who is in the send, who is not, and why.
+     *
+     * The rules themselves are proved against the database in tests/lead-sms.integration.ts; what only a
+     * browser can prove is that the screen SAYS them — that a blocked visitor offers no checkbox and shows
+     * why instead, that the count beside the button is the count that will be sent, and that the dialog a
+     * visitor send opens is the same one every other send opens, already on `visitor_thanks` and with no
+     * guardian-or-student question to answer, because a lead has one number and no fee to talk about.
+     *
+     * No message is sent here. The provider in test mode is the mock, but a send would write rows the
+     * other sections' counts do not expect, and the DB suite already proves the write end to end.
+     */
+    // The picker offers the shipped catalogue: an earlier suite may have left edited templates behind in
+    // this disposable database, and the assertion below is about what ships.
+    await CenterSmsTemplate.deleteMany({});
+    const thanks=defaultTemplate('visitor_thanks')!;
+
+    /** What the dialog must look like for a visitor send, at whatever width it is being photographed. */
+    const checkVisitorDialog=async(label:string)=>{
+      const overlay=boss.page.locator('.sms-overlay');
+      await overlay.locator('[data-sms-dialog]').waitFor({timeout:60000}).catch(async error=>{
+        throw Error(`${label}: the visitor SMS dialog never opened — ${error.message.split('\n')[0]} · url=${boss.page.url()} · body=${JSON.stringify((await boss.page.locator('body').innerText().catch(()=>'(none)')).replace(/\s+/g,' ').slice(0,300))} · pageErrors=${JSON.stringify(boss.errors)}`);
+      });
+      assert.ok((await overlay.locator('h2').first().innerText()).includes(t.smsBulkTitle),`${label}: the dialog is titled for visitors`);
+      // A lead has one number, so the dialog asks no guardian-or-student question and says whose number it uses.
+      assert.equal(await overlay.locator('input[name="smsTarget"]').count(),0,`${label}: a visitor send offers no audience choice`);
+      assert.ok((await overlay.innerText()).includes('ভিজিটরের নম্বর'),`${label}: and it says the visitor's number is the one used`);
+      assert.ok((await overlay.innerText()).includes('লিডের প্রথম নম্বরটিতেই পাঠানো হয়।'),`${label}: the first number on the lead, out loud`);
+      // The preview the dialog loads on its own is the server resolving THIS selection of leads.
+      await until(async()=>{
+        const summary=await overlay.locator('[data-sms-summary]').innerText().catch(()=>'');
+        return summary.includes('মোট')&&!summary.includes('প্রাপক গণনা হচ্ছে');
+      },`${label}: the dialog counted the picked visitors`,60000);
+      const summary=await overlay.locator('[data-sms-summary]').innerText();
+      assert.ok(summary.includes('2'),`${label}: two picked visitors are two numbers, and the dialog says so (${summary.replace(/\s+/g,' ')})`);
+    };
+
+    for(const width of [360,1440]){
+      await boss.page.setViewportSize({width,height:900});
+      await boss.page.goto(`${origin}${list}`,{waitUntil:'domcontentloaded',timeout:180000});
+      await rows(boss.page).first().waitFor({timeout:60000});
+      const bar=boss.page.locator('[data-lead-sms-bar]');
+      await bar.waitFor({timeout:60000}).catch(async error=>{
+        throw Error(`the visitor SMS bar never rendered at ${width}px — ${error.message.split('\n')[0]} · url=${boss.page.url()} · headings=${JSON.stringify(await boss.page.locator('h1,h2').allInnerTexts().catch(()=>[]))} · pageErrors=${JSON.stringify(boss.errors)}`);
+      });
+      const boxes=boss.page.locator('section.list-panel input[name="smsLead"]');
+      const boxCount=await boxes.count();
+      const blockedCells=boss.page.locator('section.list-panel [data-sms-blocked]');
+      const phonelessCells=boss.page.locator('section.list-panel [data-sms-nophone]');
+      const blockedCount=await blockedCells.count();
+      const phonelessCount=await phonelessCells.count();
+      assert.ok(boxCount>0,`${width}px: every row that may be texted offers a checkbox`);
+      assert.equal(await blockedCells.first().innerText(),t.smsBlockedRow,`${width}px: a blocked visitor's cell says "left out" instead of offering a checkbox`);
+      assert.equal(await phonelessCells.first().innerText(),t.noPhone,`${width}px: a visitor with no number says so`);
+      assert.equal(await rows(boss.page).filter({hasText:BLOCKED}).first().locator('input[name="smsLead"]').count(),0,
+        `${width}px: the lead marked do-not-contact cannot be picked at all`);
+      // The bar reports the exclusions in the same digits the rest of the screen uses, and counts them
+      // apart: a promise made to a person is not the same sentence as a gap in the sheet.
+      const barText=(await bar.innerText()).replace(/\s+/g,' ');
+      assert.ok(barText.includes(t.smsSelectPage),`${width}px: the bar offers to pick the page`);
+      assert.ok(barText.includes(t.smsExcluded.replace('{count}',formatNumber(blockedCount,'bn'))),
+        `${width}px: the bar counts the ${blockedCount} excluded by "do not contact" out loud (${barText})`);
+      assert.ok(barText.includes(t.smsNoPhoneCount.replace('{count}',formatNumber(phonelessCount,'bn'))),
+        `${width}px: and the ${phonelessCount} with no number, separately (${barText})`);
+      // Scoped to the bar: every row also carries a closed drawer with its own single-lead Send SMS in it,
+      // so a page-wide count would be counting buttons that are in the document but not on screen.
+      assert.equal(await bar.locator('button[data-sms-open]').count(),0,
+        `${width}px: with nobody picked there is no send button — it appears when there is something to send`);
+      if(width===360)await noOverflow(boss.page,'the Visitors list with the SMS picker');
+
+      // Pick two visitors: the button appears and counts exactly what will be handed to the dialog.
+      await rows(boss.page).filter({hasText:RAHUL}).first().locator('input[name="smsLead"]').check();
+      await rows(boss.page).filter({hasText:NEXT_WEEK}).first().locator('input[name="smsLead"]').check();
+      const openButton=bar.locator('button[data-sms-open]');
+      await openButton.waitFor({timeout:60000});
+      assert.ok((await openButton.innerText()).includes(t.smsSelected.replace('{count}',formatNumber(2,'bn'))),
+        `${width}px: the button says how many are in the send (${(await openButton.innerText()).replace(/\s+/g,' ')})`);
+      // Picking the whole page is one tap, and it never picks a blocked visitor.
+      await bar.locator('input[name="smsLeadPage"]').check();
+      const pagePicks=await boxes.evaluateAll(nodes=>nodes.filter(node=>(node as HTMLInputElement).checked).length);
+      assert.equal(pagePicks,boxCount,`${width}px: "everyone on this page" means every row that may be texted`);
+      assert.ok((await bar.locator('button[data-sms-open]').innerText()).includes(formatNumber(boxCount,'bn')),
+        `${width}px: and the button now counts all ${boxCount} of them`);
+      assert.equal(await rows(boss.page).filter({hasText:BLOCKED}).first().locator('input[name="smsLead"]:checked').count(),0,
+        `${width}px: the blocked visitor is still not among them`);
+      // Back to the two the dialog will be checked with.
+      await bar.locator('input[name="smsLeadPage"]').uncheck();
+      await rows(boss.page).filter({hasText:RAHUL}).first().locator('input[name="smsLead"]').check();
+      await rows(boss.page).filter({hasText:NEXT_WEEK}).first().locator('input[name="smsLead"]').check();
+      await shot(boss.page,`b2-visitor-sms-${width}`);
+      if(width===360)await noOverflow(boss.page,'the Visitors list with two visitors picked');
+
+      await bar.locator('button[data-sms-open]').click();
+      await checkVisitorDialog(`${width}px`);
+      await shot(boss.page,`b2-visitor-sms-dialog-${width}`,false);
+      if(width===360)await noOverflow(boss.page,'the visitor SMS dialog');
+
+      // Step 2 is the catalogue: already on the visitor template, with the shipped body, and without any
+      // template whose chips a lead could never fill.
+      await boss.page.locator('[data-sms-next]').click();
+      const overlay=boss.page.locator('.sms-overlay');
+      await overlay.locator('[data-sms-step="2"]').waitFor({timeout:60000});
+      assert.equal(await overlay.locator('input[name="smsTemplate"]:checked').inputValue(),'visitor_thanks',
+        `${width}px: a visitor send opens on the visitor template`);
+      assert.equal(await overlay.locator('input[name="smsTemplate"][value="due_reminder"]').count(),0,
+        `${width}px: a due reminder is not offered to somebody who owes nothing`);
+      assert.equal(await overlay.locator('input[name="smsTemplate"][value="payment_receipt"]').count(),0,
+        `${width}px: nor a receipt, nor any template a lead has no value for`);
+      assert.equal(await overlay.locator('textarea[name="smsText"]').inputValue(),thanks.body,
+        `${width}px: and the message shown is the shipped visitor body, chips and all`);
+      await shot(boss.page,`b2-visitor-sms-template-${width}`,false);
+      await overlay.locator('button[aria-label="বন্ধ করুন"]').click();
+      await boss.page.locator('.sms-overlay').waitFor({state:'detached',timeout:60000});
+    }
+
+    // A role that may not spend money on SMS gets no picker at all, rather than a button that answers 403:
+    // the send route has been admin-only since R2, and a screen must not offer what the server refuses.
+    await desk.page.goto(`${origin}${list}`,{waitUntil:'domcontentloaded',timeout:180000});
+    await rows(desk.page).first().waitFor({timeout:60000});
+    assert.equal(await desk.page.locator('[data-lead-sms-bar]').count(),0,'a staff user sees no SMS bar on the Visitors list');
+    assert.equal(await desk.page.locator('input[name="smsLead"]').count(),0,'no row offers them a checkbox');
+    assert.equal(await desk.page.locator('[data-sms-open]').count(),0,'and nothing on the page invites a send that would be refused');
+    assert.ok((await desk.page.locator('body').innerText()).includes(RAHUL),'the list itself is still theirs to work');
+    // The drawer keeps its own single-lead send, and it too is offered only where a send may happen.
+    await boss.page.setViewportSize({width:1440,height:900});
+    await boss.page.goto(`${origin}${list}`,{waitUntil:'domcontentloaded',timeout:180000});
+    await rows(boss.page).first().waitFor({timeout:60000});
+    // `smsRow`/`smsDrawer`, not `rahulRow`/`drawer`: section 3 already opened that drawer in this scope.
+    const smsRow=rows(boss.page).filter({hasText:RAHUL}).first();
+    await smsRow.locator('button',{hasText:t.detail}).first().click();
+    const smsDrawer=boss.page.locator('dialog.overview-drawer[open]');
+    await smsDrawer.waitFor({timeout:60000});
+    await smsDrawer.locator('button[data-sms-open]').waitFor({timeout:60000});
+    assert.equal(await smsDrawer.locator('button[data-sms-open]').count(),1,'one visitor, one Send SMS in the drawer');
+    await shot(boss.page,'b2-visitor-sms-drawer-1440',false);
+    await smsDrawer.locator('button[data-sms-open]').click();
+    const oneOverlay=boss.page.locator('.sms-overlay');
+    await oneOverlay.locator('[data-sms-dialog]').waitFor({timeout:60000});
+    assert.ok((await oneOverlay.locator('h2').first().innerText()).includes(t.smsOneTitle),'titled for this one visitor');
+    assert.equal(await oneOverlay.locator('input[name="smsTarget"]').count(),0,'and with the same one-number rule');
+    await shot(boss.page,'b2-visitor-sms-one-1440',false);
+    await oneOverlay.locator('button[aria-label="বন্ধ করুন"]').click();
+    await oneOverlay.waitFor({state:'detached',timeout:60000});
+    await smsDrawer.locator('button',{hasText:t.close}).first().click();
+    await boss.page.locator('dialog.overview-drawer[open]').waitFor({state:'detached',timeout:60000})
+      .catch(()=>{/* the drawer closing is not what this section is about */});
 
     assert.deepEqual(boss.errors,[],`page errors as admin: ${boss.errors.join(' | ')}`);
     assert.deepEqual(desk.errors,[],`page errors as staff: ${desk.errors.join(' | ')}`);

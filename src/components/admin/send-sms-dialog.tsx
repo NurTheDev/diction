@@ -24,7 +24,7 @@ import {SMS_VARIABLES} from '@/lib/center/sms-templates';
 import type {SmsSkipReason} from '@/lib/center/sms-recipients';
 
 export type SmsSendRequest={
-  source:'dues'|'class'|'students'|'student'|'receipt';
+  source:'dues'|'class'|'students'|'student'|'receipt'|'lead'|'leads';
   classGroup?:string;
   ids?:string[];
   id?:string;
@@ -85,12 +85,21 @@ export function segmentCount(text:string):number{
 
 export default function SendSmsDialog({open,onClose,request,templates,titleBn,titleEn,defaultTemplateKey='due_reminder',institutePhone='',en=false,onSent}:Props){
   const t=useCallback((bn:string,label:string)=>(en?label:bn),[en]);
+  /** A visitor send (R3.9): one number per lead, no fee chips, and no guardian/student choice to make. */
+  const isLead=request.source==='lead'||request.source==='leads';
   const [step,setStep]=useState(1);
   const [templateKey,setTemplateKey]=useState(defaultTemplateKey);
   const [text,setText]=useState('');
   /** {subject} is the one variable no source can know: a notice topic, or the subject a teacher is needed for. */
   const [subject,setSubject]=useState('');
   const [target,setTarget]=useState<'guardian'|'student'|'both'>('guardian');
+  /**
+   * A lead's only number is carried as its guardian number, so a visitor send is always a guardian send.
+   * The picker does not offer the choice (there is no second number to choose), and the request does not
+   * trust the state either: 'student' or 'both' against a lead would resolve to NOBODY, and a send that
+   * quietly covers nobody is worse than a radio button that is not there.
+   */
+  const sendTarget=isLead?'guardian':target;
   const [groupSiblings,setGroupSiblings]=useState(true);
   const [force,setForce]=useState(false);
   const [skipDuplicates,setSkipDuplicates]=useState(false);
@@ -142,11 +151,11 @@ export default function SendSmsDialog({open,onClose,request,templates,titleBn,ti
   const loadPreview=useCallback(async()=>{
     if(!requestId)return;
     setLoadingPreview(true);
-    const {status,data}=await call({mode:'preview',requestId,templateKey,text,subject,target,groupSiblings});
+    const {status,data}=await call({mode:'preview',requestId,templateKey,text,subject,target:sendTarget,groupSiblings});
     if(status&&data?.ok&&data.preview){setPreview(data.preview);setPreviewError('')}
     else{setPreview(data?.preview||null);setPreviewError(String(data?.detail||data?.error||data?.blocked||(status?'UNAVAILABLE':'NETWORK')))}
     setLoadingPreview(false);
-  },[call,requestId,templateKey,text,subject,target,groupSiblings]);
+  },[call,requestId,templateKey,text,subject,sendTarget,groupSiblings]);
 
   // Debounced, so typing a custom message does not fire a request per keystroke.
   useEffect(()=>{
@@ -197,7 +206,7 @@ export default function SendSmsDialog({open,onClose,request,templates,titleBn,ti
   const send=async()=>{
     if(sending||!requestId||!canSend)return;
     setSending(true);setResult(null);
-    const {status,data}=await call({mode:'send',requestId,templateKey,text,subject,target,groupSiblings,force,skipDuplicates});
+    const {status,data}=await call({mode:'send',requestId,templateKey,text,subject,target:sendTarget,groupSiblings,force,skipDuplicates});
     if(data&&(data.ok||data.blocked))setResult(data);
     else setResult({ok:false,error:String(data?.detail||data?.error||(status?'UNAVAILABLE':'NETWORK')),message:t('পাঠানো যায়নি','Could not send')});
     setSending(false);
@@ -245,16 +254,23 @@ export default function SendSmsDialog({open,onClose,request,templates,titleBn,ti
             {hardError&&<p className="admin-feedback error" role="status">{hardError}</p>}
 
             <fieldset className="admin-fieldset">
-              <legend>{t('কাকে পাঠাবেন','Who receives it')}</legend>
-              {([['guardian',t('অভিভাবক','Guardian')],['student',t('শিক্ষার্থী','Student')],['both',t('উভয়','Both')]] as const).map(([value,label])=>(
-                <label className="admin-check" key={value}>
-                  <input type="radio" name="smsTarget" value={value} checked={target===value} onChange={()=>setTarget(value)} />
-                  {label}
-                </label>
-              ))}
+              <legend>{isLead?t('ভিজিটরের নম্বর','The visitor number'):t('কাকে পাঠাবেন','Who receives it')}</legend>
+              {/* A lead has one number, the first one written on the sheet — not a guardian's and a
+                  student's. Offering the choice would offer two ways to reach nobody, so it is not
+                  offered, and the send goes to that one number as a guardian message. */}
+              {isLead
+                ?<p className="admin-help">{t('লিডের প্রথম নম্বরটিতেই পাঠানো হয়।','It goes to the first number on the lead.')}</p>
+                :([['guardian',t('অভিভাবক','Guardian')],['student',t('শিক্ষার্থী','Student')],['both',t('উভয়','Both')]] as const).map(([value,label])=>(
+                  <label className="admin-check" key={value}>
+                    <input type="radio" name="smsTarget" value={value} checked={target===value} onChange={()=>setTarget(value)} />
+                    {label}
+                  </label>
+                ))}
               <label className="admin-check">
                 <input type="checkbox" name="smsGroupSiblings" checked={groupSiblings} onChange={event=>setGroupSiblings(event.target.checked)} />
-                {t('একই নম্বরে একটিই বার্তা (ভাইবোন একসাথে, মোট টাকা)','One message per phone (siblings combined, with the total)')}
+                {isLead
+                  ?t('একই নম্বরে একটিই বার্তা (একই পরিবারের ভিজিটর একসাথে)','One message per number (one family, one message)')
+                  :t('একই নম্বরে একটিই বার্তা (ভাইবোন একসাথে, মোট টাকা)','One message per phone (siblings combined, with the total)')}
               </label>
             </fieldset>
 

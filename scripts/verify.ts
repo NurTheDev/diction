@@ -344,6 +344,8 @@ async function main():Promise<void>{
       {needsDb:true,env:{TEST_ORIGIN:ctx.origin,TEST_MONGO_URI:ctx.mongoUri,TEST_MONGO_DB:ctx.mongoDb}});
     await stepUnitSuites(ctx,'test:lead:search','R3.7','Searching the Visitors list by number — typed digits, partial numbers, Bangla digits, with or without the leading zero — and the number never travelling in a URL, a log or an analytics event',
       {needsDb:true,env:{TEST_ORIGIN:ctx.origin,TEST_MONGO_URI:ctx.mongoUri,TEST_MONGO_DB:ctx.mongoDb}});
+    await stepUnitSuites(ctx,'test:lead:sms','R3.9','The visitor SMS entry point: a lead as an SMS candidate, the bulk selection behind it, the log rows and the 24-hour repeat warning that point at the lead, and the dialog refusals — pure rules first, then against the disposable database',
+      {needsDb:true,env:{TEST_ORIGIN:ctx.origin,TEST_MONGO_URI:ctx.mongoUri,TEST_MONGO_DB:ctx.mongoDb}});
     await stepScreens(ctx);
     await stepBrowserTests(ctx);
     (ctx as Context&{stop?:()=>void}).stop?.();

@@ -2050,6 +2050,17 @@
     "lastNote": "Last note",
     "converted": "Converted",
     "totalLeads": "{count} visitors",
-    "archiveHint": "Leads older than 18 months are suggested for archiving — nothing is ever removed on its own."
+    "archiveHint": "Leads older than 18 months are suggested for archiving — nothing is ever removed on its own.",
+    "smsColumn": "SMS",
+    "smsSelectPage": "Select everyone on this page",
+    "smsSelected": "SMS the {count} selected",
+    "smsBulkTitle": "SMS the visitors",
+    "smsOneTitle": "SMS this visitor",
+    "smsLabel": "Send SMS",
+    "smsPickRow": "Select {name} for the SMS",
+    "smsBlockedRow": "Left out",
+    "smsExcluded": "{count} left out — do not contact",
+    "smsNoPhoneCount": "{count} have no number",
+    "smsHelp": "The selected visitors get a thank-you message."
   }
 }

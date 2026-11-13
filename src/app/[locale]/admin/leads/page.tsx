@@ -6,6 +6,7 @@ import {dashboardDigits} from '@/lib/admin/digits';
 import {pageNumber} from '@/lib/admin/helpers';
 import {formatClass,formatDate,formatNumber} from '@/lib/admin/format';
 import {leadStatusCounts,listLeads} from '@/lib/leads/leads';
+import {visitorSmsDialogData} from '@/lib/center/sms-dialog-data';
 import {leadListQuery,LEAD_GROUPS,LEAD_MEDIUMS,LEAD_SHIFTS,LEAD_SOURCES,LEAD_STATUSES} from '@/lib/leads/vocab';
 import {
   followUpBadge,groupLabel,mediumLabel,rowView,shiftLabel,sourceLabel,statusBadge,statusLabel,
@@ -13,6 +14,7 @@ import {
 } from '@/lib/leads/lead-ui';
 import {Pagination} from '@/components/admin/pagination';
 import {LeadDetailDrawer,LeadQuickAdd,LeadRowControls,LeadSearch} from '@/components/admin/leads-ui';
+import {LeadSmsBar,LeadSmsCheck,LeadSmsPicker} from '@/components/admin/lead-sms';
 import {Phone,MessageCircle} from 'lucide-react';
 
 type Query={q?:string;status?:string;classGroup?:string;group?:string;shift?:string;medium?:string;source?:string;
@@ -67,6 +69,28 @@ export default async function Leads({params,searchParams}:{params:Promise<{local
     listLeads({q,status,classGroup,group,shift,medium,source,followUp:followUp||undefined,from,to,page,perPage:20},now),
     leadStatusCounts(),
   ]);
+  /**
+   * Who may press send. The SMS route has been `getAdmin()` since R2 because a send spends real money, so
+   * a Staff user picking visitors would end in a 403 — which is why Staff gets no picker at all rather
+   * than a picker that refuses (docs/R3-COVERAGE.md §9 records the owner's decision that is still owed).
+   * No second guard call is needed: `getArchiver()` above already returned this user, and every guard
+   * answers null when the user's own role is disabled, so an admin or super admin standing here is one
+   * `getAdmin()` would return too.
+   */
+  const maySendSms=user.role==='admin'||user.role==='superadmin';
+  /**
+   * The visitor SMS catalog, loaded only for a role that may send: the picker and every drawer on this
+   * page then offer the same narrowed set of templates (`visitorSmsDialogData()`: only the ones whose
+   * chips a lead can actually fill, `visitor_thanks` among them) and the same center number. A screen
+   * that cannot load it must not offer a send, so `null` means "no picker here", never an empty one.
+   */
+  const sms=maySendSms?await visitorSmsDialogData():null;
+  /**
+   * The rows the bulk send may pick from: this page of this filter, and nothing else. `contactable` comes
+   * from the rule layer (`canContact()`), so a lead marked "do not contact" is not selectable here and is
+   * counted as excluded by the bar — and it is checked a third time when the plan is built.
+   */
+  const smsRows=result.rows.map(row=>({id:row.id,studentName:row.studentName,contactable:row.contactable,hasPhone:(row.phones||[]).length>0}));
   const current:LeadListFiltersShape={q:q||undefined,status:status||undefined,classGroup:classGroup||undefined,group:group||undefined,shift:shift||undefined,medium:medium||undefined,source:source||undefined,followUp:followUp||undefined,from:from||undefined,to:to||undefined};
 
   /**
@@ -145,19 +169,25 @@ export default async function Leads({params,searchParams}:{params:Promise<{local
       </form>
     </details>
 
+    <LeadSmsPicker rows={smsRows} kit={sms} digits={digits} language={language}>
     <section className="admin-panel list-panel">
       <div className="admin-panel-head">
         <h2>{followUp==='today'?t('dueToday'):followUp==='overdue'?t('overdue'):t('title')}</h2>
         <span className="admin-help">{t('totalLeads',{count:formatNumber(result.total,digits)})}</span>
+        <LeadSmsBar digits={digits}/>
       </div>
       {result.rows.length?<div className="admin-table-wrap"><table className="admin-table admin-responsive-table">
         <thead><tr>
-          <th>{t('colDate')}</th><th>{t('colVisitor')}</th><th>{t('colClass')}</th><th>{t('colContact')}</th>
+          {/* The column exists only where a send may happen: for a role that gets no picker, an always-empty
+              column with a heading on it is noise the list did not have before. */}
+          {sms&&<th>{t('smsColumn')}</th>}<th>{t('colDate')}</th><th>{t('colVisitor')}</th><th>{t('colClass')}</th><th>{t('colContact')}</th>
           <th>{t('colStatus')}</th><th>{t('colFollowUp')}</th><th>{t('colActions')}</th>
         </tr></thead>
         <tbody>{result.rows.map(row=>{
           const view=rowView(row);
+          const pick={id:row.id,studentName:row.studentName,contactable:row.contactable,hasPhone:(row.phones||[]).length>0};
           return <tr key={row.id}>
+            {sms&&<td data-label={t('smsColumn')}><LeadSmsCheck row={pick}/></td>}
             <td data-label={t('colDate')}><time dateTime={row.date}>{formatDate(row.date,digits,language)}</time></td>
             <td data-label={t('colVisitor')}><div>
               <strong>{row.studentName}</strong>
@@ -190,7 +220,7 @@ export default async function Leads({params,searchParams}:{params:Promise<{local
               {row.lastNote&&<><br/><span className="admin-help">{t('lastNote')}: {row.lastNote.text}</span></>}
             </div></td>
             <td data-label={t('colActions')}><div className="lead-row">
-              <div className="list-row-actions"><LeadDetailDrawer seed={view} language={language} digits={digits}/></div>
+              <div className="list-row-actions"><LeadDetailDrawer seed={view} language={language} digits={digits} sms={sms}/></div>
               <LeadRowControls row={view} language={language}/>
             </div></td>
           </tr>;
@@ -204,5 +234,6 @@ export default async function Leads({params,searchParams}:{params:Promise<{local
         <p className="admin-help">{t('archiveHint')}</p>
       </div>
     </section>
+    </LeadSmsPicker>
   </>;
 }

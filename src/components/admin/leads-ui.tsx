@@ -31,6 +31,8 @@ import {
   type LeadRowView,type LeadSearchActionState,type LeadSearchHitView,
 } from '@/lib/leads/lead-ui';
 import {leadListQuery} from '@/lib/leads/vocab';
+import SmsDialogTrigger from './sms-dialog-trigger';
+import type {LeadSmsKit} from '@/lib/leads/lead-sms';
 import {formatClass,formatDate,formatNumber,formatTime,type Digits} from '@/lib/admin/format';
 
 const IDLE_SEARCH:LeadSearchActionState={status:'idle',hits:[],total:0,masked:'',messageBn:'',messageEn:''};
@@ -230,9 +232,15 @@ export function LeadRowControls({row,language='bn'}:{row:LeadRowView;language?:'
  * The drawer's contents, shared with the lead's own page: fields, the numbers as masks plus their dial
  * destinations, the flags the importer or quick-add left behind, the notes timeline and the family.
  */
-function LeadDetailBody({seed,detail,loading,noteState,noteAction,notePending,language,digits}:{
+function LeadDetailBody({seed,detail,loading,noteState,noteAction,notePending,language,digits,sms=null}:{
   seed:LeadDrawerSeed;detail:LeadDetailView|null;loading:boolean;noteState:LeadFormState;
   noteAction:(payload:FormData)=>void;notePending:boolean;language:'bn'|'en';digits:Digits;
+  /**
+   * Present only where the screen loaded the visitor template catalog (R3.9). Absent means no Send SMS
+   * here at all — the drawer a NUMBER SEARCH opens is a lookup of somebody else's family, not a place to
+   * start a send, and it does not carry the catalog.
+   */
+  sms?:LeadSmsKit|null;
 }){
   const t=useTranslations('leads');
   const row=detail?.row;
@@ -261,6 +269,20 @@ function LeadDetailBody({seed,detail,loading,noteState,noteAction,notePending,la
         <a className="admin-mini-button" href={phone.whatsapp} target="_blank" rel="noreferrer"><MessageCircle size={15} aria-hidden="true"/>{t('whatsapp')}</a>
       </span>):<span className="admin-help">{t('noPhone')}</span>}
       <Link className="admin-mini-button" href={`/admin/leads/${seed.id}`}>{t('fields')}</Link>
+      {/* Send SMS (R3.9), offered only for a visitor who may be contacted. The rule is not decided here:
+          `canContact()` set `contactable` when the row was read and the send pipeline checks it again when
+          the plan is built, so this button hiding is a courtesy, never the gate. */}
+      {sms&&seed.contactable!==false&&!seed.doNotContact&&<SmsDialogTrigger
+        request={{source:'lead',id:seed.id}}
+        templates={sms.templates}
+        institutePhone={sms.institutePhone}
+        titleBn={t('smsOneTitle')}
+        titleEn="SMS this visitor"
+        labelBn={t('smsLabel')}
+        labelEn="Send SMS"
+        defaultTemplateKey="visitor_thanks"
+        en={language==='en'}
+      />}
     </div>
     {seed.doNotContact&&<p className="admin-feedback error">{t('doNotContact')} — {t('blockedHelp')}</p>}
     <dl>{fields.filter(([,value])=>value).map(([label,value],index)=><div key={index}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
@@ -316,8 +338,8 @@ function useLeadDetail(seed:LeadDrawerSeed,initial:LeadDetailView|null){
 }
 
 /** The detail drawer: the same `<dialog>` sheet the admissions and bookings rows already open. */
-export function LeadDetailDrawer({seed,initial=null,autoOpen=false,language='bn',digits='bn'}:{
-  seed:LeadDrawerSeed;initial?:LeadDetailView|null;autoOpen?:boolean;language?:'bn'|'en';digits?:Digits;
+export function LeadDetailDrawer({seed,initial=null,autoOpen=false,language='bn',digits='bn',sms=null}:{
+  seed:LeadDrawerSeed;initial?:LeadDetailView|null;autoOpen?:boolean;language?:'bn'|'en';digits?:Digits;sms?:LeadSmsKit|null;
 }){
   const t=useTranslations('leads');
   const dialog=useRef<HTMLDialogElement>(null),trigger=useRef<HTMLButtonElement>(null);
@@ -329,15 +351,15 @@ export function LeadDetailDrawer({seed,initial=null,autoOpen=false,language='bn'
     <dialog className="overview-drawer" ref={dialog} aria-label={t('fields')} onClose={()=>trigger.current?.focus()}>
       <header><h2>{seed.studentName}</h2><button type="button" className="admin-mini-button" onClick={()=>dialog.current?.close()}>{t('close')}</button></header>
       <p className="admin-help">{t('leadId')} {seed.leadId}</p>
-      <LeadDetailBody seed={seed} detail={detail} loading={loading} noteState={noteState} noteAction={noteAction} notePending={notePending} language={language} digits={digits}/>
+      <LeadDetailBody seed={seed} detail={detail} loading={loading} noteState={noteState} noteAction={noteAction} notePending={notePending} language={language} digits={digits} sms={sms}/>
     </dialog>
   </>;
 }
 
 /** The lead's own page: the same contents, inline, so a printed sheet or an audit row can be followed. */
-export function LeadDetailInline({seed,initial,language='bn',digits='bn'}:{
-  seed:LeadDrawerSeed;initial:LeadDetailView|null;language?:'bn'|'en';digits?:Digits;
+export function LeadDetailInline({seed,initial,language='bn',digits='bn',sms=null}:{
+  seed:LeadDrawerSeed;initial:LeadDetailView|null;language?:'bn'|'en';digits?:Digits;sms?:LeadSmsKit|null;
 }){
   const {detail,loading,noteState,noteAction,notePending}=useLeadDetail(seed,initial);
-  return <LeadDetailBody seed={seed} detail={detail} loading={loading} noteState={noteState} noteAction={noteAction} notePending={notePending} language={language} digits={digits}/>;
+  return <LeadDetailBody seed={seed} detail={detail} loading={loading} noteState={noteState} noteAction={noteAction} notePending={notePending} language={language} digits={digits} sms={sms}/>;
 }

@@ -18,7 +18,7 @@
  * error message, or a `console` line, and the duplicate-phone report hands out MASKED numbers only —
  * an aggregate result is the kind of thing that ends up pasted into a log.
  */
-import type {FilterQuery} from 'mongoose';
+import {isValidObjectId,type FilterQuery} from 'mongoose';
 import {Lead,nextLeadId} from '@/models/Lead';
 import type {LeadPhoneRow,LeadFlagRow} from '@/models/Lead';
 import {User} from '@/models/User';
@@ -327,13 +327,14 @@ export interface LeadListParams{
   followUp?:'today'|'overdue'|'none';familyKey?:string;from?:string;to?:string;page?:number;perPage?:number;
 }
 export interface LeadListResult{rows:LeadRow[];total:number;page:number;pages:number;perPage:number;refusedPhone:boolean}
-
 /**
- * The list. `q` goes through `leadListQuery` first — the same function that refuses to put a number in a
- * URL — so a phone-shaped search is dropped here too and reported, instead of matching leads by number.
- * Names, schools and lead ids stay searchable, because a URL with `?q=রাহুল` in it leaks nothing.
+ * The filter behind the list, on its own so that "everybody on this screen" means the same set of leads
+ * to the list, to the counts and to a bulk SMS: the Visitors screen hands this to `contactableLeads()`
+ * and the send therefore covers exactly the leads the operator is looking at, filters included. Every
+ * value is checked against the vocabulary here as well as on the page, because an invented status must
+ * be ignored rather than trusted by whichever caller forgot to check it.
  */
-export async function listLeads(params:LeadListParams,now:Date=new Date()):Promise<LeadListResult>{
+export function leadListFilter(params:LeadListParams,now:Date=new Date()):FilterQuery<unknown>{
   const filter:FilterQuery<unknown>={};
   const refusedPhone=leadListQuery({q:params.q}).refusedPhone;
   const text=String(params.q||'').trim();
@@ -355,6 +356,17 @@ export async function listLeads(params:LeadListParams,now:Date=new Date()):Promi
   else if(params.followUp==='none')filter.nextFollowUp=null;
   if(params.from&&/^\d{4}-\d{2}-\d{2}$/.test(params.from))filter.date={...(filter.date as object||{}),$gte:params.from};
   if(params.to&&/^\d{4}-\d{2}-\d{2}$/.test(params.to))filter.date={...(filter.date as object||{}),$lte:params.to};
+  return filter;
+}
+
+/**
+ * The list. `q` goes through `leadListQuery` first — the same function that refuses to put a number in a
+ * URL — so a phone-shaped search is dropped here too and reported, instead of matching leads by number.
+ * Names, schools and lead ids stay searchable, because a URL with `?q=রাহুল` in it leaks nothing.
+ */
+export async function listLeads(params:LeadListParams,now:Date=new Date()):Promise<LeadListResult>{
+  const filter=leadListFilter(params,now);
+  const refusedPhone=leadListQuery({q:params.q}).refusedPhone;
   const perPage=Math.min(Math.max(Number(params.perPage)||25,5),100);
   const total=await Lead.countDocuments(filter);
   const pages=Math.max(1,Math.ceil(total/perPage));
@@ -484,8 +496,45 @@ export async function addLeadNote(id:string,text:string,outcome:string,actorId:s
   return {ok:true,noteCount:(current.notes||[]).length+1};
 }
 
-export interface LeadSmsRecipient{leadId:string;studentName:string;classGroup:number|null;status:LeadStatus;nextFollowUp:string|null;phone:string;masked:string}
-export interface LeadSmsSelection{recipients:LeadSmsRecipient[];excludedDoNotContact:number;withoutPhone:number}
+export interface LeadSmsRecipient{
+  /** The Mongo id, because it is what the send dialog's source resolver and the SMS log row carry. */
+  id:string;
+  leadId:string;studentName:string;classGroup:number|null;status:LeadStatus;nextFollowUp:string|null;phone:string;masked:string;
+}
+export interface LeadSmsSelection{
+  recipients:LeadSmsRecipient[];excludedDoNotContact:number;withoutPhone:number;
+  /**
+   * How many leads answered the same filter, contactable or not — what the screen was showing. Only
+   * `contactableLeadSelection()` fills it, because only it was given a filter to count against.
+   */
+  matched?:number;
+}
+
+/**
+ * One bulk visitor send is capped here, not at the size of the book: a screen filtered down to 200 leads
+ * sends 200, and a screen with no filter at all sends at most this many, newest first, with the button
+ * saying how many are in the send. A cap an operator cannot see would be a send that quietly stopped
+ * early; the count beside the button is how they see it. It equals the send pipeline's own cap
+ * (`SMS_SOURCE_LIMIT`, and the dialog's `MAX_IDS`), because a selection the pipeline would cut in half
+ * would make the button promise a send it cannot deliver.
+ */
+export const SMS_SELECTION_LIMIT=1000;
+
+/**
+ * The selection behind a bulk visitor send (R3.9): the SAME filter the screen used to draw its list, so
+ * "the leads on this screen" means one set of people to the list, to the count on the button and to the
+ * dialog — and never to a wider set than the operator can see. Every lead marked do-not-contact inside
+ * that filter is counted and reported as excluded here; it is not handed to the sender and it is not
+ * counted as a recipient.
+ */
+export async function contactableLeadSelection(params:LeadListParams={},now:Date=new Date()):Promise<LeadSmsSelection>{
+  const filter=leadListFilter(params,now);
+  const [matched,selection]=await Promise.all([
+    Lead.countDocuments(filter),
+    contactableLeads(filter,SMS_SELECTION_LIMIT),
+  ]);
+  return {...selection,matched};
+}
 
 /**
  * Bulk-SMS recipients. `CONTACTABLE_LEAD_FILTER` is applied as its own `$and` branch so no caller-supplied
@@ -503,9 +552,40 @@ export async function contactableLeads(extra:FilterQuery<unknown>={},limit=5000)
   for(const doc of docs){
     const phone=doc.phones?.[0]?.normalized;
     if(!phone){withoutPhone++;continue}
-    recipients.push({leadId:doc.leadId,studentName:doc.studentName,classGroup:doc.classGroup??null,status:doc.status,nextFollowUp:doc.nextFollowUp||null,phone,masked:maskPhone(phone)});
+    recipients.push({id:String(doc._id),leadId:doc.leadId,studentName:doc.studentName,classGroup:doc.classGroup??null,status:doc.status,nextFollowUp:doc.nextFollowUp||null,phone,masked:maskPhone(phone)});
   }
   return {recipients,excludedDoNotContact:Math.max(0,total-reachable),withoutPhone};
+}
+
+export interface LeadSmsRow{id:string;leadId:string;studentName:string;phone:string;contactable:boolean;status:LeadStatus}
+
+/**
+ * The leads an SMS entry point is pointing at, row by row, as the send pipeline reads them: which number
+ * each would be reached on and whether it may be contacted at all.
+ *
+ * Blocked and phoneless leads are RETURNED rather than dropped, and that is the whole point of this
+ * function sitting beside `contactableLeads()`: that one answers "how many are in, how many were left
+ * out", which is what the button on the list says, while this one lets the dialog name them — "রাহুল বাদ,
+ * যোগাযোগ করবেন না" and "৩ জন বাদ" are not the same sentence, and only the first tells an operator
+ * where a visitor went. The rule is `canContact()`, re-read here, at the moment the plan is built, so a
+ * visitor blocked after the dialog was opened is still not texted.
+ *
+ * Ids are checked before they reach a query, and the list is capped: a send is bounded by the dialog that
+ * asked for it, never by the size of the book.
+ */
+export async function leadsForSms(ids:string[],limit=1000):Promise<LeadSmsRow[]>{
+  const valid=[...new Set(ids.filter(id=>isValidObjectId(id)))].slice(0,Math.min(limit,1000));
+  if(!valid.length)return [];
+  const docs=await Lead.find({_id:{$in:valid}}).select('leadId studentName phones status doNotContact').lean<LeadDoc[]>();
+  return docs.map(doc=>({
+    id:String(doc._id),leadId:doc.leadId,studentName:doc.studentName,status:doc.status,
+    // The FIRST normalized number. A second number in the same cell belongs to a sibling or a parent,
+    // and doubling a thank-you message to a family that visited once is a cost nobody asked for; two
+    // leads that share one number are folded into a single message by the pipeline's own one-per-phone
+    // rule, which is the family case handled properly rather than by sending twice.
+    phone:doc.phones?.[0]?.normalized||'',
+    contactable:canContactRow(doc),
+  }));
 }
 
 /** One row per number that sits on more than one lead — masked, because a report gets copied into logs. */
