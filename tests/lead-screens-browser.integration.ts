@@ -34,8 +34,8 @@ import {preflight,testDbName} from './helpers/env-preflight';
 import {User} from '../src/models/User';
 import {AdminAudit} from '../src/models/AdminAudit';
 import {Lead} from '../src/models/Lead';
-import {createQuickLead,updateLeadStatus} from '../src/lib/leads/leads';
-import {CenterSmsTemplate} from '../src/models/CenterRecords';
+import {createQuickLead,followUpBoard,updateLeadStatus} from '../src/lib/leads/leads';
+import {CenterSettings,CenterSmsLog,CenterSmsTemplate} from '../src/models/CenterRecords';
 import {defaultTemplate} from '../src/lib/center/sms-templates';
 import {followUpLabel,statusLabel} from '../src/lib/leads/lead-ui';
 import {maskPhone} from '../src/lib/leads/vocab';
@@ -663,14 +663,15 @@ async function run(){
       await boss.page.locator('.sms-overlay').waitFor({state:'detached',timeout:60000});
     }
 
-    // A role that may not spend money on SMS gets no picker at all, rather than a button that answers 403:
-    // the send route has been admin-only since R2, and a screen must not offer what the server refuses.
+    // R3.11 reversed what used to be asserted here. A staff account DOES get the picker now — narrowed to
+    // the visitors they tick and to the thank-you template — so "no bar at all" is no longer the truth and
+    // keeping it would be a proof of a screen the owner did not ask for. The narrowing itself is section
+    // 12; the role that may not spend money on SMS at all is section 8's teacher, who never reaches a list.
     await desk.page.goto(`${origin}${list}`,{waitUntil:'domcontentloaded',timeout:180000});
     await rows(desk.page).first().waitFor({timeout:60000});
-    assert.equal(await desk.page.locator('[data-lead-sms-bar]').count(),0,'a staff user sees no SMS bar on the Visitors list');
-    assert.equal(await desk.page.locator('input[name="smsLead"]').count(),0,'no row offers them a checkbox');
-    assert.equal(await desk.page.locator('[data-sms-open]').count(),0,'and nothing on the page invites a send that would be refused');
-    assert.ok((await desk.page.locator('body').innerText()).includes(RAHUL),'the list itself is still theirs to work');
+    assert.equal(await desk.page.locator('[data-lead-sms-bar]').count(),1,'a staff user gets the picker the decision gave them');
+    assert.equal(await desk.page.locator('input[name="smsLeadPage"]').count(),0,'without the one tap that picks everybody on the page');
+    assert.ok((await desk.page.locator('body').innerText()).includes(RAHUL),'and the list itself is still theirs to work');
     // The drawer keeps its own single-lead send, and it too is offered only where a send may happen.
     await boss.page.setViewportSize({width:1440,height:900});
     await boss.page.goto(`${origin}${list}`,{waitUntil:'domcontentloaded',timeout:180000});
@@ -804,6 +805,131 @@ async function run(){
     await boss.page.locator('dialog.overview-drawer[open]').waitFor({state:'detached',timeout:60000}).catch(()=>{});
 
 
+    // ---- 12. Staff SMS and the staff Overview (R3.11): the owner's two decisions, on screen.
+    const STAFF_THANKS='স্টাফের ধন্যবাদ ভিজিটর',STAFF_SECOND='স্টাফের দ্বিতীয় ভিজিটর';
+    const P8='01977889900',P9='01988990011';
+    const thanked=await createQuickLead({studentName:STAFF_THANKS,phone:P8,classLabel:'10',followUp:'today'},bossId);
+    assert.equal(thanked.ok,true,'the visitor the desk will thank is written');
+    const refused=await createQuickLead({studentName:STAFF_SECOND,phone:P9,classLabel:'9',followUp:'today'},bossId);
+    assert.equal(refused.ok,true,'and so is the one the ceiling will stop');
+    const thankedId=thanked.ok?thanked.id:'',refusedId=refused.ok?refused.id:'';
+
+    // (a) The ceiling is a setting, so it is written the way the owner writes it: through the form.
+    await boss.page.setViewportSize({width:1440,height:900});
+    await boss.page.goto(`${origin}/bn/admin/sms`,{waitUntil:'domcontentloaded',timeout:180000});
+    const limitInput=boss.page.locator('input[name="dailySmsLimitPerUser"]');
+    await limitInput.waitFor({timeout:90000});
+    assert.equal(await limitInput.inputValue(),'30','the ceiling ships at thirty a day');
+    await shot(boss.page,'b2-sms-limit-1440',false);
+    await limitInput.fill('1');
+    await boss.page.locator('form:has(input[name="dailySmsLimitPerUser"]) button[type="submit"], form:has(input[name="dailySmsLimitPerUser"]) button.button-navy').first().click();
+    await until(async()=>{
+      const row=await CenterSettings.findOne({key:'main'}).lean<{dailySmsLimitPerUser?:number}|null>();
+      return Number(row?.dailySmsLimitPerUser)===1;
+    },'the settings form saved the ceiling',90000);
+    // CI runs at any Dhaka hour, and inside the real quiet window a send is queued rather than sent —
+    // which would prove the clock instead of the ceiling. The window is emptied for the two sends below.
+    await CenterSettings.updateOne({key:'main'},{$set:{quietStart:'00:00',quietEnd:'00:00'}});
+
+    // (b) The picker a staff account gets: rows to tick, a hint about what they may send, and no page-pick.
+    await desk.page.setViewportSize({width:360,height:780});
+    await desk.page.goto(`${origin}${list}`,{waitUntil:'domcontentloaded',timeout:180000});
+    await rows(desk.page).filter({hasText:STAFF_THANKS}).first().waitFor({timeout:90000});
+    const staffBar=desk.page.locator('[data-lead-sms-bar]');
+    await staffBar.waitFor({timeout:60000});
+    assert.equal(await staffBar.locator('[data-sms-staff-hint]').count(),1,'the bar says what a staff send may be');
+    assert.ok((await staffBar.innerText()).includes(t.smsStaffHint),'in the words the catalogue ships');
+    assert.equal(await staffBar.locator('button[data-sms-open]').count(),0,'with nobody ticked there is no send button');
+    await rows(desk.page).filter({hasText:STAFF_THANKS}).first().locator('input[name="smsLead"]').check();
+    const staffOpen=staffBar.locator('button[data-sms-open]');
+    await staffOpen.waitFor({timeout:60000});
+    assert.equal(await rows(desk.page).filter({hasText:BLOCKED}).first().locator('input[name="smsLead"]').count(),0,
+      'and a visitor marked do-not-contact is not tickable by anybody, staff included');
+    await noOverflow(desk.page,'the Visitors list with a staff pick at 360');
+    await shot(desk.page,'b2-visitor-staff-360');
+
+    // (c) The dialog: one template, the message shown and not written, and today's allowance in plain view.
+    await staffOpen.click();
+    const staffOverlay=desk.page.locator('.sms-overlay');
+    await staffOverlay.locator('[data-sms-dialog]').waitFor({timeout:60000});
+    await until(async()=>{
+      const summary=await staffOverlay.locator('[data-sms-summary]').innerText().catch(()=>'');
+      return summary.includes('মোট')&&!summary.includes('প্রাপক গণনা হচ্ছে');
+    },'the staff dialog counted the one visitor they ticked',60000);
+    const dailyLine=await staffOverlay.locator('[data-sms-daily]').innerText();
+    assert.ok(dailyLine.includes('সীমা')&&dailyLine.includes('১'),`the dialog says what today's ceiling leaves (${dailyLine.replace(/\s+/g,' ')})`);
+    await desk.page.locator('[data-sms-next]').click();
+    await staffOverlay.locator('[data-sms-step="2"]').waitFor({timeout:60000});
+    assert.equal(await staffOverlay.locator('input[name="smsTemplate"]').count(),1,'one template offered, so nothing to wander to');
+    assert.equal(await staffOverlay.locator('input[name="smsTemplate"]').first().inputValue(),'visitor_thanks');
+    assert.equal(await staffOverlay.locator('#sms-custom-text').count(),0,'no textarea: a staff send is not a place to write');
+    assert.equal(await staffOverlay.locator('[data-sms-chip]').count(),0,'and no chips to bend the message into something else');
+    assert.equal((await staffOverlay.locator('[data-sms-locked]').innerText()).trim(),thanks.body.trim(),
+      'the message on screen is the shipped thank-you, word for word');
+    await shot(desk.page,'b2-visitor-staff-dialog-360',false);
+    await desk.page.setViewportSize({width:1440,height:900});
+    await shot(desk.page,'b2-visitor-staff-dialog-1440',false);
+    await desk.page.setViewportSize({width:360,height:780});
+
+    // (d) And it goes: one visitor, one message, one log row — the mock provider is all that answers.
+    await desk.page.locator('[data-sms-next]').click();
+    await staffOverlay.locator('[data-sms-step="3"]').waitFor({timeout:60000});
+    await desk.page.locator('[data-sms-next]').click();
+    await staffOverlay.locator('[data-sms-send]').waitFor({timeout:60000});
+    await desk.page.locator('[data-sms-send]').click();
+    await until(async()=>(await CenterSmsLog.countDocuments({lead:new mongoose.Types.ObjectId(thankedId),templateKey:'visitor_thanks'}))===1,
+      'the thank-you the desk sent was logged against the visitor',120000);
+    await staffOverlay.locator('[data-sms-result]').waitFor({timeout:60000});
+    assert.ok((await staffOverlay.locator('[data-sms-result-title]').innerText()).includes('পাঠানো হয়েছে'),'and the dialog says it went');
+
+    // (e) The ceiling: the same desk, one more visitor, and the day's single message already spent.
+    await desk.page.goto(`${origin}${list}`,{waitUntil:'domcontentloaded',timeout:180000});
+    await rows(desk.page).filter({hasText:STAFF_SECOND}).first().waitFor({timeout:90000});
+    await rows(desk.page).filter({hasText:STAFF_SECOND}).first().locator('input[name="smsLead"]').check();
+    await desk.page.locator('[data-lead-sms-bar] button[data-sms-open]').click();
+    const limitOverlay=desk.page.locator('.sms-overlay');
+    await limitOverlay.locator('[data-sms-dialog]').waitFor({timeout:60000});
+    await until(async()=>(await limitOverlay.locator('[data-sms-daily]').innerText().catch(()=>'')).includes('০টি বাকি'),
+      'the dialog reports an allowance with nothing left in it',60000);
+    await desk.page.locator('[data-sms-next]').click();
+    await limitOverlay.locator('[data-sms-step="2"]').waitFor({timeout:60000});
+    await desk.page.locator('[data-sms-next]').click();
+    await limitOverlay.locator('[data-sms-step="3"]').waitFor({timeout:60000});
+    await desk.page.locator('[data-sms-next]').click();
+    await limitOverlay.locator('[data-sms-send]').waitFor({timeout:60000});
+    await desk.page.locator('[data-sms-send]').click();
+    await until(async()=>(await limitOverlay.locator('[data-sms-result-text]').innerText().catch(()=>'')).includes('সীমা'),
+      'the refusal arrived in Bangla',120000);
+    const refusalText=(await limitOverlay.locator('[data-sms-result-text]').innerText()).replace(/\s+/g,' ');
+    assert.ok(refusalText.includes('১')&&refusalText.includes('আগামীকাল'),`the sentence carries the limit and says when it comes back (${refusalText})`);
+    assert.equal(await CenterSmsLog.countDocuments({lead:new mongoose.Types.ObjectId(refusedId)}),0,'nothing was sent to the second visitor');
+    await shot(desk.page,'b2-visitor-staff-limit-360',false);
+    await limitOverlay.locator('button[aria-label="বন্ধ করুন"]').click();
+    await desk.page.locator('.sms-overlay').waitFor({state:'detached',timeout:60000}).catch(()=>{});
+
+    // (f) The staff Overview: today's follow-ups and the overdue count, and none of the owner's panels.
+    await desk.page.goto(`${origin}/bn/admin`,{waitUntil:'domcontentloaded',timeout:180000});
+    const queue=panel(desk.page,t.followUpsTitle);
+    await queue.waitFor({timeout:90000});
+    const queueText=(await queue.innerText()).replace(/\s+/g,' ');
+    const board=await followUpBoard(new Date(),6);
+    assert.ok(queueText.includes(t.todayBadge.replace('{n}',formatNumber(board.today,'bn'))),
+      `today's count is the board's own number (${queueText.slice(0,140)})`);
+    assert.ok(queueText.includes(t.overdueBadge.replace('{n}',formatNumber(board.overdue,'bn'))),'and so is the count of promises already late');
+    assert.ok(board.today>0&&board.overdue>0,'the fixtures left something due today and something overdue, so both counts are real');
+    assert.equal(await desk.page.locator('.admin-kpis').count(),0,'the intake counters are not a staff screen');
+    assert.equal(await desk.page.locator('.overview-heading').count(),0,'nor is the owner’s welcome heading');
+    assert.equal(await desk.page.locator('section.admin-panel h2',{hasText:'স্বয়ংক্রিয় এসএমএস সমস্যা'}).count(),0,'nor the automatic-SMS problems');
+    assert.ok(await queue.locator('table.admin-table tbody tr').count()>0,'and the queue lists the names the desk works from, not just two numbers');
+    await noOverflow(desk.page,'the staff Overview at 360');
+    await shot(desk.page,'b2-staff-overview-360');
+    await desk.page.setViewportSize({width:1440,height:900});
+    await noOverflow(desk.page,'the staff Overview at 1440');
+    await shot(desk.page,'b2-staff-overview-1440');
+    await desk.page.setViewportSize({width:360,height:780});
+    // Leave the centre as it was found: the ceiling back at its shipped value and the quiet window real.
+    await CenterSettings.updateOne({key:'main'},{$set:{dailySmsLimitPerUser:30,quietStart:'21:00',quietEnd:'07:00'}});
+
     assert.deepEqual(boss.errors,[],`page errors as admin: ${boss.errors.join(' | ')}`);
     assert.deepEqual(desk.errors,[],`page errors as staff: ${desk.errors.join(' | ')}`);
     await boss.context.close();
@@ -816,7 +942,7 @@ async function run(){
     await mongo.stop();
   }
 
-  console.log('Visitor screens: the list shows every lead with its status, its follow-up day and its number masked, the digits living only in the tel: and wa.me destinations and in nothing else the browser is served, and no family key reaching it at all; quick-add is one labelled tap on the mobile bottom bar, four fields with the rest behind "more", saves on Enter, reports the id it wrote, reads XII as class 12 and leaves status, group and medium un-guessed; the drawer loads the notes timeline, saves a note with an outcome and its writer’s name, and lists the family; one search box sends four digits — typed in Bangla too — to a server action that finds both leads sharing a number and refuses two digits in Bangla that counts them without quoting them and without turning them into a word search, while a name travels as a shareable URL parameter and a number typed into the address bar is refused; the row controls change a status, write each of the four quick follow-up days in Dhaka, clear one again and lift a contact block deliberately; the Overview counts today’s follow-ups and the overdue ones separately, works the queue from there and moves the count with it; a content editor reaches none of it; nothing overflows horizontally at 360 px; every screen audited what it did with masked targets; and all five screens are photographed at 360 px and 1440 px in screenshots/r3. Each search was read from the commit that answered it — the button back and the box cleared, never the rows a previous search left on screen — and the box '+(refills.length?'had to be typed twice for '+refills.join(', ')+' because React cleared it in between':'held what was typed every time it was submitted')+'. A number that is already on the list turns quick-add into a question instead of a second row: the holders are named and masked with no digits anywhere in the question, nothing is written while it stands, and its three answers are a sibling that inherits the holder family key, a merge that folds the entry into the named lead writing no row at all, and a separate lead that carries no key so two strangers on one number are not one family; the drawer lists the number-mates outside the family, merges one behind the browser own confirm into the bin with its notes and numbers, and ties two leads that stay two into one family — the question photographed at 360 px and 1440 px and the mates block at 1440 px.');
+  console.log('Visitor screens: the list shows every lead with its status, its follow-up day and its number masked, the digits living only in the tel: and wa.me destinations and in nothing else the browser is served, and no family key reaching it at all; quick-add is one labelled tap on the mobile bottom bar, four fields with the rest behind "more", saves on Enter, reports the id it wrote, reads XII as class 12 and leaves status, group and medium un-guessed; the drawer loads the notes timeline, saves a note with an outcome and its writer’s name, and lists the family; one search box sends four digits — typed in Bangla too — to a server action that finds both leads sharing a number and refuses two digits in Bangla that counts them without quoting them and without turning them into a word search, while a name travels as a shareable URL parameter and a number typed into the address bar is refused; the row controls change a status, write each of the four quick follow-up days in Dhaka, clear one again and lift a contact block deliberately; the Overview counts today’s follow-ups and the overdue ones separately, works the queue from there and moves the count with it; a content editor reaches none of it; nothing overflows horizontally at 360 px; every screen audited what it did with masked targets; and all five screens are photographed at 360 px and 1440 px in screenshots/r3. Each search was read from the commit that answered it — the button back and the box cleared, never the rows a previous search left on screen — and the box '+(refills.length?'had to be typed twice for '+refills.join(', ')+' because React cleared it in between':'held what was typed every time it was submitted')+'. A number that is already on the list turns quick-add into a question instead of a second row: the holders are named and masked with no digits anywhere in the question, nothing is written while it stands, and its three answers are a sibling that inherits the holder family key, a merge that folds the entry into the named lead writing no row at all, and a separate lead that carries no key so two strangers on one number are not one family; the drawer lists the number-mates outside the family, merges one behind the browser own confirm into the bin with its notes and numbers, and ties two leads that stay two into one family — the question photographed at 360 px and 1440 px and the mates block at 1440 px. A staff account spends the SMS money only where the owner allowed: the picker without the one tap that picks everybody, the dialog with one template and the message shown rather than written, today’s allowance quoted before the send, a thank-you that goes and is logged against the visitor, and a second one stopped by the ceiling in a Bangla sentence that carries the number and says when it comes back — the ceiling itself written through the settings form at 1440 px, and the staff Overview reduced to today’s follow-ups and the overdue count at both widths.');
 }
 
 run().catch(error=>{console.error(error);process.exit(1)});

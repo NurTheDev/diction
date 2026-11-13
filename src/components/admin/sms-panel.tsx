@@ -33,6 +33,9 @@ export function SmsSettingsForm({locale,settings,providerName,balanceOk,balance}
       <label>{bn?'নীরব সময় শেষ':'Quiet hours end'}
         <input name="quietEnd" type="time" required defaultValue={settings.quietEnd}/>
       </label>
+      <label>{bn?'একজনের দৈনিক এসএমএস সীমা (০ মানে অসীম)':'Daily SMS limit per user (0 = no limit)'}
+        <input name="dailySmsLimitPerUser" type="number" min="0" max="10000" step="1" required defaultValue={settings.dailySmsLimitPerUser??30}/>
+      </label>
       <label>{bn?'প্রতিষ্ঠানের নম্বর':'Institute phone'}
         <input name="institutePhone" type="tel" maxLength={20} defaultValue={settings.institutePhone} placeholder="01XXXXXXXXX"/>
       </label>

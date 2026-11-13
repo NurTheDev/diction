@@ -573,8 +573,10 @@ R0.11. Operator guide: `docs/R3-START-HERE.md`.
 
 **Since this wave, stated plainly:** the visitor SMS entry point (R3.9) and the duplicate-phone
 "add as sibling / merge" decision (R3.10) both landed with their own registry rows and screenshots in
-`screenshots/r3/`. **Not in any wave yet:** convert-to-admission and book-a-trial hand-offs, the import
-wizard, the funnel reports and CSV export (wave C). And one consequence of an existing guard: the Overview is behind `requireAdmin()`,
-so a **staff** account does not see the follow-up widget — staff reach the same queue through the
-sidebar's Follow-ups item. Widening the Overview is a decision about every widget on it, so it is left
-to the owner.
+`screenshots/r3/`, and the owner's two decisions of 2026-11-12 landed as **R3.11** (a staff account may
+send the visitor thank-you to a row or a selection, through the same dialog, with no custom text and no
+send-to-all, under a per-user daily ceiling written into SMS settings) and **R3.12** (a staff Overview is
+the follow-up panel — today's count and the overdue count — and none of the owner's other widgets). Both
+are described in `docs/R3-COVERAGE.md` §12 and photographed in `screenshots/r3/`. **Not in any wave yet,
+in the owner's order:** convert-to-admission / book-a-trial / mark-not-interested hand-offs, then the
+import wizard, then the funnel reports and CSV export.

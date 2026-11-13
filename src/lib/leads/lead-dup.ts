@@ -75,7 +75,7 @@ export function planLeadMerge(target:LeadDupDoc,source:LeadDupDoc):LeadMergePlan
   if(target.id===source.id)return refusal('SAME_LEAD','একই লিডকে নিজের সাথে মেলানো যায় না।','A lead cannot be merged into itself.');
   if(source.converted){
     return refusal('SOURCE_CONVERTED',
-      `${source.studentName} লিডটি 이미 ভর্তি বা ট্রায়ালে রূপান্তরিত — তাই মুছে মেলা নো যায় না।`,
+      `${source.studentName} লিডটি ইতিমধ্যে ভর্তি বা ট্রায়ালে রূপান্তরিত হয়েছে — তাই মুছে মেলানো যায় না।`,
       `${source.studentName} was already converted to an admission or a trial, so it cannot be merged away.`);
   }
   const held=new Set((target.phones||[]).map(phone=>phone.normalized));

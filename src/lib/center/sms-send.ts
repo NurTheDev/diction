@@ -17,6 +17,7 @@
  */
 import 'server-only';
 import {CenterSmsBatch,CenterSmsLog,CenterSmsTemplate,CenterSettings} from '@/models/CenterRecords';
+import {dhakaDay} from '@/lib/admin/today';
 import {audit} from '@/lib/admin/helpers';
 import {SMS_BATCH_SIZE,createSmsProvider,estimateSms,smsCodeMessage,type SmsProvider} from './sms-provider';
 import {chunkRecipients,resolveRecipients,SMS_SKIP_LABELS,type SmsAudience,type SmsCandidateStudent,type SmsSkipReason} from './sms-recipients';
@@ -30,6 +31,8 @@ const TRANSIENT_CODES=new Set(['1005']);
 export interface SmsSettingsRow{
   unitCost:number;quietStart:string;quietEnd:string;institutePhone:string;
   autoReceipt:boolean;autoResult:boolean;autoDue:boolean;autoDueDay:number;
+  /** R3.11: the per-user daily send ceiling; null when the settings row predates the field. */
+  dailySmsLimitPerUser:number|null;
 }
 
 /** The `YYYY-MM` key before a `YYYY-MM` key. An unreadable key answers itself, never a wrong month. */
@@ -47,6 +50,7 @@ export async function loadSmsSettings():Promise<SmsSettingsRow>{
     quietStart:String(row?.quietStart||'21:00'),
     quietEnd:String(row?.quietEnd||'07:00'),
     institutePhone:String(row?.institutePhone||''),
+    dailySmsLimitPerUser:row?.dailySmsLimitPerUser===undefined||row?.dailySmsLimitPerUser===null?null:Number(row?.dailySmsLimitPerUser),
     autoReceipt:row?.autoReceipt===true,
     autoResult:row?.autoResult===true,
     autoDue:row?.autoDue===true,
@@ -484,6 +488,30 @@ export interface SmsMonthTotals{sent:number;failed:number;skipped:number;queued:
 interface SmsMonthRow{_id:string;n:number;segments:number;cost:number}
 
 /** This month's history totals for the SMS page. Cost is the stored sum, not today's unit cost. */
+/**
+ * Whether this requestId has already produced a batch. The dialog asks before it refuses a send on the
+ * daily ceiling: a double-click after the allowance ran out must be answered with "it already went"
+ * (the recorded batch) rather than with a refusal that contradicts the log the operator can read.
+ */
+export async function smsBatchExists(requestId:string):Promise<boolean>{
+  return !!(await CenterSmsBatch.exists({requestId}));
+}
+
+/**
+ * How many messages ONE operator's sends actually delivered today, Dhaka day (R3.11): the ceiling is
+ * per user and per day, so it is read off the batches that carry their id, counting what was sent —
+ * not what was planned — because a failed chunk must not spend tomorrow's allowance. The day is
+ * compared in Dhaka on this side of the query on purpose: a range built from a day string would
+ * disagree with the cron's own clock by the offset, and a centre's bookkeeping keeps one clock.
+ */
+export async function sentMessagesToday(actor:string,now:Date=new Date()):Promise<number>{
+  const day=dhakaDay(now);
+  const rows=await CenterSmsBatch.find({createdBy:actor}).select('createdAt sentCount').lean<{createdAt:Date;sentCount:number}[]>();
+  return rows
+    .filter(row=>dhakaDay(new Date(row.createdAt))===day)
+    .reduce((sum,row)=>sum+(Number(row.sentCount)||0),0);
+}
+
 export async function monthSmsTotals(now:Date=new Date()):Promise<SmsMonthTotals>{
   const start=new Date(`${dhakaMonthKey(now)}-01T00:00:00+06:00`);
   const rows=await CenterSmsLog.aggregate([

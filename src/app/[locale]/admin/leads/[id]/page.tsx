@@ -34,7 +34,7 @@ export default async function LeadDetailPage({params}:{params:Promise<{locale:st
    * narrowed set the list's drawer offers: `visitor_thanks` first, and nothing whose chips a lead could
    * never fill.
    */
-  const sms=user.role==='admin'||user.role==='superadmin'?await visitorSmsDialogData():null;
+  const sms=user.role==='admin'||user.role==='superadmin'||user.role==='staff'?await visitorSmsDialogData(user.role):null;
   const detail=detailView(found);
   const row=detail.row;
   return <>

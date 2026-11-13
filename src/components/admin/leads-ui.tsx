@@ -327,6 +327,7 @@ function LeadDetailBody({seed,detail,loading,noteState,noteAction,notePending,re
         labelEn="Send SMS"
         defaultTemplateKey="visitor_thanks"
         en={language==='en'}
+        lockedText={sms.allowTextEdit===false}
       />}
     </div>
     {seed.doNotContact&&<p className="admin-feedback error">{t('doNotContact')} — {t('blockedHelp')}</p>}

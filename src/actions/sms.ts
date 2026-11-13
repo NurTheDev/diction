@@ -39,6 +39,8 @@ function checked(value:FormDataEntryValue|null):boolean{return value==='on'||val
 
 const settingsSchema=z.object({
   smsUnitCost:z.coerce.number().min(0).max(1000),
+  /** R3.11: 0 turns the ceiling off; anything else is per user, per Dhaka day. */
+  dailySmsLimitPerUser:z.coerce.number().min(0).max(10000),
   quietStart:z.string().trim().max(5),
   quietEnd:z.string().trim().max(5),
   institutePhone:z.string().trim().max(20),
@@ -57,6 +59,7 @@ export async function saveSmsSettings(_:ActionState,form:FormData):Promise<Actio
       quietStart:form.get('quietStart')??'',
       quietEnd:form.get('quietEnd')??'',
       institutePhone:form.get('institutePhone')??'',
+      dailySmsLimitPerUser:form.get('dailySmsLimitPerUser')??30,
       autoDueDay:form.get('autoDueDay')??10,
     });
     if(!parsed.success)return {status:'error',reason:'invalid'};
@@ -73,6 +76,7 @@ export async function saveSmsSettings(_:ActionState,form:FormData):Promise<Actio
         quietStart:parsed.data.quietStart,
         quietEnd:parsed.data.quietEnd,
         institutePhone:normalizePhone(phone)||'',
+        dailySmsLimitPerUser:parsed.data.dailySmsLimitPerUser,
         autoReceipt:checked(form.get('autoReceipt')),
         autoResult:checked(form.get('autoResult')),
         autoDue:checked(form.get('autoDue')),

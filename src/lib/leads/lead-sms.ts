@@ -45,6 +45,10 @@ export function visitorTemplateFits(variables:readonly string[]):boolean{
 export interface LeadSmsKit{
   templates:{key:string;name:string;body:string;active:boolean;edited:boolean}[];
   institutePhone:string;
+  /** R3.11: the sender is staff — thank-you template, ticked leads, no free text, no pick-the-page. */
+  staffRestricted:boolean;
+  allowPagePick:boolean;
+  allowTextEdit:boolean;
 }
 
 /** Leads → SMS candidates. The only translation between the two vocabularies in the codebase. */

@@ -24,7 +24,8 @@ import {CenterClassGroup,CenterSmsBatch,CenterSmsLog} from '@/models/CenterRecor
 import {audit} from '@/lib/admin/helpers';
 import {createSmsProvider,type SmsProvider} from './sms-provider';
 import {dhakaCalendar} from './month-status';
-import {buildSmsPlan,executeSmsPlan,loadSmsSettings,monthSmsTotals,retryFailedSms} from './sms-send';
+import {buildSmsPlan,executeSmsPlan,loadSmsSettings,monthSmsTotals,retryFailedSms,sentMessagesToday,smsBatchExists} from './sms-send';
+import {dailyLimitApplies,dailySmsLimitOf,dailyLimitReachedMessage} from './sms-staff';
 import {resolveSmsSource} from './sms-source';
 import {isSmsTemplateKey} from './sms-templates';
 import {
@@ -79,6 +80,12 @@ export interface SmsDialogOptions{
   record?:boolean;
   /** True only inside retryAutoSmsProblem: an operator asked for this one message by name. */
   ignoreToggle?:boolean;
+  /**
+   * R3.11: who is asking, so the per-user daily ceiling can be counted for them. Absent for the
+   * automatic sends and for retries of a recorded problem, which are the centre's own messages and
+   * not an operator's — a cron must never be stopped by somebody's allowance.
+   */
+  role?:string;
 }
 
 /**
@@ -203,10 +210,21 @@ export async function runSmsDialog(input:SmsDialogInput,actor:string,options:Sms
     },provider),
   ]);
   const preview=previewOf(plan,names);
+  // R3.11: the per-user daily ceiling, read here and not in the route so EVERY caller of the dialog —
+  // the HTTP door, a test — spends the same allowance. Zero means the owner turned it off, and an
+  // automatic send (no role) is never counted against anybody's day.
+  const limit=options.role&&dailyLimitApplies(options.role)?dailySmsLimitOf(settings):0;
+  const sent=limit>0?await sentMessagesToday(actor,now):0;
+  const remaining=Math.max(0,limit-sent);
+  const daily=limit>0?{limit,sent,remaining}:null;
 
-  if(mode!=='send')return ok({mode:'preview',preview,institutePhone:settings.institutePhone,className:resolved.className});
+  if(mode!=='send')return ok({mode:'preview',preview,institutePhone:settings.institutePhone,className:resolved.className,daily});
   if(plan.blocked)return blocked(plan.blocked,{preview});
   if(!plan.recipientCount)return blocked('NO_RECIPIENTS',{preview});
+  if(daily&&plan.recipientCount>remaining&&!(await smsBatchExists(plan.requestId))){
+    return blocked('DAILY_LIMIT',{preview,daily,
+      messageBn:dailyLimitReachedMessage(limit,'bn'),messageEn:dailyLimitReachedMessage(limit,'en')});
+  }
 
   const summary=await executeSmsPlan(plan,{actor,provider,force,skipDuplicates,now});
   return ok({

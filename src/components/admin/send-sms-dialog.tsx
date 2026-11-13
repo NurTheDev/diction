@@ -21,6 +21,7 @@
 import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import {AlertTriangle,CheckCircle2,Loader2,Send,X} from 'lucide-react';
 import {SMS_VARIABLES} from '@/lib/center/sms-templates';
+import {dailyLimitLine} from '@/lib/center/sms-staff';
 import type {SmsSkipReason} from '@/lib/center/sms-recipients';
 
 export type SmsSendRequest={
@@ -52,7 +53,9 @@ export type SmsSendResult={
 };
 
 /** What /api/admin/sms/send returns: one shape for preview, send and retry. */
-export type SmsCallResult=SmsSendResult&{preview?:SmsPreview;institutePhone?:string;className?:string;detail?:string};
+/** R3.11: the route also answers with the day's ceiling and, when it refuses, with the sentence to show. */
+export type SmsCallResult=SmsSendResult&{preview?:SmsPreview;institutePhone?:string;className?:string;detail?:string;
+  daily?:{limit:number;sent:number;remaining:number}|null;messageBn?:string;messageEn?:string};
 
 type Props={
   open:boolean;
@@ -66,6 +69,12 @@ type Props={
   en?:boolean;
   /** Called after a send or a retry succeeded, so the caller can refresh its own screen. */
   onSent?:()=>void;
+  /**
+   * R3.11: the message is shown, not written. A staff sender gets the visitor thank-you word for word
+   * — no textarea, no variable chips — and the server refuses any custom text from them anyway
+   * (`smsSendPolicyRefusal`), so hiding the box is the same rule seen from the front.
+   */
+  lockedText?:boolean;
 };
 
 const STEPS_BN=['প্রাপক','বার্তা','প্রিভিউ','পাঠানো'];
@@ -83,7 +92,7 @@ export function segmentCount(text:string):number{
   return length<=70?1:Math.ceil(length/67);
 }
 
-export default function SendSmsDialog({open,onClose,request,templates,titleBn,titleEn,defaultTemplateKey='due_reminder',institutePhone='',en=false,onSent}:Props){
+export default function SendSmsDialog({open,onClose,request,templates,titleBn,titleEn,defaultTemplateKey='due_reminder',institutePhone='',en=false,onSent,lockedText=false}:Props){
   const t=useCallback((bn:string,label:string)=>(en?label:bn),[en]);
   /** A visitor send (R3.9): one number per lead, no fee chips, and no guardian/student choice to make. */
   const isLead=request.source==='lead'||request.source==='leads';
@@ -105,10 +114,13 @@ export default function SendSmsDialog({open,onClose,request,templates,titleBn,ti
   const [skipDuplicates,setSkipDuplicates]=useState(false);
   const [showRecipients,setShowRecipients]=useState(false);
   const [preview,setPreview]=useState<SmsPreview|null>(null);
+  /** R3.11: what today's ceiling leaves for this operator, reported by every preview. */
+  const [daily,setDaily]=useState<{limit:number;sent:number;remaining:number}|null>(null);
   const [previewError,setPreviewError]=useState('');
   const [loadingPreview,setLoadingPreview]=useState(false);
   const [sending,setSending]=useState(false);
-  const [result,setResult]=useState<SmsSendResult|null>(null);
+  /** R3.11: the whole answer, not just the send summary — a refusal can carry the sentence to show. */
+  const [result,setResult]=useState<SmsCallResult|null>(null);
   const [retrying,setRetrying]=useState(false);
   const [requestId,setRequestId]=useState('');
   const textRef=useRef<HTMLTextAreaElement|null>(null);
@@ -153,7 +165,7 @@ export default function SendSmsDialog({open,onClose,request,templates,titleBn,ti
     setLoadingPreview(true);
     const {status,data}=await call({mode:'preview',requestId,templateKey,text,subject,target:sendTarget,groupSiblings});
     if(status&&data?.ok&&data.preview){setPreview(data.preview);setPreviewError('')}
-    else{setPreview(data?.preview||null);setPreviewError(String(data?.detail||data?.error||data?.blocked||(status?'UNAVAILABLE':'NETWORK')))}
+    else{setPreview(data?.preview||null);setDaily(data?.daily||null);setPreviewError(String((en?data?.messageEn:data?.messageBn)||data?.detail||data?.error||data?.blocked||(status?'UNAVAILABLE':'NETWORK')))}
     setLoadingPreview(false);
   },[call,requestId,templateKey,text,subject,sendTarget,groupSiblings]);
 
@@ -208,7 +220,7 @@ export default function SendSmsDialog({open,onClose,request,templates,titleBn,ti
     setSending(true);setResult(null);
     const {status,data}=await call({mode:'send',requestId,templateKey,text,subject,target:sendTarget,groupSiblings,force,skipDuplicates});
     if(data&&(data.ok||data.blocked))setResult(data);
-    else setResult({ok:false,error:String(data?.detail||data?.error||(status?'UNAVAILABLE':'NETWORK')),message:t('পাঠানো যায়নি','Could not send')});
+    else setResult({ok:false,error:String(data?.detail||data?.error||(status?'UNAVAILABLE':'NETWORK')),message:String((en?data?.messageEn:data?.messageBn)||'')||t('পাঠানো যায়নি','Could not send')});
     setSending(false);
     if(data?.ok&&data.batchId&&data.status!=='queued')onSent?.();
     sendRef.current?.focus();
@@ -251,6 +263,7 @@ export default function SendSmsDialog({open,onClose,request,templates,titleBn,ti
                   ?`${t('মোট','Total')} ${preview.phones} ${t('নম্বর','numbers')} · ${preview.messages} ${t('বার্তা','messages')} · ${preview.segments} ${t('সেগমেন্ট','segments')}`
                   :t('প্রাপক গণনা হচ্ছে…','Counting recipients…')}
             </p>
+            {daily&&<p className="admin-help" data-sms-daily="">{dailyLimitLine(daily.limit,daily.remaining,en?'en':'bn')}</p>}
             {hardError&&<p className="admin-feedback error" role="status">{hardError}</p>}
 
             <fieldset className="admin-fieldset">
@@ -345,20 +358,24 @@ export default function SendSmsDialog({open,onClose,request,templates,titleBn,ti
               ))}
             </fieldset>
 
-            <label className="admin-check sms-text-label" htmlFor="sms-custom-text">
-              <span>{t('বার্তা','Message')}</span>
-              <textarea id="sms-custom-text" className="admin-textarea" name="smsText" ref={textRef} rows={templateKey==='custom'?6:3}
-                value={templateKey==='custom'?text:(activeTemplate?.body||'')}
-                onChange={event=>{setTemplateKey('custom');setText(event.target.value)}}
-                placeholder={t('এখানে লিখুন…','Write here…')} />
-            </label>
-            <div className="sms-chips" data-sms-chips="">
+            {/* R3.11: a staff sender reads the message, they do not write it — the thank-you, word for
+                word, with no textarea and no chips to bend it into something else. */}
+            {lockedText
+              ?<p className="admin-help" data-sms-locked="">{activeTemplate?.body||''}</p>
+              :<label className="admin-check sms-text-label" htmlFor="sms-custom-text">
+                <span>{t('বার্তা','Message')}</span>
+                <textarea id="sms-custom-text" className="admin-textarea" name="smsText" ref={textRef} rows={templateKey==='custom'?6:3}
+                  value={templateKey==='custom'?text:(activeTemplate?.body||'')}
+                  onChange={event=>{setTemplateKey('custom');setText(event.target.value)}}
+                  placeholder={t('এখানে লিখুন…','Write here…')} />
+              </label>}
+            {!lockedText&&<div className="sms-chips" data-sms-chips="">
               {SMS_VARIABLES.map(chip=>(
                 <button type="button" key={chip} className="admin-mini-button" data-sms-chip={chip} onClick={()=>insertChip(chip)}>
                   {`{${chip}}`}
                 </button>
               ))}
-            </div>
+            </div>}
             {needsSubject&&(
               <label className="admin-check sms-text-label" htmlFor="sms-subject">
                 <span>{t('বিষয় ({subject} এর মান)','Subject (the value of {subject})')}</span>
@@ -449,7 +466,10 @@ export default function SendSmsDialog({open,onClose,request,templates,titleBn,ti
                       ?result.status==='queued'
                         ?`${t('নিঃশব্দ সময় শেষে যাবে','It will go out when quiet hours end')} (${result.quietUntil||''}). ${t('বাদ','Skipped')}: ${result.skipped??0}`
                         :`${t('সফল','Sent')}: ${result.sent??0} · ${t('ব্যর্থ','Failed')}: ${result.failed??0} · ${t('বাদ','Skipped')}: ${result.skipped??0}`
-                      :String(result.blocked||result.error||result.message||'UNAVAILABLE')}
+                      // A sentence the server wrote for the operator outranks the code it filed the
+                      // refusal under (R3.11): "DAILY_LIMIT" is a fact for a log, not an answer for a
+                      // person who just pressed send and needs to know when they may press it again.
+                      :String((en?result.messageEn:result.messageBn)||result.message||result.blocked||result.error||'UNAVAILABLE')}
                   </p>
                   {result.ok&&result.monthTotals&&(
                     <p className="admin-help" data-sms-month="">{t('এই মাসে','This month')}: {result.monthTotals.sent} {t('সফল','sent')} · ৳{result.monthTotals.cost.toFixed(2)}</p>

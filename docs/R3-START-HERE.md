@@ -124,11 +124,20 @@ into an artifact, dispatch the workflow with `publish_screenshots` (see
 - **SMS to visitors is built (R3.9) but has never sent a real message.** `SMS_PROVIDER` stays
   unset/mock, so pressing send writes the log and the cost and delivers nothing until the owner hands
   the real key over. That hand-over is the one step nobody has taken yet, on purpose.
-- **A staff account sees no SMS picker at all.** Sending costs money, so the send route has asked for
-  Admin since R2; rather than show a checkbox that would answer *refused*, the visitor list gives staff
-  exactly what it gave before — the list, the call links, the follow-ups. Whether the front desk should
-  be allowed to send visitor thank-yous is the owner's decision; if yes, it is one guard on the visitor
-  sources only, not a widening of the route for dues and receipts.
+- **What the front desk may send (R3.11, your decision of 2026-11-12).** A staff account gets the
+  visitor picker and the drawer's **এসএমএস পাঠান**, and one template: the visitor thank-you, to a row it
+  ticked or to several. The bar says so out loud (**স্টাফ শুধু ভিজিটর ধন্যবাদ টেমপ্লেটটি পাঠাতে পারেন।**),
+  the dialog shows the message instead of a box to write in, and **এই পৃষ্ঠার সবাইকে বাছুন** is not on a
+  staff bar at all. Dues, receipts, classes, your own wording and "retry the failed ones" still answer
+  only to Admin and Super Admin.
+- **One ceiling, in your settings (R3.11).** SMS → Settings → **একজনের দৈনিক এসএমএস সীমা** (daily SMS
+  limit per user, 30 by default, **0** means no limit). The dialog says what is left of today before you
+  send, and when it runs out the send stops with **আজকের জন্য আপনার এসএমএস পাঠানোর সীমা (৩০টি) শেষ।
+  আগামীকাল আবার চেষ্টা করুন।** — nothing is written and nothing is charged. The count is per person and
+  per Dhaka day, and only messages that actually went are counted.
+- **A staff Overview is the queue (R3.12).** Signing in as staff opens **আজকের ফলো-আপ** and nothing else:
+  today's count, the count already overdue, the next names and the link to the whole queue. The intake
+  counters, the checklist and the automatic-SMS problems stay on the admin Overview.
 - **The import wizard** (xlsx/csv, dry run, preview, flagged rows, unknown-column questions, Bangla
   comments as the first note, undo, idempotent re-import) — wave C. The reading rules it needs are
   already written and proven (R3.2–R3.4); nothing reads a spreadsheet yet.

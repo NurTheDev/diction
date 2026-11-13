@@ -366,13 +366,37 @@ Wave A — foundations, no UI:
     row R3.10, the registry now 37 rows) and by section 11 of the browser suite, which photographs the
     question at 360 px and 1440 px and the drawer's mates block at 1440 px.
 
-Owed, stated plainly: the convert-to-admission / book-a-trial / mark-not-interested hand-offs, the
-import wizard with dry run (its merge step can reuse R3.10's planner as it stands),
-preview, flagged rows, unknown-column mapping, Bangla comments as the first note, undo and idempotent
-re-import, and the funnel reports with CSV export. Two decisions are the owner's and not the code's: the
-Overview is behind requireAdmin(), so a staff account does not see the follow-up widget and reaches the
-same queue through the sidebar's Follow-ups item — widening the Overview is a decision about every widget
-on it; and the send route is getAdmin() from R2, so a staff account gets no visitor SMS picker at all
-rather than one that answers 403 — letting the front desk send visitor thank-yous is one guard on the
-lead sources, if that is what the owner wants. No real SMS is sent at any point: SMS_PROVIDER stays mock until the owner approves
+22. The front desk may thank a visitor, and sees its queue first (R3.11, R3.12 — the owner's two
+    decisions of 2026-11-12). A staff account now gets the Visitors picker and the drawer's Send SMS,
+    narrowed to the one thing it was given: the visitor thank-you, to one row or to rows it ticked. No
+    custom text (the dialog shows the message instead of a textarea, and the server refuses a request
+    that carries the thank-you's key and words of its own, because the pipeline honours any text it is
+    handed), no other template, no other source, no retry of somebody else's batch, and no "select
+    everyone on this page" — the one tap that would have been a send-to-all. Admin and Super Admin keep
+    everything they had. The rule is one pure function, smsSendPolicyRefusal(), read by the send route
+    before it builds a plan, so hiding a button stays presentation and the gate stays the server; a role
+    that never had the SMS page is refused as a role, before source or template are read. Real sends now
+    have a per-user daily ceiling: dailySmsLimitPerUser on the settings row (default 30, 0 turns it off),
+    an input beside the unit cost on the SMS settings form, counted off the batches that operator owns on
+    the Dhaka day and off messages actually sent, so yesterday and a chunk that failed count as nothing.
+    Every preview reports what is left of today above the send button, and a send that would exceed it is
+    refused 409 DAILY_LIMIT before the provider is asked — no log row, no batch to retry — with a Bangla
+    sentence that carries the number and says tomorrow. A request whose batch already exists is answered
+    with that batch rather than with the ceiling, and an automatic send carries no operator so a cron is
+    never stopped by anybody's allowance. A staff Overview is now the visitor queue itself: today's
+    follow-ups, the count already overdue and the next names, returned before requireAdmin() is ever
+    called, with the intake counters, the automatic-SMS problems and the database usage left to admin and
+    super admin; one scope function answers per role, and a role it does not know gets no panel at all.
+    Proven by tests/sms-staff.test.ts and tests/sms-staff.integration.ts (registry row R3.11), by
+    tests/staff-role.test.ts (row R3.12, the registry now 39 rows) and by section 12 of the browser
+    suite, which writes the ceiling through the settings form, sends one thank-you as the desk, is
+    stopped on the second, and photographs the narrowed dialog and the staff Overview at 360 px and
+    1440 px. Section 10's old assertion that a staff account sees no picker at all was replaced rather
+    than left to rot: it described a screen the owner has now changed.
+
+Owed, stated plainly, in the order the owner fixed: the convert-to-admission / book-a-trial /
+mark-not-interested hand-offs (a reason required for not interested), then the import wizard with dry run
+(its merge step can reuse R3.10's planner as it stands), preview, flagged rows, unknown-column mapping,
+Bangla comments as the first note, undo and idempotent re-import, then the funnel reports with CSV export.
+No real SMS is sent at any point: SMS_PROVIDER stays mock until the owner approves
 the mock version after their own hand test.

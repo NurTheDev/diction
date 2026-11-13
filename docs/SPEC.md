@@ -244,6 +244,11 @@ timeline `[{at, by, text, outcome}]`, links to the converted admission/student/t
   guess**.
 - **Reports**: funnel (visitors, trial, admitted) by month, source and class; CSV export.
 - **Permissions**: Admin and Staff; Teachers have no access.
+- **Owner decisions, 2026-11-12 (R3.11, R3.12)**: a staff account may send the visitor thank-you — one
+  row or a selection — through the existing SMS dialog only, with no custom text and no send-to-all;
+  Admin and Super Admin keep every source, every template, free text and the retry. Real sends carry a
+  per-user daily limit, configurable in SMS settings, default 30, with a clear Bangla message when it is
+  reached. Staff see "today's follow-ups" and the overdue count on the Overview.
 - **Privacy**: store only what is needed; respect "Do not contact"; suggest (never auto-delete)
   archiving leads older than 18 months.
 

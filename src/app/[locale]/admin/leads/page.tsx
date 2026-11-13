@@ -77,14 +77,14 @@ export default async function Leads({params,searchParams}:{params:Promise<{local
    * answers null when the user's own role is disabled, so an admin or super admin standing here is one
    * `getAdmin()` would return too.
    */
-  const maySendSms=user.role==='admin'||user.role==='superadmin';
+  const maySendSms=user.role==='admin'||user.role==='superadmin'||user.role==='staff';
   /**
    * The visitor SMS catalog, loaded only for a role that may send: the picker and every drawer on this
    * page then offer the same narrowed set of templates (`visitorSmsDialogData()`: only the ones whose
    * chips a lead can actually fill, `visitor_thanks` among them) and the same center number. A screen
    * that cannot load it must not offer a send, so `null` means "no picker here", never an empty one.
    */
-  const sms=maySendSms?await visitorSmsDialogData():null;
+  const sms=maySendSms?await visitorSmsDialogData(user.role):null;
   /**
    * The rows the bulk send may pick from: this page of this filter, and nothing else. `contactable` comes
    * from the rule layer (`canContact()`), so a lead marked "do not contact" is not selectable here and is

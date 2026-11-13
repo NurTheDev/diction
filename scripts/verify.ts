@@ -348,6 +348,12 @@ async function main():Promise<void>{
       {needsDb:true,env:{TEST_ORIGIN:ctx.origin,TEST_MONGO_URI:ctx.mongoUri,TEST_MONGO_DB:ctx.mongoDb}});
     await stepUnitSuites(ctx,'test:lead:dup','R3.10','Duplicate phones: the quick-add question with masked holders, the sibling and separate keys, a merge that only fills and moves, the bin and the family re-point behind merging two leads, and the refusal of a converted source — pure planner first, then the disposable database',
       {needsDb:true,env:{TEST_ORIGIN:ctx.origin,TEST_MONGO_URI:ctx.mongoUri,TEST_MONGO_DB:ctx.mongoDb}});
+    await stepUnitSuites(ctx,'test:sms:staff','R3.11','Who may spend the SMS money: a staff send narrowed to the visitor thank-you with no custom text, no other source and no retry, the per-user daily ceiling that stops a send before the provider is asked and says so in Bangla, and the catalog each role is handed — pure policy first, then against the disposable database',
+      {needsDb:true,env:{TEST_ORIGIN:ctx.origin,TEST_MONGO_URI:ctx.mongoUri,TEST_MONGO_DB:ctx.mongoDb}});
+    await stepUnitSuites(ctx,'test:staff-role','R3.12','What each role’s Overview shows: a staff session gets the visitor follow-up panel — today’s count and the overdue count — and none of the owner’s panels, and a role the scope does not know gets nothing');
+    await stepUnitSuites(ctx,'test:sms:staff','R3.11','Who may spend the SMS money: a staff send narrowed to the visitor thank-you — no other source, no other template, no custom text, no retry, no one-tap send to everybody — and the per-user daily ceiling that stops a send before the provider is asked, reports what is left of today in every preview and refuses in Bangla with the number in the sentence — pure policy first, then against the disposable database',
+      {needsDb:true,env:{TEST_ORIGIN:ctx.origin,TEST_MONGO_URI:ctx.mongoUri,TEST_MONGO_DB:ctx.mongoDb}});
+    await stepUnitSuites(ctx,'test:staff-role','R3.12','What each role\u2019s Overview shows: a staff session gets the visitor follow-up panel — today\u2019s count and the count already overdue — and none of the owner\u2019s panels, and a role the scope does not know gets nothing at all');
     await stepScreens(ctx);
     await stepBrowserTests(ctx);
     (ctx as Context&{stop?:()=>void}).stop?.();

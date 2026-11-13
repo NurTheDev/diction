@@ -28,8 +28,10 @@ export default function SmsDialogTrigger(props:{
   variant?:'mini'|'navy';
   disabled?:boolean;
   icon?:boolean;
+  /** R3.11: the message is shown, not editable — a staff send is the thank-you, word for word. */
+  lockedText?:boolean;
 }){
-  const {request,templates,institutePhone='',titleBn,titleEn,labelBn,labelEn,defaultTemplateKey,en=false,variant='mini',disabled=false,icon=true}=props;
+  const {request,templates,institutePhone='',titleBn,titleEn,labelBn,labelEn,defaultTemplateKey,en=false,variant='mini',disabled=false,icon=true,lockedText=false}=props;
   const [open,setOpen]=useState(false);
   const router=useRouter();
   const close=useCallback(()=>setOpen(false),[]);
@@ -42,7 +44,7 @@ export default function SmsDialogTrigger(props:{
         {en?labelEn:labelBn}
       </button>
       <SendSmsDialog open={open} onClose={close} request={request} templates={templates} institutePhone={institutePhone}
-        titleBn={titleBn} titleEn={titleEn} defaultTemplateKey={defaultTemplateKey} en={en} onSent={sent} />
+        titleBn={titleBn} titleEn={titleEn} defaultTemplateKey={defaultTemplateKey} en={en} onSent={sent} lockedText={lockedText} />
     </>
   );
 }

@@ -471,15 +471,12 @@ Written by the suite into `screenshots/r3/`, committed to the branch by a `workf
    `importSource`/`importBatch`/`flags[]` are already in the schema for it, but nothing reads an xlsx
    yet. Wave C.
 3. **No reports and no CSV export.** Wave C.
-4. **A staff account gets no visitor SMS at all — the owner's decision is still owed.** The send route
-   has been `getAdmin()` since R2, because a send spends real money, and R3 gives staff the Visitors
-   list. Rather than render a checkbox that ends in a 403, the picker and the drawer's Send SMS are
-   loaded only for Admin and Super Admin (`maySendSms` in both pages) and are simply absent for staff —
-   `LeadSmsPicker` renders the list unchanged when it is given no catalog. If the owner wants the front
-   desk to send visitor thank-yous, the change is one guard on the `lead`/`leads` sources only, not a
-   widening of the route for dues and receipts; until then the rule is "staff work the list, an admin
-   sends". Nothing is sent while `SMS_PROVIDER=mock`, and the real provider stays off until the owner
-   has hand-tested the mock.
+4. **A staff account may now send the visitor thank-you — the owner decided on 2026-11-12.** What used
+   to be owed here is shipped in R3.11 and described in section 12: the picker and the drawer's Send SMS
+   load for staff too, narrowed to the one template and to the rows they tick, with a per-user daily
+   ceiling written into SMS settings. Nothing else widened — the dues, receipt and class sources still
+   answer only Admin and Super Admin. Nothing is sent while `SMS_PROVIDER=mock`, and the real provider
+   stays off until the owner has hand-tested the mock.
 7. **The operator guide** is `docs/R3-START-HERE.md`: what to click, what should happen, and what is
    deliberately not there yet.
 5. **Permissions** (Admin and Staff, Teachers excluded) are enforced and browser-proven: both pages ask
@@ -489,11 +486,11 @@ Written by the suite into `screenshots/r3/`, committed to the branch by a `workf
    that sends an owner to look at the database when the truth is that a teacher is not allowed in. Every
    **action** still calls `requireArchiver()` before it reads or writes anything, because an action
    answers the form that called it and has nowhere to redirect to (`tests/lead-phone-search.integration.ts`
-   pins that), and the sidebar hides both items from the restricted roles. One consequence worth stating: the Overview itself is
-   behind `requireAdmin()`, so a **staff** account does not see the "today's follow-ups" widget — staff
-   reach the same queue through the sidebar's Follow-ups item, which is the list filtered to today.
-   Widening the Overview to staff is a decision about every other widget on it, not about leads, so it
-   is left to the owner.
+   pins that), and the sidebar hides both items from the restricted roles. The consequence that used to
+   be stated here — a staff account reaching the queue only through the sidebar, because the Overview was
+   behind `requireAdmin()` — was decided by the owner on 2026-11-12 and shipped in R3.11: a staff
+   Overview IS the follow-up panel, and every other widget on the page stays behind `requireAdmin()`
+   (section 12).
 6. **Convert to admission/student, book a trial, mark not interested with a reason** — the links the
    spec lists beside a lead — are not on the row yet. The status vocabulary already carries `admitted`
    and `not_interested`, and the model already has `admission`/`trialBooking`/`student` references with
@@ -587,7 +584,9 @@ alone, because a due reminder *is* a monthly message.
 two exclusion counts, a blocked row with no checkbox, the button counting what was picked, "everyone on
 this page" never picking the blocked visitor, the dialog opening on `visitor_thanks` with no
 guardian-or-student question and a preview that counted the picked visitors, the step-2 catalog holding no
-due reminder and no receipt, the drawer's single-lead send, and a staff account seeing none of it. It
+due reminder and no receipt, and the drawer's single-lead send. It no longer asserts that a staff
+account sees none of it: R3.11 gave the front desk this picker, narrowed, and section 12 proves the
+narrowing where it now lives. It
 photographs `b2-visitor-sms-{360,1440}`, `b2-visitor-sms-dialog-{360,1440}`,
 `b2-visitor-sms-template-{360,1440}`, `b2-visitor-sms-drawer-1440` and `b2-visitor-sms-one-1440` into
 `screenshots/r3/`. No message is sent from the browser suite.
@@ -651,3 +650,110 @@ that suite, and section 11 of `tests/lead-screens-browser.integration.ts` drives
 browser — the question at 360 px and 1440 px (`b2-visitor-dup-360`, `b2-visitor-dup-1440`) and the
 drawer's mates block at 1440 px (`b2-visitor-dup-drawer-1440`) — accepting the browser's own confirm
 in front of one merge, on purpose.
+
+## 12. Who may send, and what a staff Overview shows (R3.11, R3.12)
+
+Two decisions the owner made on 2026-11-12, both about the front desk, and both now behaviour on a
+screen with a server-side rule behind it.
+
+### The decision, in the owner's words
+
+A staff account may send the visitor thank-you — one row or a selection of rows — through the SMS dialog
+that already exists, and nothing else: no custom text, no send-to-all. Admin and Super Admin keep
+everything. Real sends get a per-user daily limit, configurable in SMS settings, defaulting to 30, with a
+clear Bangla message when it is reached. And staff see "today's follow-ups" plus the overdue count on the
+Overview.
+
+### What a staff send may be
+
+`smsSendPolicyRefusal(role,request)` in `src/lib/center/sms-staff.ts` is the whole rule, and it is pure:
+it reads a role and a parsed body and answers `null` or a refusal with a sentence in both languages.
+
+* Admin and Super Admin: `null` for every source, every template, free text and `mode:'retry'`. This half
+  of the decision is a NON-change, so it is asserted first.
+* Staff: the source must be `lead` or `leads`, the template must be `visitor_thanks`, and `text` must be
+  empty. That last clause is the one that matters: `buildSmsPlan()` honours any non-empty `customText` and
+  ignores the template, so "the thank-you plus my own words" would otherwise be custom text wearing the
+  thank-you's name. An unnamed template is refused for the same reason — no key is the dialog's own
+  `custom` path.
+* Staff and `mode:'retry'`: refused. A retry re-sends money somebody else already spent, on a batch the
+  person pressing the button did not tick.
+* A role that never had the SMS page (`content_editor`, `exam_manager`, anything unknown): refused as a
+  role, before source or template are read, so the answer names the real reason.
+
+The route (`/api/admin/sms/send`) now asks `getStaff()` instead of `getAdmin()` and runs the policy before
+it builds a plan or counts a message, answering 403 with `detail` and both sentences. Hiding the buttons is
+presentation; this is the gate.
+
+The screens agree with the gate rather than contradicting it: `visitorSmsDialogData(role)` hands a staff
+session one template and two flags — `allowPagePick:false`, `allowTextEdit:false` — so the bar renders no
+"select everyone on this page" checkbox (the one tap that is a send-to-all) and the dialog renders the
+message as text (`[data-sms-locked]`) with no textarea and no variable chips. A role that may not send at
+all is handed the same narrow kit, fail-closed, and still gets no picker because `maySendSms` excludes it.
+
+Send-to-all was already impossible from the dialog: a `leads` request with no ids is refused as `ids`
+(R3.9), so the only way to reach everybody was the page-pick checkbox, which a staff bar no longer has.
+
+### The daily ceiling
+
+`dailySmsLimitPerUser` is a field on the settings row (default 30, min 0), an input on the SMS settings
+form beside the unit cost, and one number in `loadSmsSettings()`. `dailySmsLimitOf()` falls back to 30 for
+a row that predates the field, treats 0 as "the owner turned it off", and floors a fraction rather than
+sending part of a message.
+
+`sentMessagesToday(actor,now)` counts what that operator's sends actually DELIVERED today, in Dhaka: the
+batches carrying their id, summed on `sentCount`. Counted on sent rather than planned, so a chunk that
+failed does not spend tomorrow's allowance; compared on the Dhaka day rather than on a range built from a
+day string, because the centre keeps one clock and a range would disagree with the cron's by the offset.
+
+`runSmsDialog()` reads both, and:
+
+* every preview answers with `daily:{limit,sent,remaining}`, which the dialog prints above the send button
+  (`[data-sms-daily]`) in the operator's digits — the allowance is read BEFORE anybody presses send;
+* a send whose recipient count exceeds what is left is refused `409 DAILY_LIMIT` before the provider is
+  asked, so it writes no log row and leaves no batch to retry, and it carries the Bangla sentence
+  `dailyLimitReachedMessage()` — which names the number and says tomorrow;
+* the dialog shows that sentence rather than the code, because `DAILY_LIMIT` is a fact for a log and not an
+  answer for a person who just pressed send;
+* a request whose batch already exists is answered with that batch, not with the ceiling: the truth about a
+  send that happened outranks an allowance that ran out;
+* a limit of 0 skips the count entirely and the dialog stops quoting a ceiling that is not in force;
+* an automatic send passes no role, so a receipt, a result or a dues reminder is never counted against — or
+  stopped by — whoever configured it.
+
+`DAILY_LIMIT_ROLES` is the one list that decides who is counted, and today it holds staff, admin and super
+admin: the ceiling is a guard against a mis-clicked selection spending a month's balance, and the owner's
+own bulk send is the largest mis-click available.
+
+### The staff Overview
+
+`overviewScope(role)` in `src/lib/admin/overview-access.ts` answers four booleans per role, and the page
+renders what it says: a staff session gets `<LeadFollowUps>` — today's count, the overdue count and the
+next names — and returns before `requireAdmin()` is ever called, so it cannot fall into a guard that throws.
+Admin keeps the intake counters, the checklist and the automatic-SMS problems; super admin keeps the
+database usage; a role the function does not know gets no panel at all. The decision lives in a function
+rather than in an `if` on the page so that "what does this role see" can be answered in a test without
+rendering anything.
+
+### Proof
+
+`tests/sms-staff.test.ts` proves the policy matrix and the arithmetic with no database: every refusal with
+a readable sentence in both languages and no unrendered chip, the smuggled-text case, the ceiling's
+default, zero, negative and fractional values, who is counted, and that the one template staff keep is one
+a visitor can actually fill (so the decision does not hand them a button that skips everybody).
+`tests/sms-staff.integration.ts` proves what needs a collection: the catalog narrowed per role, the count
+read off one operator's batches on one Dhaka day and off messages sent (yesterday and a failed chunk count
+as nothing, another operator's allowance stays theirs), the first send going and the second refused with no
+log row and no batch, the double-click answered by its batch, the off switch taking effect on the next
+send, an automatic send never counted, and no dialog answer carrying a raw visitor number or a family key.
+`tests/staff-role.test.ts` now pins `overviewScope()` for all five roles and for the ones it does not know.
+Registry rows **R3.11** (`test:sms:staff`) and **R3.12** (`test:staff-role`) — the registry is 39 rows now.
+
+Section 12 of `tests/lead-screens-browser.integration.ts` drives both decisions in a browser: the ceiling
+written through the settings form at 1440 px (`b2-sms-limit-1440`); the staff bar at 360 px with its hint
+and no page-pick (`b2-visitor-staff-360`); the dialog with one template, the message shown rather than
+written and today's allowance quoted, at 360 px and 1440 px (`b2-visitor-staff-dialog-{360,1440}`); a
+thank-you that goes out and is logged against the visitor; a second one stopped by the ceiling with the
+Bangla sentence on screen and nothing logged (`b2-visitor-staff-limit-360`); and the staff Overview at both
+widths, with the board's own two numbers and none of the owner's panels
+(`b2-staff-overview-{360,1440}`). Both sends go through `SMS_PROVIDER=mock`.

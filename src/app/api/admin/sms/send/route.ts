@@ -7,7 +7,8 @@
  * page would not do. Credentials never appear in a response: only the provider's balance number.
  */
 import {NextResponse} from 'next/server';
-import {getAdmin} from '@/lib/admin/guard';
+import {getStaff} from '@/lib/admin/guard';
+import {smsSendPolicyRefusal,type SmsPolicyInput} from '@/lib/center/sms-staff';
 import {sameOrigin,noStore} from '@/lib/practice-security';
 import {boundedJson} from '@/lib/achievement-workflow';
 import {checkRateLimit} from '@/lib/rate-limit';
@@ -19,17 +20,23 @@ export const maxDuration=60;
 
 export async function POST(request:Request){
   try{
-    const admin=await getAdmin();
+    // R3.11: staff may stand at this door now, so the guard is the wide one and the POLICY is the
+    // narrow one: role, source and template are checked before a plan is built or a peso is counted.
+    const admin=await getStaff();
     if(!admin)return NextResponse.json({ok:false,error:'unauthorized'},{status:401,headers:noStore});
     if(!sameOrigin(request))return NextResponse.json({ok:false,error:'forbidden'},{status:403,headers:noStore});
     const input=await boundedJson(request,32_768) as SmsDialogInput;
     if(!input||typeof input!=='object')return NextResponse.json({ok:false,error:'invalid',detail:'body'},{status:400,headers:noStore});
+    const refusal=smsSendPolicyRefusal(admin.role,input as SmsPolicyInput);
+    if(refusal){
+      return NextResponse.json({ok:false,error:'policy',detail:refusal.code,messageBn:refusal.messageBn,messageEn:refusal.messageEn},{status:403,headers:noStore});
+    }
     const mode=String(input.mode||'preview');
     // Sending and retrying spend money, so they are rate limited per operator; previewing is not.
     if((mode==='send'||mode==='retry')&&!await checkRateLimit(`sms-${mode}:${admin.id}`,20)){
       return NextResponse.json({ok:false,error:'rate'},{status:429,headers:noStore});
     }
-    const outcome=await runSmsDialog(input,admin.id);
+    const outcome=await runSmsDialog(input,admin.id,{role:admin.role});
     return NextResponse.json(outcome.body,{status:outcome.status,headers:noStore});
   }catch(error){
     const message=(error as Error)?.message||'';

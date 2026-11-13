@@ -7,11 +7,15 @@
  */
 import 'server-only';
 import {loadSmsSettings,loadSmsTemplates} from './sms-send';
+import {STAFF_SMS_TEMPLATE} from './sms-staff';
 import {visitorTemplateFits} from '@/lib/leads/lead-sms';
 
 export interface SmsDialogTemplate{key:string;name:string;body:string;active:boolean;edited:boolean}
 
-export interface SmsDialogData{templates:SmsDialogTemplate[];institutePhone:string}
+export interface SmsDialogData{
+  templates:SmsDialogTemplate[];institutePhone:string;
+  staffRestricted:boolean;allowPagePick:boolean;allowTextEdit:boolean;
+}
 
 export async function smsDialogData():Promise<SmsDialogData>{
   const [rows,settings]=await Promise.all([loadSmsTemplates(),loadSmsSettings()]);
@@ -25,6 +29,7 @@ export async function smsDialogData():Promise<SmsDialogData>{
       .filter(row=>(row.active||row.key==='custom')&&row.key!=='pending_reminder')
       .map(row=>({key:row.key,name:row.name,body:row.body,active:row.active,edited:row.edited})),
     institutePhone:settings.institutePhone,
+    staffRestricted:false,allowPagePick:true,allowTextEdit:true,
   };
 }
 
@@ -38,12 +43,26 @@ export async function smsDialogData():Promise<SmsDialogData>{
  * ever will. `visitor_thanks` needs only {institute_phone}, which is the center's own number, so it is
  * always in this list and is the default at every lead entry point.
  */
-export async function visitorSmsDialogData():Promise<SmsDialogData>{
+/**
+ * The visitor catalog, narrowed twice (R3.9): to the templates a visitor can fill, and — for a staff
+ * sender (R3.11, owner decision) — to the thank-you alone, with the page-pick and the free text taken
+ * off the dialog as well. The server re-checks all three on every request (`smsSendPolicyRefusal`);
+ * what happens here is that a staff account never even SEES a door the server would refuse.
+ */
+export async function visitorSmsDialogData(role='admin'):Promise<SmsDialogData>{
   const [rows,settings]=await Promise.all([loadSmsTemplates(),loadSmsSettings()]);
+  // Fail-closed: only the two roles that may spend money on anything get the wide kit. A role this
+  // function does not know is treated as staff, because the route refuses it outright anyway and a
+  // catalog that offers more than the server allows is a button that lies.
+  const staffRestricted=role!=='admin'&&role!=='superadmin';
   return {
     templates:rows
       .filter(row=>(row.active||row.key==='custom')&&visitorTemplateFits(row.variables))
+      .filter(row=>!staffRestricted||row.key===STAFF_SMS_TEMPLATE)
       .map(row=>({key:row.key,name:row.name,body:row.body,active:row.active,edited:row.edited})),
     institutePhone:settings.institutePhone,
+    staffRestricted,
+    allowPagePick:!staffRestricted,
+    allowTextEdit:!staffRestricted,
   };
 }

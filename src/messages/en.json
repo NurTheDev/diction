@@ -2053,6 +2053,7 @@
     "archiveHint": "Leads older than 18 months are suggested for archiving — nothing is ever removed on its own.",
     "smsColumn": "SMS",
     "smsSelectPage": "Select everyone on this page",
+    "smsStaffHint": "Staff send the visitor thank-you template only.",
     "smsSelected": "SMS the {count} selected",
     "smsBulkTitle": "SMS the visitors",
     "smsOneTitle": "SMS this visitor",

@@ -37,6 +37,7 @@ interface LeadSmsContextValue{
   allPicked:boolean;
   openSend:()=>void;
   tally:{sendable:number;blocked:number;withoutPhone:number};
+  kit:LeadSmsKit|null;
 }
 
 const LeadSmsContext=createContext<LeadSmsContextValue|null>(null);
@@ -58,12 +59,14 @@ export function LeadSmsPicker({rows,kit,digits='bn',language='bn',children}:{
   const openSend=useCallback(()=>setOpen(true),[]);
   const allPicked=ids.length>0&&ids.every(id=>live.has(id)&&sendIds.includes(id));
   const tally=useMemo(()=>leadSmsTally(rows.map(row=>({contactable:row.contactable,hasPhone:row.hasPhone}))),[rows]);
-  const value=useMemo<LeadSmsContextValue>(()=>({picked:sendIds,toggle,selectPage,allPicked,openSend,tally}),
-    [sendIds,toggle,selectPage,allPicked,openSend,tally]);
+  const value=useMemo<LeadSmsContextValue>(()=>({picked:sendIds,toggle,selectPage,allPicked,openSend,tally,kit}),
+    [sendIds,toggle,selectPage,allPicked,openSend,tally,kit]);
 
   /**
-   * No catalog, no picker. `kit` is null for a role that may not spend money on SMS — the send route has
-   * been `getAdmin()` since R2 — and rendering a checkbox that ends in a 403 would be a button that lies.
+   * No catalog, no picker. `kit` is null for a role that may not spend money on SMS at all — content
+   * editors and exam managers, whom the send route answers with 403 — and rendering a checkbox that ends
+   * in a refusal would be a button that lies. A staff kit is NOT null (R3.11): they get the picker, minus
+   * the page-pick and minus the free text, so the two flags ride along in the kit and the bar reads them.
    * The list renders exactly as it did before this feature, with no bar and no column contents, because
    * without a provider the context is absent and `LeadSmsBar`/`LeadSmsCheck` return nothing at all.
    * Every hook above has already run, so the two returns cannot disagree about hook order.
@@ -81,6 +84,7 @@ export function LeadSmsPicker({rows,kit,digits='bn',language='bn',children}:{
       titleEn="SMS the selected visitors"
       defaultTemplateKey="visitor_thanks"
       en={language==='en'}
+      lockedText={kit.allowTextEdit===false}
       // Clearing the pick after a send is the point of the count on the button: the next send starts from
       // an empty selection rather than from the people who were just thanked.
       onSent={()=>setPicked([])}
@@ -98,11 +102,14 @@ export function LeadSmsBar({digits='bn'}:{digits?:Digits}){
     sms.tally.withoutPhone>0?t('smsNoPhoneCount',{count:formatNumber(sms.tally.withoutPhone,digits)}):'',
   ].filter(Boolean).join(' · ');
   return <div className="lead-sms-bar" data-lead-sms-bar="">
-    <label className="admin-check">
+    {/* R3.11: "everyone on this page" is the one tap a staff sender does not get — a selection they
+        tick by hand is theirs to make, a one-tap send to everybody is not. */}
+    {sms.kit?.allowPagePick!==false&&<label className="admin-check">
       <input type="checkbox" className="lead-sms-check" name="smsLeadPage" checked={sms.allPicked}
         onChange={event=>sms.selectPage(event.target.checked)} aria-label={t('smsSelectPage')}/>
       <span>{t('smsSelectPage')}</span>
-    </label>
+    </label>}
+    {sms.kit?.staffRestricted&&<span className="admin-help" data-sms-staff-hint="">{t('smsStaffHint')}</span>}
     {sms.picked.length>0&&<button type="button" className="admin-mini-button" data-sms-open="" onClick={sms.openSend}>
       <MessageSquare aria-hidden="true" size={14}/>
       {t('smsSelected',{count:formatNumber(sms.picked.length,digits)})}
