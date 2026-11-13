@@ -1,13 +1,1 @@
-AssertionError [ERR_ASSERTION]: the sibling is written
-
-false !== true
-
-    at run (/home/runner/work/diction/diction/tests/lead-screens-browser.integration.ts:93:10)
-    at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {
-  generatedMessage: false,
-  code: 'ERR_ASSERTION',
-  actual: false,
-  expected: true,
-  operator: 'strictEqual',
-  diff: 'simple'
-}
+Visitor screens: the list shows every lead with its status, its follow-up day and its number masked, the digits living only in the tel: and wa.me destinations and in nothing else the browser is served, and no family key reaching it at all; quick-add is one labelled tap on the mobile bottom bar, four fields with the rest behind "more", saves on Enter, reports the id it wrote, reads XII as class 12 and leaves status, group and medium un-guessed; the drawer loads the notes timeline, saves a note with an outcome and its writer’s name, and lists the family; one search box sends four digits — typed in Bangla too — to a server action that finds both leads sharing a number and refuses two digits in Bangla that counts them without quoting them and without turning them into a word search, while a name travels as a shareable URL parameter and a number typed into the address bar is refused; the row controls change a status, write each of the four quick follow-up days in Dhaka, clear one again and lift a contact block deliberately; the Overview counts today’s follow-ups and the overdue ones separately, works the queue from there and moves the count with it; a content editor reaches none of it; nothing overflows horizontally at 360 px; every screen audited what it did with masked targets; and all five screens are photographed at 360 px and 1440 px in screenshots/r3. Each search was read from the commit that answered it — the button back and the box cleared, never the rows a previous search left on screen — and the box held what was typed every time it was submitted.
