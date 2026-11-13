@@ -1,3 +1,3 @@
-Error: two digits never drew the number rule's refusal — locator.waitFor: Timeout 90000ms exceeded. · url=http://localhost:3111/bn/admin/leads · input="(no input)" · feedback=[] · hitRows=0 · panel="(panel gone)"
+Error: two digits never drew the number rule's refusal — locator.waitFor: Timeout 90000ms exceeded. · two digits should have drawn a refusal · url=http://localhost:3111/bn/admin/leads · input="(no input)" · feedback=[] · hitRows=0 · panel="(panel gone)"
     at <anonymous> (/home/runner/work/diction/diction/tests/lead-screens-browser.integration.ts:336:34)
     at async run (/home/runner/work/diction/diction/tests/lead-screens-browser.integration.ts:335:5)
