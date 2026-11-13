@@ -751,8 +751,8 @@ async function run(){
     assert.ok(matesText.includes(RAHUL)&&matesText.includes(SISTER),'the keyless stranger sees the whole holder family as mates');
     assert.ok(matesText.includes(MASK_1)&&!matesText.includes(P1),'masked here too');
     await shot(boss.page,'b2-visitor-dup-drawer-1440',false);
-    // Merging bins the source behind the browser's own confirm, so the suite accepts that dialog on purpose.
-    boss.page.once('dialog',dialog=>void dialog.accept());
+    // Merging bins the source behind the browser's own confirm; every page in this suite already
+    // carries a standing dialog-acceptor from the sign-in helper, so the confirm is accepted for us.
     await mates.locator('li',{hasText:RAHUL}).locator('button',{hasText:t.dupMerge}).click();
     await until(async()=>{
       // The bin hides its rows from a plain find (every query carries a live-only filter unless it
