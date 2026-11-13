@@ -133,6 +133,16 @@ Wave A — foundations, no UI:
     tracking globals and asserts zero — so there is no analytics event for a number to travel in, and
     adding one later fails this test and asks the question.
 
+17. The first strict run (43399236299) went red on R0.7, and the cause is worth more than the fix:
+    VERIFY_STRICT=1 is exported into every child process `npm run verify` starts, so
+    tests/verify-report.test.ts — which asserts "NOT TESTED alone must not look like a crash", i.e. the
+    LENIENT exit code — failed in CI while passing locally. It now pins both modes explicitly
+    (exitCodeFor(summary,false) and (summary,true)), tests isStrict()'s parsing of 1/true/YES/on/0/off/empty
+    with process.env saved and restored, and asserts that the strict sentence appears in the report only
+    when strict mode is real. Verified locally in both modes before pushing. Rule kept: any suite that
+    reads an environment variable must set it, because CI's environment is not the local one.
+    R3.7 itself passed on its first run.
+
 Owed, stated plainly: the sidebar group ভিজিটর, quick-add (one tap from the sidebar and the mobile
 bottom bar, Enter saves), the list with search/filters/status chips/inline status/call/WhatsApp/
 next-follow-up buttons, the detail drawer with its notes timeline, duplicate-phone detection with

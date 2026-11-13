@@ -9,7 +9,7 @@ import assert from 'node:assert/strict';
 import {existsSync} from 'node:fs';
 import {readFile} from 'node:fs/promises';
 import {createZip,crc32} from '../scripts/verify-zip';
-import {exitCodeFor,overallStatus,renderReport,requirementRows,summarize,type ItemResult} from '../scripts/verify-report';
+import {exitCodeFor,isStrict,overallStatus,renderReport,requirementRows,summarize,type ItemResult} from '../scripts/verify-report';
 import {latestMilestone,milestones,requirements,select,STEP_REFS} from '../scripts/verify-plan';
 
 function demoInput(results:Record<string,ItemResult>){
@@ -56,16 +56,42 @@ async function run(){
   assert.equal(empty.pass,0,'no requirement may be PASS without evidence');
   assert.equal(empty.notTested,list.length,'unproven requirements are NOT TESTED, never PASS');
   assert.equal(overallStatus(empty),'INCOMPLETE');
-  assert.equal(exitCodeFor(empty),0,'NOT TESTED alone must not look like a crash');
+  // exitCodeFor is strict-aware, and CI exports VERIFY_STRICT=1 into every suite it runs — so both modes
+  // are pinned explicitly here instead of depending on the environment this test happens to inherit.
+  assert.equal(exitCodeFor(empty,false),0,'NOT TESTED alone must not look like a crash on a local run');
+  assert.equal(exitCodeFor(empty,true),1,'and in strict mode it must fail: a green check has to mean everything was proven');
 
   const allPass=Object.fromEntries(list.map(r=>[r.id,{status:'PASS' as const,evidence:'ran here'}]));
   assert.equal(overallStatus(summarize(list,allPass)),'PASS');
   const oneFail={...allPass,[list[0].id]:{status:'FAIL' as const,evidence:'exit 1'}};
   assert.equal(overallStatus(summarize(list,oneFail)),'FAIL');
-  assert.equal(exitCodeFor(summarize(list,oneFail)),1);
+  assert.equal(exitCodeFor(summarize(list,oneFail),false),1,'a FAIL fails a local run');
+  assert.equal(exitCodeFor(summarize(list,oneFail),true),1,'and a strict one');
   const mixed={...allPass,[list[1].id]:{status:'NOT TESTED' as const,evidence:'no database'}};
   assert.equal(overallStatus(summarize(list,mixed)),'INCOMPLETE');
-  assert.equal(exitCodeFor(summarize(list,mixed)),0);
+  assert.equal(exitCodeFor(summarize(list,mixed),false),0,'INCOMPLETE exits 0 locally, where a person reads the report');
+  assert.equal(exitCodeFor(summarize(list,mixed),true),1,'and exits 1 in CI, where the exit code is the only thing read');
+  assert.equal(exitCodeFor(summarize(list,allPass),true),0,'strict mode passes a report that proved everything');
+
+  // ── strict mode: what switches it on, and what it says ───────────────────────
+  const ambientStrict=process.env.VERIFY_STRICT;
+  try{
+    for(const [value,expected] of [['1',true],['true',true],['YES',true],['on',true],['0',false],['off',false],['',false]] as [string,boolean][]){
+      process.env.VERIFY_STRICT=value;
+      assert.equal(isStrict(),expected,`VERIFY_STRICT=${value||'(empty)'} is ${expected?'strict':'lenient'}`);
+    }
+    delete process.env.VERIFY_STRICT;
+    assert.equal(isStrict(),false,'unset means a local run, which stays lenient on purpose');
+    const localReport=renderReport(demoInput(mixed));
+    assert.ok(!localReport.includes('VERIFY_STRICT'),'a local INCOMPLETE report does not claim to have failed anything');
+    process.env.VERIFY_STRICT='1';
+    const strictReport=renderReport(demoInput(mixed));
+    assert.match(strictReport,/## Result: \*\*INCOMPLETE\*\*/,'strict mode does not rewrite the result word…');
+    assert.ok(strictReport.includes('VERIFY_STRICT'),'…but the report says in writing that INCOMPLETE fails the check');
+    assert.ok(strictReport.length>localReport.length,'and says it only when it is true');
+  }finally{
+    if(ambientStrict===undefined)delete process.env.VERIFY_STRICT;else process.env.VERIFY_STRICT=ambientStrict;
+  }
 
   // ── report content ───────────────────────────────────────────────────────────
   const report=renderReport(demoInput(mixed));

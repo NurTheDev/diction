@@ -117,6 +117,7 @@ the brief asks for and what is actually proven.
 | `error TS…` in the typecheck step | Real type error in the code | Send the report back — that is a FAIL, not an environment problem |
 | Report says INCOMPLETE on the owner's machine | Something could not run that should have | Send the zip back; the NOT TESTED lines say what. In CI this is now a red run, not a green one |
 | CI red with `0 FAIL` and some NOT TESTED | `VERIFY_STRICT=1`: unproven is not passed | Read the NOT TESTED lines — usually test mode died early; check `logs/test-mode-stdout.txt` |
+| A suite passes locally and fails only in CI | It reads an environment variable CI sets (`VERIFY_STRICT`, `TEST_MONGO_URI`, `CENTER_*`) | Pass the value explicitly, or set and restore `process.env` inside the test — the first strict run failed exactly this way: `tests/verify-report.test.ts` asserted the lenient exit code while CI exported `VERIFY_STRICT=1` into every child process |
 
 ## Continuous verification (GitHub Actions)
 
