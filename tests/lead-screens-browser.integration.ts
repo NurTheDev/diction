@@ -700,10 +700,10 @@ async function run(){
     const P6='01911223344',P7='01922334455';
     const typeAdd=async(name:string,phone:string)=>{
       const addPanel=panel(boss.page,t.addTitle);
-      await dupPanel.locator('input[name="studentName"]').waitFor({state:'visible',timeout:60000});
-      await dupPanel.locator('input[name="studentName"]').fill(name);
-      await dupPanel.locator('input[name="phone"]').fill(phone);
-      await dupPanel.locator('input[name="phone"]').press('Enter');
+      await addPanel.locator('input[name="studentName"]').waitFor({state:'visible',timeout:60000});
+      await addPanel.locator('input[name="studentName"]').fill(name);
+      await addPanel.locator('input[name="phone"]').fill(phone);
+      await addPanel.locator('input[name="phone"]').press('Enter');
       return addPanel;
     };
     await boss.page.setViewportSize({width:360,height:900});
