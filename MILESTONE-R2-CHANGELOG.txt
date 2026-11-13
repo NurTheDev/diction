@@ -1,4 +1,4 @@
-R2 — SMS (BulkSMSBD). Everything below is proven by CI (npm run verify, requirements R2.1-R2.8).
+R2 — SMS (BulkSMSBD). Everything below is proven by CI (npm run verify, requirements R2.1-R2.9).
 
 Wave A — the engine (no UI):
 1. src/lib/center/sms-provider.ts: BulkSMSBD's current official API implemented exactly — smsapi (single), smsapimany (different messages, serialized as 88<number>,<message>), getBalanceApi (text and JSON), 8801XXXXXXXXX numbering, type=unicode for Bangla and text for ASCII, and all twenty documented response codes mapped to plain Bangla (202 জমা হয়েছে, 1007 ব্যালান্স অপর্যাপ্ত, 1012 মাস্কিং এসএমএস বাংলায় পাঠাতে হয়, 1032 আইপি হোয়াইটলিস্টে নেই, plus a fallback that echoes an unknown code and never claims success). SMS_PROVIDER defaults to mock: nothing is sent, everything is logged. Credentials live only in BULKSMSBD_API_KEY / BULKSMSBD_SENDER_ID, are validated at startup, redacted in every message, and never returned, logged or stored (R2.1).
@@ -29,5 +29,32 @@ Wave B2 — the dialog, the entry points and the automatic sends:
     because each caller is best-effort — a message that cannot go out must never turn a saved payment
     into an error — the failure was silent: the toggle looked on and nothing was ever sent. The
     trigger is the audit trail an automatic batch has instead of a person.
+
+Follow-up, before the real provider goes on (owner's two requests):
+
+16. An "Automatic SMS problems" card on /[locale]/admin/sms and on the admin Overview, backed by a new
+    CenterSmsAutoProblem model and src/lib/center/sms-auto-problems.ts. The rule that keeps a saved
+    payment safe — every auto-send caller swallows its error on purpose — also made a failure invisible,
+    so "did not go out" is now stored: one open row per natural key (unique partial index on key where
+    resolved:false) with the trigger, a plain Bangla sentence for the cause, the receipt or class it was
+    for, an attempt count and the context to run it again. A provider code reuses the gateway's own
+    Bangla meaning plus (কোড NNNN); credentials are scrubbed before the sentence is written. Not
+    problems, never recorded: a toggle that is off, a class with nobody overdue, a send queued for quiet
+    hours. The card renders nothing at all when nothing is wrong.
+17. retryAutoSmsProblem() (src/lib/center/sms-dialog.ts) plus the guarded, audited retryAutoSmsForm
+    action: with a usable batch only its failed rows are re-sent, and a batch that turned out fine or is
+    waiting for quiet hours is simply closed; with no batch at all the automatic send runs again under a
+    fresh request id, because the old one is spent and idempotency would answer with the failed batch.
+    The row is resolved against the admin who clicked, or updated with the new reason, and every retry is
+    audited as sms.autoretry. Retrying a closed problem says so and sends nothing.
+18. tests/sms-auto-problem.integration.ts (test:sms:problem, requirement R2.9) proves the sequence that
+    matters: the payment is recorded first, the provider refuses the receipt message with 1007, the
+    automatic send neither throws at its caller nor touches the saved payment, and the failure shows up
+    as one open problem naming the receipt and the student. Plus the fold, both retry paths, the refusal
+    to retry a closed row, the two non-problems, and that no credential and no stack trace reach the card.
+19. docs/SMS-GOLD-LIVE.md: the go-live checklist — environment variables, the BulkSMSBD account steps
+    (including why IP whitelisting must be off on a serverless host, or every send answers 1032), sender
+    id notes, the one test message to the owner's own number, the order to switch the auto-sends on, what
+    202 does and does not mean, how to go back to mock, and the emergency brake.
 
 Owed, stated plainly: Visitors and Teacher CVs as entry points (R3/R4); pending_reminder in the picker (needs the optional current-month PENDING switch); the real provider stays OFF until the owner approves the mock version, then exactly one test message to their own number, with BulkSMSBD IP whitelisting disabled for a serverless host first; a real Vercel cron run for both entries stays a go-live item; and 202 means submitted, never delivered, because the documented API has no delivery-report callback.

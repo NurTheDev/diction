@@ -20,12 +20,17 @@
 import 'server-only';
 import {createHash} from 'node:crypto';
 import mongoose from 'mongoose';
-import {CenterClassGroup} from '@/models/CenterRecords';
+import {CenterClassGroup,CenterSmsBatch,CenterSmsLog} from '@/models/CenterRecords';
+import {audit} from '@/lib/admin/helpers';
 import {createSmsProvider,type SmsProvider} from './sms-provider';
 import {dhakaCalendar} from './month-status';
 import {buildSmsPlan,executeSmsPlan,loadSmsSettings,monthSmsTotals,retryFailedSms} from './sms-send';
 import {resolveSmsSource} from './sms-source';
 import {isSmsTemplateKey} from './sms-templates';
+import {
+  autoProblemText,findAutoSmsProblem,noteAutoSmsRetryFailed,recordAutoSmsProblem,resolveAutoSmsProblem,
+  type AutoSmsCause,type AutoSmsContext,type AutoSmsTrigger,
+} from './sms-auto-problems';
 
 export type SmsDialogMode='preview'|'send'|'retry';
 export type SmsDialogSource='dues'|'class'|'students'|'student'|'receipt';
@@ -61,7 +66,20 @@ export interface SmsDialogOutcome{status:number;body:Record<string,unknown>}
  * proves the failure paths (a refused send, a batch with failures to retry) without a network and
  * without a real message ever leaving. Production passes nothing and gets the configured provider.
  */
-export interface SmsDialogOptions{now?:Date;provider?:SmsProvider}
+export interface SmsDialogOptions{
+  now?:Date;
+  provider?:SmsProvider;
+  /**
+   * A human retry of a recorded problem. It gets its own request id, because the whole point of
+   * `autoRequestId` is that the SAME attempt can never send twice — and a retry is a new attempt,
+   * authorized by a named admin. Attempt 1 (or none) keeps the original id byte for byte.
+   */
+  attempt?:number;
+  /** False only inside retryAutoSmsProblem, which owns the problem row it is retrying. */
+  record?:boolean;
+  /** True only inside retryAutoSmsProblem: an operator asked for this one message by name. */
+  ignoreToggle?:boolean;
+}
 
 /**
  * A deterministic requestId for the automatic sends. CenterSmsBatch.requestId is constrained to a
@@ -209,103 +227,274 @@ export async function runSmsDialog(input:SmsDialogInput,actor:string,options:Sms
 /**
  * The automatic sends the settings page offers. Every one is guarded by its own toggle, all of which
  * ship OFF, and none of them may break the operation that triggered them: a receipt that is already
- * saved must stay saved even if the SMS cannot go out.
+ * saved must stay saved even if the SMS cannot go out, and a published result must stay published.
+ *
+ * That rule is why these functions never throw — and it is also why a failure here used to be
+ * invisible, because every caller swallows the error on purpose. So "did not go out" is recorded as an
+ * automatic-SMS problem (src/lib/center/sms-auto-problems.ts), which the SMS page and the Overview
+ * show in plain Bangla with a Retry button. Did not go out means any of: an exception, a blocked plan,
+ * no recipient to send to, or a batch whose messages the provider rejected. What is NOT a problem: a
+ * toggle that is off, a class with nobody overdue, and a send that is queued for quiet hours — those
+ * are the system working.
  */
-export async function autoSendReceipt(input:{student:string;amount:number;month:{year:number;month:number};receiptNo:string},options:SmsDialogOptions={}):Promise<{attempted:boolean;batchId?:string;reason?:string}>{
-  const now=options.now||new Date();
-  const settings=await loadSmsSettings();
-  if(!settings.autoReceipt)return {attempted:false,reason:'autoReceipt off'};
-  const provider=options.provider||createSmsProvider();
-  const resolved=await resolveSmsSource({source:'receipt',receipt:{...input,dueDate:''}},now);
-  const plan=await buildSmsPlan({
-    requestId:autoRequestId('receipt',input.student,input.receiptNo,input.month.year,input.month.month),
-    students:resolved.candidates,
-    templateKey:'payment_receipt',
-    audience:'guardian',
-    onePerPhone:true,
-    month:resolved.monthKey||undefined,
-    globalValues:{class:resolved.className||undefined},
-    now,
-  },provider);
-  if(plan.blocked||!plan.recipientCount)return {attempted:true,reason:plan.blocked||'no recipient'};
-  // No actor: an automatic send is not a person. The batch's trigger says what created it.
-  const summary=await executeSmsPlan(plan,{provider,now,trigger:'auto_receipt'});
-  return {attempted:true,batchId:summary.batchId};
+async function batchCounts(batchId:string):Promise<{status:string;sent:number;failed:number}|null>{
+  if(!batchId||!mongoose.isValidObjectId(batchId))return null;
+  const row=await CenterSmsBatch.findById(batchId).select('status sentCount failedCount').lean() as unknown as
+    {status?:string;sentCount?:number;failedCount?:number}|null;
+  if(!row)return null;
+  return {status:String(row.status||''),sent:Number(row.sentCount)||0,failed:Number(row.failedCount)||0};
 }
 
-/** One class's overdue reminders, for the daily job when auto-due is switched on. */
-export async function autoSendClassDues(classGroup:string,options:SmsDialogOptions={}):Promise<{batchId?:string;sent:number;skipped:number;status?:string;reason?:string}>{
+/** Why a batch did not fully go out, in the provider's own code when there is one. Empty means fine. */
+async function failedBatchCause(batchId:string):Promise<string>{
+  const counts=await batchCounts(batchId);
+  if(!counts||!counts.failed)return '';
+  const row=await CenterSmsLog.findOne({batch:batchId,status:'failed'}).select('providerCode reason').lean() as unknown as
+    {providerCode?:string;reason?:string}|null;
+  return String(row?.providerCode||row?.reason||'failed');
+}
+
+/** A retried attempt needs its own request id, or idempotency would answer with the failed batch. */
+function autoKey(parts:(string|number)[],options:SmsDialogOptions):string{
+  return options.attempt&&options.attempt>1?autoRequestId(...parts,String(options.attempt)):autoRequestId(...parts);
+}
+
+/** Store a failure unless the caller owns the row already (a retry updates its own). */
+async function failAuto(trigger:AutoSmsTrigger,context:AutoSmsContext,cause:AutoSmsCause,
+  extra:{who?:string;batchId?:string;studentId?:string;classGroupId?:string},options:SmsDialogOptions):Promise<string>{
+  if(options.record===false)return '';
+  return recordAutoSmsProblem({context,cause,...extra});
+}
+
+export interface AutoSendOutcome{attempted:boolean;batchId?:string;reason?:string;problem?:string;failed?:boolean}
+
+export async function autoSendReceipt(input:{student:string;amount:number;month:{year:number;month:number};receiptNo:string},options:SmsDialogOptions={}):Promise<AutoSendOutcome>{
+  const context:AutoSmsContext={trigger:'auto_receipt',student:input.student,amount:input.amount,year:input.month.year,month:input.month.month,receiptNo:input.receiptNo};
   const now=options.now||new Date();
-  const provider=options.provider||createSmsProvider();
-  const resolved=await resolveSmsSource({source:'dues',classGroup},now);
-  if(!resolved.candidates.length)return {sent:0,skipped:0,reason:'no overdue students'};
-  const plan=await buildSmsPlan({
-    requestId:autoRequestId('due',classGroup,now.toISOString().slice(0,10)),
-    students:resolved.candidates,
-    templateKey:'due_reminder',
-    audience:'guardian',
-    onePerPhone:true,
-    month:resolved.monthKey||undefined,
-    globalValues:{class:resolved.className||undefined},
-    now,
-  },provider);
-  if(plan.blocked||!plan.recipientCount)return {sent:0,skipped:plan.skipped.length,reason:plan.blocked||'no recipient'};
-  // No actor: this is the daily job, and audit() needs a real User ref (a 'system' actor writes
-  // nothing at all). The batch and its log rows are the record; the job's response reports the counts.
-  const summary=await executeSmsPlan(plan,{provider,skipDuplicates:true,now,trigger:'auto_due'});
-  return {batchId:summary.batchId,sent:summary.sent,skipped:summary.skipped,status:summary.status};
+  let on=false,who=`রসিদ ${input.receiptNo}`;
+  try{
+    const settings=await loadSmsSettings();
+    if(!settings.autoReceipt&&!options.ignoreToggle)return {attempted:false,reason:'autoReceipt off'};
+    on=true;
+    const provider=options.provider||createSmsProvider();
+    const resolved=await resolveSmsSource({source:'receipt',receipt:{...input,dueDate:''}},now);
+    const studentName=resolved.candidates[0]?.nameBn||'';
+    if(studentName)who=`${who} · ${studentName}`;
+    const plan=await buildSmsPlan({
+      requestId:autoKey(['receipt',input.student,input.receiptNo,input.month.year,input.month.month],options),
+      students:resolved.candidates,
+      templateKey:'payment_receipt',
+      audience:'guardian',
+      onePerPhone:true,
+      month:resolved.monthKey||undefined,
+      globalValues:{class:resolved.className||undefined},
+      now,
+    },provider);
+    if(plan.blocked||!plan.recipientCount){
+      const reason=plan.blocked||'no recipient';
+      const problem=await failAuto('auto_receipt',context,reason,{who,studentId:input.student},options);
+      return {attempted:true,reason,failed:true,problem:problem||undefined};
+    }
+    // No actor: an automatic send is not a person. The batch's trigger says what created it.
+    const summary=await executeSmsPlan(plan,{provider,now,trigger:'auto_receipt'});
+    const cause=await failedBatchCause(summary.batchId);
+    if(cause){
+      const problem=await failAuto('auto_receipt',context,{code:cause},{who,batchId:summary.batchId,studentId:input.student},options);
+      return {attempted:true,batchId:summary.batchId,reason:cause,failed:true,problem:problem||undefined};
+    }
+    return {attempted:true,batchId:summary.batchId};
+  }catch(error){
+    // The payment is saved. This must not become the operator's error, only the operator's to-do.
+    if(!on){console.error('Automatic receipt SMS could not even read its settings',(error as Error).message);return {attempted:false,failed:true,reason:(error as Error).message}}
+    const problem=await failAuto('auto_receipt',context,error as Error,{who,studentId:input.student},options);
+    return {attempted:true,failed:true,reason:(error as Error).message,problem:problem||undefined};
+  }
+}
+
+export interface AutoDueOutcome{batchId?:string;sent:number;skipped:number;status?:string;reason?:string;problem?:string;failed?:boolean}
+
+/** One class's overdue reminders, for the daily job when auto-due is switched on. */
+export async function autoSendClassDues(classGroup:string,options:SmsDialogOptions={}):Promise<AutoDueOutcome>{
+  const now=options.now||new Date();
+  const day=now.toISOString().slice(0,10);
+  const context:AutoSmsContext={trigger:'auto_due',classGroup,day};
+  let on=false,who='';
+  try{
+    const settings=await loadSmsSettings();
+    if(!settings.autoDue&&!options.ignoreToggle)return {sent:0,skipped:0,reason:'autoDue off'};
+    on=true;
+    const provider=options.provider||createSmsProvider();
+    const resolved=await resolveSmsSource({source:'dues',classGroup},now);
+    who=`${resolved.className||'ক্লাস'} · ${day}`;
+    // Nobody overdue is not a failure; it is the class having paid.
+    if(!resolved.candidates.length)return {sent:0,skipped:0,reason:'no overdue students'};
+    const plan=await buildSmsPlan({
+      requestId:autoKey(['due',classGroup,day],options),
+      students:resolved.candidates,
+      templateKey:'due_reminder',
+      audience:'guardian',
+      onePerPhone:true,
+      month:resolved.monthKey||undefined,
+      globalValues:{class:resolved.className||undefined},
+      now,
+    },provider);
+    if(plan.blocked||!plan.recipientCount){
+      const reason=plan.blocked||'no recipient';
+      const problem=await failAuto('auto_due',context,reason,{who,classGroupId:classGroup},options);
+      return {sent:0,skipped:plan.skipped.length,reason,failed:true,problem:problem||undefined};
+    }
+    // No actor: this is the daily job, and audit() needs a real User ref (a 'system' actor writes
+    // nothing at all). The batch and its log rows are the record; the job's response reports the counts.
+    const summary=await executeSmsPlan(plan,{provider,skipDuplicates:true,now,trigger:'auto_due'});
+    const cause=await failedBatchCause(summary.batchId);
+    if(cause){
+      const problem=await failAuto('auto_due',context,{code:cause},{who,batchId:summary.batchId,classGroupId:classGroup},options);
+      return {batchId:summary.batchId,sent:summary.sent,skipped:summary.skipped,status:summary.status,reason:cause,failed:true,problem:problem||undefined};
+    }
+    return {batchId:summary.batchId,sent:summary.sent,skipped:summary.skipped,status:summary.status};
+  }catch(error){
+    // One unpriceable class must not stop the daily job, and must not be silent either.
+    if(!on){console.error('Automatic due reminders could not even read their settings',(error as Error).message);return {sent:0,skipped:0,failed:true,reason:(error as Error).message}}
+    const problem=await failAuto('auto_due',context,error as Error,{who,classGroupId:classGroup},options);
+    return {sent:0,skipped:0,failed:true,reason:(error as Error).message,problem:problem||undefined};
+  }
 }
 
 /**
  * One class's published results. Not a fee message, so held students are included — that decision is
  * sms-recipients.ts', made from the template's own `feeRelated` flag.
  */
-export async function autoSendClassResults(input:{exam:string;classGroup:string},options:SmsDialogOptions={}):Promise<{attempted:boolean;batchId?:string;reason?:string}>{
+export async function autoSendClassResults(input:{exam:string;classGroup:string},options:SmsDialogOptions={}):Promise<AutoSendOutcome>{
+  const context:AutoSmsContext={trigger:'auto_result',exam:input.exam,classGroup:input.classGroup};
   const now=options.now||new Date();
-  const settings=await loadSmsSettings();
-  if(!settings.autoResult)return {attempted:false,reason:'autoResult off'};
-  const provider=options.provider||createSmsProvider();
-  const resolved=await resolveSmsSource({source:'class',classGroup:input.classGroup},now);
-  if(!resolved.candidates.length)return {attempted:true,reason:'no students'};
-  const plan=await buildSmsPlan({
-    requestId:autoRequestId('result',input.exam,input.classGroup),
-    students:resolved.candidates,
-    templateKey:'exam_result',
-    audience:'guardian',
-    onePerPhone:true,
-    globalValues:{class:resolved.className||undefined},
-    now,
-  },provider);
-  if(plan.blocked||!plan.recipientCount)return {attempted:true,reason:plan.blocked||'no recipient'};
-  const summary=await executeSmsPlan(plan,{provider,now,trigger:'auto_result'});
-  return {attempted:true,batchId:summary.batchId};
+  let on=false,who='';
+  try{
+    const settings=await loadSmsSettings();
+    if(!settings.autoResult&&!options.ignoreToggle)return {attempted:false,reason:'autoResult off'};
+    on=true;
+    const provider=options.provider||createSmsProvider();
+    const resolved=await resolveSmsSource({source:'class',classGroup:input.classGroup},now);
+    who=resolved.className||'ক্লাস';
+    if(!resolved.candidates.length)return {attempted:true,reason:'no students'};
+    const plan=await buildSmsPlan({
+      requestId:autoKey(['result',input.exam,input.classGroup],options),
+      students:resolved.candidates,
+      templateKey:'exam_result',
+      audience:'guardian',
+      onePerPhone:true,
+      globalValues:{class:resolved.className||undefined},
+      now,
+    },provider);
+    if(plan.blocked||!plan.recipientCount){
+      const reason=plan.blocked||'no recipient';
+      const problem=await failAuto('auto_result',context,reason,{who,classGroupId:input.classGroup},options);
+      return {attempted:true,reason,failed:true,problem:problem||undefined};
+    }
+    const summary=await executeSmsPlan(plan,{provider,now,trigger:'auto_result'});
+    const cause=await failedBatchCause(summary.batchId);
+    if(cause){
+      const problem=await failAuto('auto_result',context,{code:cause},{who,batchId:summary.batchId,classGroupId:input.classGroup},options);
+      return {attempted:true,batchId:summary.batchId,reason:cause,failed:true,problem:problem||undefined};
+    }
+    return {attempted:true,batchId:summary.batchId};
+  }catch(error){
+    if(!on){console.error('Automatic result SMS could not even read its settings',(error as Error).message);return {attempted:false,failed:true,reason:(error as Error).message}}
+    const problem=await failAuto('auto_result',context,error as Error,{who,classGroupId:input.classGroup},options);
+    return {attempted:true,failed:true,reason:(error as Error).message,problem:problem||undefined};
+  }
 }
 
 /**
  * The daily job's automatic due reminders. Runs only when the toggle is on AND today (Asia/Dhaka) is
- * the operator's chosen day of the month, so a missed day never turns into a surprise bulk send on
- * the next run. Every class is its own batch with its own deterministic requestId, so re-running the
- * job on the same day sends nothing twice.
+ * the operator's chosen day of the month, so a missed day never turns into a surprise bulk send on the
+ * next run. Every class is its own batch with its own deterministic requestId, so re-running the job
+ * on the same day sends nothing twice.
  */
-export async function runAutoDue(options:SmsDialogOptions={}):Promise<{ran:boolean;day:number;autoDueDay:number;classes:number;sent:number;skipped:number}>{
+export async function runAutoDue(options:SmsDialogOptions={}):Promise<{ran:boolean;day:number;autoDueDay:number;classes:number;sent:number;skipped:number;problems:number}>{
   const now=options.now||new Date();
   const settings=await loadSmsSettings();
   const today=dhakaCalendar(now).day;
-  const idle={ran:false,day:today,autoDueDay:settings.autoDueDay,classes:0,sent:0,skipped:0};
+  const idle={ran:false,day:today,autoDueDay:settings.autoDueDay,classes:0,sent:0,skipped:0,problems:0};
   if(!settings.autoDue)return idle;
   if(today!==settings.autoDueDay)return idle;
   const groups=await CenterClassGroup.find({active:true}).select('_id').sort({order:1}).limit(200).lean<{_id:unknown}[]>();
-  let classes=0,sent=0,skipped=0;
+  let classes=0,sent=0,skipped=0,problems=0;
   for(const group of groups){
     try{
-      const outcome=await autoSendClassDues(String(group._id),{now,provider:options.provider});
+      const outcome=await autoSendClassDues(String(group._id),{now,provider:options.provider,record:options.record});
       if(outcome.batchId)classes+=1;
       sent+=outcome.sent;
       skipped+=outcome.skipped;
+      if(outcome.problem)problems+=1;
     }catch(error){
-      // One unpriceable class must not stop the others; the job's response reports what did go out.
+      // autoSendClassDues records and returns instead of throwing, so this is the last-resort net: one
+      // unpriceable class must not stop the others, and the job's response reports what did go out.
+      problems+=1;
       console.error('Auto due reminders failed for one class',(error as Error).message);
     }
   }
-  return {ran:true,day:today,autoDueDay:settings.autoDueDay,classes,sent,skipped};
+  return {ran:true,day:today,autoDueDay:settings.autoDueDay,classes,sent,skipped,problems};
+}
+
+export interface AutoSmsRetryResult{ok:boolean;messageBn:string;messageEn:string;sent:number;batchId:string}
+
+/**
+ * Retry one recorded automatic-SMS problem, as the admin who clicked. Two paths, because they are not
+ * the same act: a batch that exists has messages already built and priced, so its failed rows are
+ * re-sent (and a batch that turned out fine, or that is waiting for quiet hours, is simply closed);
+ * with no usable batch the automatic send is run again under a fresh request id, since the old one is
+ * spent. Either way the row is resolved on success and updated with the new reason on failure, and
+ * either way it is audited against a real user.
+ */
+export async function retryAutoSmsProblem(id:string,actor:string,options:SmsDialogOptions={}):Promise<AutoSmsRetryResult>{
+  const row=await findAutoSmsProblem(id);
+  if(!row||!row.context)return {ok:false,messageBn:'এই সমস্যাটি আর খোলা নেই।',messageEn:'That problem is no longer open.',sent:0,batchId:''};
+  const provider=options.provider||createSmsProvider();
+  const now=options.now||new Date();
+  await audit(actor,'sms.autoretry',id);
+  const done=async(messageBn:string,messageEn:string,sent:number,batchId:string):Promise<AutoSmsRetryResult>=>{
+    await resolveAutoSmsProblem(id,actor,{bn:messageBn,en:messageEn});
+    return {ok:true,messageBn,messageEn,sent,batchId};
+  };
+  const stillBroken=async(cause:AutoSmsCause,batchId:string):Promise<AutoSmsRetryResult>=>{
+    await noteAutoSmsRetryFailed(id,row.trigger,cause,batchId||undefined);
+    const text=autoProblemText(row.trigger,cause);
+    return {ok:false,messageBn:text.messageBn,messageEn:text.messageEn,sent:0,batchId};
+  };
+  try{
+    if(row.batchId){
+      const counts=await batchCounts(row.batchId);
+      if(counts?.status==='done')return await done('আগের ব্যাজটিই পাঠানো হয়ে গেছে।','The earlier batch already went out.',counts.sent,row.batchId);
+      if(counts?.status==='queued')return await done('কিউতে আছে — নিঃশব্দ সময় শেষে নিজেই চলে যাবে।','It is queued, and goes out on its own when quiet hours end.',0,row.batchId);
+      if(counts?.failed){
+        const result=await retryFailedSms(row.batchId,actor,provider);
+        if(result.retried&&result.failed===0){
+          return await done(`${result.sent}টি বার্তা পাঠানো হয়েছে।`,`${result.sent} message(s) sent.`,result.sent,row.batchId);
+        }
+        const cause=await failedBatchCause(row.batchId);
+        return await stillBroken({code:cause||'failed'},row.batchId);
+      }
+    }
+    const attempt=row.attempts+1;
+    const runOptions:SmsDialogOptions={...options,provider,now,attempt,record:false,ignoreToggle:true};
+    const context=row.context;
+    const outcome=context.trigger==='auto_receipt'
+      ? await autoSendReceipt({student:context.student,amount:context.amount,month:{year:context.year,month:context.month},receiptNo:context.receiptNo},runOptions)
+      : context.trigger==='auto_due'
+        ? await autoSendClassDues(context.classGroup,runOptions)
+        : await autoSendClassResults({exam:context.exam,classGroup:context.classGroup},runOptions);
+    const batchId=outcome.batchId||'';
+    const reason=outcome.reason||'';
+    // Nothing left to send is not a failure to retry: the class paid, or the student list emptied.
+    if(reason==='no overdue students'||reason==='no students'){
+      return await done('পাঠানোর মতো কিছু নেই — সমস্যাটি আর খোলা নেই।','There is nothing left to send.',0,batchId);
+    }
+    if(reason)return await stillBroken(reason,batchId);
+    const cause=await failedBatchCause(batchId);
+    if(cause)return await stillBroken({code:cause},batchId);
+    const counts=await batchCounts(batchId);
+    return await done('রিট্রাই সফল — বার্তাটি পাঠানো হয়েছে।','The retry worked — the message went out.',counts?.sent||0,batchId);
+  }catch(error){
+    return await stillBroken(error as Error,'');
+  }
 }

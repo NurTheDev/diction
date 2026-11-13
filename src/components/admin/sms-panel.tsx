@@ -7,7 +7,7 @@
  * hiding a button is presentation, never permission.
  */
 import {useActionState} from 'react';
-import {retrySmsBatch,saveSmsSettings,saveSmsTemplate,sendTestSmsAction} from '@/actions/sms';
+import {retryAutoSms,retrySmsBatch,saveSmsSettings,saveSmsTemplate,sendTestSmsAction} from '@/actions/sms';
 import type {ActionState} from '@/actions/admin';
 import type {SmsSettingsRow,SmsTemplateRow} from '@/lib/center/sms-send';
 
@@ -100,4 +100,23 @@ export function SmsTemplateEditor({locale,template}:{locale:string;template:SmsT
       <Feedback state={state} bn={bn}/>
     </form>
   </article>;
+}
+
+/**
+ * Retry one automatic-SMS problem (R2 follow-up). A client component for two reasons: `disabled` while
+ * pending is what stops a double click from paying for the same message twice, and the answer is a
+ * sentence the operator has to read — a retry that fails again must say why in their own language
+ * instead of silently doing nothing.
+ */
+export function SmsProblemRetry({locale,problemId,attempts}:{locale:string;problemId:string;attempts:number}){
+  const bn=locale!=='en';
+  const [state,action,pending]=useActionState(retryAutoSms,{status:'idle'} as ActionState);
+  return <form action={action} className="admin-inline">
+    <input type="hidden" name="problemId" value={problemId}/>
+    <button className="admin-mini-button" disabled={pending}
+      title={bn?'আবার পাঠালে খরচ হবে — একবারই চাপুন':'Retrying sends again and costs money — press it once'}>
+      {pending?(bn?'পাঠানো হচ্ছে…':'Sending…'):(attempts>1?(bn?'আবার চেষ্টা করুন':'Try again'):(bn?'রিট্রাই':'Retry'))}
+    </button>
+    {state.status!=='idle'&&<span className={`admin-feedback ${state.status==='ok'?'ok':'error'}`}>{state.message||(state.status==='ok'?'✓':'✗')}</span>}
+  </form>;
 }

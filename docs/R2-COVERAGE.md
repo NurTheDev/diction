@@ -1,7 +1,7 @@
 # R2 coverage confirmation — SMS (BulkSMSBD), in writing
 
 Every sentence of `docs/SPEC.md` §R2, answered point by point with the file that implements it and
-the test that proves it. Verify requirements **R2.1 – R2.8**; `npm run verify` reports all 26
+the test that proves it. Verify requirements **R2.1 – R2.9**; `npm run verify` reports all 27
 requirements (R0 + R1 + R2).
 
 Nothing below is a claim from reading code: each row names a test that runs in CI on every push.
@@ -16,6 +16,7 @@ Nothing below is a claim from reading code: each row names a test that runs in C
 | `tests/sms-browser.integration.ts` | browser suite (R2.6) | built app + database |
 | `tests/sms-dialog-browser.integration.ts` | browser suite (R2.7) | built app + database |
 | `tests/sms-dialog.integration.ts` | `test:sms:dialog` (R2.8) | disposable database |
+| `tests/sms-auto-problem.integration.ts` | `test:sms:problem` (R2.9) | disposable database |
 
 ---
 
@@ -201,8 +202,56 @@ stranded if one schedule is missed.
 2. **`pending_reminder` in the picker** — needs the optional "include current-month PENDING" switch
    on the due list, which needs the upcoming month's fee and due date per student.
 3. **The real provider is still OFF.** Per the spec it goes on only after you approve the mock
-   version, and then exactly one test message to your own number. BulkSMSBD IP whitelisting must be
-   disabled for a serverless host first, or every send answers `1032`.
+   version, and then exactly one test message to your own number. The whole switch-on procedure,
+   including the BulkSMSBD account steps and why IP whitelisting must be disabled for a serverless
+   host or every send answers `1032`, is written as a checklist in
+   [`docs/SMS-GOLD-LIVE.md`](SMS-GOLD-LIVE.md).
 4. **A real Vercel cron run** (both entries) remains a go-live checklist item, as decided for R1.
 5. **Delivery reports**: `202` means *submitted*. BulkSMSBD's documented API has no DLR callback, so
    the history never claims delivery.
+
+## 10. Automatic-SMS problems — R2.9 (owner's follow-up)
+
+§8 states the rule that makes the three auto-sends safe: a message that cannot go out must never turn a
+saved payment into an error. That rule also made a failure invisible, because every caller swallows the
+error on purpose — all anyone got was a console line on a host nobody reads, while the toggle looked on
+and nothing was ever sent. That is not hypothetical: the `createdBy` defect in §8 failed exactly that
+way, and only a database suite caught it.
+
+So "did not go out" is now a stored, readable fact.
+
+| Piece | File | What it owns |
+| --- | --- | --- |
+| Vocabulary + storage | `src/lib/center/sms-auto-problems.ts` | the three triggers and their operator-facing names, one plain Bangla sentence per cause, the key that folds repeats, the model readers, resolve and note |
+| Recording | `src/lib/center/sms-dialog.ts` | each auto-send records its own failure; `retryAutoSmsProblem()` re-sends |
+| Model | `src/models/CenterRecords.ts` → `CenterSmsAutoProblem` | one open row per natural key (unique partial index on `key` where `resolved:false`), `attempts`, `lastAttemptAt`, `context` as JSON, optional `batch`/`student`/`classGroup`, resolution against a real user |
+| Card | `src/components/admin/sms-auto-problems.tsx` | count, the last failure in plain Bangla, the list, a Retry button; renders **nothing** when nothing is wrong |
+| Action | `src/actions/sms.ts` → `retryAutoSmsForm` | guarded, audited (`sms.autoretry`), revalidates the SMS page and the Overview |
+
+**Did not go out** means any of: an exception, a blocked plan, no recipient to send to, or a batch whose
+messages the provider rejected. **Not a problem**, and never recorded: a toggle that is off, a class
+with nobody overdue, and a send queued for quiet hours — those are the system working.
+
+The sentence an operator reads is built from the cause, not from a stack trace: a provider code reuses
+the gateway's own Bangla meaning plus `(কোড NNNN)`; `SMS_NOT_CONFIGURED`, `SMS_DISABLED`,
+`SMS_INVALID`, `EMPTY_MESSAGE`, `UNRENDERED_VARIABLE:{chip}`, `TEMPLATE_NOT_FOUND`, `NO_RECIPIENTS`,
+`TOO_MANY_STUDENTS`, `INVALID_STUDENT`, `INVALID_CLASS` and `VALIDATION` each have their own line;
+a network failure says so; anything else is admitted as unknown with a redacted message. Credentials are
+scrubbed by `redactSmsSecrets()` before the text is stored, so neither the API key nor the sender id can
+reach the card.
+
+**Retry** has two paths, because they are not the same act. With a usable batch, only its failed rows go
+out again (`retryFailedSms`), and a batch that turned out fine or is waiting for quiet hours is simply
+closed. With no batch at all — the balance call itself failed, say — the automatic send runs again under
+a **fresh** request id, since the old one is spent and idempotency would otherwise answer with the failed
+batch. Either way the row is resolved against the admin who clicked (or updated with the new reason),
+and either way the retry is audited, because on the real provider it spends money. Retrying a closed
+problem says so and sends nothing.
+
+R2.9 proves the sequence that matters most: the payment is recorded **first**, the provider then refuses
+the receipt message with `1007`, the automatic send neither throws at its caller nor touches the saved
+payment, and the failure appears as one open problem naming the receipt and the student. It also proves
+the fold (a repeat is one row counting attempts, not a pile), both retry paths, the refusal to retry a
+closed row, the two non-problems, and that no credential and no stack trace reach the card.
+
+Go-live procedure, written for the owner: [`docs/SMS-GOLD-LIVE.md`](SMS-GOLD-LIVE.md).

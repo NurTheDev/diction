@@ -1,0 +1,62 @@
+import {getLocale} from 'next-intl/server';
+import {autoSmsProblems,autoSmsTriggerLabel} from '@/lib/center/sms-auto-problems';
+import {SmsProblemRetry} from '@/components/admin/sms-panel';
+import {formatNumber,formatTime,type Digits} from '@/lib/admin/format';
+
+/**
+ * "Automatic SMS problems" (R2 follow-up). The three automatic sends are best-effort on purpose — a
+ * message that cannot go out must never turn a saved payment or a published result into an error — so
+ * without this card a failure would be a console line nobody reads: the toggle looks on and nothing
+ * is ever sent.
+ *
+ * It renders NOTHING when there is nothing wrong, so a healthy centre never sees it, and it says in
+ * so many words that the money and the receipt are safe — that is the operator's first question. The
+ * retry itself is `SmsProblemRetry`, a client component, because a paid action needs a pending state.
+ */
+export async function SmsAutoProblems({digits='bn'}:{digits?:Digits}){
+  const {count,items}=await autoSmsProblems();
+  if(!count||!items.length)return null;
+  const en=(await getLocale().catch(()=>'bn'))==='en';
+  const t=(b:string,e:string)=>en?e:b;
+  const last=items[0];
+  const language=en?'en':'bn';
+  return (
+    <section className="admin-panel sms-problems" data-sms-problems="">
+      <div className="admin-panel-head">
+        <h2>{t('স্বয়ংক্রিয় এসএমএস সমস্যা','Automatic SMS problems')}</h2>
+        <span className="admin-badge sms-problem-count" data-sms-problem-count="">{formatNumber(count,digits)}</span>
+      </div>
+      <div className="admin-panel-body">
+        <p className="admin-feedback error" role="status" data-sms-problem-last="">
+          {en?last.messageEn:last.messageBn}{last.who?` — ${last.who}`:''}
+        </p>
+        <p className="admin-help">
+          {t(
+            'এই বার্তাগুলো স্বয়ংক্রিয়ভাবে পাঠানোর চেষ্টা করা হয়েছিল কিন্তু যায়নি। টাকা, রসিদ ও ফলাফল ঠিকই সংরক্ষিত আছে — শুধু এসএমএসটি যায়নি।',
+            'These were attempted automatically and did not go out. The payment, the receipt and the result are all still saved — only the SMS is missing.',
+          )}
+        </p>
+        <ul className="sms-problem-list">
+          {items.map(item=>{
+            const label=autoSmsTriggerLabel(item.trigger);
+            return (
+              <li key={item.id} data-sms-problem="">
+                <strong>{en?label.en:label.bn}</strong>
+                {item.who?<span className="sms-problem-who">{item.who}</span>:null}
+                <span className="admin-help">{en?item.messageEn:item.messageBn}</span>
+                {item.attempts>1?(
+                  <span className="admin-help">
+                    {t(`মোট ${formatNumber(item.attempts,digits)} বার চেষ্টা করা হয়েছে`,`Tried ${formatNumber(item.attempts,digits)} times`)}
+                    {' · '}
+                    {formatTime(item.lastAttemptAt,digits,language)}
+                  </span>
+                ):<span className="admin-help">{formatTime(item.lastAttemptAt,digits,language)}</span>}
+                <SmsProblemRetry locale={language} problemId={item.id} attempts={item.attempts}/>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    </section>
+  );
+}

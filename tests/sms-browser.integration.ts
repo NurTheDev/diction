@@ -102,11 +102,11 @@ async function run(){
     const ours=names.filter(name=>!name.startsWith('$')&&name!=='csrfToken');
         // Settings, the test number, the template editor, the batch retry id, the history filter and
     // the class picker that feeds the "new message" dialog.
-    const expectedNames=['smsUnitCost','quietStart','quietEnd','institutePhone','autoDueDay','autoReceipt','autoResult','autoDue','phone','key','name','body','active','batchId','status','template','q','smsClass'];
+    const expectedNames=['smsUnitCost','quietStart','quietEnd','institutePhone','autoDueDay','autoReceipt','autoResult','autoDue','phone','key','name','body','active','batchId','status','template','q','smsClass','problemId'];
     assert.deepEqual([...new Set(ours.filter(name=>!expectedNames.includes(name)))].sort(),[],'the page renders only the fields it means to');
     assert.deepEqual(ours.filter(name=>/api_?key|sender_?id|secret|password|token/i.test(name)),[],'no credential field is rendered at all — credentials come from the environment only');
     // And every field we do render holds only the shape it is supposed to hold.
-    const shapes:Record<string,RegExp>={smsClass:/^[a-f\d]{24}$/i,smsUnitCost:/^\d+(\.\d+)?$/,quietStart:/^([01]\d|2[0-3]):[0-5]\d$/,quietEnd:/^([01]\d|2[0-3]):[0-5]\d$/,institutePhone:/^$|^01[3-9]\d{8}$/,autoDueDay:/^\d{1,2}$/,phone:/^01[3-9]\d{8}$/,batchId:/^[a-f\d]{24}$/i};
+    const shapes:Record<string,RegExp>={smsClass:/^[a-f\d]{24}$/i,problemId:/^[a-f\d]{24}$/i,smsUnitCost:/^\d+(\.\d+)?$/,quietStart:/^([01]\d|2[0-3]):[0-5]\d$/,quietEnd:/^([01]\d|2[0-3]):[0-5]\d$/,institutePhone:/^$|^01[3-9]\d{8}$/,autoDueDay:/^\d{1,2}$/,phone:/^01[3-9]\d{8}$/,batchId:/^[a-f\d]{24}$/i};
     for(const field of fields){
       const shape=shapes[field.name];
       if(shape)assert.match(field.value,shape,`${field.name} holds an unexpected value`);

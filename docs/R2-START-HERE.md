@@ -24,10 +24,10 @@ npm run verify
 Expect, at the end:
 
 ```
-=== PASS: 26 PASS, 0 FAIL, 0 NOT TESTED (of 26 requirements) ===
+=== PASS: 27 PASS, 0 FAIL, 0 NOT TESTED (of 27 requirements) ===
 ```
 
-The eight R2 lines are:
+The nine R2 lines are:
 
 | id | what it proves | how |
 | --- | --- | --- |
@@ -39,10 +39,15 @@ The eight R2 lines are:
 | R2.6 | the SMS centre in the browser: connection, balance, this month's cost, the settings form (auto-send stays OFF unless ticked), an invalid institute number refused, a test message to your own number only, a stored template edit, history filters, an explicit retry, no credential in the HTML, nothing overflowing at 360/1440, staff get nothing | `tests/sms-browser.integration.ts` |
 | R2.7 | **the dialog itself**, in the browser, opened from all five screens R2 can reach: the four steps, skipped numbers with reasons, guardian/student/both, one-message-per-phone, all nine variable chips, the preview with characters/segments/cost/balance, one green send button that made a single request for two clicks, counts matching the stored rows | `tests/sms-dialog-browser.integration.ts` |
 | R2.8 | the dialog's server contract: one guarded endpoint for preview/send/retry, a read-only preview, refused plans (empty body, unrendered chip), one `requestId` = one batch, "skip those" for the 24-hour duplicate rule, retry only for failed rows, quiet-hours queueing and the flush, the three auto-send toggles OFF by default and idempotent when on, malformed requests refused before anything is read | `tests/sms-dialog.integration.ts` |
+| R2.9 | automatic-SMS problems: a refused receipt message leaves the saved payment untouched and shows up as one open problem in plain Bangla; repeats fold into one row that counts attempts; Retry re-sends only the failed rows, or runs the whole send again under a fresh request id when no batch exists; a class nobody is in and a queued reminder are not problems | `test:sms:problem` |
 
 ---
 
 ## 2. Turning the real provider on (do not do this before you have read section 4)
+
+The full switch-on checklist — the BulkSMSBD account steps including IP whitelisting, the sender id
+notes, the one test message to your own number, what `202` does and does not mean, and how to go back to
+`mock` — is [`docs/SMS-GOLD-LIVE.md`](SMS-GOLD-LIVE.md). What follows is the short version.
 
 `SMS_PROVIDER` defaults to `mock`. In mock mode **nothing is sent**: every message is logged, shown
 as sent, and costs nothing. That is how R2 was built and proven.

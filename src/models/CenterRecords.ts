@@ -33,6 +33,40 @@ smsBatchSchema.index({status:1,scheduledFor:1});
 const smsLogSchema=new Schema({batch:{type:Schema.Types.ObjectId,ref:'CenterSmsBatch'},student:{type:Schema.Types.ObjectId,ref:'CenterStudent'},phone:{type:String,required:true},message:{type:String,required:true,maxlength:2000},segments:{type:Number,required:true,min:1},cost:{type:Number,min:0,default:0},templateKey:String,month:String,providerCode:String,providerMessage:String,status:{type:String,enum:['sent','failed','skipped','queued'],required:true},reason:String,sentAt:Date},{timestamps:true});smsLogSchema.index({student:1,createdAt:-1});smsLogSchema.index({batch:1,status:1});smsLogSchema.index({createdAt:1});
 // R2: the 24-hour "same template/student/month was already sent" warning reads this index.
 smsLogSchema.index({templateKey:1,student:1,month:1,createdAt:-1});
+
+/**
+ * An automatic send that did not go out. All three auto-sends are best-effort ON PURPOSE — a message
+ * that cannot be sent must never turn a saved payment or a published result into an error for the
+ * operator — which also means a failure has nowhere to surface unless it is stored. So it is stored
+ * here, with the context needed to run it again, and the SMS page and Overview show it.
+ *
+ * `key` folds one repeating problem into one row (`attempts` counts the tries) instead of piling up a
+ * row per payment, and its unique index is partial on `resolved:false`, so a problem that was fixed
+ * can come back later as a new row. `createdBy` is deliberately absent: nobody asked for this.
+ */
+const smsAutoProblemSchema=new Schema({
+  key:{type:String,required:true,maxlength:64},
+  trigger:{type:String,required:true,enum:['auto_receipt','auto_due','auto_result']},
+  /** The failure in the operator's own words — never a stack trace, never a credential. */
+  messageBn:{type:String,required:true,maxlength:300},
+  messageEn:{type:String,required:true,maxlength:300},
+  /** A provider code or a short internal reason, for the technical reader. */
+  code:{type:String,maxlength:40},
+  /** Which receipt / class / exam this was, as one line the card can show. */
+  who:{type:String,maxlength:200},
+  /** JSON: exactly what retryAutoSmsProblem has to run again. */
+  context:{type:String,required:true,maxlength:2000},
+  batch:{type:Schema.Types.ObjectId,ref:'CenterSmsBatch'},
+  student:{type:Schema.Types.ObjectId,ref:'CenterStudent'},
+  classGroup:{type:Schema.Types.ObjectId,ref:'CenterClassGroup'},
+  attempts:{type:Number,min:1,default:1},
+  lastAttemptAt:Date,
+  resolved:{type:Boolean,default:false},
+  resolvedAt:Date,
+  resolvedBy:{type:Schema.Types.ObjectId,ref:'User'},
+},{timestamps:true});
+smsAutoProblemSchema.index({resolved:1,createdAt:-1});
+smsAutoProblemSchema.index({key:1},{unique:true,partialFilterExpression:{resolved:false}});
 const snapshotSchema=new Schema({requestId:{type:String,match:/^[a-f0-9-]{36}$/},classGroup:{type:Schema.Types.ObjectId,ref:'CenterClassGroup'},month:{type:Number,required:true,min:1,max:12},year:{type:Number,required:true,min:1900,max:2200},takenAt:{type:Date,required:true},takenBy:ref('User'),rows:{type:[{student:ref('CenterStudent'),classGroup:ref('CenterClassGroup'),studentId:String,nameBn:String,amountDue:money,monthsDue:[Number],monthsDetail:[{year:Number,month:Number,amount:Number}]}],immutable:true}},{timestamps:true});snapshotSchema.index({year:1,month:1,takenAt:-1});snapshotSchema.index({requestId:1},{unique:true,partialFilterExpression:{requestId:{$type:'string'}}});snapshotSchema.index({classGroup:1,takenAt:-1});
 // Application-level immutability; database administrators can still bypass Mongoose.
 for(const operation of ['updateOne','updateMany','findOneAndUpdate','replaceOne','deleteOne','deleteMany','findOneAndDelete'] as const)snapshotSchema.pre(operation,function(){throw Error('SNAPSHOT_IMMUTABLE')});snapshotSchema.pre('save',function(){if(!this.isNew)throw Error('SNAPSHOT_IMMUTABLE')});snapshotSchema.pre('deleteOne',{document:true,query:false},function(){throw Error('SNAPSHOT_IMMUTABLE')});
@@ -55,6 +89,7 @@ export const CenterGradingScale=models.CenterGradingScale||model('CenterGradingS
 export const CenterSmsTemplate=models.CenterSmsTemplate||model('CenterSmsTemplate',templateSchema);
 export const CenterSmsBatch=models.CenterSmsBatch||model('CenterSmsBatch',smsBatchSchema);
 export const CenterSmsLog=models.CenterSmsLog||model('CenterSmsLog',smsLogSchema);
+export const CenterSmsAutoProblem=models.CenterSmsAutoProblem||model('CenterSmsAutoProblem',smsAutoProblemSchema);
 export const CenterDueSnapshot=models.CenterDueSnapshot||model('CenterDueSnapshot',snapshotSchema);
 export const CenterSettings=models.CenterSettings||model('CenterSettings',settingsSchema);
 export const CenterCashBatch=models.CenterCashBatch||model('CenterCashBatch',cashBatchSchema);

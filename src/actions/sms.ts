@@ -16,10 +16,17 @@ import {CenterSettings,CenterSmsTemplate} from '@/models/CenterRecords';
 import {parseClock} from '@/lib/center/sms-quiet';
 import {normalizePhone} from '@/lib/center/phone';
 import {retryFailedSms,sendTestSms} from '@/lib/center/sms-send';
+import {retryAutoSmsProblem} from '@/lib/center/sms-dialog';
 import type {ActionState} from './admin';
 
 function refreshSms():void{
   for(const locale of ['bn','en'])revalidatePath(`/${locale}/admin/sms`);
+}
+
+/** An automatic-SMS problem is shown on the SMS page AND on the Overview, so both must refresh. */
+function refreshSmsProblems():void{
+  refreshSms();
+  for(const locale of ['bn','en'])revalidatePath(`/${locale}/admin`);
 }
 
 /** Form feedback follows the page language. Provider response codes stay Bangla by design. */
@@ -140,5 +147,26 @@ export async function saveSmsTemplate(_:ActionState,form:FormData):Promise<Actio
     await audit(admin.id,'sms.template',parsed.data.key);
     refreshSms();
     return {status:'ok'};
+  }catch{return {status:'error',reason:'unavailable'}}
+}
+
+const problemIdSchema=z.string().regex(/^[a-f0-9]{24}$/i);
+
+/**
+ * Retry one automatic send that did not go out (R2 follow-up). Guarded like every other action here,
+ * and audited: on the real provider this spends money, so the operator who clicked it is named. The
+ * answer is a sentence in the operator's language either way — a retry that fails again must say why,
+ * not just disappear.
+ */
+export async function retryAutoSms(_:ActionState,form:FormData):Promise<ActionState>{
+  try{
+    const admin=await requireAdmin();
+    const parsed=problemIdSchema.safeParse(String(form.get('problemId')||''));
+    if(!parsed.success)return {status:'error',reason:'invalid'};
+    const en=await localeIsEn();
+    const result=await retryAutoSmsProblem(parsed.data,admin.id);
+    refreshSmsProblems();
+    const message=en?result.messageEn:result.messageBn;
+    return result.ok?{status:'ok',message}:{status:'error',reason:'unavailable',message};
   }catch{return {status:'error',reason:'unavailable'}}
 }

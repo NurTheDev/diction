@@ -36,7 +36,8 @@
     "test:sms:recipients": "tsx tests/sms-recipients.test.ts",
     "test:sms:quiet": "tsx tests/sms-quiet.test.ts",
     "test:sms:db": "tsx --conditions=react-server tests/sms-send.integration.ts",
-    "test:sms:dialog": "tsx --conditions=react-server tests/sms-dialog.integration.ts"
+    "test:sms:dialog": "tsx --conditions=react-server tests/sms-dialog.integration.ts",
+    "test:sms:problem": "tsx --conditions=react-server tests/sms-auto-problem.integration.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

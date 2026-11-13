@@ -485,6 +485,15 @@ html:lang(bn) .public-motion-root:not(.private-motion-disabled) :is(h1,h2,h3,h4)
 .admin-confirm label{display:grid;gap:6px;font-size:15px;color:#4a5072}
 .admin-confirm .admin-help{overflow-wrap:anywhere}
 @media(max-width:760px){.admin-bin-grid{grid-template-columns:minmax(0,1fr)}.admin-bin-actions{justify-content:flex-start}.admin-bulk-bar{gap:8px}}
+/* R2 follow-up · "Automatic SMS problems": an alert card, readable at 360px and at 1440px. */
+.sms-problems .admin-panel-head{display:flex;align-items:center;gap:10px}
+.sms-problem-count{background:#b3261e;color:#fff;font-weight:700}
+.sms-problem-list{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:10px}
+.sms-problem-list li{display:grid;gap:4px;padding:10px 12px;border:1px solid #f0c9c6;border-left:3px solid #b3261e;border-radius:10px;background:#fff8f7;min-width:0}
+.sms-problem-list li strong{color:#8c1d18}
+.sms-problem-who{color:#23265d;font-weight:600;overflow-wrap:anywhere}
+.sms-problem-list form{justify-self:start;margin-top:4px}
+
 /* R2 · SMS centre: connection/balance/cost definition grids, template cards, toggle fieldsets. */
 .admin-defs{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin:0}
 .admin-defs>div{background:#f7f8fd;border:1px solid #e3e7f4;border-radius:10px;padding:12px 14px}

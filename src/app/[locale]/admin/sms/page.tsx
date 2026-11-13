@@ -9,6 +9,7 @@ import {createSmsProvider,smsProviderName,validateSmsCredentials} from '@/lib/ce
 import {SMS_VARIABLES} from '@/lib/center/sms-templates';
 import {SmsSettingsForm,SmsTestForm,SmsRetryButton,SmsTemplateEditor} from '@/components/admin/sms-panel';
 import SmsNewMessage from '@/components/admin/sms-new-message';
+import {SmsAutoProblems} from '@/components/admin/sms-auto-problems';
 
 export const dynamic='force-dynamic';
 
@@ -70,6 +71,10 @@ export default async function SmsPage({params,searchParams}:{params:Promise<{loc
       <h1>{t('এসএমএস','SMS')}</h1>
       <p>{t('প্রদানকারী, ব্যালেন্স, খরচ, টেমপ্লেট ও পাঠানোর ইতিহাস — এক জায়গায়।','Provider, balance, cost, templates and sending history in one place.')}</p>
     </div></div>
+
+    {/* Above the connection panel on purpose: an automatic send that did not go out is the one thing
+        on this page the operator must act on, and it is invisible everywhere else. */}
+    <SmsAutoProblems digits={digits}/>
 
     <section className="admin-panel"><div className="admin-panel-head"><h2>{t('সংযোগ','Connection')}</h2></div><div className="admin-panel-body">
       <dl className="admin-defs">

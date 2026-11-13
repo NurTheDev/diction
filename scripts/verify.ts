@@ -332,6 +332,8 @@ async function main():Promise<void>{
       {needsDb:true,env:{TEST_ORIGIN:ctx.origin,TEST_MONGO_URI:ctx.mongoUri,TEST_MONGO_DB:ctx.mongoDb}});
     await stepUnitSuites(ctx,'test:sms:dialog','R2.8','SendSmsDialog contract against the disposable database',
       {needsDb:true,env:{TEST_ORIGIN:ctx.origin,TEST_MONGO_URI:ctx.mongoUri,TEST_MONGO_DB:ctx.mongoDb}});
+    await stepUnitSuites(ctx,'test:sms:problem','R2.9','Automatic-SMS problems against the disposable database',
+      {needsDb:true,env:{TEST_ORIGIN:ctx.origin,TEST_MONGO_URI:ctx.mongoUri,TEST_MONGO_DB:ctx.mongoDb}});
     await stepScreens(ctx);
     await stepBrowserTests(ctx);
     (ctx as Context&{stop?:()=>void}).stop?.();
