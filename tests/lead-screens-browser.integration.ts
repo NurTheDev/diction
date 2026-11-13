@@ -284,10 +284,16 @@ async function run(){
 
     // ---- 4. One search box: a number posts to an action, a name goes in the URL.
     const search=boss.page.locator(`section.admin-panel[aria-label="${t.search}"]`);
+    /**
+     * The panel's own submit button, named by the form it sits in. Every result row carries a drawer, and
+     * a closed `<dialog>` is still in the DOM with its note form inside it — so "the submit button in this
+     * panel" is three buttons once two hits have been rendered, and Playwright refuses to pick one.
+     */
+    const submitSearch=()=>search.locator('form.admin-panel-body button[type="submit"]');
     await boss.page.locator('div.lead-tools button',{hasText:t.search}).first().click();
     await search.locator('input[name="phone"]').waitFor({state:'visible',timeout:30000});
     await search.locator('input[name="phone"]').fill('7090');
-    await search.locator('button[type="submit"]').click();
+    await submitSearch().click();
     const hits=search.locator('table.admin-table tbody tr');
     await hits.first().waitFor({state:'visible',timeout:90000});
     assert.equal(await hits.count(),2,'four digits off a crumpled sheet find both leads that share the number');
@@ -303,12 +309,12 @@ async function run(){
     await shot(boss.page,'b2-number-search-1440');
 
     await search.locator('input[name="phone"]').fill('৭০৯০');
-    await search.locator('button[type="submit"]').click();
+    await submitSearch().click();
     await search.locator('table.admin-table tbody tr').first().waitFor({state:'visible',timeout:90000});
     assert.equal(await search.locator('table.admin-table tbody tr').count(),2,'Bangla digits find the same two leads');
 
     await search.locator('input[name="phone"]').fill('12');
-    await search.locator('button[type="submit"]').click();
+    await submitSearch().click();
     await search.locator('p.admin-feedback.error').first().waitFor({state:'visible',timeout:90000});
     assert.equal(await search.locator('table.admin-table tbody tr').count(),0,'two digits are refused rather than matched against everybody');
     const refusal=await search.locator('p.admin-feedback.error').first().innerText();
@@ -317,7 +323,7 @@ async function run(){
     assert.ok(!refusal.includes('12'),'…without quoting what was typed');
 
     await search.locator('input[name="phone"]').fill(OLD);
-    await search.locator('button[type="submit"]').click();
+    await submitSearch().click();
     await boss.page.waitForURL(/q=/,{timeout:90000});
     assert.equal(new URL(boss.page.url()).searchParams.get('q'),OLD,'a name DOES travel in the URL, so a filtered list can be shared between two admins');
     await boss.page.locator('table.admin-table tbody tr',{hasText:OLD}).first().waitFor({timeout:60000});
@@ -329,7 +335,7 @@ async function run(){
     await desk.page.locator('div.lead-tools button',{hasText:t.search}).first().click();
     await deskSearch.locator('input[name="phone"]').waitFor({state:'visible',timeout:30000});
     await deskSearch.locator('input[name="phone"]').fill(P2.slice(-4));
-    await deskSearch.locator('button[type="submit"]').click();
+    await deskSearch.locator('form.admin-panel-body button[type="submit"]').click();
     await deskSearch.locator('table.admin-table tbody tr').first().waitFor({state:'visible',timeout:90000});
     assert.ok((await deskSearch.innerText()).includes(MASK_2),'the number that was searched for comes back masked');
     await noOverflow(desk.page,'the search box at 360');
