@@ -1,2 +1,2 @@
 --- tests/staff-role.test.ts (exit 0) ---
-Staff role: present in auth and managed roles, creatable, sees admin lists but not roles/audit/ai, sees the Visitors list and its follow-up queue, and the restricted roles see neither those nor anything else.
+Staff role: present in auth and managed roles, creatable, sees admin lists but not roles/audit/ai, sees the Visitors list and its follow-up queue; its Overview is that queue and nothing else — today’s follow-ups and the overdue count, with the intake counters, the auto-SMS problems and the database usage left to admin and super admin — and a role the scope function does not know gets no panel at all.

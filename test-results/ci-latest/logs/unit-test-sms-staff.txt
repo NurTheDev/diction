@@ -1,0 +1,18 @@
+--- tests/sms-staff.test.ts (exit 0) ---
+Staff SMS policy: admin and super admin keep every source, every template, free text and the retry of a failed batch; a staff send may name only a visitor or a selection of visitors and only the thank-you template, with no text riding along — so an unnamed template, a custom one and "the thank-you plus my own words" are all refused with a Bangla sentence that names the one template they do have; retrying and every fee or class source is refused; a role that never had the SMS page is refused as a role before anything else is read; the daily ceiling is 30 unless the centre wrote a number, 0 turns it off, a negative or fractional value falls back rather than meaning unlimited; it counts staff, admin and super admin and never an automatic send; and both of its sentences — what is left and the refusal — carry the number in the digits the operator reads.
+
+
+--- tests/sms-staff.integration.ts (exit 1) ---
+AssertionError [ERR_ASSERTION]: yesterday is another day, and a chunk that sent nothing counts as nothing
+
+7 !== 0
+
+    at run (/home/runner/work/diction/diction/tests/sms-staff.integration.ts:108:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: 7,
+  expected: 0,
+  operator: 'strictEqual',
+  diff: 'simple'
+}

@@ -1,1 +1,19 @@
-SMS centre: the settings form saves and unticked auto-send stays off, an invalid institute number is refused without changing anything, a test message reaches only the operator’s own number and is logged, a template edit is stored with derived chips and marked edited, the history filter isolates failed rows, an explicit retry re-sends only those rows and then disappears, the Bangla page matches, nothing overflows at 360 or 1440, staff see no SMS link or form, and no credential appears in the served HTML.
+AssertionError [ERR_ASSERTION]: the page renders only the fields it means to
++ actual - expected
+
++ [
++   'dailySmsLimitPerUser'
++ ]
+- []
+
+    at run (/home/runner/work/diction/diction/tests/sms-browser.integration.ts:106:12)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at process.processImmediate (node:internal/timers:452:9)
+    at process.callbackTrampoline (node:internal/async_hooks:130:17) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: [Array],
+  expected: [],
+  operator: 'deepStrictEqual',
+  diff: 'simple'
+}
