@@ -78,6 +78,20 @@ export interface ResolvedRecipients{
 
 const MONEY_VARIABLES:SmsVariable[]=['due_amount','amount'];
 
+const BANGLA_DIGITS='০১২৩৪৫৬৭৮৯';
+const toAsciiDigits=(value:string):string=>value.replace(/[০-৯]/g,c=>String(BANGLA_DIGITS.indexOf(c)));
+const toBanglaDigits=(value:string):string=>value.replace(/[0-9]/g,c=>BANGLA_DIGITS[Number(c)]);
+/**
+ * Money arrives already localized: a Bangla message wants "৩০০০ টাকা", so callers format the amount
+ * before it becomes a chip value. Summing those amounts for one shared number must therefore read
+ * Bangla digits too — otherwise every real sibling send would be "ambiguous" and silently split into
+ * two messages, which is the one thing one-message-per-phone exists to prevent.
+ */
+function parseLocalizedAmount(value:string|number):number{
+  const text=String(value).trim();
+  return Number(toAsciiDigits(text));
+}
+
 /** Dhaka calendar month index, matching src/lib/center/month-status.ts semantics. */
 function monthIndex(date:Date):number{
   const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Dhaka',year:'numeric',month:'2-digit'}).formatToParts(date);
@@ -119,9 +133,13 @@ function mergeValues(list:SmsCandidateStudent[],globalValues:Partial<Record<SmsV
     // Some sibling lacks a chip the others have — we cannot state one honest sentence for the group.
     if(list.length>1&&filled.length!==list.length)return null;
     if(MONEY_VARIABLES.includes(variable)){
-      const numbers=filled.map(Number);
+      const numbers=filled.map(value=>parseLocalizedAmount(value as string|number));
       if(numbers.some(n=>!Number.isFinite(n)))return null;
-      merged[variable]=list.length>1?numbers.reduce((a,b)=>a+b,0):(filled[0] as string|number);
+      if(list.length===1){merged[variable]=filled[0] as string|number;continue}
+      const total=numbers.reduce((a,b)=>a+b,0);
+      // Answer in the script the operator's own values used, so the merged message still reads Bangla.
+      const bangla=filled.some(v=>/[০-৯]/.test(String(v)));
+      merged[variable]=bangla?toBanglaDigits(String(total)):total;
     }else{
       // Non-money chips: siblings share a guardian phone but not necessarily a class or a receipt.
       const unique=new Set(filled.map(v=>String(v).trim()));

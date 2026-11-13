@@ -18,6 +18,8 @@ import {preflight,testDbName} from './helpers/env-preflight';
 import {User} from '../src/models/User';
 import {CenterClassGroup,CenterStudent,CenterSettings,CenterSmsBatch,CenterSmsLog} from '../src/models/CenterRecords';
 import {dhakaCalendar} from '../src/lib/center/month-status';
+import {liveClassDues} from '../src/lib/center/dues-query';
+import {formatNumber} from '../src/lib/admin/format';
 
 /** Phones and amounts are rendered in the account's digit preference, Bangla by default. */
 const ascii=(text:string):string=>text.replace(/[০-৯]/g,c=>String('০১২৩৪৫৬৭৮৯'.indexOf(c)));
@@ -110,8 +112,8 @@ async function run(){
       for(let i=0;i<60&&!(await summary()).match(pattern);i++)await new Promise(resolve=>setTimeout(resolve,500));
       assert.match(await summary(),pattern,`${why} — last answer from /api/admin/sms/send: ${lastAnswer}`);
     }
-    async function openDialog(url:string,label:string){
-      await page.goto(url,{waitUntil:'domcontentloaded',timeout:180000});
+    async function openDialog(path:string,label:string){
+      await page.goto(`${origin}${path}`,{waitUntil:'domcontentloaded',timeout:180000});
       const trigger=page.locator('[data-sms-open]').first();
       await trigger.waitFor({state:'visible',timeout:60000});
       assert.match(await trigger.innerText(),new RegExp(label),'the entry point is labelled for the operator');
@@ -211,13 +213,21 @@ async function run(){
     assert.equal(await page.locator('[data-sms-retry]').count(),0,'a send with no failures offers no retry');
     assert.equal(await CenterSmsBatch.countDocuments(),1,'one batch');
     const sentRows=await CenterSmsLog.find({status:'sent'}).lean<any[]>();
-    assert.equal(sentRows.length,2,'one durable row per message');
-    assert.deepEqual(sentRows.map(row=>row.phone).sort(),['01733333331','01733333332']);
+    assert.equal(sentRows.length,3,'one durable row per (recipient, student), so the merged sibling message stays traceable to both children');
+    assert.deepEqual(sentRows.map(row=>row.phone).sort(),['01733333331','01733333332','01733333332'],'while the guardian’s shared number still holds ONE message');
+    assert.equal(new Set(sentRows.map(row=>row.message)).size,2,'two distinct messages went out, not three');
     assert.ok(sentRows.every(row=>row.segments>=1&&row.cost>=0.5),'each row carries its own segments and cost');
-    assert.equal(await CenterSmsLog.countDocuments({status:'skipped',reason:'opted_out'}),1,'the opted-out number is recorded as skipped, never sent');
+    assert.equal(await CenterSmsLog.countDocuments({status:'skipped',reason:'opted_out'}),0,'the opted-out student is counted on the batch but stored in no row — SmsLog.phone is required and must stay a real number');
+    assert.equal(await CenterSmsLog.countDocuments({phone:'01733333335'}),0,'so the opted-out number appears nowhere in the log, and was never sent');
     assert.equal(await CenterSmsLog.countDocuments({phone:'01733333334'}),0,'the removed student appears nowhere');
+    // The amount is live pricing, so the expectation is computed the way the app computes it instead
+    // of being hardcoded: on whatever day CI runs, the guardian must be told the SUM for her number.
+    const priced=await liveClassDues(String(group._id));
+    const totalOf=(id:string):number=>priced.rows.find(row=>String(row.student._id)===id)?.total||0;
+    const mergedTotal=formatNumber(totalOf(String(siblingA._id))+totalOf(String(siblingB._id)),'bn');
     const groupedRow=sentRows.find(row=>row.phone==='01733333332');
-    assert.match(groupedRow.message,/৪৫০০/,'the sibling message quotes the summed total');
+    assert.ok(groupedRow.message.includes(mergedTotal),`the sibling message quotes the summed total (${mergedTotal}), not one child's share`);
+    assert.ok(groupedRow.message.includes('ভাই শিক্ষার্থী')&&groupedRow.message.includes('বোন শিক্ষার্থী'),'and names both children, so the guardian knows whose total it is');
     assert.equal(await page.locator('[data-sms-done]').count(),1,'the footer becomes Done once the result is in');
     assert.deepEqual(boss.errors,[],'no client-side error during the whole flow');
 
@@ -229,7 +239,7 @@ async function run(){
     await dialog.waitFor({state:'hidden',timeout:30000});
 
     // 6. …and from the student list's bulk action, for exactly the ticked students.
-    await page.goto('/bn/admin/students',{waitUntil:'domcontentloaded',timeout:180000});
+    await page.goto(`${origin}/bn/admin/students`,{waitUntil:'domcontentloaded',timeout:180000});
     const boxes=page.locator('input[name="smsStudent"]');
     await boxes.first().waitFor({state:'visible',timeout:60000});
     assert.equal(await page.locator('[data-sms-open]').count(),0,'no bulk button before anything is ticked');
@@ -247,13 +257,16 @@ async function run(){
     await bulk.click();
     await dialog.waitFor({state:'visible',timeout:60000});
     await expectSummary(/মোট 2 নম্বর · 2 বার্তা/,'the selection, and only the selection, is counted');
+    await toStep(2);
     await page.locator('[data-sms-back]').click();
+    await step(1).waitFor({state:'visible',timeout:30000});
+    assert.equal(await page.locator('[data-sms-back]').isDisabled(),true,'Back is disabled on the first step, so an operator can never step out of the dialog backwards');
     await page.keyboard.press('Escape');
     await dialog.waitFor({state:'hidden',timeout:30000});
 
     // 7. The payment success screen offers the receipt message, pre-filled with that receipt.
-    await page.goto(`/bn/admin/students/collect?student=${payer._id}`,{waitUntil:'domcontentloaded',timeout:180000});
-    const dueMonth=page.locator('.daily-month.due').first();
+    await page.goto(`${origin}/bn/admin/students/collect?student=${payer._id}`,{waitUntil:'domcontentloaded',timeout:180000});
+    const dueMonth=page.locator('.daily-months button.daily-due').first();
     await dueMonth.waitFor({state:'visible',timeout:60000});
     await dueMonth.click();
     await page.locator('input[aria-label="ক্যাশবুক পৃষ্ঠা নম্বর"]').fill('9001');
@@ -268,14 +281,14 @@ async function run(){
     await toStep(2);
     assert.equal(await page.locator('input[name="smsTemplate"][value="payment_receipt"]').isChecked(),true,'the receipt template is already chosen');
     await toStep(3);
-    assert.match(await page.locator('[data-sms-preview]').first().innerText(),/9001/,'and the receipt number is already in the message');
+    assert.match(ascii(await page.locator('[data-sms-preview]').first().innerText()),/9001/,'and the receipt number is already in the message');
     await toStep(4);
     await page.locator('[data-sms-send]').click();
     await page.locator('[data-sms-result]').waitFor({state:'visible',timeout:120000});
     assert.match(ascii(await page.locator('[data-sms-result]').innerText()),/সফল: 1/,'one receipt message');
     const receiptRow=await CenterSmsLog.findOne({status:'sent',phone:'01733333331',templateKey:'payment_receipt'}).lean<any>();
     assert.ok(receiptRow,'the receipt message is durable');
-    assert.match(receiptRow.message,/9001/);
+    assert.match(ascii(receiptRow.message),/9001/,'the number the operator typed, in the digits the screen shows');
     assert.equal(String(receiptRow.student),String(payer._id),'and it is linked to the student');
 
     // 8. The SMS page's "new message" reaches a whole class, and asks for the one value it cannot know.
@@ -300,7 +313,7 @@ async function run(){
     await dialog.waitFor({state:'hidden',timeout:30000});
 
     // 9. English labels, a narrow screen, staff, and no credential in the served HTML.
-    await page.goto('/en/admin/students/dues?class=' + group._id,{waitUntil:'domcontentloaded',timeout:180000});
+    await page.goto(`${origin}/en/admin/students/dues?class=${group._id}`,{waitUntil:'domcontentloaded',timeout:180000});
     const enTrigger=page.locator('[data-sms-open]').first();
     await enTrigger.waitFor({state:'visible',timeout:60000});
     assert.match(await enTrigger.innerText(),/Send reminder/,'the entry point follows the page language');
@@ -311,7 +324,7 @@ async function run(){
     await dialog.waitFor({state:'hidden',timeout:30000});
 
     const narrow=await signIn('admin',360);
-    await narrow.page.goto(`/bn/admin/students/dues?class=${group._id}`,{waitUntil:'domcontentloaded',timeout:180000});
+    await narrow.page.goto(`${origin}/bn/admin/students/dues?class=${group._id}`,{waitUntil:'domcontentloaded',timeout:180000});
     await narrow.page.locator('[data-sms-open]').first().click();
     await narrow.page.locator('[data-sms-dialog]').waitFor({state:'visible',timeout:60000});
     const overflow=await narrow.page.evaluate(()=>({scroll:document.documentElement.scrollWidth,client:document.documentElement.clientWidth}));
@@ -324,13 +337,13 @@ async function run(){
     for(const needle of ['BULKSMSBD_API_KEY','sk-dialog','api_key='])assert.ok(!html.includes(needle),`the served HTML never mentions ${needle}`);
 
     const worker=await signIn('staff');
-    await worker.page.goto(`/bn/admin/students/dues?class=${group._id}`,{waitUntil:'domcontentloaded',timeout:180000});
+    await worker.page.goto(`${origin}/bn/admin/students/dues?class=${group._id}`,{waitUntil:'domcontentloaded',timeout:180000});
     assert.equal(await worker.page.locator('[data-sms-open]').count(),0,'staff get no send button');
-    await worker.page.goto('/bn/admin/sms',{waitUntil:'domcontentloaded',timeout:180000});
+    await worker.page.goto(`${origin}/bn/admin/sms`,{waitUntil:'domcontentloaded',timeout:180000});
     assert.equal(await worker.page.locator('[data-sms-open]').count(),0,'and no new-message control on the SMS page');
     await worker.context.close();
 
-    console.log('SendSmsDialog: one reusable four-step dialog opened from the due list, a student profile, the student list’s bulk action, the payment success screen and the SMS page — step one counts the real numbers and lists every skipped one with its reason (opted out, no number, held for a fee message; a removed student is never counted), guardian/student/both and one-message-per-phone change exactly who is included, step two offers the templates with all nine variable chips, step three previews the first messages verbatim with characters, segments and cost against the balance, step four has one green send button that made a single request for two clicks and reported sent 2 / failed 0 / skipped 3 which matched the stored rows, a receipt send carries its own number and student, a class notice asks for its subject, nothing overflows at 360px, the labels follow the page language, staff get no control, and no credential reaches the browser.');
+    console.log('SendSmsDialog: one reusable four-step dialog opened from the due list, a student profile, the student list’s bulk action, the payment success screen and the SMS page — step one counts the real numbers and lists every skipped one with its reason (opted out, no number, held for a fee message; a removed student is never counted), guardian/student/both and one-message-per-phone change exactly who is included, step two offers the templates with all nine variable chips, step three previews the first messages verbatim with characters, segments and cost against the balance, step four has one green send button that made a single request for two clicks and reported sent 2 / failed 0 / skipped 3, with one stored row per (recipient, student) so the merged sibling message is traceable to both children, a receipt send carries its own number and student, a class notice asks for its subject, nothing overflows at 360px, the labels follow the page language, staff get no control, and no credential reaches the browser.');
   }finally{
     await browser.close();
     await mongoose.disconnect();

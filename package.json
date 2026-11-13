@@ -27,7 +27,7 @@
     "test-mode": "tsx scripts/test-mode.ts",
     "verify": "tsx scripts/verify.ts",
     "test:staff-role": "tsx tests/staff-role.test.ts",
-    "test:recycle:db": "tsx tests/recycle-bin.integration.ts",
+    "test:recycle:db": "tsx --conditions=react-server tests/recycle-bin.integration.ts",
     "test:recycle:coverage": "tsx tests/recycle-coverage.test.ts",
     "test:cron": "tsx --conditions=react-server tests/cron.test.ts",
     "test:sms": "npm run test:sms:provider && npm run test:sms:templates && npm run test:sms:recipients && npm run test:sms:quiet",

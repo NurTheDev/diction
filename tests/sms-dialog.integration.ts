@@ -105,7 +105,7 @@ async function run(){
     assert.equal(p1.lowBalance,false);
     assert.equal(p1.quiet,false,'an empty quiet window never blocks');
     assert.equal(p1.blocked,null);
-    assert.equal(p1.month,'2026-01','the duplicate-warning key is the earliest overdue month, not prose');
+    assert.equal(p1.month,'2026-03','the class source is not a dues list, so its duplicate-warning key is the current Dhaka month, never prose');
     assert.ok(p1.recipients.every(item=>!/\{\w+\}/.test(item.preview)),'no chip survives into a preview');
     assert.deepEqual([...new Set(p1.skipped.map(item=>item.reason))].sort(),['held','missing_phone','missing_value','opted_out'].sort(),'exactly the reasons this class deserves');
     for(const reason of p1.skipped.map(item=>item.reason))assert.ok(SMS_SKIP_REASONS.includes(reason),'every reason comes from the closed vocabulary');
@@ -135,6 +135,7 @@ async function run(){
     assert.equal(dues.messages,2,'the overdue list messages the same two numbers the screen shows');
     assert.ok(!dues.recipients.some(item=>item.phone==='01711000009'),'a student with nothing owed is not on the due list');
     assert.ok(!dues.skipped.some(item=>item.reason==='missing_value'),'so no one is skipped for a missing amount either');
+    assert.equal(dues.month,'2026-01','the DUE list keys its duplicate warning to the earliest overdue month (January of the three owed)');
     const receipt=previewOf(await call({mode:'preview',source:'receipt',templateKey:'payment_receipt',target:'guardian',requestId:randomUUID(),
       receipt:{student:idOf(paid),amount:1500,month:'2026-03',receiptNo:'SYNTH-R77'}}));
     assert.equal(receipt.messages,1);
@@ -171,11 +172,12 @@ async function run(){
     assert.equal(sent.body.status,'done');
     assert.equal(sent.body.sent,2);
     assert.equal(sent.body.failed,0);
-    assert.equal(sent.body.skipped,3,'opted out, held and phoneless are counted on the batch');
+    assert.equal(sent.body.skipped,2,'the opted-out and the phoneless student are counted on the batch — the held one is not on the DUE list at all, because only active students are priced');
     const batchId=sent.body.batchId;
     assert.equal(await CenterSmsBatch.countDocuments(),1);
-    assert.equal(await CenterSmsLog.countDocuments({batch:batchId,status:'sent'}),2,'one durable row per message');
-    assert.equal(await CenterSmsLog.countDocuments({batch:batchId,status:'skipped'}),2,'and one per skipped number that has a phone');
+    assert.equal(await CenterSmsLog.countDocuments({batch:batchId,status:'sent'}),3,'one durable row per (recipient, student): the merged sibling message stays traceable to both children');
+    assert.equal(await CenterSmsLog.countDocuments({batch:batchId,status:'sent',phone:'01711000002'}),2,'so the one message the guardian got is recorded against each of her two children');
+    assert.equal(await CenterSmsLog.countDocuments({batch:batchId,status:'skipped'}),0,'and no row for a skip that has no number at all: SmsLog.phone is required, so those are counted on the batch instead');
     const sentRow=await CenterSmsLog.findOne({batch:batchId,status:'sent'}).lean();
     assert.equal(sentRow.segments,1);
     assert.equal(sentRow.cost,0.5);
@@ -187,7 +189,7 @@ async function run(){
     assert.equal(again.body.status,'existing','the same request answered from the first batch');
     assert.equal(again.body.batchId,batchId);
     assert.equal(await CenterSmsBatch.countDocuments(),1,'no second batch');
-    assert.equal(await CenterSmsLog.countDocuments({batch:batchId,status:'sent'}),2,'and no second message to anyone');
+    assert.equal(await CenterSmsLog.countDocuments({batch:batchId,status:'sent'}),3,'and no second row for anyone');
     assert.equal(sender.itemCount(),2,'the provider was not called again');
 
     // A different request is a different send, and it is stopped by the 24-hour duplicate rule.
@@ -210,7 +212,7 @@ async function run(){
     assert.equal(retried.body.sent,1);
     assert.equal(retried.body.failed,0);
     assert.equal(retrier.itemCount(),1,'only the failed message was sent again');
-    assert.equal(await CenterSmsLog.countDocuments({batch:batchId,status:'sent'}),2);
+    assert.equal(await CenterSmsLog.countDocuments({batch:batchId,status:'sent'}),3,'the retried row is back to sent and its sibling row was never touched');
     assert.equal(await CenterSmsLog.countDocuments({batch:batchId,status:'failed'}),0);
     const nothing=await call({mode:'retry',batchId});
     assert.equal(nothing.status,409);
@@ -225,7 +227,9 @@ async function run(){
     const queuedBatch=await CenterSmsBatch.findById(queued.body.batchId).lean();
     assert.equal(queuedBatch.quiet,true);
     assert.ok(queuedBatch.scheduledFor.getTime()>now.getTime(),'and it is scheduled for after the window');
-    assert.equal(await CenterSmsLog.countDocuments({batch:queued.body.batchId,status:'queued'}),queued.body.recipientCount,'every message waits as a log row');
+    const waiting=await CenterSmsLog.countDocuments({batch:queued.body.batchId,status:'queued'});
+    assert.ok(waiting>=queued.body.recipientCount,'every message waits as at least one log row');
+    assert.equal(await CenterSmsLog.countDocuments({batch:queued.body.batchId,status:'queued',phone:'01711000002'}),2,'and a merged sibling message waits once per child, so the flush still knows who it is for');
     const forced=await call({mode:'send',source:'class',classGroup:classId,templateKey:'visitor_thanks',target:'guardian',force:true,requestId:randomUUID()},{provider:queuer.provider});
     assert.equal(forced.body.status,'done','"send anyway" is the operator\'s override');
     const flushed=await flushQueuedSms(new Date(now.getTime()+3*3600*1000),queuer.provider);
@@ -256,12 +260,21 @@ async function run(){
     assert.equal(wrongDay.ran,false,'and it only runs on the day the operator chose, never to catch up');
     assert.equal(wrongDay.day,20);
     await CenterSettings.updateOne({key:'main'},{$set:{autoDueDay:20}});
-    const dueOn=await runAutoDue({now});
+    const guarded=await runAutoDue({now});
+    assert.equal(guarded.ran,true,'on the day the operator chose, the job runs');
+    assert.equal(guarded.classes,1,'one batch for the one class with overdue students');
+    assert.equal(guarded.sent,0,'but phase 6 already sent this reminder by hand, so the job messages nobody twice in a day');
+    assert.equal(guarded.skipped,4,'the two students who cannot be messaged plus the two numbers already reached today');
+    // Two days later, with no reminder inside the last 24 hours, the same job really does send.
+    await CenterSmsLog.deleteMany({templateKey:'due_reminder'});
+    const later=new Date('2026-03-22T10:00:00+06:00');
+    await CenterSettings.updateOne({key:'main'},{$set:{autoDueDay:22}});
+    const dueOn=await runAutoDue({now:later});
     assert.equal(dueOn.ran,true);
-    assert.equal(dueOn.classes,1,'one batch for the one class with overdue students');
-    assert.ok(dueOn.sent>=2,'the overdue reminders went out');
+    assert.equal(dueOn.classes,1);
+    assert.equal(dueOn.sent,2,'the overdue reminders went out: one message per phone, siblings merged');
     const afterAutoDue=await CenterSmsBatch.countDocuments();
-    const dueTwice=await runAutoDue({now});
+    const dueTwice=await runAutoDue({now:later});
     assert.equal(dueTwice.ran,true);
     assert.equal(await CenterSmsBatch.countDocuments(),afterAutoDue,'re-running the job on the same day sends nothing new');
 
@@ -291,7 +304,7 @@ async function run(){
       assert.equal(outcome.status,400,`${label} is refused`);
       assert.equal(outcome.body.ok,false);
     }
-    assert.equal(await CenterSmsBatch.countDocuments(),afterAutoDue+2,'only the two automatic batches were added by the auto-send phase');
+    assert.equal(await CenterSmsBatch.countDocuments(),afterAutoDue+1,'only the automatic result batch was added since; every refused request in this phase stored nothing');
 
     // ---- 11. Deterministic keys, and no credential anywhere.
     assert.match(autoRequestId('a','b'),/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,'an automatic requestId satisfies the batch schema');

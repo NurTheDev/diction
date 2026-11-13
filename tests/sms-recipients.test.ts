@@ -79,6 +79,28 @@ function run(){
   assert.equal(grouped.recipients[0].values.due_amount,1200,'the guardian is told the total, not one child’s share');
   assert.equal(grouped.recipients[0].values.class,'৭');
 
+  // 6b. The same grouping when the amounts are already localized, which is how a real send arrives:
+  //     a Bangla message wants "৪৫০০ টাকা", so the sum must be read and written in Bangla digits.
+  const banglaSiblings=[
+    student({id:'a',nameBn:'রহিম',guardianPhone:'01711111111',values:{month:'মার্চ',due_amount:'৩০০০',class:'৭'}}),
+    student({id:'b',nameBn:'করিম',guardianPhone:'01711111111',values:{month:'মার্চ',due_amount:'১৫০০',class:'৭'}}),
+  ];
+  const banglaGrouped=resolveRecipients(banglaSiblings,{audience:'guardian',feeMessage:true,onePerPhone:true,now:NOW});
+  assert.equal(banglaGrouped.recipients.length,1,'a localized amount is still one message per phone');
+  assert.equal(banglaGrouped.recipients[0].grouped,true);
+  assert.equal(banglaGrouped.recipients[0].values.due_amount,'৪৫০০','and the summed total is written back in the same digits');
+  assert.equal(banglaGrouped.groupingRefused.length,0);
+  const mixedDigits=[
+    student({id:'a',nameBn:'রহিম',guardianPhone:'01711111111',values:{due_amount:'৩০০০'}}),
+    student({id:'b',nameBn:'করিম',guardianPhone:'01711111111',values:{due_amount:1500}}),
+  ];
+  assert.equal(resolveRecipients(mixedDigits,{audience:'guardian',feeMessage:true,onePerPhone:true,now:NOW}).recipients[0].values.due_amount,'৪৫০০','a mixed pair still sums, in Bangla digits');
+  const prose=[
+    student({id:'a',nameBn:'রহিম',guardianPhone:'01711111111',values:{due_amount:'৩০০০ টাকা'}}),
+    student({id:'b',nameBn:'করিম',guardianPhone:'01711111111',values:{due_amount:'১৫০০'}}),
+  ];
+  assert.equal(resolveRecipients(prose,{audience:'guardian',feeMessage:true,onePerPhone:true,now:NOW}).recipients.length,2,'an amount that is not a number is still refused rather than guessed');
+
   // 7. Grouping is REFUSED when a merged message could not state the money honestly.
   const ambiguous=[
     student({id:'a',nameBn:'রহিম',guardianPhone:'01711111111',values:{due_amount:500}}),
@@ -110,7 +132,7 @@ function run(){
   assert.equal(chunkRecipients(Array.from({length:250},(_,i)=>i),100).at(-1)!.length,50,'the last chunk holds the remainder');
   assert.deepEqual(chunkRecipients([],100),[]);
 
-  console.log('SMS recipients: removed and opted-out students are never sent to, held students are excluded from fee messages only, missing/invalid numbers are reported with reasons, every accepted phone shape normalizes to 01XXXXXXXXX, siblings group into one message with a summed total (refused when the amount is ambiguous), and 500 recipients batch into five chunks of 100.');
+  console.log('SMS recipients: removed and opted-out students are never sent to, held students are excluded from fee messages only, missing/invalid numbers are reported with reasons, every accepted phone shape normalizes to 01XXXXXXXXX, siblings group into one message with a summed total — read and written back in Bangla digits, refused only when the amount is genuinely ambiguous, and 500 recipients batch into five chunks of 100.');
 }
 
 run();

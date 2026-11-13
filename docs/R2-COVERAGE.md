@@ -71,7 +71,7 @@ and nothing supplies the upcoming month's `{amount}`/`{due_date}` yet. Recorded 
 | held students | skipped for **fee** messages only; a non-fee message reaches them (`isHeldNow()` reads both `status:'on_hold'` and the `holds[]` periods covering the current Dhaka month) |
 | missing / invalid numbers | `missing_phone` and `invalid_phone`, **exactly one reason per student** |
 | normalization + dedupe | every accepted shape becomes `01[3-9]\d{8}`; identical bodies to one number collapse to `duplicate` |
-| siblings | one message per phone with the summed total — **refused** when the merged text could be untrue (differing months or an ambiguous total), and the dialog says so |
+| siblings | one message per phone with the summed total — the amount is parsed **digit-aware**, so a Bangla-digit value (`৩০০০`) is read and the total is written back in the same digits (`৪৫০০`); **refused** when the merged text could be untrue (differing months, differing classes, or a total that is not a number), and the dialog says so |
 | batching | `chunkRecipients(500,100)` → five full chunks of 100 |
 
 The skip vocabulary is closed (`SMS_SKIP_REASONS`) with Bangla and English labels in
