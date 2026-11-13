@@ -45,6 +45,7 @@ import {
   buildSmsPlan,dhakaMonthKey,executeSmsPlan,monthSmsTotals,previousMonthKey,recentDuplicateStudents,
 } from '../src/lib/center/sms-send';
 import {runSmsDialog} from '../src/lib/center/sms-dialog';
+import {defaultTemplate} from '../src/lib/center/sms-templates';
 
 const P1='01712817090';   // রাহুল — and the second number written in the same cell
 const P2='01811223344';
@@ -83,6 +84,8 @@ async function run(){
   try{
     const now=new Date();
     const month=dhakaMonthKey(now);
+    /** The shipped visitor body, from the same catalogue the screens read — not a copy pasted into a test. */
+    const thanksBody=defaultTemplate('visitor_thanks').body;
     const actor=await User.create({name:'Front Desk',email:'lead-sms@example.test',passwordHash:await bcrypt.hash('LeadsOnly-2026!',12),role:'admin',active:true});
     const actorId=String(actor._id);
     // The quiet window starts EMPTY (start equals end) on purpose: CI runs at any Dhaka hour, and with the
@@ -171,17 +174,24 @@ async function run(){
 
     // ── 4. The plan: `visitor_thanks` renders, the family folds into one message, and every exclusion is
     //       named with a reason in both languages.
+    // No institute_phone in globalValues on purpose: `buildSmsPlan` reads the center's own number from its
+    // settings and the dialog passes only {class,subject}, so supplying it here would prove nothing about
+    // the path a screen actually takes.
     const plan=await buildSmsPlan({
       requestId:randomUUID(),students:many.candidates,templateKey:'visitor_thanks',audience:'guardian',
-      onePerPhone:true,subjectKind:'lead',globalValues:{institute_phone:CENTER},month,now,
+      onePerPhone:true,subjectKind:'lead',month,now,
     });
     assert.equal(plan.subjectKind,'lead','the plan carries the subject kind into the log write');
     assert.equal(plan.purpose,'visitor_thanks');
     assert.equal(plan.blocked,null,'the visitor template needs nothing a lead cannot supply');
     assert.equal(plan.recipientCount,1,'one family, one number, one message');
     assert.deepEqual(plan.items[0].studentIds.slice().sort(),[rahul.id,sister.id].sort(),'and it is traceable to both visitors');
-    assert.ok(plan.body.includes(CENTER),'the center’s own number is rendered into the body');
-    assert.ok(!plan.body.includes('{'),'no chip is left behind');
+    // `plan.body` is the TEMPLATE, still holding its chips; each item's message is the rendered text. The
+    // distinction is the whole point of the assertion: a body that renders for one recipient and not for
+    // another is exactly what a per-recipient `missing_value` skip exists for.
+    assert.equal(plan.body,thanksBody,'the plan keeps the template body as written');
+    assert.ok(plan.items[0].message.includes(CENTER),'the center’s own number is rendered into the message');
+    assert.ok(!plan.items[0].message.includes('{'),'and no chip is left behind in what would be sent');
     const skippedNames=plan.skipped.map(item=>[item.studentName,item.reason]);
     assert.ok(skippedNames.some(([name,reason])=>name==='যোগাযোগ করবেন না'&&reason==='opted_out'),'the blocked visitor is named in the skip list');
     assert.ok(skippedNames.some(([name,reason])=>name==='নাম্বারহীন ভিজিটর'&&reason==='missing_phone'),'and so is the one with no number');
@@ -230,7 +240,7 @@ async function run(){
     assert.deepEqual(await recentDuplicateStudents('visitor_thanks',[byStatus.id],month,now,24,'lead'),[],'one month alone would have missed it');
     const noPhonePlan=await buildSmsPlan({
       requestId:randomUUID(),students:(await resolveSmsSource({source:'lead',id:noPhone.id},now)).candidates,
-      templateKey:'visitor_thanks',audience:'guardian',subjectKind:'lead',globalValues:{institute_phone:CENTER},month,now,
+      templateKey:'visitor_thanks',audience:'guardian',subjectKind:'lead',month,now,
     });
     assert.deepEqual(noPhonePlan.duplicates,[],'no warning is invented for a lead that was not texted');
     assert.equal(noPhonePlan.recipientCount,0,'and a lead with no number still produces no message');
@@ -267,7 +277,8 @@ async function run(){
     assert.equal(preview.status,200);
     assert.equal(preview.body.mode,'preview');
     assert.equal(preview.body.preview.phones,1,'the family’s shared number is one message');
-    assert.ok(preview.body.preview.body.includes(CENTER));
+    assert.equal(preview.body.preview.body,thanksBody,'the preview shows the template as written');
+    assert.ok(preview.body.preview.recipients[0].preview.includes(CENTER),'and the first message it would send carries the center’s number');
     assert.equal(preview.body.institutePhone,CENTER);
 
     // ── 8. Permission is re-read at plan time: a visitor blocked AFTER the dialog opened is not texted.

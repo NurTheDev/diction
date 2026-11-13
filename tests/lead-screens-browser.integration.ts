@@ -551,6 +551,15 @@ async function run(){
      * No message is sent here. The provider in test mode is the mock, but a send would write rows the
      * other sections' counts do not expect, and the DB suite already proves the write end to end.
      */
+    /**
+     * Section 6 lifted this block on purpose — proving the lift works is its job — so the row that must NOT
+     * offer a checkbox is contactable by now. Section 10 puts the block back, because what is being proven
+     * here is the row an operator cannot pick and the count above the list that says why. Nothing after this
+     * section reads the fixture, and the counts below are read from the page rather than assumed.
+     */
+    const blockedId=blocked.ok?blocked.id:'';
+    assert.ok(blockedId,'the blocked fixture lead exists');
+    await updateLeadStatus(blockedId,'do_not_contact',bossId);
     // The picker offers the shipped catalogue: an earlier suite may have left edited templates behind in
     // this disposable database, and the assertion below is about what ships.
     await CenterSmsTemplate.deleteMany({});
