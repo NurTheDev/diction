@@ -100,7 +100,7 @@ async function run(){
       return out;
     };
     const rahul=await made('রাহুল',`${P1}, ${P2}`,{classLabel:'দশম শ্রেণি'});
-    const sister=await made('রাহুলের বোন',P1,{classLabel:'অষ্টম শ্রেণি'});
+    const sister=await made('রাহুলের বোন',P1,{classLabel:'অষ্টম শ্রেণি',dupChoice:'sibling'});
     const noPhone=await made('নাম্বারহীন ভিজিটর','');
     const marked=await made('যোগাযোগ করবেন না',P3);
     const byStatus=await made('অবস্থায় বন্ধ',P4);

@@ -89,7 +89,7 @@ async function run(){
   // Seeded through the rule layer, not around it: what the screens read is what quick-add really writes.
   const rahul=await createQuickLead({studentName:RAHUL,guardianName:'করিম আহমেদ',phone:P1,classLabel:'XI',school:'ধানমন্ডি সরকারি বালক বিদ্যালয়',followUp:'today',note:'প্রথম কল — আগ্রহী'},bossId);
   assert.equal(rahul.ok,true,'the first fixture lead is written');
-  const sister=await createQuickLead({studentName:SISTER,phone:P1,classLabel:'9',followUp:'today'},bossId);
+  const sister=await createQuickLead({studentName:SISTER,phone:P1,classLabel:'9',followUp:'today',dupChoice:'sibling'},bossId);
   assert.equal(sister.ok,true,'the sibling is written');
   assert.equal(sister.ok&&sister.familyKey,rahul.ok&&rahul.familyKey,'and shares one family key with it');
   await createQuickLead({studentName:OLD,phone:P2,classLabel:'SSC 25',followUp:'custom',customDay:day(-3)},bossId);

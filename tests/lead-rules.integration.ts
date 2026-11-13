@@ -104,15 +104,19 @@ async function run(){
     assert.equal(two.ok,true,'a second, unrelated family gets its own key');
     assert.notEqual((await read(one.id)).familyKey,(await read(two.id)).familyKey);
     assert.equal(familyKeyFromPhones([P2]),(await read(two.id)).familyKey,'computed from its own number, because nobody held it yet');
-    // The sibling: typed with its own number FIRST, so recomputing would have chosen the wrong key.
-    const sibling=await createQuickLead({studentName:'রাহুলের বোন',phone:`${P4},${P1}`},actorId,now);
+    // R3.10 first: the same row WITHOUT an answer is a question, not a write.
+    const asked=await createQuickLead({studentName:'রাহুলের বোন',phone:`${P4},${P1}`},actorId,now);
+    assert.equal(asked.ok,false);assert.equal(asked.code,'DUPLICATE_PHONE','a held number asks before it writes');
+    // The sibling: typed with its own number FIRST, so recomputing would have chosen the wrong key —
+    // and since R3.10 the inheritance is an ANSWER, not a silent side effect.
+    const sibling=await createQuickLead({studentName:'রাহুলের বোন',phone:`${P4},${P1}`,dupChoice:'sibling'},actorId,now);
     assert.equal(sibling.ok,true);
     assert.equal(familyKeyFromPhones([P4,P1]),`fam:${P4}`,'the smallest number on this row alone…');
     assert.notEqual(sibling.familyKey,`fam:${P4}`,'…is NOT the key it was given');
     assert.equal(sibling.familyKey,`fam:${P1}`,'the family key is inherited from the lead that already held the number');
     assert.equal(sibling.inheritedFrom,(await read(one.id)).leadId,'and the suite can say which lead it came from');
     // Now a row that bridges the two families: the smaller key wins and the other leads are re-pointed.
-    const bridge=await createQuickLead({studentName:'দুই পরিবারের সেতু',phone:`${P2},${P1}`},actorId,now);
+    const bridge=await createQuickLead({studentName:'দুই পরিবারের সেতু',phone:`${P2},${P1}`,dupChoice:'sibling'},actorId,now);
     assert.equal(bridge.ok,true);
     assert.equal(bridge.familyKey,`fam:${P1}`,'the smaller of the two existing keys is adopted…');
     assert.deepEqual(bridge.mergedFrom,[`fam:${P2}`],'naming the key that was given up, so an import can report the merge');
