@@ -24,6 +24,12 @@
     "screenshots/all/center-exams-1440.png",
     "screenshots/all/admissions-360.png",
     "screenshots/all/admissions-1440.png",
+    "screenshots/all/visitors-list-360.png",
+    "screenshots/all/visitors-list-1440.png",
+    "screenshots/all/visitors-quick-add-360.png",
+    "screenshots/all/visitors-quick-add-1440.png",
+    "screenshots/all/visitors-follow-ups-360.png",
+    "screenshots/all/visitors-follow-ups-1440.png",
     "screenshots/all/blog-360.png",
     "screenshots/all/blog-1440.png",
     "screenshots/all/recycle-bin-360.png",
@@ -173,6 +179,42 @@
     },
     {
       "path": "/bn/admin/admissions",
+      "width": 1440,
+      "clientWidth": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "path": "/bn/admin/leads",
+      "width": 360,
+      "clientWidth": 360,
+      "scrollWidth": 360
+    },
+    {
+      "path": "/bn/admin/leads",
+      "width": 1440,
+      "clientWidth": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "path": "/bn/admin/leads?new=1",
+      "width": 360,
+      "clientWidth": 360,
+      "scrollWidth": 360
+    },
+    {
+      "path": "/bn/admin/leads?new=1",
+      "width": 1440,
+      "clientWidth": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "path": "/bn/admin/leads?followUp=today",
+      "width": 360,
+      "clientWidth": 360,
+      "scrollWidth": 360
+    },
+    {
+      "path": "/bn/admin/leads?followUp=today",
       "width": 1440,
       "clientWidth": 1440,
       "scrollWidth": 1440

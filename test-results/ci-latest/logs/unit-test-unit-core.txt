@@ -74,7 +74,7 @@ Unsafe achievement query and bulk writes fail closed.
 
 
 --- tests/staff-role.test.ts (exit 0) ---
-Staff role: present in auth and managed roles, creatable, sees admin lists but not roles/audit/ai; restricted roles unchanged.
+Staff role: present in auth and managed roles, creatable, sees admin lists but not roles/audit/ai, sees the Visitors list and its follow-up queue, and the restricted roles see neither those nor anything else.
 
 
 --- tests/recycle-policy.test.ts (exit 0) ---

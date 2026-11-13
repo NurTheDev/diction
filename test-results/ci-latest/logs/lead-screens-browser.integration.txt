@@ -1,0 +1,12 @@
+locator.innerText: Error: strict mode violation: locator('dialog.overview-drawer[open]').locator('ul.lead-notes') resolved to 2 elements:
+    1) <ul class="lead-notes">…</ul> aka getByRole('list').filter({ hasText: '১৩ নভেম্বর ২০২৬ · বিকাল ৪:২৬ · লিড বস · আগ্রহীদ্বিতীয় কল — ভর্তি ফর্ম নিতে আসবে' })
+    2) <ul class="lead-notes">…</ul> aka getByRole('list').filter({ hasText: 'রাহুলের বোন V-2026-0002 · নতুন' })
+
+Call log:
+  - waiting for locator('dialog.overview-drawer[open]').locator('ul.lead-notes')
+
+    at run (/home/runner/work/diction/diction/tests/lead-screens-browser.integration.ts:265:59) {
+  log: [
+    "  - waiting for locator('dialog.overview-drawer[open]').locator('ul.lead-notes')"
+  ]
+}
