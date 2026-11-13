@@ -4,6 +4,10 @@ Every sentence of `docs/SPEC.md` §R3, answered point by point with the file tha
 test that proves it. Verify requirements **R3.1 – R3.6** are implemented (wave A foundations, plus the
 wave-B rule layer); `npm run verify` reports all 33 requirements (R0 + R1 + R2 + R3).
 
+Proven, not claimed: wave A at **32 PASS / 0 FAIL / 0 NOT TESTED** (run 43381282853, evidence
+`4e6473c`) and R3.6 at **33 PASS / 0 FAIL / 0 NOT TESTED** (run 43385394912 on `494dbbd`, evidence
+`49c01de`), with `unit-test-lead-rules.txt` exit 0 in `test-results/ci-latest/logs/`.
+
 Nothing below is a claim from reading code: each row names a suite that runs in CI on every push.
 
 | Suite | Runs as | Needs |

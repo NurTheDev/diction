@@ -438,13 +438,32 @@ target; and counts an `importBatch` so one file cannot be imported twice. Detail
 `test:lead:vocab`, `test:lead:date`, `test:lead:phone`, `test:lead:class` (pure), `test:lead:db` and
 `test:lead:rules` (disposable database). Coverage written point by point in `docs/R3-COVERAGE.md`,
 including §7, which states what is still not done. **Wave A is CI-proven at 32/32** (run 43381282853,
-evidence `4e6473c`); the run that proves R3.6 is named here once CI reports it.
+evidence `4e6473c`) and **R3.6 at 33/33** (run 43385394912 on `494dbbd`, evidence `49c01de`) — the
+report reads `PASS — 33 PASS, 0 FAIL, 0 NOT TESTED`, with `unit-test-lead-rules.txt` exit 0 in
+`test-results/ci-latest/logs/`.
 
-**One defect R3.5 caught in itself, worth keeping:** its first green-capable run failed on the family key
+**Three defects the two suites caught between them, worth keeping** — all three would have shipped
+silently, and none was found by reading code:
+
+**One defect R3.5 caught in itself:** its first green-capable run failed on the family key
 (`fam:01711000041` where `fam:01712817090` was expected) because the suite created a sibling with
 `familyKeyFromPhones()` over the SIBLING'S OWN numbers and then asserted it matched the first lead's. The
 assertion was wrong and the catch was the useful part: it pinned the rule `leads.ts` now implements —
 inherit the key from an indexed lookup, never recompute it, or one family splits in two by typing order.
+
+**R3.6 caught an empty report that looked like good news.** `duplicatePhoneGroups()` filtered its
+`$group` with `{rows:{$gte:2}}`, which on an array field asks whether any ELEMENT is `>= 2` — the
+elements are documents, so the match never succeeded and the "siblings sharing a number" report came
+back empty. An empty duplicate report is indistinguishable from "no duplicates", so no screen, no
+operator and no other test would ever have complained. It is `$expr` with `$size` now, with a comment
+saying why the shorter form is wrong.
+
+**And a CI-infrastructure trap that costs a run every time it is hit:** the DB suites start with
+`// @ts-nocheck`, which hides SYNTAX from `tsc` as well as types. The first R3.6 run failed with an
+esbuild `TransformError` — four `await`s sitting inside `.some(row => …)` callbacks — and `npm run
+verify` reported it as a requirement failure with no assertion to read. After touching a `@ts-nocheck`
+file, parse it before pushing: `./node_modules/.bin/esbuild tests/<file> --loader:.ts=ts
+--outfile=/dev/null`. Every file in `tests/` passes that gate now.
 
 **One CI infrastructure fix this wave forced:** the first wave-A run (43379896360) came back
 **INCOMPLETE — 14 PASS, 0 FAIL, 18 NOT TESTED**, and nothing had failed. `scripts/test-mode.ts` capped
