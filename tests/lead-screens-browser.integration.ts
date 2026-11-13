@@ -291,7 +291,9 @@ async function run(){
     const hits=search.locator('table.admin-table tbody tr');
     await hits.first().waitFor({state:'visible',timeout:90000});
     assert.equal(await hits.count(),2,'four digits off a crumpled sheet find both leads that share the number');
-    const hitText=await hits.first().innerText();
+    // `first()`, never "the row with the name in it": the search sorts by date, and two leads written in
+    // the same instant have no order this suite is allowed to depend on.
+    const hitText=(await Promise.all([hits.nth(0).innerText(),hits.nth(1).innerText()])).join(' · ');
     assert.ok(hitText.includes(RAHUL),'the hit names the lead…');
     assert.ok(hitText.includes(MASK_1),'…and masks its number');
     assert.ok(!(await boss.page.locator('body').innerText()).includes('7090'),'not even the fragment that was typed is echoed back');
