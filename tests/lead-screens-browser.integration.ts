@@ -765,6 +765,8 @@ async function run(){
     await dupDrawer.locator('button',{hasText:t.close}).first().click();
     await boss.page.locator('dialog.overview-drawer[open]').waitFor({state:'detached',timeout:60000}).catch(()=>{});
     // (e) Quick-add's own merge button: the entry folds into the named lead and writes no row.
+    // The panel is one tap away, literally: the list arrived folded, so arrive with it open.
+    await boss.page.goto(`${origin}${list}?new=1`,{waitUntil:'domcontentloaded',timeout:180000});
     dupPanel=await typeAdd(M1,P6);
     await dupPanel.locator('p.admin-feedback').first().waitFor({state:'visible',timeout:90000});
     assert.equal(await dupPanel.locator('[data-dup-ask]').count(),0,'a number nobody holds asks nothing');
