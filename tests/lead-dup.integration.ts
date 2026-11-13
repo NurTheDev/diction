@@ -116,6 +116,12 @@ async function run(){
     assert.equal(moved.ok,true,`merge must succeed, got ${moved.code||''}`);
     assert.equal(moved.sourceLeadId,sourceLead.leadId);
     const binnedRow=await read(sourceLead.id);
+    if(!binnedRow){
+      // Never seen in a local run (no MongoDB here), so the suite carries its own census: who is in the
+      // collection after the merge, and binned or live, so a vanished source names itself in CI.
+      const census=await Lead.find({}).select('leadId studentName deletedAt').lean();
+      throw Error(`the merged source vanished: id=${sourceLead.id} leadId=${sourceLead.leadId} movedOk=${moved.ok===true} movedLeadId=${moved.leadId||''} census=${JSON.stringify(census.map(row=>({leadId:row.leadId,name:row.studentName,binned:!!row.deletedAt})))}`);
+    }
     assert.ok(binnedRow.deletedAt,'the source is in the bin afterwards');
     const bin=await binList('lead');
     assert.ok(bin.some(entry=>entry.id===sourceLead.id),'and the Recycle Bin lists it');
