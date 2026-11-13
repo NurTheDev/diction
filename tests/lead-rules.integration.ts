@@ -117,7 +117,8 @@ async function run(){
     assert.equal(bridge.familyKey,`fam:${P1}`,'the smaller of the two existing keys is adopted…');
     assert.deepEqual(bridge.mergedFrom,[`fam:${P2}`],'naming the key that was given up, so an import can report the merge');
     assert.equal(bridge.mergedLeads,1,'and the lead that held it is re-pointed, not left behind');
-    assert.equal(await read(two.id).familyKey,`fam:${P1}`,'so the second family really did move');
+    // Parenthesised: `await read(id).familyKey` reads a property off the QUERY and awaits undefined.
+    assert.equal((await read(two.id)).familyKey,`fam:${P1}`,'so the second family really did move');
     assert.equal(await Lead.countDocuments({familyKey:`fam:${P1}`}),4,'one family, four leads, one query');
     assert.equal(await Lead.countDocuments({familyKey:`fam:${P2}`}),0,'and nothing is left under the abandoned key');
     const holders=await leadsWithPhone(P1);
