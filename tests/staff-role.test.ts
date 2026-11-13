@@ -21,6 +21,13 @@ for(const key of ['roles','audit','ai']){
   assert.equal(permitted(key,'admin'),false);
   assert.equal(permitted(key,'superadmin'),true);
 }
+// R3 wave B: the Visitors screens are front-desk work, so staff reach them — and the two restricted
+// roles, which are scoped to content and exams, never see a parent's number.
+for(const key of ['leads','followUps']){
+  for(const role of ['staff','admin','superadmin'])assert.equal(permitted(key,role),true,`${role} can open ${key}`);
+  for(const role of ['content_editor','exam_manager'])assert.equal(permitted(key,role),false,`${role} cannot open ${key}`);
+}
+
 // The pre-existing restricted roles keep their narrow visibility.
 assert.equal(permitted('blog','content_editor'),true);
 assert.equal(permitted('students','content_editor'),false);
@@ -28,4 +35,4 @@ assert.equal(permitted('centerExams','exam_manager'),true);
 assert.equal(permitted('blog','exam_manager'),false);
 assert.equal(permitted('students','staff'),true,'staff see student lists to archive, never to delete');
 
-console.log('Staff role: present in auth and managed roles, creatable, sees admin lists but not roles/audit/ai; restricted roles unchanged.');
+console.log('Staff role: present in auth and managed roles, creatable, sees admin lists but not roles/audit/ai, sees the Visitors list and its follow-up queue, and the restricted roles see neither those nor anything else.');

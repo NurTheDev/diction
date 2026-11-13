@@ -515,3 +515,59 @@ zero matches, so if analytics is ever added the test fails and asks whether it c
 
 A search IS audited (`lead.phone-search`, mask as the target): looking a parent up by number is worth
 accounting for, and the digits are not the account.
+
+## 16. R3 wave B2 — the Visitors screens (R3.8), code complete and awaiting the owner's layout review
+
+The rule layer now has a face. Six files render it and one browser suite proves it:
+
+- `src/app/[locale]/admin/leads/page.tsx` — the list: date, visitor (guardian, id, up to two doubts),
+  class as read plus school, the number **as a mask** with Call and WhatsApp, status, follow-up day,
+  last note, and the row's controls. Twenty a page, status chips, filters in a collapsed `<details>`.
+- `src/app/[locale]/admin/leads/[id]/page.tsx` — one lead inline, addressed by Mongo id **or** by
+  `V-2026-0007` (`leadDetailByKey()`), so a link from an audit row or a printed sheet works.
+- `src/components/admin/leads-ui.tsx` — quick-add, the search box, the row controls and the drawer.
+- `src/components/admin/lead-follow-ups.tsx` — "আজকের ফলো-আপ" on the Overview: today's count and the
+  overdue count as two numbers, the six nearest leads, and the same row controls.
+- `src/lib/leads/lead-ui.ts` — the only bridge from the rule layer to a component: labels, badge
+  colours, the form-state shape, and `rowView()`, which takes three things out on the way (see below).
+- `src/actions/leads.ts` — six guarded actions: quick-add, status, follow-up, note, lift the contact
+  block, load a drawer's contents. Plus the search from R3.7. Still exports only async functions.
+- `nav-items.ts` gained a sixth group (**ভিজিটর** / "Admissions & leads") with Visitors and Follow-ups,
+  and on a Visitors screen the mobile bottom bar's plus becomes "নতুন ভিজিটর" → `?new=1`.
+
+**The owner's four conditions, met:** one tap to quick-add (the bottom bar's plus on any `/admin/leads`
+screen, 56 px tall, bottom bar still exactly four targets); Enter saves (no textarea anywhere in
+quick-add, so the browser's own submit is the shortcut) and the panel clears itself for the next
+visitor; every control is an existing 44 px admin class; above the list there are two closed buttons,
+the chips and a collapsed filter — nothing else.
+
+**What a screen may not carry.** `rowView()` strips `familyKey` (it IS the smallest number of a family
+with `fam:` in front), a phone's `original` (the number as written) and a flag's `original` (a raw cell
+can hold a second valid number). The browser gets the mask and the `tel:`/`wa.me` destinations the brief
+requires. R3.8 asserts it against the served HTML: strip those two hrefs and no fixture number appears
+anywhere in the document — not in text, not in an attribute, not in the flight payload.
+
+**No rule moved into the UI.** The five follow-up buttons send a key, never a date; `nextFollowUpDay()`
+still computes the Dhaka day, so the screens and the daily cron job cannot disagree. Status changes go
+through `updateLeadStatus()`, which still owns "do not contact" being sticky; lifting the block is its
+own button and its own action. `leads.ts` gained exactly two functions for these screens
+(`leadDetailByKey`, `leadStatusCounts`) and pages still never query `Lead`.
+
+**One search box, two destinations.** A name, school or id becomes a shareable `?q=`; anything
+phone-shaped is refused by the same `leadListQuery()` that builds the href and is posted to
+`searchLeadsByNumber()` instead. A number pasted straight into the address bar is refused by the page
+and the whole list is rendered with an explanation, rather than being quietly searched.
+
+**Proof:** `tests/lead-screens-browser.integration.ts` (**R3.8**, registry 35) drives all five screens
+as an admin, a staff account and a content editor, reads every write back from the database, measures
+horizontal overflow at 360 px on each screen, and writes the eleven review screenshots into
+`screenshots/r3/`. `tests/staff-role.test.ts` pins the two new nav keys for all five roles.
+`scripts/verify-screens.ts` also photographs `/bn/admin/leads`, `?new=1` and `?followUp=today` for
+R0.11. Operator guide: `docs/R3-START-HERE.md`.
+
+**Not in this wave, stated plainly:** the duplicate-phone "add as sibling / merge" dialog, the SMS entry
+point (R3.9), convert-to-admission and book-a-trial hand-offs, the import wizard, the funnel reports and
+CSV export (wave C). And one consequence of an existing guard: the Overview is behind `requireAdmin()`,
+so a **staff** account does not see the follow-up widget — staff reach the same queue through the
+sidebar's Follow-ups item. Widening the Overview is a decision about every widget on it, so it is left
+to the owner.

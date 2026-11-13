@@ -562,3 +562,23 @@ html:lang(bn) .public-motion-root:not(.private-motion-disabled) :is(h1,h2,h3,h4)
   .sms-result .admin-mini-button{margin-left:0}
 }
 @media(prefers-reduced-motion:reduce){.sms-bar span,.sms-spin{animation:none}}
+
+/* ── R3 wave B · the Visitors screens ──────────────────────────────────────────
+   Almost everything on these screens is the admin vocabulary above: .list-filter for
+   the quick-add and the filters, .list-panel + .admin-responsive-table for the list,
+   .overview-drawer for the detail, .list-row-actions for a row's buttons and
+   .admin-badge for a status. New here are only the drawer's notes timeline, the
+   status chips, the flag line under a name, and the quick-add footer. */
+.overview-drawer h3{font-size:17px;margin:20px 0 8px;color:#1a1d3a}
+.lead-notes{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.lead-notes li{border-top:1px solid #d9deee;padding-top:8px;overflow-wrap:anywhere}
+.lead-notes small{display:block;color:#4a5072;font-size:14px}
+.lead-chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.lead-chips a{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:6px 13px;border:1px solid #dfe3ee;border-radius:30px;background:#fff;color:#2e3192;font-size:14px;font-weight:700}
+.lead-chips a.selected{background:#2e3192;border-color:#2e3192;color:#fff}
+.lead-flag{color:#865000;font-size:14px;overflow-wrap:anywhere}
+.lead-form-foot{display:flex;gap:10px;flex-wrap:wrap;align-items:center;flex:1 1 100%}
+@media(max-width:760px){.lead-form-foot>*{flex:1 1 auto;min-height:44px}}
+.lead-tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.lead-tools>.admin-panel{flex:1 1 100%}
+.lead-row{display:grid;gap:8px}

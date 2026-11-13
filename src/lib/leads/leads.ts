@@ -40,8 +40,10 @@ export interface LeadRow{
   group:LeadGroup;shift:LeadShift;medium:LeadMedium;source:LeadSource;interestedIn:string;
   status:LeadStatus;doNotContact:boolean;contactable:boolean;nextFollowUp:string|null;
   followUp:'none'|'today'|'overdue'|'later';familyKey:string|null;flags:LeadFlagRow[];
-  noteCount:number;converted:boolean;createdAt:Date;
+  noteCount:number;lastNote:LeadLastNote;converted:boolean;createdAt:Date;
 }
+/** The row carries its newest note so the list can show it without a second query per row. */
+export type LeadLastNote={at:Date;text:string;outcome:string}|null;
 
 interface LeadDoc{
   _id:unknown;leadId:string;date:string;studentName:string;guardianName:string;phones:LeadPhoneRow[];
@@ -68,6 +70,11 @@ export interface LeadWriteOk{
 }
 export type LeadWriteResult=LeadWriteOk|Refusal;
 
+function lastNoteOf(doc:LeadDoc):LeadLastNote{
+  const notes=(doc.notes||[]).slice().sort((a,b)=>(b.at?.getTime()||0)-(a.at?.getTime()||0));
+  return notes.length?{at:notes[0].at,text:notes[0].text,outcome:notes[0].outcome||''}:null;
+}
+
 export function toRow(doc:LeadDoc,now:Date=new Date()):LeadRow{
   return {
     id:String(doc._id),leadId:doc.leadId,date:doc.date,studentName:doc.studentName,
@@ -76,7 +83,7 @@ export function toRow(doc:LeadDoc,now:Date=new Date()):LeadRow{
     medium:doc.medium,source:doc.source,interestedIn:doc.interestedIn||'',status:doc.status,
     doNotContact:!!doc.doNotContact,contactable:canContactRow(doc),nextFollowUp:doc.nextFollowUp||null,
     followUp:followUpState(doc.nextFollowUp,now),familyKey:doc.familyKey||null,flags:doc.flags||[],
-    noteCount:(doc.notes||[]).length,converted:!!(doc.admission||doc.trialBooking||doc.student),
+    noteCount:(doc.notes||[]).length,lastNote:lastNoteOf(doc),converted:!!(doc.admission||doc.trialBooking||doc.student),
     createdAt:doc.createdAt,
   };
 }
@@ -393,6 +400,30 @@ export async function leadDetail(id:string,now:Date=new Date()):Promise<LeadDeta
     ?(await Lead.find({familyKey:doc.familyKey,_id:{$ne:doc._id}}).sort({date:-1}).limit(20).lean<LeadDoc[]>()).map(row=>toRow(row,now))
     :[];
   return {row:toRow(doc,now),notes,family};
+}
+
+/**
+ * The drawer and a deep link address a lead by whichever id the operator is holding: the Mongo id a row
+ * carries, or the readable one (`V-2026-0007`) a printed sheet or an audit row quotes. Both resolve
+ * here, so `leadPath()` and a row link cannot disagree — and neither one is a number.
+ */
+export async function leadDetailByKey(key:string,now:Date=new Date()):Promise<LeadDetail|null>{
+  const value=String(key||'').trim();
+  if(!value)return null;
+  if(/^[0-9a-fA-F]{24}$/.test(value))return leadDetail(value,now);
+  const doc=await Lead.findOne({leadId:value}).select('_id').lean<{_id:unknown}>();
+  return doc?leadDetail(String(doc._id),now):null;
+}
+
+/**
+ * The status chips on the list: one aggregate over the live rows, in vocabulary order, so a chip can
+ * never claim a count the rows underneath it disagree with. Statuses nobody has used yet still show,
+ * with zero — an empty funnel stage is information, not a missing chip.
+ */
+export async function leadStatusCounts():Promise<{status:LeadStatus;count:number}[]>{
+  const rows=await Lead.aggregate<{_id:LeadStatus;n:number}>([{$group:{_id:'$status',n:{$sum:1}}}]);
+  const found=new Map(rows.map(row=>[String(row._id),Number(row.n)||0]));
+  return LEAD_STATUSES.map(status=>({status,count:found.get(status)||0}));
 }
 
 export type LeadUpdateResult={ok:true;id:string;status:LeadStatus;doNotContact:boolean;nextFollowUp:string|null}|Refusal;

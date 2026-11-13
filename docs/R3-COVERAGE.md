@@ -19,6 +19,7 @@ Nothing below is a claim from reading code: each row names a suite that runs in 
 | `tests/lead-model.integration.ts` | `test:lead:db` (R3.5) | disposable database |
 | `tests/lead-rules.integration.ts` | `test:lead:rules` (R3.6) | disposable database |
 | `tests/lead-phone-search.integration.ts` | `test:lead:search` (R3.7) | disposable database + reads `src/` |
+| `tests/lead-screens-browser.integration.ts` | `test:lead:screens` (R3.8) | running app + disposable database + Chromium, writes `screenshots/r3/` |
 | `tests/recycle-coverage.test.ts` | `test:recycle:coverage` (R1) | nothing but Node — now counts 22 bin schemas, `lead` among them |
 
 **Wave order, as agreed:** A foundations (§1–§5), B screens (sidebar group **ভিজিটর**, quick-add, list,
@@ -301,19 +302,126 @@ that is what makes a filtered list shareable — and `V-2026-0001` is not a numb
   matches. Today that is trivially true; the point is that if anybody ever adds analytics, this test
   fails and asks "can it see the leads search?" instead of letting the question go unasked.
 
-## 8. What is still not done, stated plainly
+## 8. The Visitors screens (wave B2) — R3.8
 
-1. **There is still no screen.** No sidebar group, no quick-add, no list, no drawer, no Overview widget —
-   §6 is the layer they will call, and nothing in it renders anything. The rest of wave B owns the
-   screens, and `docs/R3-START-HERE.md` (the operator guide) comes with them, because a guide to buttons
-   that do not exist would be a lie.
+**The requirement, in the owner's words:** build the screens. Keep them simple — one tap to quick-add,
+Enter to save, large tap targets, nothing cluttering the space above the list — and photograph five
+things at 360 px and 1440 px so the layout can be reviewed before it is approved.
+
+### What now exists
+
+| Screen | Where | What it does |
+| --- | --- | --- |
+| Visitors list | `src/app/[locale]/admin/leads/page.tsx` | every lead, newest first, 20 a page: date, visitor (with guardian, id, and up to two of the doubts the importer or quick-add left), class as read plus the school, the number **as a mask** with Call and WhatsApp beside it, status, follow-up day, last note, and the row's controls |
+| Quick-add | `LeadQuickAdd` in `src/components/admin/leads-ui.tsx` | four fields (name, number, class, school) and a "more" toggle for the other seven; Enter saves; the panel clears itself and keeps the cursor on the name, so the next visitor is typed straight in |
+| Detail drawer | `LeadDetailDrawer` / `LeadDetailBody` | a `<dialog>` sheet with every field, the masked numbers and their two destinations, the flags' own sentences, the notes timeline (newest first, with the writer's name and the outcome) and the rest of the family |
+| The lead's own page | `src/app/[locale]/admin/leads/[id]/page.tsx` | the same contents inline, so a link can be followed from an audit row or a message; `leadDetailByKey()` accepts the Mongo id **and** the readable `V-2026-0007` |
+| Search | `LeadSearch` | one box: a name, school or id becomes a shareable `?q=`, anything phone-shaped is posted to `searchLeadsByNumber()` instead |
+| Follow-up queue | `/admin/leads?followUp=today` (and `overdue`, `none`) | the same list, filtered and sorted oldest promise first |
+| Overview widget | `src/components/admin/lead-follow-ups.tsx` | "আজকের ফলো-আপ": today's count and the overdue count as **two numbers**, the six nearest leads, and the same row controls |
+| Sidebar | `nav-items.ts`, `sidebar.tsx` | a sixth group — **ভিজিটর** / "Admissions & leads" — with Visitors and Follow-ups; on a Visitors screen the mobile bottom bar's plus becomes "নতুন ভিজিটর" |
+
+### The four things the owner asked the screens to be
+
+1. **One tap to quick-add.** On any `/admin/leads` screen the bottom bar's plus slot links to
+   `?new=1`, which the page renders with the panel already open and the cursor in the name field. At
+   desktop width the same panel is one click on "নতুন ভিজিটর" above the list. The bottom bar keeps
+   exactly four targets and the quick-add one is 56 px tall.
+2. **Enter saves.** Quick-add has no textarea: every field is a single-line input, so the browser's own
+   submit is the shortcut and nothing has to listen for a key. The button says "সংরক্ষণ করে আরেকটি",
+   because that is what it does — the panel stays open and empties itself.
+3. **Large tap targets.** Every control on these screens is `.admin-mini-button`, `.admin-input`,
+   `.admin-select` or `.button`, all of which the admin stylesheet already holds at 44 px minimum.
+4. **Nothing above the list.** Above the rows there are exactly two closed controls (quick-add,
+   search), the status chips, and a collapsed `<details>` of filters that opens itself only when a
+   filter is active. The optional quick-add fields are behind a "more" toggle for the same reason.
+
+### What a screen is not allowed to carry
+
+`rowView()` in `src/lib/leads/lead-ui.ts` is the only bridge from the rule layer to a component, and it
+removes three things on the way:
+
+- **`familyKey`** — it is the smallest normalized number of a family with `fam:` in front of it, so a
+  screen that carried it would hand the browser a number wearing an id's clothes. The drawer shows the
+  family *members* instead, which is the useful half.
+- **a phone's `original`** — the number exactly as it was written. A screen gets the mask plus the
+  `tel:` and `wa.me` destinations the brief requires, and nothing else.
+- **a flag's `original`** — the raw cell text, because a cell can hold a second number that is
+  perfectly valid. The flag's own sentence is printed; it already quotes what the operator needs.
+
+R3.8 asserts this against the served HTML: after stripping the `tel:` and `wa.me` destinations, no
+fixture number appears anywhere in the document — not in the visible text, not in an attribute, and not
+in the flight payload embedded in the page. The same assertion runs over the drawer, the search results
+and the Overview widget.
+
+### Nothing here decides a rule
+
+The five follow-up buttons send a **key** (`today`, `tomorrow`, `three_days`, `next_week`, `custom`,
+plus `clear`), never a date; `nextFollowUpDay()` turns it into a Dhaka day, so the screen, the list and
+the daily cron job cannot disagree about what "today" means. The status dropdown sends a value the
+vocabulary already contains and `updateLeadStatus()` owns "do not contact" being sticky. Lifting that
+block is its own button and its own action (`liftContactBlock`), because it is the one thing on this
+screen that puts a parent back on a calling list. Pages and components never query `Lead`: the list, the
+counts, the board and the drawer all come from `src/lib/leads/leads.ts` — which gained
+`leadDetailByKey()` and `leadStatusCounts()` for these screens and nothing else.
+
+### Proof
+
+`tests/lead-screens-browser.integration.ts` (registered as **R3.8**, `npm run test:lead:screens`) seeds
+six leads through the rule layer, signs in as an admin, a staff account and a content editor, and drives
+all five screens: it saves a lead with Enter and reads it back from the database (XII read as class 12,
+status/group/medium left un-guessed), writes each of the four quick follow-up days and clears one again,
+changes a status inline, lifts a contact block, adds a note with an outcome and its writer's name, finds
+two leads that share a number from four digits — typed in Bangla digits too — refuses two digits without
+quoting them, sends a name to a URL and a number to an action, checks that a number pasted straight into
+the address bar is refused and the whole list is rendered instead, measures horizontal overflow at
+360 px on every screen, and confirms a content editor sees no visitor, no number, no sidebar item and no
+quick-add form. `tests/staff-role.test.ts` now also pins the two new nav keys: staff, admin and super
+admin can open them; content editor and exam manager cannot.
+
+`scripts/verify-screens.ts` photographs `/bn/admin/leads`, `/bn/admin/leads?new=1` and
+`/bn/admin/leads?followUp=today` at both widths for R0.11, independently of this suite.
+
+### The five screenshots the owner asked to review
+
+Written by the suite into `screenshots/r3/`, committed to the branch by a `workflow_dispatch` run with
+`publish_screenshots` (see `docs/VERIFY.md`):
+
+| # | What | 360 px | 1440 px |
+| --- | --- | --- | --- |
+| 1 | The Visitors list | `screenshots/r3/b2-visitors-list-360.png` | `screenshots/r3/b2-visitors-list-1440.png` |
+| 2 | Quick-add from the mobile bottom bar | `screenshots/r3/b2-quick-add-360.png` (+ `b2-quick-add-saved-360.png` after Enter) | `screenshots/r3/b2-quick-add-1440.png` |
+| 3 | The detail drawer with the notes timeline | `screenshots/r3/b2-detail-drawer-360.png` | `screenshots/r3/b2-detail-drawer-1440.png` |
+| 4 | The number-search box | `screenshots/r3/b2-number-search-360.png` | `screenshots/r3/b2-number-search-1440.png` |
+| 5 | The Overview "today's follow-ups" widget | `screenshots/r3/b2-overview-follow-ups-360.png` | `screenshots/r3/b2-overview-follow-ups-1440.png` |
+
+## 9. What is still not done, stated plainly
+
+1. **No duplicate-phone screen of its own.** `duplicatePhoneGroups()` and `leadsWithPhone()` are built
+   and proven, quick-add reports when a new lead joined an existing family, and the drawer lists that
+   family — but there is no "add as sibling / merge these two" dialog yet. That is a decision about two
+   records, not a field on one, and it belongs with the import wizard's merge step (wave C).
 2. **No import wizard.** `lead-columns.ts` holds the header and value rules the wizard will use, and
    `importSource`/`importBatch`/`flags[]` are already in the schema for it, but nothing reads an xlsx
    yet. Wave C.
 3. **No reports and no CSV export.** Wave C.
-4. **No SMS entry point for leads.** The `visitor_thanks` template exists since R2 and the dialog is
-   source-driven, so wave B adds a `lead`/`leads` source kind in `src/lib/center/sms-source.ts` and
-   renders the same `SendSmsDialog` — with `CONTACTABLE_LEAD_FILTER` deciding who is in the list.
-   Nothing is sent while `SMS_PROVIDER=mock`, and the real provider stays off.
-5. **Permissions** (Admin and Staff, Teachers excluded) are enforced by the guards wave B's routes and
-   actions use; there is no route to guard yet.
+4. **No SMS entry point for leads — that is R3.9, the next change set.** The `visitor_thanks` template
+   exists since R2 and the dialog is source-driven, so R3.9 adds a `lead`/`leads` source kind in
+   `src/lib/center/sms-source.ts` and renders the same `SendSmsDialog` from these screens — with
+   `contactableLeads()` (and therefore `CONTACTABLE_LEAD_FILTER`) deciding who is in the list and
+   reporting who was left out. Nothing is sent while `SMS_PROVIDER=mock`, and the real provider stays
+   off until the owner has hand-tested the mock.
+7. **The operator guide** is `docs/R3-START-HERE.md`: what to click, what should happen, and what is
+   deliberately not there yet.
+5. **Permissions** (Admin and Staff, Teachers excluded) are enforced and browser-proven: both routes
+   call `requireArchiver()`, every action calls it before it reads or writes anything, and the sidebar
+   hides both items from the restricted roles. One consequence worth stating: the Overview itself is
+   behind `requireAdmin()`, so a **staff** account does not see the "today's follow-ups" widget — staff
+   reach the same queue through the sidebar's Follow-ups item, which is the list filtered to today.
+   Widening the Overview to staff is a decision about every other widget on it, not about leads, so it
+   is left to the owner.
+6. **Convert to admission/student, book a trial, mark not interested with a reason** — the links the
+   spec lists beside a lead — are not on the row yet. The status vocabulary already carries `admitted`
+   and `not_interested`, and the model already has `admission`/`trialBooking`/`student` references with
+   the Recycle Bin blocking on them; what is missing is the prefilled hand-off, which is wave C's job
+   together with the funnel reports.

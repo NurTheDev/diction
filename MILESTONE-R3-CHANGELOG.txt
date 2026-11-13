@@ -143,12 +143,51 @@ Wave A — foundations, no UI:
     reads an environment variable must set it, because CI's environment is not the local one.
     R3.7 itself passed on its first run.
 
-Owed, stated plainly: the sidebar group ভিজিটর, quick-add (one tap from the sidebar and the mobile
-bottom bar, Enter saves), the list with search/filters/status chips/inline status/call/WhatsApp/
-next-follow-up buttons, the detail drawer with its notes timeline, duplicate-phone detection with
-"add as sibling" and merge, the Overview "Today's follow-ups" widget with an overdue count, the lead
-entry point for SendSmsDialog (visitor_thanks, bulk to a selection, "Do not contact" excluded), the
-import wizard with dry run, preview, flagged rows, unknown-column mapping, Bangla comments as the first
-note, undo and idempotent re-import, the funnel reports and CSV export, and permissions (Admin and
-Staff; Teachers excluded). No real SMS is sent at any point: SMS_PROVIDER stays mock until the owner
-approves the mock version after their own hand test.
+18. Wave B2 — the Visitors screens (R3.8, registry 35). A sixth sidebar group ভিজিটর / "Admissions &
+    leads" with Visitors and Follow-ups; /admin/leads (list, 20 a page, status chips, filters in a
+    collapsed details, masked numbers with Call and WhatsApp, inline status, the five follow-up buttons,
+    the last note on the row); /admin/leads/[id] addressed by Mongo id OR by V-2026-0007 through the new
+    leadDetailByKey(); quick-add as one tap from the mobile bottom bar (the plus slot becomes "নতুন
+    ভিজিটর" and links to ?new=1) with four fields, the other seven behind a "more" toggle, Enter to
+    save, and a panel that clears itself for the next visitor; one search box with two destinations — a
+    name becomes a shareable ?q=, anything phone-shaped is refused by the same leadListQuery() that
+    builds the href and posted to searchLeadsByNumber() instead, and a number pasted into the address
+    bar is refused with the whole list rendered; the detail drawer with fields, doubts, the notes
+    timeline (writer and outcome) and the family, loading its contents through an action so twenty rows
+    do not cost twenty queries; and "আজকের ফলো-আপ" on the Overview with today and overdue as two
+    separate numbers and the same row controls.
+    The owner's four conditions were treated as requirements: one tap to quick-add, Enter saves, large
+    tap targets (every control is an existing 44px admin class), and nothing cluttering the space above
+    the list (two closed buttons, the chips, a collapsed filter).
+    rowView() in the new src/lib/leads/lead-ui.ts is the only bridge from the rule layer to a component,
+    and it strips three things on the way: familyKey (which IS the smallest number of a family with
+    "fam:" in front of it), a phone's original (the number as written) and a flag's original (a raw cell
+    can hold a second valid number). R3.8 asserts the consequence against the served HTML — strip the
+    tel: and wa.me destinations and no fixture number appears anywhere in the document, including the
+    flight payload — on the list, the drawer, the search results and the Overview widget.
+    No rule moved into the UI: the follow-up buttons send keys and nextFollowUpDay() still computes the
+    Dhaka day; status changes still go through updateLeadStatus(), which still owns do-not-contact being
+    sticky; lifting the block is its own button and its own action. leads.ts gained exactly two
+    functions for these screens (leadDetailByKey, leadStatusCounts) and no page queries Lead.
+    src/actions/leads.ts now carries six guarded actions and still exports only async functions, still
+    builds no href, reads no query parameter and logs an error name rather than a value.
+    Proof: tests/lead-screens-browser.integration.ts drives all five screens as an admin, a staff
+    account and a content editor, reads every write back from the database rather than trusting a
+    sentence on screen (a revalidated row can unmount before its own feedback is painted), measures
+    horizontal overflow at 360px on every screen, checks the audit trail, and writes eleven review
+    screenshots into screenshots/r3/ — b2-visitors-list, b2-quick-add (+ b2-quick-add-saved-360),
+    b2-detail-drawer, b2-number-search and b2-overview-follow-ups, each at 360 and 1440.
+    tests/staff-role.test.ts pins the two new nav keys for all five roles, and scripts/verify-screens.ts
+    now photographs /bn/admin/leads, ?new=1 and ?followUp=today for R0.11 as well.
+    Operator guide added: docs/R3-START-HERE.md.
+
+Owed, stated plainly: the duplicate-phone "add as sibling / merge these two" dialog (the detection, the
+inherited family key and the family list in the drawer are live; the two-record decision is not), the
+lead entry point for SendSmsDialog (visitor_thanks, bulk to a selection, "Do not contact" excluded) as
+R3.9, the convert-to-admission / book-a-trial / mark-not-interested hand-offs, the import wizard with
+dry run, preview, flagged rows, unknown-column mapping, Bangla comments as the first note, undo and
+idempotent re-import, and the funnel reports with CSV export. Also stated plainly: the Overview is
+behind requireAdmin(), so a staff account does not see the follow-up widget and reaches the same queue
+through the sidebar's Follow-ups item — widening the Overview is a decision about every widget on it and
+is left to the owner. No real SMS is sent at any point: SMS_PROVIDER stays mock until the owner approves
+the mock version after their own hand test.

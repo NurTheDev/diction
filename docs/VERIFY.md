@@ -143,7 +143,15 @@ Step 6 exists because a sandbox or a locked-down network can read a run's *statu
 
 The workflow has `permissions: contents: write` **only** so it can push that evidence commit to this
 one branch. It never opens a pull request, never merges, never deploys and never runs on `main`.
-Dispatching it manually with `publish_screenshots` also commits `screenshots/<milestone>/`.
+Dispatching it manually with `publish_screenshots` also commits `screenshots/<milestone>/`:
+
+```bash
+gh workflow run verify.yml --ref arena/c33e6ed1-diction -f publish_screenshots=true
+```
+
+That is how the 360 px / 1440 px review shots get onto the branch instead of only into an artifact this
+sandbox cannot download — run it after the push run has finished, because the concurrency group cancels
+whatever is in flight.
 MongoDB and Chromium caches are kept between runs so a repeat run takes a few minutes instead of ten.
 
 Value: GitHub's runners have normal internet access, so the two downloads this agent sandbox cannot

@@ -25,6 +25,11 @@ export function screenPlan(_milestone:string):ScreenTarget[]{
     {path:'/bn/admin/students/removed',label:'removed-students'},
     {path:'/bn/admin/center-exams',label:'center-exams'},
     {path:'/bn/admin/admissions',label:'admissions'},
+    // R3 wave B: the Visitors list, the same list with quick-add already open (`?new=1` is what the
+    // mobile bottom bar's plus links to), and the follow-up queue the sidebar's second item opens.
+    {path:'/bn/admin/leads',label:'visitors-list'},
+    {path:'/bn/admin/leads?new=1',label:'visitors-quick-add'},
+    {path:'/bn/admin/leads?followUp=today',label:'visitors-follow-ups'},
     {path:'/bn/admin/content?kind=blog',label:'blog'},
     {path:'/bn/admin/recycle-bin',label:'recycle-bin'},
     {path:'/en/admin/recycle-bin',label:'recycle-bin-en'},
