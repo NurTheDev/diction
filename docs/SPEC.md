@@ -337,10 +337,14 @@ credentials, one real test SMS to the owner's own number.
 
 ### Go-live checklist (owner-maintained from R1 onward)
 
-1. Set `CRON_SECRET` (≥32 chars) in the Vercel project environment; confirm `vercel.json`'s
-   `0 19 * * *` schedule appears in the Vercel Crons panel.
+1. Set `CRON_SECRET` (≥32 chars) in the Vercel project environment; confirm **both** `vercel.json`
+   schedules appear in the Vercel Crons panel: `0 19 * * *` for `/api/admin/jobs/daily` (01:00
+   Asia/Dhaka) and, from R2, `5 1 * * *` for `/api/admin/jobs/sms-flush` (07:05 Asia/Dhaka, just
+   after the default quiet window closes).
 2. **First real scheduled-job run:** after the first 01:00 Asia/Dhaka cron, read the run log and
-   confirm `{"ok":true,...}` with the expected `purged` / `trim` / `proofMilestones` numbers.
+   confirm `{"ok":true,...}` with the expected `purged` / `trim` / `proofMilestones` numbers, plus —
+   from R2 — the `sms` key: `autoDue` (whether it ran, and how many classes/messages) and `flush`
+   (how many queued batches went out). Then check the 07:05 flush run's `{"ok":true,"batches":…}`.
    (Proven against the disposable database and by its auth contract in R1 — runs 43277249842 and
    43278522383 — but a real deployment run is a go-live item, not an R1 gate, owner decision
    2026-11-12.)
@@ -356,3 +360,6 @@ credentials, one real test SMS to the owner's own number.
 | --- | --- |
 | 2026-11-12 | Spec captured verbatim from the owner's brief (R0 item 3). R0 findings recorded in `docs/STATUS.md`; no requirement was weakened or removed. |
 | 2026-11-12 | Owner added §5.1 verification protocol (`npm run verify`, report, screenshots, `verify-output.zip`, status vocabulary). Owner decisions recorded in `docs/STATUS.md` §6: add a real `staff` role in R1; keep the five documented-but-missing features in their scheduled milestones. |
+| 2026-11-12 | **R2 wave A** implemented: BulkSMSBD provider exactly as its current official docs specify (three endpoints, Unicode for Bangla, one-to-many and different-messages, balance, all response codes in Bangla), credentials server-only and redacted, the six default template bodies byte for byte, the recipient rules (removed/opted-out never sent, held excluded from fee messages only, siblings merged, phones normalized and deduped), quiet hours in Asia/Dhaka, and the send engine (batches of 100, `insertMany` log rows with segments and cost, `requestId` idempotency, 1005-only auto-retry, explicit retry of failed rows, queueing). Proven as R2.1–R2.5 (run 43296844437). No requirement was weakened. |
+| 2026-11-12 | **R2 wave B1** implemented: `/[locale]/admin/sms` with connection status, live balance, this month's stored cost, the settings form (auto-send toggles OFF by default), "Send test SMS to my own number", editable templates, batches with an explicit retry, and filtered history; admin and super admin only. Proven as R2.6 (run 43303024575). |
+| 2026-11-12 | **R2 wave B2** implemented: the ONE reusable `SendSmsDialog` with the spec's four steps, opened from the due list, a student profile, the student list's bulk action, the payment success screen and the SMS page, behind one guarded endpoint (`POST /api/admin/sms/send`); the three auto-send toggles wired (receipt after payment, result after publishing, due reminders from the daily job on the chosen day); and a new `GET /api/admin/jobs/sms-flush` cron at 07:05 Asia/Dhaka that sends what quiet hours queued. Proven as R2.7–R2.8. **Two scope notes recorded rather than silently narrowed:** the spec's Visitors and Teacher CVs entry points wait on R3/R4, which own the `Lead` and `TeacherCandidate` models (the dialog is source-driven, so they add a source kind and render the same component); and `pending_reminder`, the spec's *optional, OFF* template, stays in the catalog and editable but is not offered in the picker until the optional current-month PENDING switch exists. "Send receipt SMS" ships as a button that opens the same dialog rather than a checkbox that would bypass the preview and the single green send button this section requires; the automatic receipt is the `autoReceipt` toggle. |

@@ -325,3 +325,40 @@ Undo toast as every other delete. `R1.4` grew the matching browser flows.
 auto-hide rule empties, so Delete forever could never succeed; and the Undo toast lived inside the
 row it deleted, so the post-delete refresh unmounted the 10-second window. The toast now lives in a
 layout-level host (`RecycleToastHost`).
+
+## 13. R2 — SMS (BulkSMSBD) (code complete, real provider still OFF)
+
+Owner instruction of 2026-11-12: **"start r2 now"**. R2 was built in three waves, each proven in CI
+before the next one started; `docs/R2-START-HERE.md` is the operator guide and
+`docs/R2-COVERAGE.md` answers §R2 sentence by sentence.
+
+**What exists:** the provider contract (BulkSMSBD's documented endpoints, Unicode for Bangla, every
+response code in Bangla, credentials server-only and redacted, `SMS_PROVIDER=mock` by default so
+nothing is sent); the six template bodies byte for byte with editable overrides; the recipient rules
+(removed and opted-out never contacted, held students excluded from fee messages only, siblings
+merged into one message with the summed total, phones normalized and deduped, one accurate skip
+reason per student); quiet hours in Asia/Dhaka with queueing and a flush; the send engine (batches of
+100, `insertMany` log rows carrying their own segments and cost, `requestId` idempotency, 1005-only
+auto-retry, explicit retry of failed rows); `/[locale]/admin/sms` (connection, balance, this month's
+stored cost, settings with auto-send OFF by default, test message to your own number, templates,
+batches, filtered history); **one** reusable `SendSmsDialog` with the spec's four steps, opened from
+the due list, a student profile, the student list's bulk action, the payment success screen and the
+SMS page; and the three auto-sends wired behind their toggles, plus a new 07:05 Asia/Dhaka flush job.
+
+**Requirements:** R2.1–R2.8 in `scripts/verify-plan.ts` (26 in total). Green runs: 43296844437
+(wave A, 23 PASS) and 43303024575 (wave B1, 24 PASS); wave B2's run is recorded in
+`test-results/ci-latest/verify-report.md`.
+
+**Owed, stated plainly:**
+
+1. **The real provider is OFF.** Per §R2 it goes on only after the owner approves the mock version,
+   and then exactly one test message to their own number. BulkSMSBD IP whitelisting must be disabled
+   for a serverless host first, or every send answers `1032`.
+2. **Visitors and Teacher CVs are not dialog entry points yet** — R3 (`Lead`) and R4
+   (`TeacherCandidate`) own those screens. The dialog is source-driven: they add a source kind in
+   `src/lib/center/sms-source.ts` and render the same component.
+3. **`pending_reminder`** stays in the catalog and editable, but is not in the picker until the
+   optional "include current-month PENDING" switch exists on the due list.
+4. **Delivery reports:** `202` is reported as *submitted*, never as delivered — the documented API
+   has no DLR callback.
+5. Both cron entries still need a **real Vercel run**, which remains a go-live checklist item (R7).

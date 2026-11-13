@@ -2,12 +2,13 @@ import mongoose from 'mongoose';
 import {requireAdmin} from '@/lib/admin/guard';
 import {dashboardDigits} from '@/lib/admin/digits';
 import {formatNumber,formatDate,formatTime,formatDigits} from '@/lib/admin/format';
-import {CenterSmsBatch,CenterSmsLog} from '@/models/CenterRecords';
+import {CenterClassGroup,CenterSmsBatch,CenterSmsLog} from '@/models/CenterRecords';
 import {User} from '@/models/User';
 import {loadSmsSettings,loadSmsTemplates,monthSmsTotals} from '@/lib/center/sms-send';
 import {createSmsProvider,smsProviderName,validateSmsCredentials} from '@/lib/center/sms-provider';
 import {SMS_VARIABLES} from '@/lib/center/sms-templates';
 import {SmsSettingsForm,SmsTestForm,SmsRetryButton,SmsTemplateEditor} from '@/components/admin/sms-panel';
+import SmsNewMessage from '@/components/admin/sms-new-message';
 
 export const dynamic='force-dynamic';
 
@@ -32,9 +33,11 @@ export default async function SmsPage({params,searchParams}:{params:Promise<{loc
 
   // The session user carries no phone, so the test-message form reads the operator's own number
   // from the record — "send a test SMS to my own number" must not mean retyping it.
-  const [settings,templates,totals,me]=await Promise.all([
+  const [settings,templates,totals,me,groups]=await Promise.all([
     loadSmsSettings(),loadSmsTemplates(),monthSmsTotals(),
     User.findById(actor.id).select('phone').lean<{phone?:string}|null>(),
+    CenterClassGroup.find({active:true}).select('name').sort({academicYear:-1,order:1}).limit(200)
+      .lean<{_id:mongoose.Types.ObjectId;name:{bn:string;en?:string}}[]>(),
   ]);
 
   // Live balance. The mock provider answers instantly and without a network call, so this is safe
@@ -96,6 +99,12 @@ export default async function SmsPage({params,searchParams}:{params:Promise<{loc
 
     <SmsSettingsForm locale={locale} settings={settings} providerName={providerName} balanceOk={balance.ok} balance={balance.ok?balance.balance:null}/>
     <SmsTestForm locale={locale} ownPhone={me?.phone||''}/>
+
+    <section className="admin-panel"><div className="admin-panel-head"><h2>{t('নতুন বার্তা','New message')}</h2></div><div className="admin-panel-body">
+      <SmsNewMessage en={!bn} institutePhone={settings.institutePhone}
+        classes={groups.map(group=>({id:String(group._id),name:(bn?group.name.bn:group.name.en)||group.name.bn}))}
+        templates={templates.filter(row=>row.active||row.key==='custom')} />
+    </div></section>
 
     <section className="admin-panel"><div className="admin-panel-head"><h2>{t('টেমপ্লেট','Templates')}</h2></div><div className="admin-panel-body">
       <p className="admin-help">{t('বার্তার লেখা বাংলায় থাকে। বন্ধনীতে থাকা ঘরগুলো বসানো যায়:','Message content stays Bangla. These chips can be inserted:')} <code>{[...SMS_VARIABLES].map(v=>`{${v}}`).join(' ')}</code></p>

@@ -3,6 +3,10 @@
     {
       "path": "/api/admin/jobs/daily",
       "schedule": "0 19 * * *"
+    },
+    {
+      "path": "/api/admin/jobs/sms-flush",
+      "schedule": "5 1 * * *"
     }
   ]
 }

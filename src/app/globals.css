@@ -506,3 +506,50 @@ html:lang(bn) .public-motion-root:not(.private-motion-disabled) :is(h1,h2,h3,h4)
 .admin-feedback.ok{color:#007a3d}
 @media(max-width:760px){.admin-defs{grid-template-columns:1fr 1fr}.admin-defs dd{font-size:16px}.admin-cell-message{max-width:24ch}}
 @media(max-width:420px){.admin-defs{grid-template-columns:1fr}}
+
+/* R2 — SendSmsDialog: one reusable compose surface opened from six screens. */
+.sms-overlay{position:fixed;inset:0;z-index:120;display:grid;place-items:center;padding:16px;background:rgba(21,24,63,.55);backdrop-filter:blur(3px)}
+.sms-dialog{width:min(760px,100%);max-height:min(90vh,940px);display:flex;flex-direction:column;background:#fff;border:1px solid #e4e7f1;border-radius:18px;box-shadow:0 24px 60px #1b1f4d33;overflow:hidden}
+.sms-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:18px 20px 12px;border-bottom:1px solid #eef0f8}
+.sms-head h2{margin:0;font-size:19px;line-height:1.35;color:#23265d}
+.sms-head .admin-mini-button{flex:none;padding:6px}
+.sms-steps{display:flex;gap:8px;list-style:none;margin:0;padding:12px 20px 0}
+.sms-steps li{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;background:#eef0fb;color:#8a90b4;border:1px solid #e2e6f4}
+.sms-steps li[data-active="true"]{background:var(--brand-primary,#2e3192);color:#fff;border-color:transparent}
+.sms-steps li[data-done="true"]{background:#e5f8ed;color:var(--scholar-green-700,#007a3d);border-color:#cfebdb}
+.sms-step{padding:16px 20px;overflow-y:auto;display:grid;gap:14px;align-content:start}
+.sms-skipped{background:#fff7e8;border:1px solid #f3e2bd;border-radius:12px;padding:12px 14px;font-size:13px;color:#6b4e11}
+.sms-skipped strong{display:block;margin-bottom:6px;font-size:13px}
+.sms-skipped ul{margin:0;padding-left:18px;display:grid;gap:3px}
+.sms-chips{display:flex;flex-wrap:wrap;gap:6px}
+.sms-text-label{display:grid;gap:6px;align-content:start}
+.sms-text-label>span{font-size:12px;font-weight:700;color:#525b75}
+.sms-previews{display:grid;gap:10px}
+.sms-preview{border:1px solid #e8eaf3;border-radius:12px;background:#f9faff;padding:12px 14px}
+.sms-preview header{display:flex;justify-content:space-between;gap:10px;align-items:baseline;font-size:12px;color:#5a6180;margin-bottom:6px}
+.sms-preview header strong{font-size:13px;color:#262a70}
+.sms-preview p{margin:0;font-size:14px;line-height:1.85;color:#23264f;overflow-wrap:anywhere}
+.sms-progress{display:grid;gap:8px;font-size:13px;color:#2e3192}
+.sms-progress>span{display:flex;gap:8px;align-items:center;font-weight:700}
+.sms-bar{height:6px;border-radius:99px;background:#e8ebf8;overflow:hidden}
+.sms-bar span{display:block;height:100%;width:40%;border-radius:99px;background:linear-gradient(90deg,var(--scholar-green,#00a651),var(--brand-primary,#2e3192));animation:sms-bar-slide 1.2s ease-in-out infinite}
+@keyframes sms-bar-slide{0%{transform:translateX(-100%)}100%{transform:translateX(320%)}}
+.sms-spin{animation:sms-spin 1s linear infinite}
+@keyframes sms-spin{to{transform:rotate(360deg)}}
+.sms-result{display:flex;gap:12px;align-items:flex-start;border:1px solid #e4e7f1;border-radius:12px;padding:14px;background:#f9faff}
+.sms-result strong{display:block;font-size:14px;color:#23265d}
+.sms-result .admin-mini-button{margin-left:auto;align-self:center}
+.sms-ok{color:var(--scholar-green-700,#007a3d);flex:none}
+.sms-bad{color:#b61720;flex:none}
+.sms-foot{display:flex;gap:10px;justify-content:flex-end;align-items:center;padding:14px 20px;border-top:1px solid #eef0f8;background:#fcfdff}
+.sms-send{background:linear-gradient(125deg,var(--scholar-green,#00a651),var(--scholar-green-700,#007a3d));color:#fff;box-shadow:0 10px 24px rgba(0,122,61,.2)}
+.sms-send:disabled{background:#c8ccd8;box-shadow:none;color:#fff;cursor:not-allowed}
+@media(max-width:600px){
+  .sms-overlay{padding:0;place-items:end}
+  .sms-dialog{width:100%;max-height:94vh;border-radius:18px 18px 0 0}
+  .sms-foot{flex-wrap:wrap}
+  .sms-foot .button{flex:1 1 auto;min-height:44px}
+  .sms-result{flex-wrap:wrap}
+  .sms-result .admin-mini-button{margin-left:0}
+}
+@media(prefers-reduced-motion:reduce){.sms-bar span,.sms-spin{animation:none}}
