@@ -102,6 +102,14 @@ Wave A — foundations, no UI:
     collided on — for a lead that can be a number — so writeRefusal() logs only the code and the field
     names, and no lead.* audit target is anything but a leadId.
 
+14. Two defects the R3.6 suite caught on its way to green, both worth more than the green line:
+    (a) duplicatePhoneGroups() filtered its $group with {rows:{$gte:2}}, which asks whether any ELEMENT
+        of the array is >= 2 — the elements are documents, so it never matched and the duplicate-phone
+        report would have been silently EMPTY forever. Now $expr with $size, and a comment saying why.
+        Nothing else in the product would have noticed: an empty report looks like "no duplicates".
+    (b) listLeads() floors the page size at 5 and ceilings it at 100, so ?perPage=1 cannot ask for a
+        five-hundred-page list. The suite now pins both ends instead of assuming a page size it asked for.
+
 Owed, stated plainly: the sidebar group ভিজিটর, quick-add (one tap from the sidebar and the mobile
 bottom bar, Enter saves), the list with search/filters/status chips/inline status/call/WhatsApp/
 next-follow-up buttons, the detail drawer with its notes timeline, duplicate-phone detection with

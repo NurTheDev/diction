@@ -149,11 +149,18 @@ async function run(){
     const oneLeadId=(await read(one.id)).leadId;
     const byStatus=await listLeads({status:'called'},now);
     assert.ok(byStatus.rows.some(row=>row.leadId===oneLeadId),'a real status filter narrows the list');
-    const paged=await listLeads({perPage:2,page:2},now);
-    assert.equal(paged.rows.length,2,'the list pages');
+    const totalNow=await Lead.countDocuments();
+    assert.equal(totalNow,6,'six leads by now: two quick-adds, two families, the sibling and the bridge');
+    assert.equal((await listLeads({perPage:1},now)).perPage,5,'a page size below the floor is raised to it, so a URL cannot ask for a five-hundred-page list');
+    assert.equal((await listLeads({perPage:5000},now)).perPage,100,'and one above the ceiling is lowered, so a URL cannot ask for the whole collection');
+    const firstPage=await listLeads({perPage:5,page:1},now);
+    const paged=await listLeads({perPage:5,page:2},now);
+    assert.equal(firstPage.rows.length,5,'the list pages');
     assert.equal(paged.page,2);
-    assert.ok(paged.pages>=2);
-    assert.notDeepEqual(paged.rows.map(row=>row.leadId),(await listLeads({perPage:2,page:1},now)).rows.map(row=>row.leadId),'and page two is not page one again');
+    assert.equal(paged.pages,2);
+    assert.equal(paged.rows.length,totalNow-5,'and page two holds what page one left');
+    assert.notDeepEqual(paged.rows.map(row=>row.leadId),firstPage.rows.map(row=>row.leadId),'page two is not page one again');
+    assert.equal(new Set([...firstPage.rows,...paged.rows].map(row=>row.leadId)).size,totalNow,'between them the whole list, with nothing shown twice and nothing dropped');
 
     // ---- 5. Today's follow-ups, with overdue counted separately and listed first.
     await setLeadFollowUp(one.id,'today',actorId,now);
@@ -219,7 +226,11 @@ async function run(){
     const override=await contactableLeads({doNotContact:true});
     assert.equal(override.recipients.length,0,'no caller-supplied filter can override the guard');
     const narrowed=await contactableLeads({classGroup:9});
-    assert.ok(narrowed.recipients.length>=1&&narrowed.recipients.every(row=>row.classGroup===9),'while an ordinary filter narrows the send as expected');
+    assert.equal(narrowed.recipients.length,0,'an ordinary filter narrows the send to the leads that match it…');
+    assert.equal(narrowed.withoutPhone,1,'…and the one class-nine lead has no number, which is counted out loud rather than skipped in silence');
+    const byStatusSend=await contactableLeads({status:'new'});
+    assert.ok(byStatusSend.recipients.length>=3,'a filter that does match leads with numbers returns them');
+    assert.ok(byStatusSend.recipients.every(row=>row.status==='new'),'and only them');
 
     // ---- 10. Nothing a number can leak through: the duplicate report and every audit row.
     const duplicates=await duplicatePhoneGroups();

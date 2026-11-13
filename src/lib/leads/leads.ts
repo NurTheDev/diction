@@ -429,7 +429,9 @@ export async function duplicatePhoneGroups(minCount=2):Promise<DuplicatePhoneGro
   const groups=await Lead.aggregate<{_id:string;rows:{id:unknown;leadId:string;studentName:string}[]}>([
     {$unwind:'$phones'},
     {$group:{_id:'$phones.normalized',rows:{$push:{id:'$_id',leadId:'$leadId',studentName:'$studentName'}}}},
-    {$match:{[`rows`]:{$gte:Math.max(2,minCount)}}},
+    // `$size` behind `$expr`: `{rows:{$gte:2}}` would ask whether any ELEMENT of the array is >= 2,
+    // and the elements are documents, so the group would never match and every duplicate would vanish.
+    {$match:{$expr:{$gte:[{$size:'$rows'},Math.max(2,minCount)]}}},
     {$sort:{_id:1}},
   ]);
   return groups.map(group=>({masked:maskPhone(group._id),count:group.rows.length,rows:group.rows.map(row=>({id:String(row.id),leadId:row.leadId,studentName:row.studentName}))}));
