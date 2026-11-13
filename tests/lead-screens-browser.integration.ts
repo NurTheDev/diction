@@ -294,13 +294,13 @@ async function run(){
      * What the search panel is showing right now, for the message a failed assertion leaves behind. A
      * timeout on its own says "an element never appeared"; this says what appeared instead.
      */
-    const searchState=async()=>{
+    const searchState=async(label:string)=>{
       const url=boss.page.url();
       const input=await search.locator('input[name="phone"]').inputValue().catch(()=>'(no input)');
       const feedback=await search.locator('p.admin-feedback').allInnerTexts().catch(()=>[]);
       const hitRows=await search.locator('table.admin-table tbody tr').count().catch(()=>-1);
       const panelText=(await search.innerText().catch(()=>'(panel gone)')).replace(/\s+/g,' ').slice(0,200);
-      return `url=${url} · input=${JSON.stringify(input)} · feedback=${JSON.stringify(feedback)} · hitRows=${hitRows} · panel="${panelText}"`;
+      return `${label} · url=${url} · input=${JSON.stringify(input)} · feedback=${JSON.stringify(feedback)} · hitRows=${hitRows} · panel="${panelText}"`;
     };
     await boss.page.locator('div.lead-tools button',{hasText:t.search}).first().click();
     await search.locator('input[name="phone"]').waitFor({state:'visible',timeout:30000});
@@ -308,7 +308,7 @@ async function run(){
     await submitSearch().click();
     const hits=search.locator('table.admin-table tbody tr');
     await hits.first().waitFor({state:'visible',timeout:90000})
-      .catch(async error=>{throw Error(`four digits never drew a result row — ${error.message.split('\n')[0]} · ${await searchState()}`)});
+      .catch(async error=>{throw Error(`four digits never drew a result row — ${error.message.split('\n')[0]} · ${await searchState('four digits should have drawn two hits')}`)});
     assert.equal(await hits.count(),2,'four digits off a crumpled sheet find both leads that share the number');
     // `first()`, never "the row with the name in it": the search sorts by date, and two leads written in
     // the same instant have no order this suite is allowed to depend on.
@@ -324,7 +324,7 @@ async function run(){
     await search.locator('input[name="phone"]').fill('৭০৯০');
     await submitSearch().click();
     await search.locator('table.admin-table tbody tr').first().waitFor({state:'visible',timeout:90000})
-      .catch(async error=>{throw Error(`Bangla digits never drew a result row — ${error.message.split('\n')[0]} · ${await searchState()}`)});
+      .catch(async error=>{throw Error(`Bangla digits never drew a result row — ${error.message.split('\n')[0]} · ${await searchState('Bangla digits should have drawn the same two hits')}`)});
     assert.equal(await search.locator('table.admin-table tbody tr').count(),2,'Bangla digits find the same two leads');
 
     // Two digits is a number attempt and gets the number rule's own answer. It is NOT sent off as a word
@@ -333,7 +333,7 @@ async function run(){
     await search.locator('input[name="phone"]').fill('12');
     await submitSearch().click();
     await search.locator('p.admin-feedback.error').first().waitFor({state:'visible',timeout:90000})
-      .catch(async error=>{throw Error(`two digits never drew the number rule's refusal — ${error.message.split('\n')[0]} · ${await searchState()}`)});
+      .catch(async error=>{throw Error(`two digits never drew the number rule's refusal — ${error.message.split('\n')[0]} · ${await searchState('two digits should have drawn a refusal')}`)});
     assert.equal(await search.locator('table.admin-table tbody tr').count(),0,'two digits are refused rather than matched against everybody');
     assert.ok(!new URL(boss.page.url()).search.includes('q='),'and a number attempt never became a URL, not even a short one');
     const refusal=await search.locator('p.admin-feedback.error').first().innerText();
@@ -344,7 +344,7 @@ async function run(){
     await search.locator('input[name="phone"]').fill(OLD);
     await submitSearch().click();
     await boss.page.waitForURL(/q=/,{timeout:90000})
-      .catch(async error=>{throw Error(`a name never became a shareable URL — ${error.message.split('\n')[0]} · ${await searchState()}`)});
+      .catch(async error=>{throw Error(`a name never became a shareable URL — ${error.message.split('\n')[0]} · ${await searchState('a name should have become ?q=')}`)});
     assert.equal(new URL(boss.page.url()).searchParams.get('q'),OLD,'a name DOES travel in the URL, so a filtered list can be shared between two admins');
     await boss.page.locator('table.admin-table tbody tr',{hasText:OLD}).first().waitFor({timeout:60000});
     assert.equal(await rows(boss.page).count(),1,'and it filters the list');

@@ -115,29 +115,54 @@ export type PhoneSearchRead=
   |{ok:false;code:'empty'|'not_a_number'|'too_short'|'too_long';messageBn:string;messageEn:string};
 
 /**
- * Is this text an attempt to type a NUMBER, rather than a name, a school or an id?
+ * Is this text an attempt to type a NUMBER, rather than a name, a school or a lead id?
  *
- * One reading of "typed a number", used by every path that has to decide it: the search box (which
- * posts a number attempt to an action instead of putting it in a URL), `leadListQuery()` (which refuses
- * to build an href for one) and `phoneSearchDigits()` below (which then counts the digits in it). Two
- * readings of the same question is how a browser and a server disagree about what an operator meant,
- * and this file is deliberately importable from a client component — it pulls in nothing but
- * `normalizePhone` and `formatNumber`, both plain string functions — so the browser's answer comes from
- * here and not from a copy of a regular expression pasted into a component.
+ * One reading of that question, used by every path that has to decide it: the search box (which posts a
+ * number attempt to an action instead of putting it in a URL), `leadListQuery()` (which refuses to build
+ * an href for one) and `phoneSearchDigits()` below (which then counts the digits in it). Two readings of
+ * the same question is how a browser and a server disagree about what an operator meant, and this file is
+ * deliberately importable from a client component — it pulls in nothing but `normalizePhone` and
+ * `formatNumber`, both plain string functions — so the browser's answer comes from here and not from a
+ * copy of a regular expression pasted into a component.
  *
- * It is about the CHARACTERS, not the length: `12` is a number attempt and too short to search by, and
- * those are two different facts about it. `V-2026-0001` and `ধানমন্ডি ৯` are not number attempts, so
- * they stay ordinary word searches that may travel in a URL.
+ * The test is a SHAPE, and the shape is what makes it precise:
+ *
+ * - it starts with a digit — ASCII or Bangla — or with the `+` or `(` a number is written with;
+ * - after that it holds digits, spaces, the punctuation a number is grouped with (dash, brackets, plus,
+ *   dot) and WORDS. A word is allowed because a number arrives with one attached: `01712817090 বাবা` is
+ *   one cell of the owner's own sheet, "father" written beside the number, and an operator who pastes
+ *   that into the search box means the number in it. A label does not turn a number into a word search;
+ *   `phoneSearchDigits()` drops it and matches the digits, exactly as `parsePhoneCell()` always has.
+ *
+ * So `V-2026-0001` is NOT one — it starts with a letter, and it is a lead id an operator may legitimately
+ * search and share — and neither is `ধানমন্ডি ৯` (a school with a class digit in it) or `Diction
+ * Coaching`. `12` IS one: a number attempt that is simply too short to look anybody up by, which is a
+ * different fact about it and gets a different answer.
  */
 export function isNumberAttempt(raw:unknown):boolean{
+  // Bangla digits are digits: ০১৭১২৮১৭০৯০ has to be read the same way 01712817090 is.
   const ascii=toAsciiDigits(String(raw==null?'':raw).trim());
-  return !!ascii&&ascii.length<=PHONE_ATTEMPT_MAX_LENGTH&&/^[\d\s()+.-]+$/.test(ascii)&&/[\d]/.test(ascii);
+  if(!ascii||ascii.length>PHONE_ATTEMPT_MAX_LENGTH)return false;
+  return NUMBER_SHAPE.test(ascii)&&/[\d]/.test(ascii);
 }
+
+// A number starts with a digit — ASCII or Bangla — or with the `+` or `(` it is written with. After
+// that it is digits, the punctuation a number is grouped with, and words: a number arrives with a word
+// attached (`01712817090 বাবা` is one cell of the owner's own sheet), and an operator who pastes that
+// into the search box means the number in it, not a word search. `parsePhoneCell()` has always read
+// that cell the same way; this is the same reading of the same text at the other end of the app.
+// `\p{M}` is in that class beside `\p{L}` because Bangla — like Devanagari, Tamil and most of the
+// scripts this app is written in — builds a word out of letters AND combining vowel signs: বাবা is
+// U+09AC U+09BE U+09AC U+09BE, letter-mark-letter-mark. A class of letters alone matches none of it, so
+// the label rule silently failed on the very language it was written for, and `01712817090 বাবা` was
+// refused as "not a number". The `-` sits last for a duller reason: between `+` and `\p{L}` V8 reads it
+// as a range from `+` to a property escape and rejects the whole expression.
+const NUMBER_SHAPE=/^(?:[0-9+(]|[০-৯])[0-9\s().\p{L}\p{M}+-]*$/u;
 
 /**
  * Above this many characters it is a paste, not a number somebody typed: an SMS body, an id list, a
- * paragraph from a sheet. Still refused a URL — that rule is about digits, and it does not need a length
- * — but answered as "that is not a number" rather than searched, so a paste cannot reach the index as a
+ * paragraph from a sheet. Still refused a URL — that rule is about digits, and it needs no length — but
+ * answered as "that is not a number" rather than searched, so a paste cannot reach the index as a
  * substring query and cannot come back as a page full of near misses.
  */
 export const PHONE_ATTEMPT_MAX_LENGTH=40;

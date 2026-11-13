@@ -209,7 +209,18 @@ Wave A — foundations, no UI:
     number search folded the panel away and answered nothing at all. The decision now comes first, and
     only a word search — which navigates anyway — reaches preventDefault(). The compiled client chunk was
     read after each change instead of being assumed correct: it calls the shared function, and the branch
-    order in the bundle is the branch order in the source. That mattered more than it looks: an empty list at a front desk reads as "no such visitor",
+    order in the bundle is the branch order in the source.
+    One more thing the shape of that reading had to learn, because R3.7 caught it: a number arrives with
+    a word attached. "01712817090 বাবা" — father, written beside the number — is one cell of the owner's
+    own sheet, and parsePhoneCell() has always read the number out of it and kept the label as a doubt.
+    The first version of isNumberAttempt() answered "not a number" to that cell, so the same text was a
+    number on the way in and not a number on the way out. Words are allowed in the shape now, and
+    phoneSearchDigits() drops them and matches the digits — which is what R3.7 has asserted all along and
+    what an operator who pastes a cell means. Two details of writing that down are worth keeping: a class
+    of \p{L} alone does not match Bangla, because বাবা is letter-mark-letter-mark, so \p{M} sits beside
+    it; and a "-" between "+" and a property escape is read by V8 as a range and rejects the whole
+    expression, so it goes last. R3.3 pins both, with the label case in Bangla digits too, and pins that
+    two numbers in one box ("01712817090,01911223344") is a sheet cell and not a search. That mattered more than it looks: an empty list at a front desk reads as "no such visitor",
     which is the wrong answer to give about a parent, while the refusal says the truth — that the
     fragment is too short to look anybody up by. Neither threshold moved, and R3.1 now pins both
     answers for 12, ১২, 999, 017-128, V-2026-0001, ধানমন্ডি ৯ and a blank box. The box's own label

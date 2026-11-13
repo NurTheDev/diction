@@ -113,9 +113,18 @@ function run(){
   assert.equal(isNumberAttempt('7090'),true,'the last four off a crumpled sheet');
   assert.equal(isNumberAttempt('+8801712817090'),true,'with its country code and its plus');
   assert.equal(isNumberAttempt('(01712) 817-090'),true,'with the brackets and dashes a number is typed with');
+  // A label beside a number is still a number: that is how one cell of the owner's own sheet arrives, and
+  // parsePhoneCell() has always read it that way. Combining marks count as part of the word — বাবা is
+  // letters AND vowel signs, and a class of letters alone would refuse it.
+  assert.equal(isNumberAttempt('01712817090 বাবা'),true,'a number with a word written beside it is still an attempt to type the number');
+  assert.equal(isNumberAttempt('০১৭১২৮১৭০৯০ বাবা'),true,'in Bangla digits with a Bangla label');
+  const labelled=phoneSearchDigits('01712817090 বাবা');
+  assert.equal(labelled.ok===true&&labelled.digits,'01712817090','and the label is dropped, not folded into the digits');
   assert.equal(isNumberAttempt('রাহুল'),false,'a name is not one');
   assert.equal(isNumberAttempt('V-2026-0001'),false,'a lead id is not one — it stays a shareable word search');
-  assert.equal(isNumberAttempt('ধানমন্ডি ৯'),false,'nor is a school with a class digit in it');
+  assert.equal(isNumberAttempt('ধানমন্ডি ৯'),false,'nor is a school with a class digit in it — it starts with a word');
+  assert.equal(isNumberAttempt('class 9'),false,'nor a class written the way a sheet writes it');
+  assert.equal(isNumberAttempt('01712817090,01911223344'),false,'two numbers in one box are a sheet cell, not a search — that cell is read by parsePhoneCell()');
   assert.equal(isNumberAttempt(''),false,'and neither is an empty box');
   assert.equal(isNumberAttempt('  '),false,'nor one holding only spaces');
   // A paste is not a number somebody typed, and it must not reach the index as a substring query.
