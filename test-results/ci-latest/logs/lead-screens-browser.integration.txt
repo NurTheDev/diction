@@ -1,19 +1,10 @@
-locator.click: TypeError: text.replace is not a function
-    at quoteCSSAttributeValue (<anonymous>:458:19)
-    at makeSelectorForId (<anonymous>:6346:68)
-    at cssFallback (<anonymous>:6373:21)
-    at generateSelectorFor (<anonymous>:6211:121)
-    at generateSelector (<anonymous>:6143:22)
-    at InjectedScript.generateSelectorSimple (<anonymous>:7166:12)
-    at <anonymous>:8082:24
-    at Array.map (<anonymous>)
-    at InjectedScript._generateSelectors (<anonymous>:8080:52)
-    at InjectedScript.strictModeViolationError (<anonymous>:8092:24)
+locator.waitFor: Timeout 90000ms exceeded.
 Call log:
-  - waiting for locator('section.admin-panel[aria-label="খুঁজুন"]').locator('button[type="submit"]')
+  - waiting for locator('section.admin-panel[aria-label="খুঁজুন"]').locator('p.admin-feedback.error').first() to be visible
 
-    at run (/home/runner/work/diction/diction/tests/lead-screens-browser.integration.ts:306:51) {
+    at run (/home/runner/work/diction/diction/tests/lead-screens-browser.integration.ts:318:60) {
   log: [
-    `  - waiting for locator('section.admin-panel[aria-label="খুঁজুন"]').locator('button[type="submit"]')`
-  ]
+    `  - waiting for locator('section.admin-panel[aria-label="খুঁজুন"]').locator('p.admin-feedback.error').first() to be visible`
+  ],
+  name: 'TimeoutError'
 }
