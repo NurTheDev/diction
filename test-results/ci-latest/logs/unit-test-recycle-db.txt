@@ -1,3 +1,18 @@
---- tests/recycle-bin.integration.ts (exit 0) ---
-Daily job: purged 1 expired social-proof milestone(s): d (2023)
-Recycle Bin engine: reference-blocked delete with exact counts, 30-day bin, restore, purge, audit rows, every query shape hidden, and the daily job (401 without the secret; purges only expired rows and trims old logs) passed.
+--- tests/recycle-bin.integration.ts (exit 1) ---
+/home/runner/work/diction/diction/node_modules/server-only/index.js:1
+throw new Error(
+      ^
+
+Error: This module cannot be imported from a Client Component module. It should only be used from a Server Component.
+    at Object.<anonymous> (/home/runner/work/diction/diction/node_modules/server-only/index.js:1:7)
+    at Module._compile (node:internal/modules/cjs/loader:1781:14)
+    at Object.transformer (/home/runner/work/diction/diction/node_modules/tsx/dist/register-B1c7OH6V.cjs:22:2188)
+    at Module.load (node:internal/modules/cjs/loader:1505:32)
+    at Function._load (node:internal/modules/cjs/loader:1309:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:254:19)
+    at Module.require (node:internal/modules/cjs/loader:1527:12)
+    at require (node:internal/modules/helpers:147:16)
+    at <anonymous> (/home/runner/work/diction/diction/src/lib/center/sms-send.ts:18:8)
+    at Object.<anonymous> (/home/runner/work/diction/diction/src/lib/center/sms-send.ts:449:23)
+
+Node.js v22.23.4

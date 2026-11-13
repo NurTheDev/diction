@@ -3,7 +3,7 @@ STARTING TEST MODE: checking TypeScript — first startup may take several minut
 
 STARTING TEST MODE: building the test application — first startup may take several minutes. Please wait.
 ▲ Next.js 16.4.5 (webpack)
-✓ Running next.config.ts took 57ms
+✓ Running next.config.ts took 58ms
 ⚠ No build cache found. Please configure build caching for faster rebuilds. Read more: https://nextjs.org/docs/messages/no-cache
 Attention: Next.js now collects completely anonymous telemetry regarding usage.
 This information is used to shape Next.js' roadmap and prioritize features.
@@ -17,7 +17,7 @@ https://nextjs.org/telemetry
   ✓ webpackMemoryOptimizations
 
   Creating an optimized production build ...
-✓ Compiled successfully in 30.5s
+✓ Compiled successfully in 41s
   Skipping validation of types
   Finished TypeScript config validation in 4ms ...
   Collecting page data using 1 worker ...
@@ -25,7 +25,7 @@ https://nextjs.org/telemetry
   Generating static pages using 1 worker (44/177) 
   Generating static pages using 1 worker (88/177) 
   Generating static pages using 1 worker (132/177) 
-✓ Generating static pages using 1 worker (177/177) in 1266ms
+✓ Generating static pages using 1 worker (177/177) in 1614ms
   Finalizing page optimization ...
   Collecting build traces ...
 
@@ -136,6 +136,7 @@ Route (app)                                      Revalidate  Expire
 ├ ƒ /api/admin/ai-test
 ├ ƒ /api/admin/center/dues-export
 ├ ƒ /api/admin/jobs/daily
+├ ƒ /api/admin/jobs/sms-flush
 ├ ƒ /api/admin/media
 ├ ƒ /api/admin/practice-tests
 ├ ƒ /api/admin/practice-tests/[id]
@@ -144,6 +145,7 @@ Route (app)                                      Revalidate  Expire
 ├ ƒ /api/admin/public-sheets/[id]/preview
 ├ ƒ /api/admin/roles
 ├ ƒ /api/admin/roles/[id]
+├ ƒ /api/admin/sms/send
 ├ ƒ /api/auth/[...nextauth]
 ├ ƒ /api/channel-videos
 ├ ƒ /api/materials
@@ -168,7 +170,7 @@ Route (app)                                      Revalidate  Expire
 
 Starting disposable test database… first startup may download MongoDB.
 TEST_ORIGIN=http://localhost:3111
-TEST_MONGO_URI=mongodb://127.0.0.1:34829/?replicaSet=testset
+TEST_MONGO_URI=mongodb://127.0.0.1:35703/?replicaSet=testset
 TEST_MONGO_DB=dictioncoaching_test
 
 DISPOSABLE TEST MODE — all data disappears when stopped.
@@ -181,5 +183,5 @@ Database is an in-memory replica set; real MONGODB_URI is ignored. Ctrl+C to sto
 ▲ Next.js 16.4.5
 - Local:         http://localhost:3111
 - Network:       http://0.0.0.0:3111
-✓ Ready in 108ms
-✓ Running next.config.ts took 61ms
+✓ Ready in 132ms
+✓ Running next.config.ts took 72ms

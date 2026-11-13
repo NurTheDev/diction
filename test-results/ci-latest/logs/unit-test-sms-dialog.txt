@@ -1,0 +1,19 @@
+--- tests/sms-dialog.integration.ts (exit 1) ---
+AssertionError [ERR_ASSERTION]: siblings share one message and the paid-up, removed, opted-out, held and phoneless students are not messaged
++ actual - expected
+
+  [
+    '01711000001',
+    '01711000002',
++   '01711000002'
+  ]
+
+    at run (/home/runner/work/diction/diction/tests/sms-dialog.integration.ts:96:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: [Array],
+  expected: [Array],
+  operator: 'deepStrictEqual',
+  diff: 'simple'
+}
