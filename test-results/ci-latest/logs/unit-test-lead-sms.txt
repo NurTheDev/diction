@@ -2,14 +2,5 @@
 Visitor SMS rules: a lead becomes a candidate that is always active, carries one number and no invented chips, its “do not contact” mark becomes the pipeline’s own opt-out so a blocked visitor is skipped by name with the reason printed in Bangla, a lead with no number is reported rather than dropped, no fee rule can exclude a visitor, two leads on one number are one message when the operator asks and never an ambiguous grouping, the catalog offered to a Visitors screen is only the templates a lead can actually fill (visitor_thanks among them, due reminders not) and its body renders with the center’s own number leaving no chip behind, blocked and phoneless are counted apart and add up to the rows on screen, and an empty selection resolves to nobody.
 
 
---- tests/lead-sms.integration.ts (exit 1) ---
-AssertionError [ERR_ASSERTION]: the center’s own number is rendered into the body
-    at run (/home/runner/work/diction/diction/tests/lead-sms.integration.ts:183:12)
-    at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {
-  generatedMessage: false,
-  code: 'ERR_ASSERTION',
-  actual: false,
-  expected: true,
-  operator: '==',
-  diff: 'simple'
-}
+--- tests/lead-sms.integration.ts (exit 0) ---
+Visitor SMS entry point: leadsForSms returns blocked and phoneless leads by name, reads only the first number, drops invented ids, is capped and never returns a binned lead; the bulk selection answers the same filter as the list, counts its exclusions and cannot be widened by a caller filter — even one written as a raw Mongo operator — that asks for blocked leads; resolveSmsSource routes one lead and a selection, marks the subject kind and resolves an id-less request to nobody; visitor_thanks renders with the center number, folds a family sharing one number into a single message traceable to both visitors, and names all three exclusions with reasons in both languages; the send writes one log row per visitor carrying the lead and no student reference, books the cost to the current month, counts the skipped on the batch and audits a batch id with no phone number in it; the 24-hour repeat warning reads the lead rows only and still catches a thank-you sent two hours before a month boundary; the dialog refuses a malformed id, an empty or invented selection, an unknown source and a send to only blocked visitors, previews them with Bangla reasons, and re-reads permission so a visitor blocked after the dialog opened is not texted; and one requestId means one batch, so a double-click cannot thank a visitor twice while a deliberate second send is warned about by name.
