@@ -1,11 +1,9 @@
-page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL
+locator.waitFor: Timeout 60000ms exceeded.
 Call log:
-  - navigating to "/bn/admin/students/dues?class=6af67f913f843f814f3a7c49", waiting until "domcontentloaded"
+  - waiting for locator('[data-sms-step="2"]') to be visible
 
-    at openDialog (/home/runner/work/diction/diction/tests/sms-dialog-browser.integration.ts:114:18)
-    at run (/home/runner/work/diction/diction/tests/sms-dialog-browser.integration.ts:131:11) {
-  log: [
-    '  - navigating to "/bn/admin/students/dues?class=6af67f913f843f814f3a7c49", waiting until "domcontentloaded"'
-  ],
-  name: 'Error'
+    at toStep (/home/runner/work/diction/diction/tests/sms-dialog-browser.integration.ts:127:28)
+    at async run (/home/runner/work/diction/diction/tests/sms-dialog-browser.integration.ts:176:5) {
+  log: [ `  - waiting for locator('[data-sms-step="2"]') to be visible` ],
+  name: 'TimeoutError'
 }
