@@ -7,5 +7,6 @@ export const contentModels=Object.fromEntries(names.map(name=>{const schema=new 
 export {User} from './User';
 
 export {Admission,Slot,TrialBooking,ContactMessage} from './Intake';
+export {Lead} from './Lead';
 export {Student,Batch,Exam,Attendance,Result} from './Academic';
 export {TeacherContent,FacilityContent,FAQContent,SiteSettingsContent} from './PublicContent';

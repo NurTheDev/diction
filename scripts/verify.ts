@@ -334,6 +334,12 @@ async function main():Promise<void>{
       {needsDb:true,env:{TEST_ORIGIN:ctx.origin,TEST_MONGO_URI:ctx.mongoUri,TEST_MONGO_DB:ctx.mongoDb}});
     await stepUnitSuites(ctx,'test:sms:problem','R2.9','Automatic-SMS problems against the disposable database',
       {needsDb:true,env:{TEST_ORIGIN:ctx.origin,TEST_MONGO_URI:ctx.mongoUri,TEST_MONGO_DB:ctx.mongoDb}});
+    await stepUnitSuites(ctx,'test:lead:vocab','R3.1','Visitor lead vocabulary: statuses, sticky do-not-contact, follow-up days, phone privacy');
+    await stepUnitSuites(ctx,'test:lead:date','R3.2','Visitor sheet dates: day-first reading, refusals, suspicious-year flags');
+    await stepUnitSuites(ctx,'test:lead:phone','R3.3','Visitor sheet phones: two numbers in a cell, short numbers flagged, never repaired');
+    await stepUnitSuites(ctx,'test:lead:class','R3.4','Visitor sheet class column: Roman, Bangla, "New 9", SSC/HSC batches, unmapped columns asked about');
+    await stepUnitSuites(ctx,'test:lead:db','R3.5','The Lead record and its Recycle Bin participation against the disposable database',
+      {needsDb:true,env:{TEST_ORIGIN:ctx.origin,TEST_MONGO_URI:ctx.mongoUri,TEST_MONGO_DB:ctx.mongoDb}});
     await stepScreens(ctx);
     await stepBrowserTests(ctx);
     (ctx as Context&{stop?:()=>void}).stop?.();

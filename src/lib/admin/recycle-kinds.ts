@@ -9,7 +9,7 @@ import {z} from 'zod';
  * file, and Next only allows async functions to be exported from one — exporting this schema from
  * there broke every server action at runtime (CI runs 43274692208, twice).
  */
-export const recycleKinds=['editorial','course','material','media','portalNotice','faq','facility','achievementRecord','practiceTest','publicSheet','classGroup','centerExam','slot','trialBooking','admission','contactMessage','heroBanner','teacher','portalAccount','exam','modelTest'] as const;
+export const recycleKinds=['editorial','course','material','media','portalNotice','faq','facility','achievementRecord','practiceTest','publicSheet','classGroup','centerExam','slot','trialBooking','admission','contactMessage','heroBanner','teacher','portalAccount','exam','modelTest','lead'] as const;
 export type RecycleKind=typeof recycleKinds[number];
 
 /**

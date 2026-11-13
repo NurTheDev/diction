@@ -14,6 +14,7 @@ import {PracticeTest} from '../src/models/PracticeTest';
 import {PublicSheet} from '../src/models/PublicSheet';
 import {CenterClassGroup,CenterExam,CenterStudent,CenterPayment,CenterFeeWaiver,CenterActivityLog,CenterSmsLog,CenterSmsBatch,CenterDueSnapshot,CenterImportBatch,CenterWorkbookBatch,CenterExamResult} from '../src/models/CenterRecords';
 import {User} from '../src/models/User';
+import {Lead} from '../src/models/Lead';
 import {Admission,ContactMessage,Slot,TrialBooking} from '../src/models/Intake';
 import {HeroBanner} from '../src/models/HeroBanner';
 import {TeacherContent,SiteSettingsContent} from '../src/models/PublicContent';
@@ -24,14 +25,14 @@ import {recycleKinds,archivableKinds,canArchiveKind} from '../src/lib/admin/recy
 import {recycleRegistry} from '../src/lib/admin/recycle';
 import {kindSchema} from '../src/lib/admin/recycle-kinds';
 
-// 1. The twenty-one schemas that carry deletedAt / deletedBy / purgeAt.
-const participating=[['Editorial',Editorial],['Course',Course],['LearningMaterial',LearningMaterial],['MediaFile',MediaFile],['PortalNotice',PortalNotice],['FAQContent',FAQContent],['FacilityContent',FacilityContent],['AchievementRecord',AchievementRecord],['PracticeTest',PracticeTest],['PublicSheet',PublicSheet],['CenterClassGroup',CenterClassGroup],['CenterExam',CenterExam],['Admission',Admission],['Slot',Slot],['TrialBooking',TrialBooking],['ContactMessage',ContactMessage],['HeroBanner',HeroBanner],['TeacherContent',TeacherContent],['User',User],['Exam',Exam],['ModelTest',ModelTest]] as const;
-assert.equal(participating.length,21);
+// 1. The twenty-two schemas that carry deletedAt / deletedBy / purgeAt.
+const participating=[['Editorial',Editorial],['Course',Course],['LearningMaterial',LearningMaterial],['MediaFile',MediaFile],['PortalNotice',PortalNotice],['FAQContent',FAQContent],['FacilityContent',FacilityContent],['AchievementRecord',AchievementRecord],['PracticeTest',PracticeTest],['PublicSheet',PublicSheet],['CenterClassGroup',CenterClassGroup],['CenterExam',CenterExam],['Admission',Admission],['Slot',Slot],['TrialBooking',TrialBooking],['ContactMessage',ContactMessage],['HeroBanner',HeroBanner],['TeacherContent',TeacherContent],['User',User],['Exam',Exam],['ModelTest',ModelTest],['Lead',Lead]] as const;
+assert.equal(participating.length,22);
 for(const [name,model] of participating){
   assert.ok((model.schema as any).path('deletedAt'),`${name} has deletedAt`);
   assert.ok((model.schema as any).path('purgeAt'),`${name} has purgeAt`);
 }
-assert.deepEqual(participating.map(([n])=>n).sort(),recycleRegistry.map(entry=>({editorial:'Editorial',course:'Course',material:'LearningMaterial',media:'MediaFile',portalNotice:'PortalNotice',faq:'FAQContent',facility:'FacilityContent',achievementRecord:'AchievementRecord',practiceTest:'PracticeTest',publicSheet:'PublicSheet',classGroup:'CenterClassGroup',centerExam:'CenterExam',slot:'Slot',trialBooking:'TrialBooking',admission:'Admission',contactMessage:'ContactMessage',heroBanner:'HeroBanner',teacher:'TeacherContent',portalAccount:'User',exam:'Exam',modelTest:'ModelTest'}[entry.kind])).sort(),'the registry and the schemas are the same twenty-one types');
+assert.deepEqual(participating.map(([n])=>n).sort(),recycleRegistry.map(entry=>({editorial:'Editorial',course:'Course',material:'LearningMaterial',media:'MediaFile',portalNotice:'PortalNotice',faq:'FAQContent',facility:'FacilityContent',achievementRecord:'AchievementRecord',practiceTest:'PracticeTest',publicSheet:'PublicSheet',classGroup:'CenterClassGroup',centerExam:'CenterExam',slot:'Slot',trialBooking:'TrialBooking',admission:'Admission',contactMessage:'ContactMessage',heroBanner:'HeroBanner',teacher:'TeacherContent',portalAccount:'User',exam:'Exam',modelTest:'ModelTest',lead:'Lead'}[entry.kind])).sort(),'the registry and the schemas are the same twenty-two types');
 
 // 2. Financial, audit and student records are NOT auto-hidden: they have no deletedAt at all, so
 //    the rule cannot touch them. Students keep their own removed status; payments are voided.
@@ -86,4 +87,4 @@ assert.ok(milestonePath?.schema?.path('purgeAt'),'milestones carry purgeAt');
 for(const kind of archivableKinds)assert.equal(canArchiveKind(kind),true,`${kind} can be archived`);
 for(const kind of recycleKinds.filter(k=>!(archivableKinds as readonly string[]).includes(k)))assert.equal(canArchiveKind(kind),false,`${kind} has no archive path`);
 
-console.log('Recycle coverage: 21 schemas carry the bin fields; 15 financial/audit/student types cannot be hidden; find/findOne/count/distinct/findOneAnd*/update*/delete*/aggregate/bulkWrite are covered; estimatedDocumentCount is the documented exception; public kinds revalidate their routes; the client kind lists match the registry.');
+console.log('Recycle coverage: 22 schemas carry the bin fields; 15 financial/audit/student types cannot be hidden; find/findOne/count/distinct/findOneAnd*/update*/delete*/aggregate/bulkWrite are covered; estimatedDocumentCount is the documented exception; public kinds revalidate their routes; the client kind lists match the registry.');

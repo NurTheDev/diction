@@ -1,0 +1,85 @@
+R3 — Visitor leads. Replaces the owner's "Visitor sheet" spreadsheet.
+Proven by CI (npm run verify); requirements R3.1-R3.5 are wave A. Waves B (screens) and C (the import
+wizard, reports and CSV export) follow, in that order, as the owner asked.
+
+Wave A — foundations, no UI:
+
+1. src/models/Lead.ts: every field the brief lists — leadId, date, studentName, guardianName, phones[],
+   classLabel + classGroup + newSession (+ exam/examYear), school, group, shift, medium, source,
+   interestedIn, status, doNotContact, nextFollowUp, assignedTo, the notes timeline, conversion links
+   (admission / trialBooking / student), familyKey, importSource + importBatch — plus flags[], so
+   anything the app could not read travels with the lead instead of being shown once and forgotten.
+   Soft delete comes from addRecycleFields, so a binned lead disappears from every ordinary query.
+   nextFollowUp is a YYYY-MM-DD day in Asia/Dhaka rather than a Date: ISO days compare exactly as
+   strings, so "today's follow-ups" and "overdue" need no timezone arithmetic at query time.
+   studentName is required, because a lead with no name cannot be called and inventing "Unknown" would
+   be a guess — the importer will keep such a row in its own preview and ask.
+2. nextLeadId() issues V-2026-0007-style ids following the HIGHEST id of the year, not a count, so a
+   purged lead cannot hand its number to somebody else; a new year restarts at 0001 and the unique index
+   stays the backstop if two admins quick-add at once.
+3. src/lib/leads/vocab.ts: the eight statuses, five sources, three shifts, three mediums, four groups
+   and four note outcomes, each with Bangla and English words in one file so no screen can drift from
+   another. Three standing rules live here rather than in a screen: "Do not contact" is sticky (a status
+   AND a boolean; moving the status back does not clear it) with canContact() as the single gate and
+   CONTACTABLE_LEAD_FILTER as the same rule in query form, so a bulk send cannot reach a forbidden
+   number; a follow-up is a day, with the five quick buttons (today, tomorrow, 3 days, next week =
+   seven days, custom) and today/overdue/later/none states; and a number never appears in a URL this app
+   builds — leadListQuery() refuses a phone-shaped search term, in Bangla digits too, so it is posted
+   instead of landing in browser history and the host's access log, while a name or school stays
+   shareable. maskPhone() is what a log gets. familyKeyFromPhones() ties siblings by the smallest shared
+   number; archiveSuggestionDay()/suggestsArchive() implement the 18-month rule as a suggestion, never
+   an automatic delete.
+4. src/lib/leads/lead-date.ts: one rule reads every spelling in the brief — day first, two-digit years
+   mean 20xx — across 2/12/2024, 15.12.24, 2-12-24, Bangla digits, stray spaces, ISO and a real xlsx
+   cell. What is doubtful is reported, never repaired: an ambiguous day/month pair is named ambiguous, a
+   month-first row is read only when it is the only possible reading and reports the exception,
+   impossible dates (31/02, 31/11, day 0) and unreadable ones are refused quoting the owner's own text,
+   and a four-digit year outside 2000-2100 is not told it was read as 20xx. flagSuspiciousYears() flags
+   a year that disagrees with the sheet's majority and SUGGESTS the majority year for the same month and
+   day — never applying it, never suggesting into the future, and never flagging when there is no
+   majority to appeal to.
+5. src/lib/leads/lead-phone.ts: parsePhoneCell() reads a cell that holds a clean number, "0 1934-595247",
+   Bangla digits, hand-grouped brackets, a missing leading zero, a +880 country code, two numbers split
+   by a comma, a semicolon, a line break, a space or a Bangla label, or ten digits that are short. It
+   cleans what can be cleaned and flags the rest — short, invalid, extra digits beside a real number, a
+   word instead of a number — keeping the spelling exactly as written beside the normalized number, and
+   distinguishing an empty cell from an unreadable one. It also owns the only two hrefs that carry a
+   number (tel: and wa.me, both third-party destinations, never a route of this app, never logged) and
+   the log mask. Validity is decided by the same normalizePhone() the SMS engine uses.
+6. src/lib/leads/lead-class.ts + lead-columns.ts: XI/xi/XII/IX from a fixed table (so IIII is not 4),
+   7/৭/নবম/দশম শ্রেণি/Class 9/শ্রেণি ৯/grade 11, and "New 9"/"new 6"/"নতুন ৯"/"9 (New)" with newSession as
+   its own flag. SSC 25 becomes class 10, 9 or 11 depending on the year the visitor walked in and keeps
+   its exam and year; SSC 14 leaves the class empty with a flag rather than guessing. The raw label is
+   always kept and classGroup null means "not derived", never "no class". Column values (group, medium,
+   shift, source) map from lookup tables where "Other" and an unknown phrase become null instead of a
+   default — substring matching would call "ফেসবুকের মাধ্যমে" a referral — and headers map from a synonym
+   table, so an unnamed ("Column 1") or unknown column is handed back as a question for the owner
+   instead of being dropped or attached to the nearest field.
+7. Recycle Bin: 'lead' joined recycleKinds and recycleRegistry as ভিজিটর লিড / Visitor lead, named by its
+   student or by its id when no name was written. It is deliberately NOT archivable (a lead has no
+   unpublished state, and the 18-month rule is a suggestion on the list) and IS reference-blocked once
+   converted, because deleting a converted lead would lose the link to the admission, student or trial
+   booking. tests/recycle-coverage.test.ts now asserts 22 bin schemas and that the registry and the
+   schemas are the same 22 types.
+8. src/lib/admin/today.ts exports dhakaDay(), the YYYY-MM-DD form of "today in Dhaka" that
+   dhakaToday() already computed internally, so the lead rules and the shared helper cannot drift.
+9. Suites: tests/lead-vocab.test.ts (R3.1), tests/lead-date.test.ts (R3.2), tests/lead-phone.test.ts
+   (R3.3) and tests/lead-class.test.ts (R3.4) are pure and run anywhere; tests/lead-model.integration.ts
+   (R3.5) proves the record against the disposable database — what a sheet row keeps, what a quick-add
+   leaves unset, nine malformed rows and a repeated leadId refused, id sequencing, the follow-up range
+   queries, sticky do-not-contact agreeing with the filter for all eight statuses, sibling lookup by an
+   indexed phone, and the full bin cycle (soft delete, invisible, listed, counted, restored, purge-dated
+   30 days out, reference-blocked when converted, then purgeable).
+10. Docs: docs/R3-COVERAGE.md answers §R3 point by point for wave A, with §6 stating plainly what wave A
+    does not do. No operator guide yet — docs/R3-START-HERE.md comes with wave B, because a guide to
+    buttons that do not exist would be a lie.
+
+Owed, stated plainly: the sidebar group ভিজিটর, quick-add (one tap from the sidebar and the mobile
+bottom bar, Enter saves), the list with search/filters/status chips/inline status/call/WhatsApp/
+next-follow-up buttons, the detail drawer with its notes timeline, duplicate-phone detection with
+"add as sibling" and merge, the Overview "Today's follow-ups" widget with an overdue count, the lead
+entry point for SendSmsDialog (visitor_thanks, bulk to a selection, "Do not contact" excluded), the
+import wizard with dry run, preview, flagged rows, unknown-column mapping, Bangla comments as the first
+note, undo and idempotent re-import, the funnel reports and CSV export, and permissions (Admin and
+Staff; Teachers excluded). No real SMS is sent at any point: SMS_PROVIDER stays mock until the owner
+approves the mock version after their own hand test.

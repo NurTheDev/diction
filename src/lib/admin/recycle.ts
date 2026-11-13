@@ -12,6 +12,7 @@
  */
 import type {Model, Types} from 'mongoose';
 import {Editorial} from '@/models/Editorial';
+import {Lead} from '@/models/Lead';
 import {Course} from '@/models/Course';
 import {LearningMaterial} from '@/models/LearningMaterial';
 import {MediaFile} from '@/models/MediaFile';
@@ -147,6 +148,16 @@ export const recycleRegistry:RecycleKindDef[]=[
    references:async id=>{
      const attempts=await TestAttempt.countDocuments({test:id});
      return attempts?[{count:attempts,bn:'টি সংরক্ষিত চেষ্টা এই টেস্টে',en:'saved attempt(s) belong to this test'}]:[];
+   }},
+  // ── R3: visitor leads. Archiving is deliberately NOT offered here — a lead has no "unpublished"
+  // state, and the brief's 18-month rule is a suggestion on the list, not a field write.
+  {kind:'lead',labelBn:'ভিজিটর লিড',labelEn:'Visitor lead',model:()=>Lead,nameOf:d=>d.studentName||d.leadId,
+   references:async id=>{
+     const doc=await Lead.findById(id).select('admission trialBooking student').lean<AnyDoc>();
+     if(!doc)return [];
+     return doc.admission||doc.student||doc.trialBooking
+       ? [{count:1,bn:'টি লিড ইতোমধ্যে ভর্তি, শিক্ষার্থী বা ট্রায়াল বুকিংয়ে রূপান্তরিত — মুছে ফেললে সেই সংযোগ হারাবে',en:'lead has already been converted to an admission, a student or a trial booking — deleting it loses that link'}]
+       : [];
    }},
 ];
 

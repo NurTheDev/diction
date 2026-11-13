@@ -388,3 +388,46 @@ is not a user — silently, since all three callers are best-effort. Batches now
 4. **Delivery reports:** `202` is reported as *submitted*, never as delivered — the documented API
    has no DLR callback.
 5. Both cron entries still need a **real Vercel run**, which remains a go-live checklist item (R7).
+
+---
+
+## 14. R3 — Visitor leads, wave A: foundations (code complete, no screens yet)
+
+Started after the owner accepted R2 and asked for R3 in this order: **wave A foundations, wave B
+screens, wave C the import wizard**, all inside R3. Wave A is the parts that carry no UI, so every rule
+is provable on its own before a screen is built on top of it.
+
+**What exists:** `src/models/Lead.ts` (every field the brief lists, plus stored `flags[]`, a sticky
+`doNotContact`, a day-string `nextFollowUp`, sibling `familyKey`, conversion links and
+`importSource`/`importBatch` for the wizard); four pure modules under `src/lib/leads/` — `vocab.ts`
+(the vocabulary and the three standing rules), `lead-date.ts` (day-first dates, refusals, suspicious
+years), `lead-phone.ts` (two numbers in a cell, short numbers flagged, the `tel:`/`wa.me` hrefs and the
+log mask), `lead-class.ts` + `lead-columns.ts` (Roman/Bangla/"New 9"/SSC-HSC classes, and the column
+value and header lookups); and `lead` registered in the Recycle Bin (22 bin schemas now), named **ভিজিটর
+লিড / Visitor lead**, deliberately not archivable, and reference-blocked once converted.
+
+**The three standing rules, because they shape every wave that follows:**
+
+1. *"Do not contact" is sticky* — a status **and** a boolean, and moving the status back does not clear
+   it. `canContact()` is the one gate; `CONTACTABLE_LEAD_FILTER` is the same rule as a query, so a bulk
+   SMS cannot drift from it.
+2. *A number is never in a URL this app builds, an audit target or a log line.* A phone-shaped search —
+   in Bangla digits too — is refused as a URL parameter and posted instead; the only hrefs carrying a
+   number are the `tel:` and `wa.me` destinations the brief requires, built in one place, third-party,
+   never logged. Logs get `maskPhone()`.
+3. *A follow-up is a day, not an instant* — `YYYY-MM-DD` in Asia/Dhaka, so "today's follow-ups" and the
+   overdue count are one range query with no timezone arithmetic.
+
+And the rule behind all the parsing: **never guess.** A doubtful date, a short number or an unreadable
+class is flagged with the text exactly as written kept beside it; a suspicious year gets a *suggested*
+fix that nothing applies by itself.
+
+**Requirements:** R3.1–R3.5 in `scripts/verify-plan.ts` (32 in total across R0–R3). Suites:
+`test:lead:vocab`, `test:lead:date`, `test:lead:phone`, `test:lead:class` (pure) and `test:lead:db`
+(disposable database). Coverage written point by point in `docs/R3-COVERAGE.md`, including §6, which
+states what wave A does not do. The green run for wave A is named here once CI reports it.
+
+**Not started, by design:** the sidebar group **ভিজিটর**, quick-add, the list with its filters and
+inline status, the detail drawer, the Overview "Today's follow-ups" widget, duplicate detection with
+sibling/merge, the lead entry point for `SendSmsDialog`, the import wizard, the funnel reports and CSV
+export, and `docs/R3-START-HERE.md`. Those are waves B and C.
