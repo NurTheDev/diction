@@ -3,6 +3,6 @@ Duplicate-phone planning: a merge fills only what the target left empty and neve
 
 
 --- tests/lead-dup.integration.ts (exit 1) ---
-TypeError: Cannot read properties of null (reading 'deletedAt')
-    at run (/home/runner/work/diction/diction/tests/lead-dup.integration.ts:119:25)
+Error: the merged source vanished: id=6af73c9e224486a642d172c4 leadId=V-2026-0004 movedOk=true movedLeadId=V-2026-0006 census=[{"leadId":"V-2026-0001","name":"রাহুল","binned":false},{"leadId":"V-2026-0002","name":"রাহুলের বোন","binned":false},{"leadId":"V-2026-0003","name":"দোকানদার","binned":false},{"leadId":"V-2026-0005","name":"পুরনো লিডের বোন","binned":false},{"leadId":"V-2026-0006","name":"নতুন লিড","binned":false}]
+    at run (/home/runner/work/diction/diction/tests/lead-dup.integration.ts:123:13)
     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
