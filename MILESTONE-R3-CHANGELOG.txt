@@ -238,7 +238,20 @@ Wave A — foundations, no UI:
     digits step had been passing on the four digits step's results. The component learned the same lesson
     on the operator's behalf: when the href it would push is the address bar it is standing on, it does
     nothing at all and leaves the box open, so an emptied box can never fold the panel away with no answer
-    in it again. That mattered more than it looks: an empty list at a front desk reads as "no such visitor",
+    in it again.
+    That run also got further than any before it, and the next step it failed on had never been reached in
+    CI at all: §8's content editor. What it waited for was the admin error boundary, which is not what this
+    app gives a refused role anywhere else. The Recycle Bin and the Overview both answer a role they will
+    not serve with redirect(); the leads pages answered with requireArchiver() throwing, which lands in
+    admin/error.tsx and reads "could not load data, check the database connection and permissions" — a
+    sentence that sends the owner to the database when the truth is that a teacher is not allowed in. Both
+    leads pages now ask getArchiver() and redirect to /{locale}/admin, which for a content editor goes on
+    to /admin/content exactly as the Overview already sends them. The ACTIONS keep requireArchiver(), and
+    tests/lead-phone-search.integration.ts still pins that they do: an action answers the form that called
+    it and has nowhere to send anybody, so it throws and the form says no. §8 waits for the address bar to
+    leave the visitor list — a fact about the refusal rather than about one particular screen — and then
+    proves the guard ran before a single lead was read: no visitor name, no mask, no whole number, no row,
+    no sidebar item and no quick-add form anywhere in the document the refused role lands on. That mattered more than it looks: an empty list at a front desk reads as "no such visitor",
     which is the wrong answer to give about a parent, while the refusal says the truth — that the
     fragment is too short to look anybody up by. Neither threshold moved, and R3.1 now pins both
     answers for 12, ১২, 999, 017-128, V-2026-0001, ধানমন্ডি ৯ and a blank box. The box's own label

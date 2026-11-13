@@ -1,6 +1,7 @@
 import {getTranslations} from 'next-intl/server';
 import {Link} from '@/i18n/navigation';
-import {requireArchiver} from '@/lib/admin/guard';
+import {redirect} from 'next/navigation';
+import {getArchiver} from '@/lib/admin/guard';
 import {dashboardDigits} from '@/lib/admin/digits';
 import {pageNumber} from '@/lib/admin/helpers';
 import {formatClass,formatDate,formatNumber} from '@/lib/admin/format';
@@ -31,8 +32,17 @@ const day=(value:string|undefined):string=>(value&&/^\d{4}-\d{2}-\d{2}$/.test(va
  * so this page cannot disagree with the rule layer, the importer or the cron job.
  */
 export default async function Leads({params,searchParams}:{params:Promise<{locale:string}>;searchParams:Promise<Query>}){
-  const user=await requireArchiver();
   const {locale}=await params;
+  /**
+   * A role that may not see visitors is sent away rather than shown an error panel. `requireArchiver()`
+   * throws, and what catches a throw here is `admin/error.tsx` — "could not load data, check the database
+   * connection and permissions" — which is the wrong sentence for a teacher who is simply not allowed in,
+   * and a sentence that sends an owner looking at the database instead of at the role. The Recycle Bin and
+   * the Overview already refuse a role this way. The ACTIONS keep `requireArchiver()`: an action answers
+   * the form that called it and has nowhere to send anybody, so it throws and the form says no.
+   */
+  const user=await getArchiver();
+  if(!user)redirect(`/${locale}/admin`);
   const language=locale==='bn'?'bn':'en';
   const digits=await dashboardDigits(user.id);
   const t=await getTranslations('leads');

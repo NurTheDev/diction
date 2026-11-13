@@ -1,8 +1,8 @@
-import {notFound} from 'next/navigation';
+import {notFound,redirect} from 'next/navigation';
 import {getTranslations} from 'next-intl/server';
 import {Link} from '@/i18n/navigation';
 import {ArrowLeft} from 'lucide-react';
-import {requireArchiver} from '@/lib/admin/guard';
+import {getArchiver} from '@/lib/admin/guard';
 import {dashboardDigits} from '@/lib/admin/digits';
 import {leadDetailByKey} from '@/lib/leads/leads';
 import {detailView} from '@/lib/leads/lead-ui';
@@ -17,8 +17,10 @@ export const dynamic='force-dynamic';
  * (`V-2026-0007`) a sheet quotes, and neither one is a phone number.
  */
 export default async function LeadDetailPage({params}:{params:Promise<{locale:string;id:string}>}){
-  const user=await requireArchiver();
   const {locale,id}=await params;
+  // Sent away, not shown an error panel — the same refusal the list gives, and for the same reason.
+  const user=await getArchiver();
+  if(!user)redirect(`/${locale}/admin`);
   const language=locale==='bn'?'bn':'en';
   const digits=await dashboardDigits(user.id);
   const t=await getTranslations('leads');

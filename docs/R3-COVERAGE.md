@@ -479,9 +479,14 @@ Written by the suite into `screenshots/r3/`, committed to the branch by a `workf
    off until the owner has hand-tested the mock.
 7. **The operator guide** is `docs/R3-START-HERE.md`: what to click, what should happen, and what is
    deliberately not there yet.
-5. **Permissions** (Admin and Staff, Teachers excluded) are enforced and browser-proven: both routes
-   call `requireArchiver()`, every action calls it before it reads or writes anything, and the sidebar
-   hides both items from the restricted roles. One consequence worth stating: the Overview itself is
+5. **Permissions** (Admin and Staff, Teachers excluded) are enforced and browser-proven: both pages ask
+   `getArchiver()` and send a refused role away with `redirect()` — the refusal the Recycle Bin and the
+   Overview already give. They used to call `requireArchiver()`, which throws, and a throw here lands in
+   `admin/error.tsx`: "could not load data, check the database connection and permissions" — a sentence
+   that sends an owner to look at the database when the truth is that a teacher is not allowed in. Every
+   **action** still calls `requireArchiver()` before it reads or writes anything, because an action
+   answers the form that called it and has nowhere to redirect to (`tests/lead-phone-search.integration.ts`
+   pins that), and the sidebar hides both items from the restricted roles. One consequence worth stating: the Overview itself is
    behind `requireAdmin()`, so a **staff** account does not see the "today's follow-ups" widget — staff
    reach the same queue through the sidebar's Follow-ups item, which is the list filtered to today.
    Widening the Overview to staff is a decision about every other widget on it, not about leads, so it

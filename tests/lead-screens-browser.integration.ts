@@ -509,12 +509,23 @@ async function run(){
     // ---- 8. A teacher role reaches none of it.
     const teacher=await signIn('content_editor');
     await teacher.page.goto(`${origin}${list}`,{waitUntil:'domcontentloaded',timeout:180000});
-    // The guard throws before a single lead is read, and the admin error boundary is what a refused role
-    // sees — waited for as an element rather than slept on, because the shell streams in first.
-    await teacher.page.locator('h2',{hasText:bn.admin.pageUnavailable}).first().waitFor({timeout:60000});
+    /**
+     * The page refuses a role by sending it away — `getArchiver()` and `redirect()`, the way the Recycle
+     * Bin and the Overview already do — so what is waited for is the address bar leaving the visitor list,
+     * which is a fact about the refusal rather than about one particular screen. It used to be left to
+     * `requireArchiver()` throwing into `admin/error.tsx`, whose sentence is "could not load data, check
+     * the database connection and permissions": an owner reading that goes and looks at the database when
+     * the truth is that a teacher is not allowed in. The guard still runs before a single lead is read,
+     * and the assertions below are what prove it — no visitor, no mask, no number, no row, no sidebar
+     * item, no quick-add form, anywhere in the document the refused role ends up on.
+     */
+    await teacher.page.waitForURL(url=>!url.pathname.includes('/admin/leads'),{timeout:90000})
+      .catch(async error=>{throw Error(`a content editor was never sent away from the visitor list — ${error.message.split('\n')[0]} · url=${teacher.page.url()} · headings=${JSON.stringify(await teacher.page.locator('h1,h2').allInnerTexts().catch(()=>[]))} · pageErrors=${JSON.stringify(teacher.errors)} · body=${JSON.stringify((await teacher.page.locator('body').innerText().catch(()=>'(no body)')).replace(/\s+/g,' ').slice(0,300))}`)});
+    assert.ok(!teacher.page.url().includes('/admin/leads'),`a content editor reaches no visitor list; landed on ${teacher.page.url()}`);
     const teacherBody=await teacher.page.locator('body').innerText();
-    assert.ok(!teacherBody.includes(RAHUL)&&!teacherBody.includes(MASK_1),'a content editor sees no visitor and no number');
-    assert.ok(teacherBody.includes(bn.admin.pageUnavailable),`the screen is refused outright rather than half-rendered (the page said: ${teacherBody.slice(0,120)})`);
+    assert.ok(!teacherBody.includes(RAHUL)&&!teacherBody.includes(MASK_1)&&!teacherBody.includes(P1),
+      `a content editor sees no visitor and no number, masked or whole (the page said: ${teacherBody.replace(/\s+/g,' ').slice(0,160)})`);
+    assert.equal(await teacher.page.locator('table.admin-table tbody tr',{hasText:RAHUL}).count(),0,'not one row of the list is in the document');
     assert.equal(await teacher.page.locator('nav.admin-nav a[href*="/admin/leads"]').count(),0,'the sidebar has no Visitors item for that role');
     assert.equal(await teacher.page.locator('input[name="studentName"]').count(),0,'and there is no quick-add form');
 
