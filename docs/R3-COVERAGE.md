@@ -63,12 +63,19 @@ The same call also returns `numberShaped`, and the two answers are different que
 is *"may this travel in an address bar?"* — number-ish text of at least `PHONE_SEARCH_MIN_DIGITS`
 characters, the length at which a number search could actually find somebody. `numberShaped` is *"did a
 human type a number here?"* — digits and the punctuation a number is typed with, one digit or ten. The
-wave-B2 search box routes on the wider one, so a two-digit attempt is answered by the number rule
+wave-B2 search box asks the wider one, so a two-digit attempt is answered by the number rule
 ("২ অঙ্ক দিয়ে নাম্বার খোঁজা যায় না — অন্তত ৪ অঙ্ক লিখুন।") rather than being sent off as a word
 search that comes back with an empty list. An empty list at a front desk reads as *"no such visitor"*,
 which is a wrong and expensive answer; the refusal says the truth. Neither threshold moved: R3.1 still
 asserts that `999` and `V-2026-0001` stay shareable as URL parameters, and R3.7 still asserts that
 `7090` does not.
+
+The box asks with its own `isNumberAttempt()` in `src/components/admin/leads-ui.tsx` — six lines, no
+imports — and not by calling `leadListQuery()` in the browser. A client component may import that
+function, and does, for the href it builds; but the decision "is this a number?" then gets made twice,
+once from the server's module and once from the browser's inlined copy of it, and the two cannot be
+compared from either side. `vocab.ts` stays the definition (R3.1 pins it) and R3.8 pins the copy the
+operator actually meets, in the browser, for `12`, `৭০৯০` and a name.
 
 The two hrefs that must carry a number — the `tel:` call button and the `wa.me` link the brief asks for
 on every row — are built in `src/lib/leads/lead-phone.ts` and nowhere else. They are third-party

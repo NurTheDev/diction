@@ -556,11 +556,12 @@ own button and its own action. `leads.ts` gained exactly two functions for these
 **One search box, two destinations.** A name, school or id becomes a shareable `?q=`; anything
 number-shaped is refused by the same `leadListQuery()` that builds the href and is posted to
 `searchLeadsByNumber()` instead. A number pasted straight into the address bar is refused by the page
-and the whole list is rendered with an explanation, rather than being quietly searched. The box routes
-on `numberShaped` ("did a human type a number?") rather than on `refusedPhone` ("may this travel in a
-URL?"), so two digits get the number rule's own answer — "at least four digits" — instead of a word
-search that comes back empty and reads as *no such visitor*. Both thresholds are asserted in R3.1 and
-neither moved.
+and the whole list is rendered with an explanation, rather than being quietly searched. The box asks the
+wider question — "did a human type a number?" rather than "may this travel in a URL?" — so two digits get
+the number rule's own answer ("at least four digits") instead of a word search that comes back empty and
+reads as *no such visitor*. It asks with its own six-line `isNumberAttempt()`, not by calling
+`leadListQuery()` in the browser: R3-COVERAGE rule 2 says why that duplication is deliberate. Both
+thresholds are asserted in R3.1 and neither moved.
 
 **Proof:** `tests/lead-screens-browser.integration.ts` (**R3.8**, registry 35) drives all five screens
 as an admin, a staff account and a content editor, reads every write back from the database, measures

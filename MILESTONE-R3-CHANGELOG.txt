@@ -190,10 +190,18 @@ Wave A — foundations, no UI:
     numberShaped beside refusedPhone, and the two are different questions: refusedPhone is "may this
     travel in an address bar" (number-ish text at least PHONE_SEARCH_MIN_DIGITS characters long, the
     length at which a number search could find somebody), numberShaped is "did a human type a number
-    here" (digits and the punctuation a number is typed with, one digit or ten). LeadSearch routes on
-    the wider one, so typing ১২ or 12 posts to the number rule and comes back with "২ অঙ্ক দিয়ে
+    here" (digits and the punctuation a number is typed with, one digit or ten). The box asks the wider
+    question and posts, so typing ১২ or 12 reaches the number rule and comes back with "২ অঙ্ক দিয়ে
     নাম্বার খোঁজা যায় না — অন্তত ৪ অঙ্ক লিখুন।" rather than becoming ?q=12 and rendering an empty
-    list. That mattered more than it looks: an empty list at a front desk reads as "no such visitor",
+    list.
+    One detail worth recording, because it cost a CI run to find: a client component cannot call
+    leadListQuery() to ask that question. It may import it — it already did, to build the href — and the
+    first version of this change read numberShaped straight off that call, which the browser then
+    answered from its own inlined copy of vocab.ts while the server answered from the module. Two
+    bundles, one decision, and no way to see them disagree from either side. LeadSearch now decides with
+    its own six-line isNumberAttempt() that imports nothing at all, keeps leadListQuery() for the href it
+    was written for, and still refuses to build a URL for anything refusedPhone. vocab.ts stays the
+    definition and R3.8 pins the copy the operator meets. That mattered more than it looks: an empty list at a front desk reads as "no such visitor",
     which is the wrong answer to give about a parent, while the refusal says the truth — that the
     fragment is too short to look anybody up by. Neither threshold moved, and R3.1 now pins both
     answers for 12, ১২, 999, 017-128, V-2026-0001, ধানমন্ডি ৯ and a blank box. The box's own label
