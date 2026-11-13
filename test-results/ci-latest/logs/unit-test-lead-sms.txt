@@ -1,0 +1,15 @@
+--- tests/lead-sms.test.ts (exit 0) ---
+Visitor SMS rules: a lead becomes a candidate that is always active, carries one number and no invented chips, its “do not contact” mark becomes the pipeline’s own opt-out so a blocked visitor is skipped by name with the reason printed in Bangla, a lead with no number is reported rather than dropped, no fee rule can exclude a visitor, two leads on one number are one message when the operator asks and never an ambiguous grouping, the catalog offered to a Visitors screen is only the templates a lead can actually fill (visitor_thanks among them, due reminders not) and its body renders with the center’s own number leaving no chip behind, blocked and phoneless are counted apart and add up to the rows on screen, and an empty selection resolves to nobody.
+
+
+--- tests/lead-sms.integration.ts (exit 1) ---
+AssertionError [ERR_ASSERTION]: the center’s own number is rendered into the body
+    at run (/home/runner/work/diction/diction/tests/lead-sms.integration.ts:183:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}
