@@ -1995,7 +1995,18 @@
     "editSaved": "Changes saved.",
     "conflict": "This record changed elsewhere. Reload the page and try again.",
     "saveChanges": "Save changes",
-    "editHint": "Class and fee cannot be changed here, to protect their history."
+    "editHint": "Class and fee cannot be changed here, to protect their history.",
+    "links": {
+      "removed": "Removed students",
+      "classes": "Manage classes",
+      "exams": "Exams & results",
+      "legacyReview": "Legacy review",
+      "dues": "Overdue",
+      "feeGrid": "Fee grid",
+      "sheetPreview": "Spreadsheet preview"
+    },
+    "selectAll": "Select all",
+    "smsSelected": "SMS {count} selected"
   },
   "recycleBin": {
     "title": "Recycle Bin",
