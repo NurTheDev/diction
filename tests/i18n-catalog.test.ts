@@ -152,4 +152,16 @@ assert.deepEqual([...notSentence].sort(),[],'every key src/ translates is a sent
 console.log(`Used keys: ${new Set(used.map(entry=>entry.key)).size} distinct across ${used.length} call sites, all present in both catalogs.`);
 if(dynamic.length)console.log(`  (${dynamic.length} computed keys are not checked statically: ${dynamic.slice(0,3).map(entry=>entry.text).join(', ')} …)`);
 
+
+const bnRange=(catalog:Catalog):string[]=>leaves(catalog).filter(key=>BN.test(String(walk(catalog,key)))).sort();
+
+// ── 4. Bangla inside an English value: only a language naming itself ──────────────────────────
+/* Four values are Bangla in the English catalog on purpose. Each one is the name of the language
+   itself, which is exactly what a reader has to recognize in order to switch to it: "Switch to
+   বাংলায় দেখুন", the Bangla-digits toggle, and the switcher's own বাং. Anything else in this list is
+   an English page that would read Bangla. */
+const ALLOWED_IN_EN=['nav.language','nav.languageShort','adminRedesign.banglaDigits','adminWork.bnTab'];
+const banglaInEn=bnRange(enMessages as Catalog);
+assert.deepEqual(banglaInEn,[...ALLOWED_IN_EN].sort(),'English values carry Bangla only where the word is the name of the language itself');
+
 console.log('A.7 · the catalogs are whole: parity both ways, no mis-nested keys, no leftover templates, every key src/ asks for resolves in both languages, and Bangla inside an English value only where a language names itself.');

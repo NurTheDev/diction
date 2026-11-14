@@ -24,7 +24,10 @@
     "since": "SINCE 2011",
     "skip": "Skip to main content",
     "noJavascript": "Enable JavaScript in your browser to use forms, filters and other interactive features. Navigation links remain available.",
-    "aiStudy": "AI Study Buddy"
+    "aiStudy": "AI Study Buddy",
+    "practiceTests": "Practice tests",
+    "lectureSheets": "Lecture sheets",
+    "languageShort": "বাং"
   },
   "hero": {
     "eyebrow": "A brighter future starts here",
@@ -2612,6 +2615,75 @@
       "done": "Done",
       "partial": "Partial",
       "failed": "Failed"
+    }
+  },
+  "publicPages": {
+    "achievements": {
+      "title": "Student achievements",
+      "empty": "There are no published achievements yet.",
+      "view": "View achievement",
+      "shareFacebook": "Share on Facebook",
+      "shareWhatsApp": "Share on WhatsApp"
+    },
+    "sheets": {
+      "title": "Lecture sheets",
+      "tagline": "Free educational lecture sheets",
+      "hero": "Read educational PDFs without signing in.",
+      "view": "View sheet →",
+      "empty": "No lecture sheets have been published yet.",
+      "openPdf": "Open / download PDF",
+      "note": "The PDF opens in a new tab. You can download it from your browser."
+    },
+    "practice": {
+      "title": "Online practice tests",
+      "tagline": "Take practice tests without signing in.",
+      "hero": "Practice mathematics, English, Bangla and other subjects.",
+      "intro": "Take a test and see the answers without logging in. These are practice tests, not formal or high-stakes exams.",
+      "start": "Start practice →",
+      "empty": "No practice tests are published yet."
+    },
+    "assistant": {
+      "title": "Diction AI assistant",
+      "tagline": "Ask study and coaching questions.",
+      "hero": "Study, practice and ask about the center without logging in.",
+      "rateLimited": "Too many requests. Please try again later.",
+      "noResponse": "No response was received. Try again later or contact the center.",
+      "intro": "Ask about study or the coaching center without logging in. AI can run a practice quiz; its questions, assessment and information may be incorrect.",
+      "notEnabled": "Public AI is not enabled yet. Ask the administrator to complete safety review and setup.",
+      "privacy": "Do not enter names, phone numbers, passwords or personal information. Messages are sent to the AI provider. If you are a minor, use with guardian permission.",
+      "consent": "I understand messages are sent and have any required guardian permission.",
+      "you": "You",
+      "thinking": "Thinking…",
+      "placeholder": "Your question",
+      "send": "Send",
+      "quizPrompt": "Ask my preferred subject and class, then give me a five-question multiple-choice practice quiz. Do not reveal the answers first.",
+      "quizLabel": "AI practice quiz",
+      "clear": "Clear chat",
+      "teacherTest": "Take a teacher-authored online test →"
+    },
+    "blog": {
+      "images": "Learning images",
+      "imageAlt": "image",
+      "sheet": "Lecture sheet",
+      "sheetCta": "Preview and download PDF"
+    },
+    "site": {
+      "achievementsCta": "View published achievement cards"
+    },
+    "dashboard": {
+      "savedResults": "Saved practice results",
+      "viewResults": "View results"
+    },
+    "pdf": {
+      "loadFailed": "PDF preview could not load. Use the open PDF button.",
+      "renderFailed": "This page could not be rendered. Open the file instead.",
+      "title": "PDF preview",
+      "previous": "Previous",
+      "page": "Page",
+      "next": "Next",
+      "loading": "Loading preview…",
+      "pageImage": "PDF page image",
+      "imageNote": "This is an image of the page. Open the PDF to search or copy text."
     }
   }
 }

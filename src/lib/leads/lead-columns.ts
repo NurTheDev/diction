@@ -19,7 +19,7 @@ import type {LeadGroup,LeadMedium,LeadShift,LeadSource} from './vocab';
 import {renderLeadPair} from './lead-message';
 
 /* Sheets arrive written in Bangla digits as often as ASCII ones, so reading a value always starts by
-   turning ৭ into 7. The table is code points because a digit is data, not a word anybody reads. */
+   folding its digits to ASCII. The table is code points because a digit is data, not a word. */
 const BANGLA_DIGITS=/[\u09e6-\u09ef]/g;
 const clean=(raw:unknown):string=>String(raw==null?'':raw).replace(BANGLA_DIGITS,c=>String(c.charCodeAt(0)-0x09e6)).replace(/\s+/g,' ').trim().toLowerCase();
 
