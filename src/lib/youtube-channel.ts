@@ -5,8 +5,11 @@ export type ChannelResult={status:'live'|'unconfigured'|'unavailable';videos:Cha
 const videoId=z.string().regex(/^[\w-]{11}$/);
 const tokenSchema=z.string().regex(/^[\w=-]{1,512}$/);
 const sample:ChannelVideo[]=[
+// i18n-scan-allow-start — the channel's own published video titles, used when the feed cannot be
+// reached. These are the videos' names, not interface text, so they stay as published.
  {id:'DKIrRxaLgBo',title:'বৃত্তের খুটিনাটি ও পিৎজা থিওরি | with Sarek Chowdhury',description:''},
  {id:'LG4k0TDgC9k',title:'স্থানাংক জ্যামিতি সূত্রের ব্যাখ্যা এবং প্রয়োগ | SSC | Sarek Chowdhury',description:''},
+// i18n-scan-allow-end
  {id:'g1Q5QuzEA6s',title:'How to Get Admission Online | Diction Coaching',description:''},
  {id:'gLw6ykatTAI',title:'SSC Math Board Question MCQ solve Chapter 13 | Part 5',description:''},
  {id:'SKuKnzO405s',title:'SSC Math Board Question MCQ solve Chapter 13 | Part 4',description:''},

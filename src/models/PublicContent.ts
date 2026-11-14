@@ -13,6 +13,8 @@ const faqSchema=new Schema<IFAQContent>({key:{type:String,required:true,unique:t
 // can be restored, and the daily job removes it for good afterwards (R1 §E6, third wave).
 const milestoneSchema=new Schema({year:{type:Number,required:true,min:1900},title:localized,deletedAt:{type:Date},purgeAt:{type:Date}},{_id:false});
 const proofSchema=new Schema({published:{type:Boolean,default:false},studentCount:{type:Number,default:null,min:1,max:10000000},studentMinimum:{type:Boolean,default:false},rating:{type:Number,default:null,min:.1,max:5},ratingCount:{type:Number,default:null,min:1,max:10000000},milestones:{type:[milestoneSchema],default:[]}},{_id:false});
+// i18n-scan-allow: the stored tagline's own default — site content, in the language it is written in,
+// not a sentence this interface chooses.
 const settingsSchema=new Schema<ISiteSettingsContent>({website:{type:String,default:'',trim:true,maxlength:500},taglineBn:{type:String,default:'যত্নে গড়ি আগামীর স্বপ্ন',trim:true,maxlength:120},proof:{type:proofSchema,default:undefined},key:{type:String,required:true,unique:true},name:localized,address:localized,logoUrl:{type:String,required:true},social:{youtube:{type:String,required:true},facebook:{type:String,required:true}},theme:{primary:{type:String,required:true},action:{type:String,required:true},success:{type:String,required:true},info:{type:String,required:true}}},{timestamps:true});
 export const TeacherContent=(models.Teacher as Model<ITeacherContent>)||model<ITeacherContent>('Teacher',teacherSchema);
 export const FacilityContent=(models.Facility as Model<IFacilityContent>)||model<IFacilityContent>('Facility',facilitySchema);

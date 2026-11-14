@@ -11,13 +11,20 @@
  * fix and nothing is written until the owner accepts it. Guessing a date silently would move a
  * follow-up, and a follow-up that moved is a family nobody called.
  */
+import {renderLeadPair} from './lead-message';
 import {dhakaDay} from '@/lib/admin/today';
 
-export interface DateFlag{code:string;messageBn:string;messageEn:string;suggested?:string}
+/** A doubt about one date. The key and params are what an answerer translates; the pair is what a
+ *  stored flag carries, because a lead written under one locale must explain itself under the other. */
+
+/** One date sentence, from the `leads.dateFlags` catalog: a key for whoever answers, and the rendered
+    pair for whatever stores the doubt. Numbers take the digits of the language they are rendered in. */
+const dateText=(key:string,params:Record<string,string|number>={}):{messageKey:string;messageParams:Record<string,string|number>;messageBn:string;messageEn:string}=>({messageKey:`dateFlags.${key}`,messageParams:params,...renderLeadPair(`dateFlags.${key}`,params)});
+export interface DateFlag{code:string;messageKey:string;messageParams:Record<string,string|number>;messageBn:string;messageEn:string;suggested?:string}
 
 export type SheetDateResult=
   |{ok:true;day:string;format:string;ambiguous:boolean;flags:DateFlag[]}
-  |{ok:false;reason:'empty'|'unparseable'|'impossible';raw:string;messageBn:string;messageEn:string};
+  |{ok:false;reason:'empty'|'unparseable'|'impossible';raw:string;messageKey:string;messageParams:Record<string,string|number>;messageBn:string;messageEn:string};
 
 const DIGITS=/[\u09e6-\u09ef]/g;
 const banglaToAscii=(text:string)=>text.replace(DIGITS,c=>String(c.charCodeAt(0)-0x09e6));
@@ -37,7 +44,7 @@ export function parseSheetDate(raw:unknown,now:Date=new Date()):SheetDateResult{
     // An xlsx cell arrives as a real date at UTC midnight; Dhaka is +06:00, so it is still that day.
     return {ok:true,day:dhakaDay(raw),format:'cell',ambiguous:false,flags:rowFlags(dhakaDay(raw),now)};
   }
-  if(!text)return {ok:false,reason:'empty',raw:original,messageBn:'তারিখ লেখা নেই।',messageEn:'No date was written.'};
+  if(!text)return {ok:false,reason:'empty',raw:original,...dateText('empty')};
 
   // ISO first: 2024-12-02 has no ambiguity to resolve.
   const iso=text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[T ].*)?$/);
@@ -52,8 +59,7 @@ export function parseSheetDate(raw:unknown,now:Date=new Date()):SheetDateResult{
   if(!parts){
     // One or two numbers only ("15/12", "2024") is not a date this app will invent the rest of.
     return {ok:false,reason:'unparseable',raw:original,
-      messageBn:`"${original}" পড়া যায়নি — দিন/মাস/সাল লিখুন।`,
-      messageEn:`"${original}" could not be read — write day/month/year.`};
+      ...dateText('unreadable',{value:original})};
   }
   const first=Number(parts[1]),second=Number(parts[2]),third=Number(parts[3]);
   const year=third<100?2000+third:third;
@@ -61,12 +67,7 @@ export function parseSheetDate(raw:unknown,now:Date=new Date()):SheetDateResult{
     // A two-digit year means 20xx by rule; a four-digit one outside 2000–2100 is simply refused, and
     // the two get different sentences because only one of them is a rule the owner can rely on.
     return {ok:false,reason:'unparseable',raw:original,
-      messageBn:third<100
-        ? `সাল ${third} পড়া যায়নি — দুই অঙ্কের সাল 20xx ধরা হয়।`
-        : `সাল ${third} এই অ্যাপের সীমার (২০০০–২১০০) বাইরে।`,
-      messageEn:third<100
-        ? `The year ${third} could not be read — a two-digit year means 20xx.`
-        : `The year ${third} is outside the range this app accepts (2000–2100).`};
+      ...dateText(third<100?'yearUnreadable':'yearOutOfRange',{year:third})};
   }
   // Day first, always. When both parts could be a month the reading is a policy, not a certainty, so
   // it is reported as ambiguous rather than quietly chosen.
@@ -84,21 +85,16 @@ export function parseSheetDate(raw:unknown,now:Date=new Date()):SheetDateResult{
 
 function impossible(raw:string,reading:string):SheetDateResult{
   return {ok:false,reason:'impossible',raw,
-    messageBn:`"${raw}" কোনো সত্যিকারের তারিখ নয় (${reading}) — ক্যালেন্ডারে এই দিন নেই।`,
-    messageEn:`"${raw}" is not a real date (${reading}) — the calendar has no such day.`};
+    ...dateText('impossibleDate',{value:raw,reading})};
 }
 
 /** Per-row doubts: a date in the future, or one far older than any live lead could be. */
 function rowFlags(day:string,now:Date):DateFlag[]{
   const flags:DateFlag[]=[];
   const today=dhakaDay(now);
-  if(day>today)flags.push({code:'future',
-    messageBn:`তারিখটি ভবিষ্যতের (${day}) — ভিজিটর শিটে সাধারণত ভুল লেখা হয়।`,
-    messageEn:`This date is in the future (${day}) — on a visitor sheet that is usually a typo.`});
+  if(day>today)flags.push({code:'future',...dateText('futureDate',{day})});
   const oldest=new Date(Date.UTC(Number(today.slice(0,4))-5,Number(today.slice(5,7))-1,Number(today.slice(8,10))));
-  if(day<dhakaDay(oldest))flags.push({code:'very_old',
-    messageBn:`তারিখটি পাঁচ বছরেরও পুরনো (${day})।`,
-    messageEn:`This date is more than five years old (${day}).`});
+  if(day<dhakaDay(oldest))flags.push({code:'very_old',...dateText('veryOld',{day})});
   return flags;
 }
 
@@ -132,12 +128,7 @@ export function flagSuspiciousYears(rows:{id:string;day:string|null|undefined}[]
     const suggested=realDay(modalYear,Number(row.day.slice(5,7)),Number(row.day.slice(8,10)));
     const usable=suggested&&suggested<=today?suggested:undefined;
     flagged[row.id]={code:'year_out_of_range',
-      messageBn:usable
-        ? `সাল ${year} এই শিটের বাকি সারিদের (${modalYear}) সাথে মেলে না — ${usable} হতে পারে।`
-        : `সাল ${year} এই শিটের বাকি সারিদের (${modalYear}) সাথে মেলে না।`,
-      messageEn:usable
-        ? `The year ${year} does not match the rest of this sheet (${modalYear}) — it may be ${usable}.`
-        : `The year ${year} does not match the rest of this sheet (${modalYear}).`,
+      ...dateText(usable?'yearMismatchSuggested':'yearMismatch',{year,modal:modalYear,usable:usable||''}),
       suggested:usable};
   }
   return flagged;

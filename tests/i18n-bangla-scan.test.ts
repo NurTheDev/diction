@@ -6,7 +6,8 @@
  * and reports what is left, quoting the Bangla each line carries.
  *
  * Two things are allowed to stay, and both are deliberate:
- *   • a block between `i18n-scan-allow-start` and `i18n-scan-allow-end` — a synonym table that reads
+ *   • a block between `i18n-scan-allow-start` and `i18n-scan-allow-end`, or a single line carrying
+ *     `i18n-scan-allow:` — a synonym table that reads
  *     what a spreadsheet or a provider wrote (`বিজ্ঞান` means science), or an SMS body, which is the
  *     message's own content rather than the interface around it;
  *   • a comment, which explains the domain to the next reader and is never painted on a page.
@@ -45,7 +46,8 @@ for(const file of files){
   lines.forEach((line,index)=>{
     if(line.includes('i18n-scan-allow-start'))allowed=true;
     if(line.includes('i18n-scan-allow-end'))allowed=false;
-    if(allowed||!BN.test(line))return;
+    // `-start`/`-end` brackets a block; a bare `i18n-scan-allow:` exempts the one line it sits on.
+    if(allowed||!BN.test(line)||line.includes('i18n-scan-allow:'))return;
     const trimmed=line.trim();
     // A comment explains the domain to the next reader; it is never painted on a page.
     if(trimmed.startsWith('*')||trimmed.startsWith('//')||trimmed.startsWith('/*'))return;

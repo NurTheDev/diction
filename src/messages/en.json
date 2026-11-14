@@ -2301,6 +2301,17 @@
       "unnamed": "This column has no name (\"{header}\") — what does it hold?",
       "unnamedBlank": "This column has no name — what does it hold?",
       "unknown": "The column \"{header}\" was not recognized — which field does it belong to?"
+    },
+    "dateFlags": {
+      "empty": "No date was written.",
+      "unreadable": "\"{value}\" could not be read — write day/month/year.",
+      "yearUnreadable": "The year {year} could not be read — a two-digit year means 20xx.",
+      "yearOutOfRange": "The year {year} is outside the range this app accepts (2000–2100).",
+      "impossibleDate": "\"{value}\" is not a real date ({reading}) — the calendar has no such day.",
+      "futureDate": "This date is in the future ({day}) — on a visitor sheet that is usually a typo.",
+      "veryOld": "This date is more than five years old ({day}).",
+      "yearMismatch": "The year {year} does not match the rest of this sheet ({modal}).",
+      "yearMismatchSuggested": "The year {year} does not match the rest of this sheet ({modal}) — it may be {usable}."
     }
   },
   "sms": {
