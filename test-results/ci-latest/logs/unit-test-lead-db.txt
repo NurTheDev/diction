@@ -1,2 +1,11 @@
---- tests/lead-model.integration.ts (exit 0) ---
-Visitor lead record: a sheet row keeps both numbers with the spelling as written, the class label beside its reading, its session flag, its stored doubts and its first note, while a quick-add of four fields leaves group and medium unknown, class and follow-up null rather than guessed; nine malformed rows and a repeated leadId are refused by validation and the unique index so nothing is written twice; readable ids follow the highest number of the year and restart each year; today’s follow-ups and the overdue count are one range query over an ISO day with no timezone arithmetic; "Do not contact" is sticky and the database filter agrees with canContact() for all eight statuses, so a bulk send cannot reach a forbidden number; siblings sharing a number are found by an indexed lookup and tie to one family key; a lead is soft-deleted, invisible to every ordinary query, listed and counted in the bin, restorable, purge-dated 30 days out and never archivable; a converted lead is reference-blocked until it is unlinked, then binnable and purgeable; and no URL or log line this model feeds ever carries a phone number.
+--- tests/lead-model.integration.ts (exit 1) ---
+AssertionError [ERR_ASSERTION]: in words the owner can act on
+    at run (/home/runner/work/diction/diction/tests/lead-model.integration.ts:202:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: undefined,
+  expected: /রূপান্তরিত/,
+  operator: 'match',
+  diff: 'simple'
+}

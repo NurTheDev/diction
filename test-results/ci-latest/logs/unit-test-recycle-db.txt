@@ -1,3 +1,16 @@
---- tests/recycle-bin.integration.ts (exit 0) ---
-Daily job: purged 1 expired social-proof milestone(s): d (2023)
-Recycle Bin engine: reference-blocked delete with exact counts, 30-day bin, restore, purge, audit rows, every query shape hidden, and the daily job (401 without the secret; purges only expired rows and trims old logs) passed.
+--- tests/recycle-bin.integration.ts (exit 1) ---
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
++ actual - expected
+
++ undefined
+- '২ জন শিক্ষার্থী এই ক্লাস ব্যবহার করে — মুছে ফেলা যাবে না। আর্কাইভ করুন।'
+
+    at run (/home/runner/work/diction/diction/tests/recycle-bin.integration.ts:36:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: undefined,
+  expected: '২ জন শিক্ষার্থী এই ক্লাস ব্যবহার করে — মুছে ফেলা যাবে না। আর্কাইভ করুন।',
+  operator: 'strictEqual',
+  diff: 'simple'
+}
