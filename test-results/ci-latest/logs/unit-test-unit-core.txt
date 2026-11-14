@@ -107,10 +107,3 @@ Unicode practice CSV and validation passed.
 
 --- tests/verify-report.test.ts (exit 0) ---
 Verify harness: report never claims PASS without evidence, one line per requirement, reasons escaped, ZIP round-trips through yauzl with intact binary content, and every registered requirement points at a real proof.
-
-
---- tests/i18n-catalog.test.ts (exit 0) ---
-No mis-nested keys, no empty values, no leftover template literals.
-Used keys: 1696 distinct across 2491 call sites, all present in both catalogs.
-  (15 computed keys are not checked statically: r(`fieldNames.${key}`), r(`fieldNames.${key}`), c(`dayPeriod.${k}`), t(`fieldNames.${k}`), c(`dayPeriod.${k}`), ts(`statuses.${value}`), c(`dayPeriod.${k}`), c(`dayPeriod.${k}`), t(`items.${key}`), t(`groups.${g.key}`), t(`items.${key}`), t(`items.${key}`), t(`examDesc.${key}`), t(`items.${key}`), t(`role.${role}`))
-A.7 · the catalogs are whole: parity both ways, no mis-nested keys, no leftover templates, every key src/ asks for resolves in both languages, and Bangla inside an English value only where a language names itself.
