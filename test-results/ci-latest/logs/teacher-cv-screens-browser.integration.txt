@@ -1,13 +1,9 @@
-locator.waitFor: Error: strict mode violation: locator('[data-cv-drawer]') resolved to 5 elements:
-    1) <dialog aria-label="সিভি" data-cv-drawer="" class="overview-drawer cv-drawer">…</dialog> aka getByText('নমুনা শিক্ষক টাইপ করা আবারবন্ধপ্রার্থী আইডি CV-2026-0005সেই সিভিটি আর এখানে নেই।')
-    2) <dialog aria-label="সিভি" data-cv-drawer="" class="overview-drawer cv-drawer">…</dialog> aka getByText('নমুনা শিক্ষক টাইপ করাবন্ধপ্রার্থী আইডি CV-2026-0004সেই সিভিটি আর এখানে নেই।')
-    3) <dialog aria-label="সিভি" data-cv-drawer="" class="overview-drawer cv-drawer">…</dialog> aka getByText('নমুনা শিক্ষক জামালবন্ধপ্রার্থী আইডি CV-2026-0003সেই সিভিটি আর এখানে নেই।')
-    4) <dialog open="" aria-label="সিভি" data-cv-drawer="" class="overview-drawer cv-drawer">…</dialog> aka getByRole('dialog', { name: 'সিভি' })
-    5) <dialog aria-label="সিভি" data-cv-drawer="" class="overview-drawer cv-drawer">…</dialog> aka getByText('নমুনা শিক্ষক রহিমবন্ধপ্রার্থী আইডি CV-2026-0001সেই সিভিটি আর এখানে নেই।')
-
-Call log:
-  - waiting for locator('[data-cv-drawer]') to be visible
-
-    at run (/home/runner/work/diction/diction/tests/teacher-cv-screens-browser.integration.ts:290:18) {
-  log: [ "  - waiting for locator('[data-cv-drawer]') to be visible" ]
+AssertionError [ERR_ASSERTION]: and its timeline note is there, word for word
+    at run (/home/runner/work/diction/diction/tests/teacher-cv-screens-browser.integration.ts:295:12) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
 }

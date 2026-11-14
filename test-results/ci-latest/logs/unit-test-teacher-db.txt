@@ -1,16 +1,2 @@
---- tests/teacher-cv-bank.integration.ts (exit 1) ---
-AssertionError [ERR_ASSERTION]: and is never described as a fee subject
-+ actual - expected
-
-+ undefined
-- 'lead'
-
-    at run (/home/runner/work/diction/diction/tests/teacher-cv-bank.integration.ts:240:12)
-    at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {
-  generatedMessage: false,
-  code: 'ERR_ASSERTION',
-  actual: undefined,
-  expected: 'lead',
-  operator: 'strictEqual',
-  diff: 'simple'
-}
+--- tests/teacher-cv-bank.integration.ts (exit 0) ---
+The teacher CV bank against the disposable database: quick-added CVs read CV-2026-0001 to CV-2026-0004 with a binned CV keeping its number, a new year starting at one and a purged number never offered again; a nameless CV, a bad email and an over-long name refused, invented subjects, classes, shifts and sources filtered rather than stored, a new CV unrated, and the unique id index as backstop; a shared number and a shared email both asking the duplicate question and naming the CV by readable id and mask, the second write going through only on a hand’s “these are two people”; masks on every list row, drawer and need match with tel: and wa.me the only destinations a number reaches; a filter narrowing on stored vocabulary and the twelve-month review being one filter that counted one CV, then none once it was hired, with every document still stored because a reminder deletes nothing; a hire writing one unpublished Teacher profile carrying the candidate’s own name in both languages, linking back, moving the status and filing a note in one transaction, refusing a second hire and refusing to bin the hired CV; notes naming their author with an invented outcome stored as none, an interview moving the status and a clearing leaving it alone; a chemistry, classes 9-10, evening need matching exactly the one CV that fits and an empty need refused; candidates entering the SMS pipeline as active non-students with the fee templates refused; the fixture committing eight of ten rows with two blocked, an accepted year landing as 2024-12-15, an empty date as today, Bangla digits normalized, the sheet’s comments as first notes including the Bangla one word for word and its unparsed words as tags, the same sheet a second time writing nothing, and the undo binning seven while keeping the one hired since — a short reason, a missing batch and a second undo all refused; and no whole number anywhere in a list, a drawer, a match, an audit row or the import register.
