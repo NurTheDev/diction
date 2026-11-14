@@ -1,0 +1,10 @@
+locator.innerText: Error: strict mode violation: locator('.funnel-kpis') resolved to 2 elements:
+    1) <div class="admin-kpis funnel-kpis">…</div> aka getByText('ভিজিটর৬ট্রায়াল বুক৩ভর্তি২')
+    2) <div class="admin-kpis funnel-kpis">…</div> aka getByText('ভিজিটর → ট্রায়াল৫০%ট্রায়াল → ভর্তি৩৩.৩%ভিজিটর → ভর্তি৩৩.৩%')
+
+Call log:
+  - waiting for locator('.funnel-kpis')
+
+    at run (/home/runner/work/diction/diction/tests/lead-funnel-browser.integration.ts:97:54) {
+  log: [ "  - waiting for locator('.funnel-kpis')" ]
+}

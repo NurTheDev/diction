@@ -1,0 +1,6 @@
+--- tests/lead-funnel.test.ts (exit 0) ---
+Funnel rules: a rate with no denominator is null and never 0%, rounding happens once to one decimal, trial → admitted divides by the leads that did both, an invented breakdown/source/class/date is ignored and a reversed range is swapped, all five sources and all thirteen class buckets print at zero, a chosen range fills its empty months up to the cap, and the CSV is BOM-marked, CRLF-separated, quoted, Latin-digit and formula-neutralized.
+
+
+--- tests/lead-funnel.integration.ts (exit 0) ---
+Visitor funnel against the disposable database: eight synthetic leads across three months, five sources and four class readings counted as visitors 8 / trials 3 / admitted 3 with rates 37.5%, 33.3% and 37.5%; trials and admissions counted by intake reference and by status alike; trial → admitted divided by the leads that did both so a direct admission never pushes it past 100%; the ninth lead invisible once binned; no phone number anywhere in the report; every source and class printed at zero; a chosen range filling its empty month; buckets adding up to the cohort in all three breakdowns; and an empty database reading as a report rather than an error.

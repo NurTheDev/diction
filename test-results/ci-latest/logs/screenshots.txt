@@ -1,27 +1,3 @@
-  "failures": [],
-  "overflow": [
-    {
-      "path": "/bn",
-      "width": 360,
-      "clientWidth": 360,
-      "scrollWidth": 360
-    },
-    {
-      "path": "/bn",
-      "width": 1440,
-      "clientWidth": 1440,
-      "scrollWidth": 1440
-    },
-    {
-      "path": "/en",
-      "width": 360,
-      "clientWidth": 360,
-      "scrollWidth": 360
-    },
-    {
-      "path": "/en",
-      "width": 1440,
-      "clientWidth": 1440,
       "scrollWidth": 1440
     },
     {
@@ -392,6 +368,30 @@
     },
     {
       "path": "/en/admin/leads/import",
+      "width": 1440,
+      "clientWidth": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "path": "/bn/admin/leads/funnel",
+      "width": 360,
+      "clientWidth": 360,
+      "scrollWidth": 360
+    },
+    {
+      "path": "/bn/admin/leads/funnel",
+      "width": 1440,
+      "clientWidth": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "path": "/en/admin/leads/funnel",
+      "width": 360,
+      "clientWidth": 360,
+      "scrollWidth": 360
+    },
+    {
+      "path": "/en/admin/leads/funnel",
       "width": 1440,
       "clientWidth": 1440,
       "scrollWidth": 1440
