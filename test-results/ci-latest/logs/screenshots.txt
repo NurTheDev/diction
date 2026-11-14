@@ -1,17 +1,3 @@
-    "screenshots/all/visitors-list-1440.png",
-    "screenshots/all/visitors-quick-add-360.png",
-    "screenshots/all/visitors-quick-add-1440.png",
-    "screenshots/all/visitors-follow-ups-360.png",
-    "screenshots/all/visitors-follow-ups-1440.png",
-    "screenshots/all/blog-360.png",
-    "screenshots/all/blog-1440.png",
-    "screenshots/all/recycle-bin-360.png",
-    "screenshots/all/recycle-bin-1440.png",
-    "screenshots/all/recycle-bin-en-360.png",
-    "screenshots/all/recycle-bin-en-1440.png",
-    "screenshots/all/students-list-en-360.png",
-    "screenshots/all/students-list-en-1440.png",
-    "screenshots/all/daily-collection-en-360.png",
     "screenshots/all/daily-collection-en-1440.png",
     "screenshots/all/due-list-en-360.png",
     "screenshots/all/due-list-en-1440.png",
@@ -32,7 +18,9 @@
     "screenshots/all/practice-tests-en-360.png",
     "screenshots/all/practice-tests-en-1440.png",
     "screenshots/all/removed-students-en-360.png",
-    "screenshots/all/removed-students-en-1440.png"
+    "screenshots/all/removed-students-en-1440.png",
+    "screenshots/all/workbook-import-en-360.png",
+    "screenshots/all/workbook-import-en-1440.png"
   ],
   "failures": [],
   "overflow": [
@@ -392,6 +380,18 @@
     },
     {
       "path": "/en/admin/students/removed",
+      "width": 1440,
+      "clientWidth": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "path": "/en/admin/students/import",
+      "width": 360,
+      "clientWidth": 360,
+      "scrollWidth": 360
+    },
+    {
+      "path": "/en/admin/students/import",
       "width": 1440,
       "clientWidth": 1440,
       "scrollWidth": 1440
