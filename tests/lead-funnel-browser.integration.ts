@@ -139,7 +139,9 @@ async function run(){
 
       // switch the breakdown to source and ask for all five. The filters live in a closed <details>,
       // so open it the way a person would — by tapping its summary — before touching what is inside.
-      await page.locator('.admin-help-panel summary').click();
+      // The layout paints its own help panel on every admin screen, so the summary is found by the
+      // form it opens rather than by its class: this details holds the filters and nothing else.
+      await page.locator('details:has(form.list-filter) summary').click();
       await page.selectOption('select[name=breakdown]','source');
       await page.getByRole('button',{name:bn.leads.apply}).click();
       await page.getByRole('heading',{name:F.title}).waitFor({timeout:60000});
