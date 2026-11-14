@@ -1,12 +1,2 @@
---- tests/sms-send.integration.ts (exit 1) ---
-Error: Couldn't find next-intl config file. Please follow the instructions at https://next-intl.dev/docs/getting-started/app-router
-    at t (/home/runner/work/diction/diction/node_modules/next-intl/dist/esm/production/config.js:1:20)
-    at <anonymous> (/home/runner/work/diction/diction/node_modules/next-intl/dist/esm/production/server/react-server/getConfig.js:1:379)
-    at /home/runner/work/diction/diction/node_modules/react/cjs/react.react-server.development.js:602:36
-    at <anonymous> (/home/runner/work/diction/diction/node_modules/next-intl/dist/esm/production/server/react-server/getConfig.js:1:680)
-    at /home/runner/work/diction/diction/node_modules/react/cjs/react.react-server.development.js:602:36
-    at <anonymous> (/home/runner/work/diction/diction/node_modules/next-intl/dist/esm/production/server/react-server/getTranslations.js:1:203)
-    at /home/runner/work/diction/diction/node_modules/react/cjs/react.react-server.development.js:602:36
-    at sendTestSms (/home/runner/work/diction/diction/src/lib/center/sms-send.ts:484:40)
-    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
-    at async run (/home/runner/work/diction/diction/tests/sms-send.integration.ts:282:22)
+--- tests/sms-send.integration.ts (exit 0) ---
+SMS sending: 500 recipients went out in 5 batches of at most 100 in 95ms, a repeated requestId sent nothing a second time, removed/opted-out/held/missing/invalid numbers were each skipped with a reason, siblings grouped into one message with a summed total, quiet hours queued the batch until the flush sent it, a 1005 was retried once while a 1007 was not, retry-failed re-sent only the failed row, month totals are stored sums, and the API key appears in no stored row or returned payload.

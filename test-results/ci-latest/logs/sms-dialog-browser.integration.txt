@@ -1,9 +1,9 @@
-AssertionError [ERR_ASSERTION]: three numbers are skipped and the operator is told
-    at run (/home/runner/work/diction/diction/tests/sms-dialog-browser.integration.ts:146:12) {
+AssertionError [ERR_ASSERTION]: the served HTML never mentions BULKSMSBD_API_KEY
+    at run (/home/runner/work/diction/diction/tests/sms-dialog-browser.integration.ts:355:77) {
   generatedMessage: false,
   code: 'ERR_ASSERTION',
-  actual: '৩টি নম্বর বাদ পড়েছে\nঅপ্ট-আউট / যোগাযোগ করবেন না — 1\nনম্বর নেই — 2',
-  expected: /3টি নম্বর বাদ পড়েছে/,
-  operator: 'match',
+  actual: false,
+  expected: true,
+  operator: '==',
   diff: 'simple'
 }
