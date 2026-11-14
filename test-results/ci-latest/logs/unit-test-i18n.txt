@@ -1,14 +1,14 @@
 --- tests/i18n-catalog.test.ts (exit 0) ---
 No mis-nested keys, no empty values, no leftover template literals.
-Used keys: 1950 distinct across 2765 call sites, all present in both catalogs.
+Used keys: 2038 distinct across 2854 call sites, all present in both catalogs.
   (16 computed keys are not checked statically: r(`fieldNames.${key}`), r(`fieldNames.${key}`), c(`dayPeriod.${k}`), t(`fieldNames.${k}`), c(`dayPeriod.${k}`), ts(`statuses.${value}`), c(`dayPeriod.${k}`), c(`dayPeriod.${k}`), t(`items.${key}`), t(`groups.${g.key}`), t(`items.${key}`), t(`items.${key}`), t(`examDesc.${key}`), roleNames(`role.${r}`), t(`items.${key}`), t(`role.${role}`))
-Browser exposure: 43 groups are read by client components, 11 stay on the server, 2 shipped values name an operator setting and none names a secret.
+Browser exposure: 46 groups are read by client components, 11 stay on the server, 2 shipped values name an operator setting and none names a secret.
 A.7 · the catalogs are whole: parity both ways, no mis-nested keys, no leftover templates, every key src/ asks for resolves in both languages, and Bangla inside an English value only where a language names itself, and the browser receives no secret and no group only a server reads.
 
 
 --- tests/i18n-routes.test.ts (exit 0) ---
-Language ternaries: 136 in 13 files (baseline 136).
-  most: 35 src/components/admin/practice-manager.tsx; 31 src/components/admin/public-sheet-manager.tsx; 26 src/components/admin/center-import-commit.tsx; 17 src/components/public/practice-exam.tsx; 6 src/components/public/practice-history.tsx; 5 src/components/admin/center-import-preview.tsx; 5 src/components/editorial/blog-video.tsx; 4 src/app/[locale]/admin/ai/page.tsx; 3 src/components/admin/student-search-picker.tsx; 1 src/app/[locale]/admin/students/[id]/page.tsx; 1 src/components/admin/center-import-decisions.tsx; 1 src/components/admin/shell.tsx
+Language ternaries: 47 in 9 files (baseline 47).
+  most: 26 src/components/admin/center-import-commit.tsx; 5 src/components/admin/center-import-preview.tsx; 5 src/components/editorial/blog-video.tsx; 4 src/app/[locale]/admin/ai/page.tsx; 3 src/components/admin/student-search-picker.tsx; 1 src/app/[locale]/admin/students/[id]/page.tsx; 1 src/components/admin/center-import-decisions.tsx; 1 src/components/admin/shell.tsx; 1 src/components/study/study-lab.tsx
   allowed: layout.tsx — og:locale is a metadata code (bn_BD), not a painted word; route.ts — the language is named to the model as an instruction, in English; route.ts — the language is named to the model as an instruction, in English; top-header.tsx — a switcher names the language it switches to; header-nav.tsx — the ternary picks a class name, not a word; recovery.ts — the reset email is message content, sent in the reader’s language, like an SMS body
 Bangla in route files: 6 lines in 4 files (baseline 6).
   most: 2 src/app/[locale]/admin/students/[id]/page.tsx; 2 src/app/[locale]/admin/students/fees-grid/page.tsx; 1 src/app/[locale]/admin/ai/page.tsx; 1 src/app/[locale]/admin/students/removed/page.tsx

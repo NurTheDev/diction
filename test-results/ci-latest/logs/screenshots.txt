@@ -1,16 +1,3 @@
-{
-  "files": [
-    "screenshots/all/public-home-bn-360.png",
-    "screenshots/all/public-home-bn-1440.png",
-    "screenshots/all/public-home-en-360.png",
-    "screenshots/all/public-home-en-1440.png",
-    "screenshots/all/sign-in-360.png",
-    "screenshots/all/sign-in-1440.png",
-    "screenshots/all/admin-overview-360.png",
-    "screenshots/all/admin-overview-1440.png",
-    "screenshots/all/students-list-360.png",
-    "screenshots/all/students-list-1440.png",
-    "screenshots/all/daily-collection-360.png",
     "screenshots/all/daily-collection-1440.png",
     "screenshots/all/class-sheet-360.png",
     "screenshots/all/class-sheet-1440.png",
@@ -53,7 +40,11 @@
     "screenshots/all/classes-en-360.png",
     "screenshots/all/classes-en-1440.png",
     "screenshots/all/legacy-review-en-360.png",
-    "screenshots/all/legacy-review-en-1440.png"
+    "screenshots/all/legacy-review-en-1440.png",
+    "screenshots/all/public-sheets-en-360.png",
+    "screenshots/all/public-sheets-en-1440.png",
+    "screenshots/all/practice-tests-en-360.png",
+    "screenshots/all/practice-tests-en-1440.png"
   ],
   "failures": [],
   "overflow": [
@@ -377,6 +368,30 @@
     },
     {
       "path": "/en/admin/students/legacy-review",
+      "width": 1440,
+      "clientWidth": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "path": "/en/admin/public-sheets",
+      "width": 360,
+      "clientWidth": 360,
+      "scrollWidth": 360
+    },
+    {
+      "path": "/en/admin/public-sheets",
+      "width": 1440,
+      "clientWidth": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "path": "/en/admin/practice-tests",
+      "width": 360,
+      "clientWidth": 360,
+      "scrollWidth": 360
+    },
+    {
+      "path": "/en/admin/practice-tests",
       "width": 1440,
       "clientWidth": 1440,
       "scrollWidth": 1440
