@@ -1,38 +1,10 @@
-page.selectOption: Timeout 30000ms exceeded.
-Call log:
-  - waiting for locator('select[name=breakdown]')
-    - locator resolved to <select name="breakdown" class="admin-select">…</select>
-  - attempting select option action
-    2 × waiting for element to be visible and enabled
-      - element is not visible
-    - retrying select option action
-    - waiting 20ms
-    2 × waiting for element to be visible and enabled
-      - element is not visible
-    - retrying select option action
-      - waiting 100ms
-    60 × waiting for element to be visible and enabled
-       - element is not visible
-     - retrying select option action
-       - waiting 500ms
+locator.click: Error: strict mode violation: locator('.admin-help-panel summary') resolved to 2 elements:
+    1) <summary class="admin-mini-button">সাহায্য</summary> aka getByText('সাহায্য')
+    2) <summary class="admin-mini-button">ছাঁকনি</summary> aka getByText('ছাঁকনি', { exact: true })
 
-    at run (/home/runner/work/diction/diction/tests/lead-funnel-browser.integration.ts:141:18) {
-  log: [
-    "  - waiting for locator('select[name=breakdown]')",
-    '    - locator resolved to <select name="breakdown" class="admin-select">…</select>',
-    '  - attempting select option action',
-    '    2 × waiting for element to be visible and enabled',
-    '      - element is not visible',
-    '    - retrying select option action',
-    '    - waiting 20ms',
-    '    2 × waiting for element to be visible and enabled',
-    '      - element is not visible',
-    '    - retrying select option action',
-    '      - waiting 100ms',
-    '    60 × waiting for element to be visible and enabled',
-    '       - element is not visible',
-    '     - retrying select option action',
-    '       - waiting 500ms'
-  ],
-  name: 'TimeoutError'
+Call log:
+  - waiting for locator('.admin-help-panel summary')
+
+    at run (/home/runner/work/diction/diction/tests/lead-funnel-browser.integration.ts:142:55) {
+  log: [ "  - waiting for locator('.admin-help-panel summary')" ]
 }
