@@ -8,6 +8,18 @@ export function formatNumber(value:number,digits:Digits='bn'){return new Intl.Nu
 /** Bangla-digit text to ASCII digits — a script conversion, used wherever a typed number must be parsed. */
 export function asciiDigits(value:string){return value.replace(BN_DIGIT_RANGE,c=>String(BN_DIGITS.indexOf(c)))}
 export function formatDate(value:Date|string,digits:Digits='bn',language:'bn'|'en'='bn'){const parts=new Intl.DateTimeFormat(language==='bn'?'bn-BD':'en-GB',{day:'numeric',month:'long',year:'numeric',timeZone:'Asia/Dhaka'}).formatToParts(new Date(value));const part=(name:string)=>parts.find(p=>p.type===name)?.value||'';const numeric=(value:string)=>formatNumber(Number(asciiDigits(value)),digits);return `${numeric(part('day'))} ${part('month')} ${numeric(part('year'))}`}
+/**
+ * A `YYYY-MM` month as the report reads it: the month name in the page's language and the year in the
+ * operator's digits, so a funnel row says "জানুয়ারি ২০২৬" on a Bangla screen and "January 2026" on an
+ * English one. The month is a day-string slice, never a Date the server's timezone could shift.
+ */
+export function formatMonth(value:string,digits:Digits='bn',language:'bn'|'en'='bn'){
+  const match=/^(\d{4})-(\d{2})$/.exec(String(value).trim());
+  if(!match)return String(value);
+  const at=new Date(Date.UTC(Number(match[1]),Number(match[2])-1,1));
+  const month=new Intl.DateTimeFormat(language==='bn'?'bn-BD':'en-GB',{month:'long',timeZone:'UTC'}).format(at);
+  return `${month} ${formatNumber(Number(match[1]),digits)}`;
+}
 export type DayPeriodKey='morning'|'noon'|'afternoon'|'evening'|'night';
 /** Which day-period word a Dhaka hour takes; the words themselves live in the message files. */
 export function dayPeriodKey(hour:number):DayPeriodKey{return hour<12?'morning':hour<16?'noon':hour<18?'afternoon':hour<20?'evening':'night'}

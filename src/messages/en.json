@@ -1577,7 +1577,8 @@
       "sms": "SMS",
       "leads": "Visitors",
       "followUps": "Follow-ups",
-      "importLeads": "Visitor import"
+      "importLeads": "Visitor import",
+      "leadsFunnel": "Visitor funnel"
     },
     "search": "Search menu",
     "noMenuResults": "No menu items found",
@@ -2497,6 +2498,36 @@
       "timing": "Timing does not work",
       "fee": "Fee is too high",
       "notNeeded": "Not needed right now"
+    },
+    "funnel": {
+      "title": "Visitor funnel",
+      "desc": "Visitors → trial booked → admitted, by month, source and class.",
+      "linkFromList": "Funnel",
+      "breakdown": "Breakdown",
+      "byMonth": "By month",
+      "bySource": "By source",
+      "byClass": "By class",
+      "stageVisitors": "Visitors",
+      "stageTrial": "Trial booked",
+      "stageAdmitted": "Admitted",
+      "rateVisitorTrial": "Visitor → trial",
+      "rateTrialAdmitted": "Trial → admitted",
+      "rateVisitorAdmitted": "Visitor → admitted",
+      "percent": "{value}%",
+      "noRate": "—",
+      "colMonth": "Month",
+      "colSource": "Source",
+      "totalRow": "All together",
+      "exportCsv": "Download CSV",
+      "exportHint": "The table as shown. Numbers go out in Latin digits so Excel can add them up.",
+      "emptyTitle": "No visitors in this range",
+      "emptyBody": "Change the dates or clear the filters. A lead joins this report on the day it is written.",
+      "classNone": "No class read",
+      "cohortNote": "Each row follows the visitors of that month, source or class: the trial and the admission are counted on that lead, whenever they happened.",
+      "trialAdmittedNote": "Trial → admitted counts only the leads that both booked a trial and were admitted, so a direct admission never pushes it past 100%.",
+      "binNote": "Leads in the Recycle Bin are left out, exactly as the Visitors list leaves them out.",
+      "monthsFilledNote": "Months inside the dates you chose that brought no visitors are shown as zero.",
+      "noRateNote": "A dash means there was nobody to divide by."
     }
   },
   "sms": {

@@ -667,3 +667,64 @@ two daily jobs the guide names, at the schedules it prints; that §9 of the guid
 because a checklist nobody finishes is not a checklist; and that every secret variable in
 `.env.example` is empty. `README.md` and the repository-root `DEPLOYMENT.md` point at the new guide,
 and the root file no longer claims SMS is unimplemented — it shipped in R2, behind `mock`.
+
+---
+
+## The visitor funnel and its CSV (R3 wave C, 2026-11-14)
+
+`/admin/leads/funnel` answers the question the owner asks at the end of a month: of the people who
+walked in, how many booked a trial, and how many of those joined. It sits in the sidebar's
+*Admissions & leads* group beside the Visitors list and the import wizard, and it is readable at
+360 px because that is where it gets read.
+
+**The definitions, written where a screen cannot quietly change them** (`src/lib/leads/funnel.ts`):
+
+- **A cohort, not a calendar.** Each row follows the visitors who arrived in that month, source or
+  class; the trial and the admission are counted on that lead whenever they happened. Counting the
+  events instead would let a February admission flatter January and produce a rate nobody could act
+  on.
+- **Evidence in two forms.** *Trial booked* is a `trialBooking` reference — the intake row the
+  hand-off wrote — or the status `trial_booked`, the operator's own word from the inline dropdown.
+  *Admitted* is an `admission` reference, a `student` reference or the status `admitted`. Both paths
+  are real, and refusing one would undercount rather than correct.
+- **Trial → admitted divides by the leads that did both.** A direct admission that never booked a
+  trial is counted in *Admitted* and in *Visitor → admitted*; leaving it in this numerator too would
+  print a rate over 100%, which reads as a broken report rather than as a fact.
+- **A rate with nobody to divide by is null and prints as a dash, never 0%.** Zero percent claims we
+  tried; an empty bucket claims nothing.
+- **Empty buckets print.** All five sources and all thirteen class buckets (twelve plus *no class
+  read*) appear even at zero — a source that stopped bringing visitors is the interesting row, and
+  the CSV keeps one shape month to month. Months are the exception: only months holding a lead
+  appear, plus every month inside a from/to range the operator chose, up to a 60-month cap.
+- **Binned leads are not counted**, because the query goes through `Lead.aggregate` and carries the
+  Recycle Bin hook — the report and the Visitors list cannot disagree.
+- **Two aggregations, one filter.** The buckets and the cohort total are separate queries on purpose:
+  if a bucket expression ever dropped a lead the two would disagree, and the suites assert they do
+  not, in all three breakdowns.
+
+**Digits and words.** Every label comes from `leads.funnel.*` in both catalogs from the first line
+(28 new keys, plus the sidebar's `adminRedesign.items.leadsFunnel`); months and classes are rendered
+by the shared `formatMonth` (new, beside `formatDate` and `formatClass`) and `formatNumber`, so a
+Bangla screen reads `জানুয়ারি ২০২৬` and `৬৬.৭%` while an English screen reads `January 2026` and
+`66.7%`, with the digits following the operator's own preference exactly as the other 28 admin
+screens do.
+
+**The CSV is the table on screen.** A client component builds it from the rows the page already
+rendered — one source of truth, no second query, no new route to authorize. It is byte-order-marked
+so Excel reads the Bangla labels, CRLF-separated, every label quoted, a cell that begins like a
+formula neutralized with a leading apostrophe (the same defence the admissions export uses), and the
+numbers go out **bare and in Latin digits**: a spreadsheet is data, and Excel cannot add up `৪১.৭`.
+The file is named for its breakdown and its Dhaka day.
+
+**Proofs.** `tests/lead-funnel.test.ts` (no database) pins the rounding, the null denominators, the
+vocabulary checks on a URL, the reversed-range swap, the bucket lists, the month fill and its cap,
+and the CSV's exact bytes. `tests/lead-funnel.integration.ts` (R3.17, disposable database) counts
+eight synthetic FAKE leads across three months, five sources and four class readings — visitors 8,
+trials 3, admitted 3, rates 37.5% / 33.3% / 37.5% — proves both kinds of evidence, the direct
+admission that does not inflate the trial rate, the ninth lead invisible once binned, every empty
+bucket printed, a chosen range filling December, the buckets adding up to the cohort in all three
+breakdowns, no phone number anywhere in the report, and an empty database reading as a report rather
+than an error. `tests/lead-funnel-browser.integration.ts` (R3.18) drives the screen in both
+languages, switches the breakdown, downloads the CSV twice and asserts its name, its BOM, its
+headers and the absence of a single Bangla digit, checks that nothing overflows at 360 px, and
+photographs 360 px and 1440 px in Bangla and English into `screenshots/r3/leads-funnel-*`.

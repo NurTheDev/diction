@@ -619,3 +619,19 @@ html:lang(bn) .public-motion-root:not(.private-motion-disabled) :is(h1,h2,h3,h4)
 .lead-dup{display:grid;gap:10px;padding:12px;border:1px solid #e7c9c9;border-radius:12px;background:#fff8f8;flex:1 1 100%}
 .lead-dup .lead-family{gap:8px}
 .lead-dup .admin-feedback{margin:0}
+
+/* R3 wave C · the visitor funnel report. Three stage tiles and three rate tiles read as two rows of
+   three on a desk and one column on a phone; the numbers keep to the right on a wide table, where a
+   column of counts is easier to compare, and drop back to the left once the responsive table turns
+   each row into a labelled card. */
+.funnel-kpis{grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:12px}
+.funnel-rate strong{font-size:24px}
+.lead-funnel-export{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-left:auto}
+.funnel-notes{border-top:1px solid #e8eaf2;padding-top:12px;display:grid;gap:6px}
+.funnel-table td:nth-child(n+2),.funnel-table th:nth-child(n+2){text-align:right;white-space:nowrap}
+@media(max-width:760px){
+  .funnel-kpis{grid-template-columns:1fr 1fr}
+  .funnel-table td:nth-child(n+2),.funnel-table th:nth-child(n+2){text-align:left;white-space:normal}
+  .funnel-table tfoot{display:block;padding:0 12px 12px}
+}
+@media(max-width:420px){.funnel-kpis{grid-template-columns:1fr}}

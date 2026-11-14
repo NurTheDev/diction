@@ -52,6 +52,8 @@
     "test:sms:staff": "tsx tests/sms-staff.test.ts && tsx --conditions=react-server tests/sms-staff.integration.ts",
     "test:lead:handoff": "tsx tests/lead-handoff.test.ts && tsx --conditions=react-server tests/lead-handoff.integration.ts",
     "test:lead:import": "tsx tests/lead-import.test.ts && tsx --conditions=react-server tests/lead-import.integration.ts",
+    "test:lead:funnel": "tsx tests/lead-funnel.test.ts && tsx --conditions=react-server tests/lead-funnel.integration.ts",
+    "test:lead:funnel:browser": "tsx tests/lead-funnel-browser.integration.ts",
     "test:lead:handoff:browser": "tsx tests/lead-handoff-browser.integration.ts",
     "test:lead:screens": "tsx tests/lead-screens-browser.integration.ts"
   },

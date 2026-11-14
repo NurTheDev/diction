@@ -55,6 +55,10 @@ export function screenPlan(_milestone:string):ScreenTarget[]{
        chrome, these prove the empty state an operator first meets, at both widths. */
     {path:'/bn/admin/leads/import',label:'visitor-import-bn'},
     {path:'/en/admin/leads/import',label:'visitor-import-en'},
+    // R3 wave C: the funnel report beside the list it counts, in both languages. The screens pass
+    // runs before the browser suites, so what it photographs is the honest empty report.
+    {path:'/bn/admin/leads/funnel',label:'leads-funnel-bn'},
+    {path:'/en/admin/leads/funnel',label:'leads-funnel-en'},
   ];
 }
 
