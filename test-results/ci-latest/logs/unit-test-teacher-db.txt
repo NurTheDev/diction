@@ -1,16 +1,16 @@
 --- tests/teacher-cv-bank.integration.ts (exit 1) ---
-AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+AssertionError [ERR_ASSERTION]: and is never described as a fee subject
 + actual - expected
 
 + undefined
-- 'DUPLICATE'
+- 'lead'
 
-    at run (/home/runner/work/diction/diction/tests/teacher-cv-bank.integration.ts:119:12)
+    at run (/home/runner/work/diction/diction/tests/teacher-cv-bank.integration.ts:240:12)
     at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {
-  generatedMessage: true,
+  generatedMessage: false,
   code: 'ERR_ASSERTION',
   actual: undefined,
-  expected: 'DUPLICATE',
+  expected: 'lead',
   operator: 'strictEqual',
   diff: 'simple'
 }
