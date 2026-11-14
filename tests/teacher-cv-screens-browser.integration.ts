@@ -403,15 +403,30 @@ async function run(){
     const dialog=boss.page.locator('[data-sms-dialog]');
     await dialog.waitFor({state:'visible',timeout:60000});
     assert.equal((await dialog.getAttribute('aria-label')),t.sms.title,'the app’s one SMS dialog opens, with the CV bank’s own title');
-    /* The dialog counts its recipients after it opens, so the summary is waited for rather than snapped
-       at, and the claim is the count itself, read out of the sentence the dialog writes. */
+    /* The dialog counts after it opens, so the count is waited for rather than snapped at — and it is
+       read out of the sentence the dialog writes, not out of “a 1 appears somewhere in here”. */
     const summaryBox=dialog.locator('[data-sms-summary]');
-    await until(async()=>!(await summaryBox.innerText().catch(()=>bn.sms.dialog.countingRecipients)).includes(bn.sms.dialog.countingRecipients),
-      'the dialog to finish counting who it is about to text');
-    const summary=(await summaryBox.innerText()).trim();
-    const counted=new RegExp(`^${bn.sms.dialog.total}\\s+([0-9\\u09e6-\\u09ef]+)\\s+${bn.sms.dialog.numbers}`).exec(summary);
-    assert.ok(counted,`the dialog says how many numbers it is about to text, and this said: ${summary.slice(0,80)}`);
-    assert.equal(counted![1],'১','and it counts the one CV that was picked, not the page and not the bank');
+    const counted=async():Promise<string|null>=>{
+      const line=(await summaryBox.innerText().catch(()=>'')).trim();
+      if(!line||line.includes(bn.sms.dialog.countingRecipients))return null;
+      const found=new RegExp(`^${bn.sms.dialog.total}\\s+([0-9\\u09e6-\\u09ef]+)\\s+${bn.sms.dialog.numbers}`).exec(line);
+      return found?found[1]:null;
+    };
+    await until(async()=>(await counted())!==null,'the dialog to finish counting who it is about to text');
+    /* The teacher template asks for {subject}, which is the one value no source can know. Until a hand
+       types it the message would go out with a hole in it, so the plan counts nobody and says why: that
+       is the dialog refusing to send a broken message, not the CV bank losing its candidate. */
+    assert.equal(await counted(),'০','a template with a hole in it counts nobody…');
+    const skipped=dialog.locator('[data-sms-skipped]');
+    await skipped.waitFor({state:'visible',timeout:30000});
+    assert.ok((await skipped.innerText()).includes(bn.sms.skip.missing_value),
+      '…and says why, in the words the dialog gives for a message whose information is incomplete');
+    await dialog.locator('[data-sms-next]').click();
+    const subjectField=dialog.locator('input[name="smsSubject"]');
+    await subjectField.waitFor({state:'visible',timeout:30000});
+    await subjectField.fill('রসায়ন');
+    await dialog.locator('[data-sms-back]').click();
+    await until(async()=>(await counted())==='১','the count to become the one CV that was ticked, once the message is whole');
     const recipients=dialog.locator('[data-sms-recipients]');
     if(!await recipients.isVisible().catch(()=>false))await dialog.locator('[data-sms-recipients-toggle]').click();
     await recipients.waitFor({state:'visible',timeout:30000});
@@ -513,7 +528,7 @@ async function run(){
     assert.deepEqual(boss.errors,[],'no page error was thrown on any screen this suite drove');
     assert.deepEqual(desk.errors,[],'and none on the staff account that was sent away');
 
-    console.log('The Teacher CV bank in the browser, photographed at 360 px and 1440 px into screenshots/r4: “শিক্ষক সিভি” in an admin sidebar and absent from a staff one, with a staff account that types the address sent to the dashboard; the list showing three seeded CVs with statuses, ratings, subject words, masks and the digits only inside tel: and wa.me, a review banner counting one and badging its row while all three stayed stored, and nine status chips with their counts including the empty one; a name search narrowing to one CV and travelling as a parameter while a number in the box was refused with a sentence and left the list whole; quick-add reading “6, 7, 8 (Math, Eng) 9-GS, Other” into chips as it was typed with GS announced, Enter saving classes 6-9 and the tag, and a second CV on the same number asking the duplicate question by readable id and mask before a hand wrote it; the drawer changing status and rating, filing a note with its outcome, moving the status to interview scheduled, hiring into one unpublished profile carrying the candidate’s own name in both languages, refusing to bin the hired CV with the reason on screen, and binning an unhired one that left the list and appeared in the Recycle Bin; find-a-teacher saving a second need, opening the first need’s one match as the same full row with mask, call link and drawer, agreeing with the same three values hand-set, counting the picked CV on the send button and opening the SMS dialog covering exactly that one candidate, named; the import wizard counting ten rows and two unwritable, asking about “Column 1” with a select, keeping Save off until the date the sheet wrote and the reader doubted had an answer, writing eight with the sheet’s comments as first notes (the Bangla one word for word) and GS as a tag, then undoing with a reason so eight left the list and stayed in the bin; and all three screens reading as English at /en with no Bangla character, no Bangla digit, no horizontal overflow at 360 px and no page error anywhere.');
+    console.log('The Teacher CV bank in the browser, photographed at 360 px and 1440 px into screenshots/r4: “শিক্ষক সিভি” in an admin sidebar and absent from a staff one, with a staff account that types the address sent to the dashboard; the list showing three seeded CVs with statuses, ratings, subject words, masks and the digits only inside tel: and wa.me, a review banner counting one and badging its row while all three stayed stored, and nine status chips with their counts including the empty one; a name search narrowing to one CV and travelling as a parameter while a number in the box was refused with a sentence and left the list whole; quick-add reading “6, 7, 8 (Math, Eng) 9-GS, Other” into chips as it was typed with GS announced, Enter saving classes 6-9 and the tag, and a second CV on the same number asking the duplicate question by readable id and mask before a hand wrote it; the drawer changing status and rating, filing a note with its outcome, moving the status to interview scheduled, hiring into one unpublished profile carrying the candidate’s own name in both languages, refusing to bin the hired CV with the reason on screen, and binning an unhired one that left the list and appeared in the Recycle Bin; find-a-teacher saving a second need, opening the first need’s one match as the same full row with mask, call link and drawer, agreeing with the same three values hand-set, counting the picked CV on the send button and opening the SMS dialog that counted nobody while the teacher template still had {subject} in it and said why, then covering exactly that one candidate, named, once a hand typed the subject; the import wizard counting ten rows and two unwritable, asking about “Column 1” with a select, keeping Save off until the date the sheet wrote and the reader doubted had an answer, writing eight with the sheet’s comments as first notes (the Bangla one word for word) and GS as a tag, then undoing with a reason so eight left the list and stayed in the bin; and all three screens reading as English at /en with no Bangla character, no Bangla digit, no horizontal overflow at 360 px and no page error anywhere.');
   }finally{
     await browser.close();
     await mongoose.disconnect();
