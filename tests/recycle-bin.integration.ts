@@ -177,7 +177,7 @@ async function run(){
     assert.deepEqual(staffBlock.refs.map(r=>r.messageKey),['recycleBin.kinds.accountStaffRole']);
     assert.match(staffBlock.messageEn,/disable/);
     const parent=await User.create({name:'Legacy Parent',email:'legacy-parent@example.test',passwordHash:hash,role:'parent',active:true});
-    await AcademicStudent.create({user:parent._id});
+    await AcademicStudent.create({user:parent._id,grade:'Grade 9'});
     const parentBlock=await softDelete('portalAccount',String(parent._id),actorId);
     assert.equal(parentBlock.status,'blocked');
     assert.deepEqual(parentBlock.refs.map(r=>r.messageKey),['recycleBin.kinds.accountStudentProfiles']);

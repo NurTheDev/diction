@@ -634,4 +634,8 @@ taken verbatim from the line it left. Eight lines stay, each with its reason in 
 `i18n-scan-allow` marker: the exam band parser's Bangla digit folding, the header switcher naming
 the language it switches to, the podium glyphs inside aria-hidden artwork, the digit-conversion
 table, the PWA manifest's brand block (one file serves every locale), and the two stored-default
-taglines a new document starts with. No SMS template body was touched.
+taglines a new document starts with. No SMS template body was touched, and the language-ternary
+allowance `tests/i18n-routes.test.ts` carried for `src/actions/recovery.ts` is gone with it: the only
+ternary left there picks a catalog locale (`bn`/`en`), which the gate already treats as a code rather
+than a painted word. The gate counts stand at 0 hardcoded language pairs and 0 Bangla lines in route
+files, with 2458 distinct keys used at 3313 call sites, all present in both catalogs.

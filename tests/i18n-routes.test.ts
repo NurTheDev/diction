@@ -45,7 +45,6 @@ const ALLOWED=new Map<string,string>([
   ['src/app/api/study-buddy/route.ts','the language is named to the model as an instruction, in English'],
   ['src/components/admin/top-header.tsx','a switcher names the language it switches to'],
   ['src/components/layout/header-nav.tsx','the ternary picks a class name, not a word'],
-  ['src/actions/recovery.ts','the reset email is message content, sent in the reader\u2019s language, like an SMS body'],
 ]);
 
 const files=(root:string):string[]=>{
