@@ -1,0 +1,18 @@
+--- tests/lead-handoff.test.ts (exit 0) ---
+Lead hand-offs: the three hand-offs land on admitted, trial_booked and not_interested — statuses the vocabulary already carries, never a fourth invented here; a prefill copies the name, the guardian, the school and the class a lead holds and hands the browser the number as a mask, so no prefill carries eleven digits or a family key, and a lead that holds nothing fills nothing rather than being guessed at; a class below four offers no grade because the intake schema would refuse it; an admission already open, a trial already booked and a lead with no number each stop their own hand-off with a sentence in both languages before a form is filled in; "not interested" refuses an empty reason, whitespace and two characters, files a real one trimmed and collapsed to a single line, and refuses one over 200; a seat is bookable only when the class is switched on, still in the future and not full, with the last seat still a seat and an unreadable time never offered; and a hand-off mints an ADM- or TRI- reference in the intake screen's own shape, 400 of them without one repeat.
+
+
+--- tests/lead-handoff.integration.ts (exit 1) ---
+AssertionError [ERR_ASSERTION]: two bookings in all: the refusals wrote nothing
+
+undefined !== 2
+
+    at run (/home/runner/work/diction/diction/tests/lead-handoff.integration.ts:164:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: undefined,
+  expected: 2,
+  operator: 'strictEqual',
+  diff: 'simple'
+}
