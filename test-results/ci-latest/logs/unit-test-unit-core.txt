@@ -111,6 +111,6 @@ Verify harness: report never claims PASS without evidence, one line per requirem
 
 --- tests/i18n-catalog.test.ts (exit 0) ---
 No mis-nested keys, no empty values, no leftover template literals.
-Used keys: 1651 distinct across 2425 call sites, all present in both catalogs.
+Used keys: 1705 distinct across 2484 call sites, all present in both catalogs.
   (15 computed keys are not checked statically: r(`fieldNames.${key}`), r(`fieldNames.${key}`), c(`dayPeriod.${k}`) …)
 A.7 · the catalogs are whole: parity both ways, no mis-nested keys, no leftover templates, every key src/ asks for resolves in both languages, and Bangla inside an English value only where a language names itself.
