@@ -432,6 +432,10 @@ Wave A — foundations, no UI:
     b3-handoff-trial-{1440,360}, b3-handoff-reason-{1440,360} and b3-handoff-blocked-1440 — registry row
     R3.14. The registry is 41 rows. A duplicate test:sms:staff script line left behind by the previous
     change set was removed rather than left to shadow itself.
+    Reading the committed 360 px screenshot of the trial dialog caught one thing no assertion had: the
+    grade select's label was painted as its catalogue key, because handoffGrade was never added to the
+    two message files. The key is there now in both, and the browser suite asserts that no hand-off
+    screen ever paints a "leads." key path again — a screenshot is evidence, so it gets read.
 
 Owed, stated plainly, in the order the owner fixed: the import wizard with dry run
 (its merge step can reuse R3.10's planner as it stands), preview, flagged rows, unknown-column mapping,

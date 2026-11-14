@@ -171,6 +171,11 @@ async function run(){
     assert.equal(await dialog.locator('input[name="school"]').inputValue(),SCHOOL,'and the school');
     assert.equal(await dialog.locator('[data-handoff-grade]').inputValue(),'9','and the class the lead was written with');
     assert.equal(await dialog.locator('[data-handoff-phone-mask]').inputValue(),maskPhone(PH1),'while the number is only its mask');
+    // A missing catalogue key paints its own path instead of a word, and an operator cannot click a
+    // key path. Every label on a hand-off screen has to come from the catalogue the screen reads.
+    const admissionText=await dialog.innerText();
+    assert.ok(admissionText.includes(t.handoffPhoneMask),'the mask is labelled in the operator\u2019s own words');
+    assert.ok(!admissionText.includes('leads.'),'and no untranslated key path is painted on the form');
     await privateDialog(dialog,PH1,'the admission form at 360');
     await noOverflow(desk.page,'the admission hand-off at 360');
     await shot(desk.page,'b3-handoff-admission-360',false);
@@ -208,6 +213,9 @@ async function run(){
     await dialog.locator('[data-handoff-slot]').first().waitFor({timeout:90000});
     assert.equal(await dialog.locator('[data-handoff-slot]').count(),1,'the full class is not offered, only the one with a seat');
     assert.ok((await dialog.locator('[data-handoff-slots]').innerText()).includes(t.handoffSeats),'and it says what is left on it');
+    const trialText=await dialog.innerText();
+    assert.ok(trialText.includes(t.handoffGrade),'the grade select is labelled in the operator\u2019s own words');
+    assert.ok(!trialText.includes('leads.'),'and no untranslated key path is painted on the form');
     await privateDialog(dialog,PH2,'the trial form at 1440');
     await shot(boss.page,'b3-handoff-trial-1440',false);
     await dialog.locator('[data-handoff-close]').click();
@@ -232,6 +240,8 @@ async function run(){
     // ---- 5. Not interested at 1440 px: no reason, no close — and the reason lands in the timeline.
     drawer=await openDrawer(boss.page,H_CLOSED);
     dialog=await openHandoff(boss.page,drawer,'not-interested');
+    const reasonText=await dialog.innerText();
+    assert.ok(reasonText.includes(t.handoffReason)&&!reasonText.includes('leads.'),'the reason box is labelled in the operator\u2019s own words, not as a key path');
     await dialog.locator('[data-handoff-reason]').fill('না');
     assert.ok(await dialog.locator('[data-handoff-submit]').isDisabled(),'a reason of two characters cannot be filed');
     await dialog.locator('[data-handoff-reason]').fill(REASON);
