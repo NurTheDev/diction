@@ -63,11 +63,15 @@ async function run(){
             if(locale==='en'&&BN.test(text))found.push(`/${locale}${path} ${selector} carries Bangla: ${text.split('\n').find(l=>BN.test(l))}`);
           }
         }
+        // The page's own headline is the second anchor: three screens (cash collection, public
+        // sheets, practice tests) paint it without an .admin-heading wrapper, so the headline is
+        // what proves the /bn address still reads Bangla — and the /en address reads English.
+        const headline=await page.locator('h1').first().innerText().catch(()=>'');
+        if(locale==='bn'&&!BN.test(headline))found.push(`/bn${path} h1 lost its Bangla: ${headline.slice(0,60)}`);
+        if(locale==='en'&&BN.test(headline))found.push(`/en${path} h1 carries Bangla: ${headline.split('\n').find(l=>BN.test(l))}`);
         if(locale==='bn'){
-          for(const selector of BN_ANCHORS){
-            const text=await page.locator(selector).first().innerText().catch(()=>'');
-            if(!BN.test(text))found.push(`/bn${path} ${selector} lost its Bangla: ${text.slice(0,60)}`);
-          }
+          const nav=await page.locator(BN_ANCHORS[0]).first().innerText().catch(()=>'');
+          if(!BN.test(nav))found.push(`/bn${path} ${BN_ANCHORS[0]} lost its Bangla: ${nav.slice(0,60)}`);
         }
       }
       await context.close();
