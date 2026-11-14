@@ -1,2 +1,6 @@
 --- tests/sms-provider.test.ts (exit 0) ---
 SMS provider: the three documented endpoints and their parameters are used exactly, Bangla goes as type=unicode and ASCII as text, the many-to-many body is 88<number>,<message> pairs, balance parses from text and JSON, all 19 published response codes read as Bangla, and the API key is validated, redacted and never returned, logged or sent to a browser.
+
+
+--- tests/sms-retry.test.ts (exit 0) ---
+SMS retry: 1005 and a request that never reached the provider are attempted at most twice more, a short wait apart; a timeout on the wire, an unreadable answer and every permanent code are attempted exactly once, and the attempt count comes back with the outcome.
