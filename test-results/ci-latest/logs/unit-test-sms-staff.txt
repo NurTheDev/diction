@@ -3,18 +3,23 @@ Staff SMS policy: admin and super admin keep every source, every template, free 
 
 
 --- tests/sms-staff.integration.ts (exit 1) ---
-AssertionError [ERR_ASSERTION]: and the dialog stops quoting a limit that is not in force
+AssertionError [ERR_ASSERTION]: the desk spent its allowance, not the owner’s
 + actual - expected
 
-+ undefined
-- null
+  {
+    limit: 1,
++   remaining: 0,
++   sent: 9
+-   remaining: 1,
+-   sent: 0
+  }
 
-    at run (/home/runner/work/diction/diction/tests/sms-staff.integration.ts:164:12)
+    at run (/home/runner/work/diction/diction/tests/sms-staff.integration.ts:183:12)
     at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {
   generatedMessage: false,
   code: 'ERR_ASSERTION',
-  actual: undefined,
-  expected: null,
-  operator: 'strictEqual',
+  actual: [Object],
+  expected: [Object],
+  operator: 'deepStrictEqual',
   diff: 'simple'
 }
