@@ -2,17 +2,5 @@
 Staff SMS policy: admin and super admin keep every source, every template, free text and the retry of a failed batch; a staff send may name only a visitor or a selection of visitors and only the thank-you template, with no text riding along — so an unnamed template, a custom one and "the thank-you plus my own words" are all refused with a Bangla sentence that names the one template they do have; retrying and every fee or class source is refused; a role that never had the SMS page is refused as a role before anything else is read; the daily ceiling is 30 unless the centre wrote a number, 0 turns it off, a negative or fractional value falls back rather than meaning unlimited; it counts staff, admin and super admin and never an automatic send; and both of its sentences — what is left and the refusal — carry the number in the digits the operator reads.
 
 
---- tests/sms-staff.integration.ts (exit 1) ---
-AssertionError [ERR_ASSERTION]: no raw visitor number in a dialog answer or a kit (01712817090)
-
-true !== false
-
-    at run (/home/runner/work/diction/diction/tests/sms-staff.integration.ts:193:16)
-    at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {
-  generatedMessage: false,
-  code: 'ERR_ASSERTION',
-  actual: true,
-  expected: false,
-  operator: 'strictEqual',
-  diff: 'simple'
-}
+--- tests/sms-staff.integration.ts (exit 0) ---
+Staff SMS against the database: the catalog handed to a Visitors screen is narrowed by the role that asked — staff get the thank-you alone with no page-pick and no textarea, a role that may not send at all gets the same narrow kit, and admin and super admin keep the catalog they had including custom text; the day’s count is read off the batches one operator owns on one Dhaka day and off messages actually sent, so yesterday and a failed chunk count as nothing and another operator’s allowance stays theirs; with the limit at one the first send goes and the second is refused 409 DAILY_LIMIT in a Bangla sentence carrying the number, before the provider is asked, leaving no log row and no batch to retry; a repeated request that already went out is answered by its recorded batch rather than by the ceiling; a limit of 0 turns the ceiling off on the next send and the dialog stops quoting it; an automatic send carries no operator so it is never counted; the allowance is per user, quoted to each operator from their own batches; a catalog holds no visitor number and no answer carries a family key, while a preview names exactly the number the operator picked — the masking of a number belongs to the list screens, and R3.8 proves it there.
