@@ -10,6 +10,7 @@ import {CenterClassGroup,CenterStudent,CenterExam,CenterExamResult,CenterSmsLog}
 import {GET as dailyJob} from '../src/app/api/admin/jobs/daily/route';
 import {AdminAudit} from '../src/models/AdminAudit';
 import {SiteSettingsContent} from '../src/models/PublicContent';
+import {Student as AcademicStudent} from '../src/models/Academic';
 import {purgeExpiredProofMilestones} from '../src/lib/admin/proof-bin';
 import {softDelete,restoreRecord,binList,binCounts,purgeExpired} from '../src/lib/admin/recycle';
 import {liveFilter,binFilter} from '../src/models/recycle';
@@ -159,6 +160,32 @@ async function run(){
     assert.equal(await mongoose.connection.db!.collection('editorials').countDocuments({_id:expired._id}),0,'gone from storage, not just from queries');
     assert.equal(await Editorial.countDocuments({_id:fresh._id,...binFilter}),1,'a row still inside its 30 days survives');
     assert.equal(await CenterSmsLog.countDocuments({}),1,'the recent SMS log survives');
+    // 8. R1 leftovers, closed: the testimonials list is an ordinary editorial kind, so the whole bin
+    //    contract covers it — delete hides it from the public list at query time, restore puts it back.
+    const testimonial=await Editorial.create({kind:'testimonial',slug:'recycle-testimonial',title:{bn:'মতামত',en:'Thanks'},body:{bn:'ভালো',en:'Good'},published:true});
+    assert.equal(await Editorial.countDocuments({kind:'testimonial',published:true}),1);
+    assert.equal((await softDelete('editorial',String(testimonial._id),actorId)).status,'ok');
+    assert.equal(await Editorial.countDocuments({kind:'testimonial',published:true}),0,'a binned testimonial leaves the public list at query time');
+    assert.equal((await restoreRecord('editorial',String(testimonial._id),actorId)).status,'ok');
+    assert.equal(await Editorial.countDocuments({kind:'testimonial',published:true}),1,'restore puts the testimonial back on the public list');
+
+    // 9. The two account reference blocks: a managed staff role, and a legacy student profile, make an
+    //    account disable-only — the bin refuses with the reason, in both languages, and writes nothing.
+    const staff=await User.create({name:'Staff Holder',email:'staff-holder@example.test',passwordHash:hash,role:'staff',active:true});
+    const staffBlock=await softDelete('portalAccount',String(staff._id),actorId);
+    assert.equal(staffBlock.status,'blocked');
+    assert.deepEqual(staffBlock.refs.map(r=>r.messageKey),['recycleBin.kinds.accountStaffRole']);
+    assert.match(staffBlock.messageEn,/disable/);
+    const parent=await User.create({name:'Legacy Parent',email:'legacy-parent@example.test',passwordHash:hash,role:'parent',active:true});
+    await AcademicStudent.create({user:parent._id});
+    const parentBlock=await softDelete('portalAccount',String(parent._id),actorId);
+    assert.equal(parentBlock.status,'blocked');
+    assert.deepEqual(parentBlock.refs.map(r=>r.messageKey),['recycleBin.kinds.accountStudentProfiles']);
+    assert.equal(await User.countDocuments({_id:{$in:[staff._id,parent._id]},deletedAt:null}),2,'a blocked bin changes nothing');
+    const plain=await User.create({name:'Plain Parent',email:'plain-parent@example.test',passwordHash:hash,role:'parent',active:true});
+    assert.equal((await softDelete('portalAccount',String(plain._id),actorId)).status,'ok','an account with no role and no profile bins normally');
+    assert.equal((await restoreRecord('portalAccount',String(plain._id),actorId)).status,'ok');
+
     console.log('Recycle Bin engine: reference-blocked delete with exact counts, 30-day bin, restore, purge, audit rows, every query shape hidden, and the daily job (401 without the secret; purges only expired rows and trims old logs) passed.');
   }finally{
     await mongoose.disconnect();

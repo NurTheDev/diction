@@ -590,3 +590,48 @@ past class and an empty reason each refuse with a sentence in both languages, an
 allowed to carry are masks — no digits, no family key. Described in `docs/R3-COVERAGE.md` §13 and
 photographed at 360 px and 1440 px in `screenshots/r3/` (`b3-handoff-*`). **Still owed, in the owner's
 order:** the import wizard, then the funnel reports and CSV export.
+
+---
+
+## R1 leftovers closed, and the language scan at zero (step 3, 2026-11-14)
+
+**Testimonials / social proof.** A testimonial is an ordinary `editorial` kind, so the list on
+`/admin/content` already carried the full Recycle Bin contract — `RowControls kind="editorial"`
+(soft delete and archive by role), the bin's restore and 30-day purge, and the 10-second undo toast,
+which lives in `RecycleToastHost` in the admin layout precisely so the window survives the row it
+undoes (`src/components/admin/recycle-toast-host.tsx`, window in `action-feedback.tsx`). What was
+missing was the proof: `tests/recycle-bin.integration.ts` §8 now bins a published testimonial, shows
+it leave the public list at query time and return on restore, and §9 proves the two account reference
+blocks — a managed staff role and a legacy student profile each make an account **disable-only**
+(`archiveSet:{active:false}`), the bin refusing with `recycleBin.kinds.accountStaffRole` /
+`...accountStudentProfiles` in both languages and writing nothing, while an account with neither
+bins and restores normally.
+
+**Written confirmations, with their proofs.** The soft-delete auto-hide is a schema-hook rule, and
+`tests/recycle-coverage.test.ts` §3 reads the registered hooks off the schema and asserts the whole
+list: `find`, `findOne`, `countDocuments` (counts), `distinct`, `findOneAndUpdate`,
+`findOneAndReplace`, `findOneAndDelete`, `updateOne`, `updateMany` (bulk updates), `deleteOne`,
+`deleteMany`, `aggregate` (aggregations) and `bulkWrite`. `populate` needs no hook of its own — it
+runs a `find` on the referenced model, so the referenced model's hook hides binned documents; that is
+proved against a live database in `tests/recycle-bin.integration.ts` §7. The one deliberate exception
+is `estimatedDocumentCount`, which cannot carry a filter and whose only caller is the storage card,
+where counting stored rows (bin included) is the correct number; the same suite asserts the exception
+stays exactly that wide. Delete, restore and purge each call `revalidateKind`
+(`src/lib/admin/recycle.ts`, on `softDelete`, `restoreRecord`, the single purge and the daily job),
+which walks the kind's `publicPaths` through `revalidatePath` for both locales — ISR pages refresh on
+the next request — and `tests/recycle-coverage.test.ts` §4 asserts every public kind has those paths
+and every private kind has none. `src/app/sitemap.ts` is `force-dynamic` and builds from the same
+public readers, so a binned slug leaves the sitemap on the next request; there is no cached sitemap
+to go stale.
+
+**The language scan is at zero.** `tests/i18n-bangla-scan.test.ts` walked 451 files and found
+**0 lines** of Bangla interface text outside allow blocks (was 22 in 16 files). Forty-five sentences
+moved into the catalogs in both languages — a new `payHistory` group, `center.print` and
+`center.restore.*`, `achievement.sampleCard.*`, `recovery.mailSubject`/`recovery.mailBody` (the reset
+email now renders from the catalog in the locale it was asked for), `daily.dayRange`, and
+`leads.handoff.*` plus `leads.handoffReasons.*` for the not-interested chips — every Bangla value
+taken verbatim from the line it left. Eight lines stay, each with its reason in writing on an
+`i18n-scan-allow` marker: the exam band parser's Bangla digit folding, the header switcher naming
+the language it switches to, the podium glyphs inside aria-hidden artwork, the digit-conversion
+table, the PWA manifest's brand block (one file serves every locale), and the two stored-default
+taglines a new document starts with. No SMS template body was touched.
