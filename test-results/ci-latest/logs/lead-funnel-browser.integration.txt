@@ -1,10 +1,1 @@
-locator.click: Error: strict mode violation: locator('.admin-help-panel summary') resolved to 2 elements:
-    1) <summary class="admin-mini-button">সাহায্য</summary> aka getByText('সাহায্য')
-    2) <summary class="admin-mini-button">ছাঁকনি</summary> aka getByText('ছাঁকনি', { exact: true })
-
-Call log:
-  - waiting for locator('.admin-help-panel summary')
-
-    at run (/home/runner/work/diction/diction/tests/lead-funnel-browser.integration.ts:142:55) {
-  log: [ "  - waiting for locator('.admin-help-panel summary')" ]
-}
+Visitor funnel in the browser: mounted under Visitors in the sidebar and linked back to the list; six synthetic leads read as visitors ৬ / trials ৩ / admitted ২ — one of them a direct admission — with rates ৫০%, ৩৩.৩% and ৩৩.৩% in Bangla tiles; the month table newest-first with all four definitions under it; the CSV downloaded twice — BOM-marked, Latin-digit, formula-safe, named for its breakdown and day — and the source breakdown printing all five sources including the empty one; nothing overflowing at 360 px; and the whole English screen free of Bangla characters and Bangla digits. Photographed at 360 px and 1440 px in both languages into screenshots/r3.
