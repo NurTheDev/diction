@@ -158,10 +158,15 @@ async function run(){
 
     // ── 6. Zero is the off switch, and it takes effect on the next send rather than needing a restart.
     await CenterSettings.updateOne({key:'main'},{$set:{dailySmsLimitPerUser:0}});
-    const unlimited=await call({mode:'send',source:'leads',ids:[two.id,three.id],requestId:randomUUID(),...base});
+    // Only a PREVIEW quotes the allowance — a send answers with what it did — so the off switch is read
+    // from a preview and then proved by the send that follows it.
+    const offId=randomUUID();
+    const offPreview=await call({mode:'preview',source:'leads',ids:[two.id,three.id],requestId:offId,...base});
+    answers.push(offPreview.body);
+    assert.equal(offPreview.body.daily,null,'with the ceiling off the dialog stops quoting a limit that is not in force');
+    const unlimited=await call({mode:'send',source:'leads',ids:[two.id,three.id],requestId:offId,...base});
     answers.push(unlimited.body);
-    assert.equal(unlimited.body.ok,true,'with the ceiling off a selection of two goes out');
-    assert.equal(unlimited.body.daily,null,'and the dialog stops quoting a limit that is not in force');
+    assert.equal(unlimited.body.ok,true,'and a selection of two goes out');
     assert.equal(fake.itemCount(),3);
 
     // ── 7. An automatic send carries no operator, so the centre's own messages are never counted

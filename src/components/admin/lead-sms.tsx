@@ -48,6 +48,15 @@ export function LeadSmsPicker({rows,kit,digits='bn',language='bn',children}:{
   const t=useTranslations('leads');
   const [picked,setPicked]=useState<string[]>([]);
   const [open,setOpen]=useState(false);
+  /**
+   * The ids the dialog was OPENED with, frozen (R3.11). Binding it to the live pick instead meant that
+   * clearing the selection after a send — the whole point of the count on the button — also changed the
+   * dialog's request, and a changed request resets the dialog: the operator who had just sent to twelve
+   * visitors was looking at step 1 with no confirmation, and a list that re-rendered mid-dialog could
+   * quietly change who the send covered. Permission is still re-read on the server at plan time, so
+   * freezing the ids cannot text somebody who asked not to be.
+   */
+  const [dialogIds,setDialogIds]=useState<string[]>([]);
   // A row may only be picked if it can be contacted and has a number to be contacted on.
   const ids=useMemo(()=>rows.filter(row=>row.contactable&&row.hasPhone).map(row=>row.id),[rows]);
   const live=useMemo(()=>new Set(ids),[ids]);
@@ -56,7 +65,7 @@ export function LeadSmsPicker({rows,kit,digits='bn',language='bn',children}:{
     setPicked(current=>on?[...new Set([...current,id])]:current.filter(x=>x!==id));
   },[]);
   const selectPage=useCallback((on:boolean)=>setPicked(on?ids:[]),[ids]);
-  const openSend=useCallback(()=>setOpen(true),[]);
+  const openSend=useCallback(()=>{setDialogIds(sendIds);setOpen(true)},[sendIds]);
   const allPicked=ids.length>0&&ids.every(id=>live.has(id)&&sendIds.includes(id));
   const tally=useMemo(()=>leadSmsTally(rows.map(row=>({contactable:row.contactable,hasPhone:row.hasPhone}))),[rows]);
   const value=useMemo<LeadSmsContextValue>(()=>({picked:sendIds,toggle,selectPage,allPicked,openSend,tally,kit}),
@@ -77,7 +86,7 @@ export function LeadSmsPicker({rows,kit,digits='bn',language='bn',children}:{
     {open&&<SendSmsDialog
       open
       onClose={()=>setOpen(false)}
-      request={{source:'leads',ids:sendIds}}
+      request={{source:'leads',ids:dialogIds}}
       templates={kit.templates}
       institutePhone={kit.institutePhone}
       titleBn={t('smsBulkTitle')}
