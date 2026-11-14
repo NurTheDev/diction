@@ -15,6 +15,12 @@ import {MongoMemoryReplSet} from 'mongodb-memory-server';
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import assert from 'node:assert/strict';
+import bnMessages from '../src/messages/bn.json';
+import enMessages from '../src/messages/en.json';
+/** One sms-namespace key read out of a catalog: the labels live in the message files now. */
+const smsLabel=(catalog:unknown,key:string):string=>String(key.split('.').reduce((node:unknown,part:string)=>(node as Record<string,unknown>)?.[part],catalog)??'');
+const bothLabels=(key:string):boolean=>!!smsLabel(bnMessages.sms,key).trim()&&!!smsLabel(enMessages.sms,key).trim();
+
 import {randomUUID} from 'node:crypto';
 import {preflight,testDbName} from './helpers/env-preflight';
 import {User} from '../src/models/User';
@@ -110,7 +116,7 @@ async function run(){
     assert.ok(p1.recipients.every(item=>!/\{\w+\}/.test(item.preview)),'no chip survives into a preview');
     assert.deepEqual([...new Set(p1.skipped.map(item=>item.reason))].sort(),['held','missing_phone','missing_value','opted_out'].sort(),'exactly the reasons this class deserves');
     for(const reason of p1.skipped.map(item=>item.reason))assert.ok(SMS_SKIP_REASONS.includes(reason),'every reason comes from the closed vocabulary');
-    assert.ok(p1.skipped.every(item=>item.labelBn&&item.labelEn),'each reason carries both labels, so the dialog can show the operator\'s language');
+    assert.ok(p1.skipped.every(item=>bothLabels(item.labelKey)),'each reason carries both labels, so the dialog can show the operator\'s language');
     assert.equal(p1.skipped.filter(item=>item.reason==='held').length,1,'a held student is excluded from a fee message');
     assert.ok(!p1.recipients.some(item=>item.phone==='01711000004')&&!p1.skipped.some(item=>item.phone==='01711000004'),'a removed student is neither messaged nor listed');
     assert.equal(p1.recipients.length,Math.min(3,p1.messages),'the preview shows at most the first three messages');
@@ -159,7 +165,7 @@ async function run(){
     const incomplete=noSubject.body.preview.skipped.filter((item:{reason:string})=>item.reason==='missing_value');
     assert.ok(incomplete.length>=4,'and the operator is told why: every number that would have been used is reported incomplete, one row per student');
     assert.ok(incomplete.some((item:{phone:string})=>item.phone==='01711000007'),'even the held student, whom a notice does reach, is incomplete without a subject');
-    assert.ok(noSubject.body.preview.skipped.every((item:{labelBn:string;labelEn:string})=>item.labelBn&&item.labelEn),'each reason stated in both languages');
+    assert.ok(noSubject.body.preview.skipped.every((item:{labelKey:string})=>bothLabels(item.labelKey)),'each reason stated in both languages');
     const withSubject=previewOf(await call({mode:'preview',source:'class',classGroup:classId,templateKey:'notice',subject:'বার্ষিক পরীক্ষার রুটিন',target:'guardian',requestId:randomUUID()}));
     assert.equal(withSubject.blocked,null,'the same notice with its subject is not blocked at all');
     assert.equal(withSubject.skipped.filter(item=>item.reason==='missing_value').length,0,'and nobody is incomplete any more');

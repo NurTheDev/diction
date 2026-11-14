@@ -31,6 +31,12 @@ import {MongoMemoryReplSet} from 'mongodb-memory-server';
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import assert from 'node:assert/strict';
+import bnMessages from '../src/messages/bn.json';
+import enMessages from '../src/messages/en.json';
+/** One sms-namespace key read out of a catalog: the labels live in the message files now. */
+const smsLabel=(catalog:unknown,key:string):string=>String(key.split('.').reduce((node:unknown,part:string)=>(node as Record<string,unknown>)?.[part],catalog)??'');
+const bothLabels=(key:string):boolean=>!!smsLabel(bnMessages.sms,key).trim()&&!!smsLabel(enMessages.sms,key).trim();
+
 import {randomUUID} from 'node:crypto';
 import {preflight,testDbName} from './helpers/env-preflight';
 import {User} from '../src/models/User';
@@ -196,7 +202,7 @@ async function run(){
     assert.ok(skippedNames.some(([name,reason])=>name==='যোগাযোগ করবেন না'&&reason==='opted_out'),'the blocked visitor is named in the skip list');
     assert.ok(skippedNames.some(([name,reason])=>name==='নাম্বারহীন ভিজিটর'&&reason==='missing_phone'),'and so is the one with no number');
     assert.equal(plan.skipped.length,3,'three of the five candidates cannot be reached, and all three are reported');
-    assert.ok(plan.skipped.every(item=>item.labelBn&&item.labelEn),'every skip carries both labels');
+    assert.ok(plan.skipped.every(item=>bothLabels(item.labelKey)),'every skip carries both labels');
     assert.ok(plan.skipped.every(item=>!item.phone),'a skipped visitor carries no number to leak');
     assert.equal(plan.month,month,'the cost is booked to the month it was sent in, even though a visitor has no fee month');
 
@@ -269,7 +275,7 @@ async function run(){
     assert.equal(allBlocked.status,200,'a preview of an all-blocked selection still answers — it is the send that refuses');
     assert.equal(allBlocked.body.preview.phones,0);
     assert.equal(allBlocked.body.preview.skippedCount,3,'all three are reported, each with a reason');
-    assert.ok(allBlocked.body.preview.skipped.some(item=>item.studentName==='যোগাযোগ করবেন না'&&item.labelBn.includes('যোগাযোগ করবেন না')),'and the operator reads why in Bangla');
+    assert.ok(allBlocked.body.preview.skipped.some(item=>item.studentName==='যোগাযোগ করবেন না'&&smsLabel(bnMessages.sms,item.labelKey).includes('যোগাযোগ করবেন না')),'and the operator reads why in Bangla');
     const blockedSend=await call({...base,mode:'send',source:'leads',ids:[marked.id,byStatus.id],requestId:randomUUID()});
     assert.equal(blockedSend.status,409);
     assert.equal(blockedSend.body.blocked,'NO_RECIPIENTS','a send to only blocked visitors sends nothing');

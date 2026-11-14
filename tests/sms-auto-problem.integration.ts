@@ -26,6 +26,12 @@ import {MongoMemoryReplSet} from 'mongodb-memory-server';
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import assert from 'node:assert/strict';
+import bnMessages from '../src/messages/bn.json';
+import enMessages from '../src/messages/en.json';
+/** One sms-namespace key read out of a catalog: the labels live in the message files now. */
+const smsLabel=(catalog:unknown,key:string):string=>String(key.split('.').reduce((node:unknown,part:string)=>(node as Record<string,unknown>)?.[part],catalog)??'');
+const bothLabels=(key:string):boolean=>!!smsLabel(bnMessages.sms,key).trim()&&!!smsLabel(enMessages.sms,key).trim();
+
 import {randomUUID} from 'node:crypto';
 import {preflight,testDbName} from './helpers/env-preflight';
 import {User} from '../src/models/User';
@@ -36,7 +42,7 @@ import {
 import {recordCenterCash} from '../src/lib/center/cash-batch';
 import {autoSendReceipt,autoSendClassDues,autoSendClassResults,retryAutoSmsProblem} from '../src/lib/center/sms-dialog';
 import {
-  autoSmsProblems,autoProblemText,autoProblemKey,AUTO_SMS_TRIGGER_LABELS,
+  autoSmsProblems,autoProblemText,autoProblemKey,AUTO_SMS_TRIGGER_LABEL_KEYS,
 } from '../src/lib/center/sms-auto-problems';
 import {dhakaCalendar} from '../src/lib/center/month-status';
 
@@ -151,7 +157,7 @@ async function run(){
     const item=problems.items[0];
     assert.equal(item.trigger,'auto_receipt');
     assert.equal(item.id,String(outcome.problem));
-    assert.ok(item.messageBn.startsWith(AUTO_SMS_TRIGGER_LABELS.auto_receipt.bn),'the sentence names which automatic send failed');
+    assert.ok(item.messageBn.startsWith(smsLabel(bnMessages.sms,AUTO_SMS_TRIGGER_LABEL_KEYS.auto_receipt)),'the sentence names which automatic send failed');
     assert.match(item.messageBn,/পাঠানো যায়নি/,'and says plainly that it did not go out');
     assert.match(item.messageBn,/ব্যালেন্স অপর্যাপ্ত/,'quoting the provider’s own Bangla meaning for its code');
     assert.match(item.messageBn,/কোড 1007/,'and the code itself, for whoever has to call the provider');
@@ -233,7 +239,7 @@ async function run(){
     // ---- 8. Every trigger has its own words, and a credential never reaches the operator.
     for(const trigger of ['auto_receipt','auto_due','auto_result']){
       const text=autoProblemText(trigger,'SMS_NOT_CONFIGURED');
-      assert.ok(text.messageBn.startsWith(AUTO_SMS_TRIGGER_LABELS[trigger].bn),`${trigger} names itself in Bangla`);
+      assert.ok(text.messageBn.startsWith(smsLabel(bnMessages.sms,AUTO_SMS_TRIGGER_LABEL_KEYS[trigger])),`${trigger} names itself in Bangla`);
       assert.match(text.messageBn,/সেট করা হয়নি/,'and says what is missing');
       assert.match(text.messageEn,/not configured/);
       assert.equal(text.code,'SMS_NOT_CONFIGURED');

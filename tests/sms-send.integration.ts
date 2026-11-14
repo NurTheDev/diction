@@ -11,6 +11,12 @@ import {MongoMemoryReplSet} from 'mongodb-memory-server';
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import assert from 'node:assert/strict';
+import bnMessages from '../src/messages/bn.json';
+import enMessages from '../src/messages/en.json';
+/** One sms-namespace key read out of a catalog: the labels live in the message files now. */
+const smsLabel=(catalog:unknown,key:string):string=>String(key.split('.').reduce((node:unknown,part:string)=>(node as Record<string,unknown>)?.[part],catalog)??'');
+const bothLabels=(key:string):boolean=>!!smsLabel(bnMessages.sms,key).trim()&&!!smsLabel(enMessages.sms,key).trim();
+
 import {randomUUID} from 'node:crypto';
 import {preflight,testDbName} from './helpers/env-preflight';
 import {User} from '../src/models/User';
@@ -107,7 +113,7 @@ async function run(){
     const holePlan=await buildSmsPlan({requestId:randomUUID(),students:[candidate(one,{due_amount:''})],templateKey:'due_reminder',audience:'guardian'});
     assert.equal(holePlan.items.length,0,'no message with a missing amount is sent');
     assert.equal(holePlan.skipped[0].reason,'missing_value');
-    assert.ok(holePlan.skipped[0].labelBn,'the operator reads a Bangla reason');
+    assert.ok(bothLabels(holePlan.skipped[0].labelKey),'the operator reads a reason in their own language');
 
     // 3. 500 recipients go out in five provider calls of at most 100, quickly, and every one is logged.
     const many=[];
@@ -164,7 +170,7 @@ async function run(){
     assert.equal(mixed.recipientCount,1,'only the reachable, willing, non-held student is sent to');
     const reasons=mixed.skipped.map(entry=>entry.reason).sort();
     assert.deepEqual(reasons,['held','invalid_phone','missing_phone','opted_out','removed']);
-    assert.ok(mixed.skipped.every(entry=>entry.labelBn&&entry.labelEn),'every skip shows a reason in both languages');
+    assert.ok(mixed.skipped.every(entry=>bothLabels(entry.labelKey)),'every skip shows a reason in both languages');
     // The same held student DOES receive a non-fee message.
     const nonFee=await buildSmsPlan({requestId:randomUUID(),students:[candidate(held)],customText:'ডিকশন কোচিং: ছুটির নোটিশ।',audience:'guardian'});
     assert.equal(nonFee.recipientCount,1,'a held student may receive a non-fee message');
