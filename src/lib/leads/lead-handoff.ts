@@ -23,6 +23,7 @@
  * The reference generator below uses Web Crypto for exactly that reason.
  */
 import {maskPhone} from './vocab';
+import {renderLeadPair} from './lead-message';
 
 /** The statuses the three hand-offs land on — the vocabulary's own words, not new ones. */
 export const HANDOFF_STATUS={admission:'admitted',trial:'trial_booked',notInterested:'not_interested'} as const;
@@ -45,8 +46,8 @@ export interface HandoffLead{
 }
 
 export type HandoffRefusalCode='MISSING'|'BINNED'|'ALREADY_CONVERTED'|'ALREADY_BOOKED'|'NO_PHONE'|'NO_REASON'|'REASON_TOO_SHORT'|'REASON_TOO_LONG'|'SLOT_FULL'|'SLOT_GONE'|'NO_CONSENT';
-export interface HandoffRefusal{ok:false;code:HandoffRefusalCode;messageKey:string;messageParams:Record<string,string|number>}
-const refusal=(code:HandoffRefusalCode,messageKey:string,messageParams:Record<string,string|number>={}):HandoffRefusal=>({ok:false,code,messageKey,messageParams});
+export interface HandoffRefusal{ok:false;code:HandoffRefusalCode;messageKey:string;messageParams:Record<string,string|number>;messageBn:string;messageEn:string}
+const refusal=(code:HandoffRefusalCode,messageKey:string,messageParams:Record<string,string|number>={}):HandoffRefusal=>({ok:false,code,messageKey,messageParams,...renderLeadPair(messageKey,messageParams)});
 
 /** The admission grade list is the intake schema's own: classes 4–12, nothing invented above or below. */
 export const HANDOFF_GRADES=['4','5','6','7','8','9','10','11','12'] as const;

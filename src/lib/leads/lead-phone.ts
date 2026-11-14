@@ -15,6 +15,7 @@
  * browser: never a route of this app, never a query parameter, never written to a log or an audit row.
  */
 import {asciiDigits} from '../admin/format';
+import {renderLeadPair} from './lead-message';
 import {normalizePhone} from '@/lib/center/phone';
 import {formatNumber} from '@/lib/admin/format';
 
@@ -48,7 +49,7 @@ export function parsePhoneCell(raw:unknown):PhoneCellResult{
     const digits=runs.join('');
     if(!digits){
       flags.push({original,code:'not_a_number',
-        messageKey:'phoneFlags.not_a_number',messageParams:{value:trimmed}});
+        messageKey:'phoneFlags.not_a_number',messageParams:{value:trimmed},...renderLeadPair('phoneFlags.not_a_number',{value:trimmed})});
       continue;
     }
     let consumed=0;
@@ -57,7 +58,7 @@ export function parsePhoneCell(raw:unknown):PhoneCellResult{
       consumed+=hit[0].length;
       if(!normalized){
         flags.push({original,code:'invalid',
-          messageKey:'phoneFlags.invalid',messageParams:{value:trimmed}});
+          messageKey:'phoneFlags.invalid',messageParams:{value:trimmed},...renderLeadPair('phoneFlags.invalid',{value:trimmed})});
         continue;
       }
       if(!phones.some(phone=>phone.normalized===normalized))phones.push({normalized,original});
@@ -103,7 +104,7 @@ export const PHONE_SEARCH_MAX_DIGITS=15;
 
 export type PhoneSearchRead=
   |{ok:true;digits:string;length:number;hadCountryCode:boolean;hadLeadingZero:boolean}
-  |{ok:false;code:'empty'|'not_a_number'|'too_short'|'too_long';messageKey:string;messageParams:Record<string,string|number>};
+  |{ok:false;code:'empty'|'not_a_number'|'too_short'|'too_long';messageKey:string;messageParams:Record<string,string|number>;messageBn:string;messageEn:string};
 
 /**
  * Is this text an attempt to type a NUMBER, rather than a name, a school or a lead id?
@@ -161,8 +162,8 @@ export const PHONE_ATTEMPT_MAX_LENGTH=40;
 
 export function phoneSearchDigits(raw:unknown):PhoneSearchRead{
   const written=String(raw==null?'':raw);
-  if(!written.trim())return {ok:false,code:'empty',messageKey:'phoneSearch.empty',messageParams:{}};
-  if(!isNumberAttempt(written))return {ok:false,code:'not_a_number',messageKey:'phoneSearch.not_a_number',messageParams:{count:written.trim().replace(/\s+/g,' ').length}};
+  if(!written.trim())return {ok:false,code:'empty',messageKey:'phoneSearch.empty',messageParams:{},...renderLeadPair('phoneSearch.empty',{})};
+  if(!isNumberAttempt(written))return {ok:false,code:'not_a_number',messageKey:'phoneSearch.not_a_number',messageParams:{count:written.trim().replace(/\s+/g,' ').length},...renderLeadPair('phoneSearch.not_a_number',{count:written.trim().replace(/\s+/g,' ').length})};
   const ascii=asciiDigits(written);
   let digits=ascii.replace(/\D/g,'');
   let hadCountryCode=false;
@@ -175,8 +176,8 @@ export function phoneSearchDigits(raw:unknown):PhoneSearchRead{
   // error boundary and, if anybody is careless, in a screenshot shared outside the admin.
   // Bangla digits in the Bangla sentence: Number() of a Bangla digit is NaN the other way round, and a message that
   // mixes 4 into Bangla prose reads like a placeholder somebody forgot to fill in.
-  if(digits.length<PHONE_SEARCH_MIN_DIGITS)return {ok:false,code:'too_short',messageKey:'phoneSearch.too_short',messageParams:{count:digits.length,min:PHONE_SEARCH_MIN_DIGITS}};
-  if(digits.length>PHONE_SEARCH_MAX_DIGITS)return {ok:false,code:'too_long',messageKey:'phoneSearch.too_long',messageParams:{count:digits.length,max:PHONE_SEARCH_MAX_DIGITS}};
+  if(digits.length<PHONE_SEARCH_MIN_DIGITS)return {ok:false,code:'too_short',messageKey:'phoneSearch.too_short',messageParams:{count:digits.length,min:PHONE_SEARCH_MIN_DIGITS},...renderLeadPair('phoneSearch.too_short',{count:digits.length,min:PHONE_SEARCH_MIN_DIGITS})};
+  if(digits.length>PHONE_SEARCH_MAX_DIGITS)return {ok:false,code:'too_long',messageKey:'phoneSearch.too_long',messageParams:{count:digits.length,max:PHONE_SEARCH_MAX_DIGITS},...renderLeadPair('phoneSearch.too_long',{count:digits.length,max:PHONE_SEARCH_MAX_DIGITS})};
   return {ok:true,digits,length:digits.length,hadCountryCode,hadLeadingZero};
 }
 

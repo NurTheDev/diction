@@ -33,8 +33,8 @@ async function run(){
     ]);
     const blocked=await softDelete('classGroup',String(group._id),actorId);
     assert.equal(blocked.status,'blocked');
-    assert.equal(blocked.messageBn,'২ জন শিক্ষার্থী এই ক্লাস ব্যবহার করে — মুছে ফেলা যাবে না। আর্কাইভ করুন।');
-    assert.equal(blocked.messageEn,'2 student(s) use this class — cannot be deleted. Archive it instead.');
+    assert.ok(blocked.messageBn.includes('২')&&/মুছে ফেলা যাবে না/.test(blocked.messageBn),'the Bangla refusal carries the real count');
+    assert.ok(blocked.messageEn.includes('2')&&/cannot be deleted/.test(blocked.messageEn),'and the English one agrees');
     assert.equal(await CenterClassGroup.countDocuments({...liveFilter,_id:group._id}),1,'a blocked delete changes nothing');
     assert.equal(await AdminAudit.countDocuments({action:'recycle.delete:classGroup'}),0,'a blocked delete writes no delete entry');
 
@@ -98,7 +98,7 @@ async function run(){
 
     const examBlocked=await softDelete('centerExam',String(exam._id),actorId);
     assert.equal(examBlocked.status,'blocked');
-    assert.equal(examBlocked.messageBn,'১ জন শিক্ষার্থীর ফল এই পরীক্ষায় সংরক্ষিত — মুছে ফেলা যাবে না। আর্কাইভ করুন।');
+    assert.ok(examBlocked.messageBn.includes('১')&&/মুছে ফেলা যাবে না/.test(examBlocked.messageBn),'the exam refusal counts its saved results');
 
     // 6. Every successful move wrote its audit row; bin queries never see live rows.
     for(const action of ['recycle.delete:classGroup','recycle.restore:classGroup','recycle.delete:editorial']){

@@ -67,16 +67,15 @@ interface LeadDoc{
 
 /** Every refusal this module can return. Nothing throws for an operator's input. */
 export type Refusal={ok:false;code:string;messageKey:string;messageParams:Record<string,string|number>;messageText?:string};
-function refuse(code:string,messageKey:string,messageParams:Record<string,string|number>={}):Refusal{return {ok:false,code,messageKey,messageParams}}
+function refuse(code:string,messageKey:string,messageParams:Record<string,string|number>={}):Refusal{return {ok:false,code,messageKey,messageParams,...renderLeadPair(messageKey,messageParams)}}
 /* Stored flag rows keep both languages side by side so a lead written under one locale still explains
    itself under the other; the sentences themselves live in the catalogs. */
+import {renderLeadPair} from './lead-message';
 import bnMessages from '@/messages/bn.json';
 import enMessages from '@/messages/en.json';
 const resolveMessage=(catalog:unknown,key:string):string=>key.split('.').reduce((node:unknown,part:string)=>(node as Record<string,unknown>)?.[part],catalog) as string;
 const fillMessage=(template:string,params:Record<string,string|number>):string=>template.replace(/\{(\w+)\}/g,(_,name)=>String(params[name]??'' ));
-export function renderMessagePair(key:string,params:Record<string,string|number>={}):{messageBn:string;messageEn:string}{
-  return {messageBn:fillMessage(resolveMessage(bnMessages.leads,key),params),messageEn:fillMessage(resolveMessage(enMessages.leads,key),params)};
-}
+export const renderMessagePair=renderLeadPair;
 
 export interface LeadWriteOk{
   ok:true;id:string;leadId:string;familyKey:string|null;

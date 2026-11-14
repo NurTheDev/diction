@@ -11,12 +11,12 @@ const fill=(template:string,params:Record<string,unknown>):string=>template.repl
 const tbn=(key:string,params?:Record<string,unknown>)=>fill(resolve(bnMessages.recycleBin,key),params||{});
 const ten=(key:string,params?:Record<string,unknown>)=>fill(resolve(enMessages.recycleBin,key),params||{});
 const students:ReferenceCount[]=[{count:14,messageKey:'recycleBin.kinds.k2'}];
-assert.equal(blockedMessage(students,'bn',tbn),`১৪ ${resolve(bnMessages.recycleBin,'kinds.k2')} — মুছে ফেলা যাবে না। আর্কাইভ করুন।`);
-assert.equal(blockedMessage(students,'en',ten),'14 '+resolve(enMessages.recycleBin,'kinds.k2')+' — cannot be deleted. Archive it instead.');
+assert.equal(blockedMessage(students,'bn'),`১৪ ${resolve(bnMessages.recycleBin,'kinds.k2')} — মুছে ফেলা যাবে না। আর্কাইভ করুন।`);
+assert.equal(blockedMessage(students,'en'),'14 '+resolve(enMessages.recycleBin,'kinds.k2')+' — cannot be deleted. Archive it instead.');
 
 // Several reasons are joined, and Bangla digits are used for Bangla.
 const two:ReferenceCount[]=[students[0],{count:3,messageKey:'recycleBin.kinds.k3'}];
-assert.equal(blockedMessage(two,'bn',tbn),`১৪ ${resolve(bnMessages.recycleBin,'kinds.k2')}; ৩ ${resolve(bnMessages.recycleBin,'kinds.k3')} — মুছে ফেলা যাবে না। আর্কাইভ করুন।`);
+assert.equal(blockedMessage(two,'bn'),`১৪ ${resolve(bnMessages.recycleBin,'kinds.k2')}; ৩ ${resolve(bnMessages.recycleBin,'kinds.k3')} — মুছে ফেলা যাবে না। আর্কাইভ করুন।`);
 
 // Retention is 30 days, computed from the moment of deletion.
 assert.equal(RECYCLE_RETENTION_DAYS,30);

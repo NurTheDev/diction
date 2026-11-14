@@ -12,6 +12,8 @@
  */
 import type {Model, Types} from 'mongoose';
 import {formatNumber,type Digits} from './format';
+import bnMessages from '@/messages/bn.json';
+import enMessages from '@/messages/en.json';
 import {Editorial} from '@/models/Editorial';
 import {Lead} from '@/models/Lead';
 import {Course} from '@/models/Course';
@@ -181,23 +183,36 @@ export function kindDef(kind:RecycleKind):RecycleKindDef{
   return def;
 }
 
-/** "১৪ জন শিক্ষার্থী এই ক্লাস ব্যবহার করে — মুছে ফেলা যাবে না। আর্কাইভ করুন।" */
-export function blockedMessage(refs:ReferenceCount[],digits:Digits,t:(key:string,params?:Record<string,unknown>)=>string):string{
-  const parts=refs.map(ref=>`${formatNumber(ref.count,digits)} ${t(ref.messageKey.replace('recycleBin.',''))}`).join('; ');
-  return t('blocked',{parts});
+/** One recycleBin sentence in either language, straight from the catalogs. */
+function recycleText(language:'bn'|'en',key:string,params:Record<string,unknown>={}):string{
+  const catalog=(language==='bn'?bnMessages.recycleBin:enMessages.recycleBin) as unknown as Record<string,string>;
+  const template=String(key.split('.').reduce<unknown>((node,part)=>((node||{}) as Record<string,unknown>)[part],catalog)??key);
+  return template.replace(/\{(\w+)\}/g,(whole,name)=>(name in params?String(params[name]):whole));
+}
+
+/** The blocked-delete sentence, in one language, with the counts in that language's digits. */
+export function blockedMessage(refs:ReferenceCount[],language:'bn'|'en'='bn'):string{
+  const digits:Digits=language==='bn'?'bn':'en';
+  const parts=refs.map(ref=>`${formatNumber(ref.count,digits)} ${recycleText(language,ref.messageKey.replace('recycleBin.',''))}`).join('; ');
+  return recycleText(language,'blocked',{parts});
+}
+
+/** Both languages at once: a caller that stores or forwards the refusal keeps the pair. */
+export function blockedMessagePair(refs:ReferenceCount[]):{messageBn:string;messageEn:string}{
+  return {messageBn:blockedMessage(refs,'bn'),messageEn:blockedMessage(refs,'en')};
 }
 
 export type SoftDeleteResult=
   |{status:'ok';purgeAt:Date;name:string}
-  |{status:'blocked';refs:ReferenceCount[];message:string}
+  |{status:'blocked';refs:ReferenceCount[];message:string;messageBn:string;messageEn:string}
   |{status:'missing'};
 
 /** Moves a live record into the bin for RECYCLE_RETENTION_DAYS. Refuses, with counts, when referenced. */
-export async function softDelete(kind:RecycleKind,id:string,actor:string,now:Date=new Date(),digits:Digits='bn',t:(key:string,params?:Record<string,unknown>)=>string=(k)=>k):Promise<SoftDeleteResult>{
+export async function softDelete(kind:RecycleKind,id:string,actor:string,now:Date=new Date(),language:'bn'|'en'='bn'):Promise<SoftDeleteResult>{
   const def=kindDef(kind);
   const refs=def.references?await def.references(id):[];
   const blocking=refs.filter(ref=>ref.count>0);
-  if(blocking.length)return {status:'blocked',refs:blocking,message:blockedMessage(blocking,digits,t)};
+  if(blocking.length)return {status:'blocked',refs:blocking,message:blockedMessage(blocking,language),...blockedMessagePair(blocking)};
   const purgeAt=purgeAtFor(now);
   const doc=await def.model().findById(id).lean<AnyDoc>();
   const updated=await def.model().updateOne({_id:id,...liveFilter},{$set:{deletedAt:now,deletedBy:actor,purgeAt}});
