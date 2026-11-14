@@ -191,11 +191,14 @@ assert.deepEqual(banglaInEn,[...ALLOWED_IN_EN].sort(),'English values carry Bang
    · a group no client component reads is server-only, and `src/i18n/client-namespaces.ts` says so —
      if a `'use client'` file starts reading one of those groups, the layouts would have to ship it
      and the list is wrong, so fail here instead of painting a raw key in production;
-   · nothing that IS shipped may name an environment variable. `aiSetup` is the deployment checklist
-     and names four variables; it stays on the server. `aiTest.forbidden` and `sms.problems.disabled`
-     used to name one each and reached every admin page (R2.7) — they now say what is wrong and point
-     at the screen that shows the knob. The badge on the SMS page and the AI setup page still name
-     their variables, server-rendered, on the screens that are about them. */
+   · a shipped value names a variable only if the variable is a setting the operator flips. Two kinds
+     of name, two rules: a SECRET is never named in interface text at all — the credential check in
+     tests/sms-dialog-browser.integration.ts has always said so — while a setting IS named on purpose,
+     because the message is the only place the operator learns which knob is off. That is an owner
+     decision, and tests/sms-auto-problem.integration.ts:247 requires `sms.problems.disabled` to say
+     CENTER_SMS_WRITE_ENABLED. A group no client component reads may name whatever it likes: it is
+     rendered only on the page that is about it, which is why `aiSetup` staying server-side is what
+     keeps GEMINI_API_KEY out of the HTML of every unrelated admin page. */
 const shipped=(namespace:string):boolean=>!SERVER_ONLY_NAMESPACES.includes(namespace as typeof SERVER_ONLY_NAMESPACES[number]);
 const readByClient=new Set<string>();
 const notFiltered:string[]=[];
@@ -209,16 +212,26 @@ for(const file of sourceFiles('src')){
 }
 assert.deepEqual([...readByClient].filter(ns=>!shipped(ns)).sort(),[],'no client component reads a group the layouts keep on the server');
 assert.deepEqual(notFiltered.sort(),[],'every layout that ships messages to the client filters them first');
-const ENV_NAME=/\b[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+\b/;
-const namedVariables:string[]=[];
+const SECRETS=['BULKSMSBD_API_KEY','GEMINI_API_KEY','AI_API_KEY','NEXTAUTH_SECRET','MONGODB_URI'];
+const NAMED_SETTINGS:Record<string,string>={
+  'sms.problems.disabled':'CENTER_SMS_WRITE_ENABLED is the gate the operator opens, and the problem message is where they learn which knob is off',
+  'aiTest.forbidden':'NEXTAUTH_URL is the address of the site itself, which the operator sets — not a secret',
+};
+const ENV_NAME=/\b[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+\b/g;
+const leakedSecrets:string[]=[],unnamedSettings:string[]=[],rotten:string[]=[];
 for(const [loc,catalog] of [['bn',bnMessages],['en',enMessages]] as const){
   for(const key of leaves(catalog as Catalog)){
-    if(!shipped(key.split('.')[0]))continue;
-    const hit=ENV_NAME.exec(String(walk(catalog as Catalog,key)));
-    if(hit)namedVariables.push(`${loc} ${key} names ${hit[0]}`);
+    const hits=[...String(walk(catalog as Catalog,key)).matchAll(ENV_NAME)].map(match=>match[0]);
+    if(shipped(key.split('.')[0]))for(const hit of hits){
+      if(SECRETS.includes(hit))leakedSecrets.push(`${loc} ${key} names the secret ${hit}`);
+      else if(!(key in NAMED_SETTINGS))unnamedSettings.push(`${loc} ${key} names ${hit}, which no entry allows`);
+    }
+    if(key in NAMED_SETTINGS&&!hits.length)rotten.push(`${loc} ${key} names no variable any more`);
   }
 }
-assert.deepEqual(namedVariables.sort(),[],'no value the browser receives names an environment variable');
-console.log(`Browser exposure: ${readByClient.size} groups are read by client components, ${SERVER_ONLY_NAMESPACES.length} stay on the server, and no shipped value names a variable.`);
+assert.deepEqual(leakedSecrets.sort(),[],'no value the browser receives names a secret');
+assert.deepEqual(unnamedSettings.sort(),[],'a shipped value names a setting only where the reason is written down');
+assert.deepEqual([...new Set(rotten)].sort(),[],'every allowed name is still in the value it was allowed for');
+console.log(`Browser exposure: ${readByClient.size} groups are read by client components, ${SERVER_ONLY_NAMESPACES.length} stay on the server, ${Object.keys(NAMED_SETTINGS).length} shipped values name an operator setting and none names a secret.`);
 
-console.log('A.7 · the catalogs are whole: parity both ways, no mis-nested keys, no leftover templates, every key src/ asks for resolves in both languages, and Bangla inside an English value only where a language names itself.');
+console.log('A.7 · the catalogs are whole: parity both ways, no mis-nested keys, no leftover templates, every key src/ asks for resolves in both languages, and Bangla inside an English value only where a language names itself, and the browser receives no secret and no group only a server reads.');

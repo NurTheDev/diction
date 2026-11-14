@@ -8,9 +8,16 @@
  * action, the payment success screen and the SMS page — that a second click sends no second request,
  * that the figures on screen are the figures in the database, and that staff get none of it.
  */
-/* Names of deployment variables. None of them may appear in served HTML: the flight payload is part
-   of the page, so a catalog value naming one puts it in front of every reader of every admin page. */
-const ENV_NAMES=['GEMINI_API_KEY','AI_MODEL','AI_STUDY_BUDDY_ENABLED','DATA_COLLECTION_ENABLED','NEXTAUTH_URL'];
+/* Names that must never appear in served HTML — the flight payload is part of the page, so a catalog
+   value naming one puts it in front of every reader of every admin page. The first four are the
+   deployment checklist (`aiSetup`), which no client component reads and which the admin layout now
+   keeps on the server; the rest are the older rule, that a credential is never named in interface
+   text at all. Two names are deliberately absent: CENTER_SMS_WRITE_ENABLED and NEXTAUTH_URL are
+   settings the operator flips, and the message reporting them is the only place the operator learns
+   which knob is off — tests/sms-auto-problem.integration.ts:247 requires the gate to be named, and
+   the SMS page paints that badge itself, on the one screen that is about the gate. */
+const SERVER_ONLY_NAMES=['GEMINI_API_KEY','AI_MODEL','AI_STUDY_BUDDY_ENABLED','DATA_COLLECTION_ENABLED'];
+const SECRET_NAMES=['BULKSMSBD_API_KEY','NEXTAUTH_SECRET','MONGODB_URI','sk-dialog','api_key='];
 import {MongoMemoryReplSet} from 'mongodb-memory-server';
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
@@ -355,20 +362,17 @@ async function run(){
     await narrow.context.close();
 
     const html=await page.content();
-    for(const needle of [...ENV_NAMES,'BULKSMSBD_API_KEY','sk-dialog','api_key='])assert.ok(!html.includes(needle),`the served HTML never mentions ${needle}`);
+    for(const needle of [...SERVER_ONLY_NAMES,...SECRET_NAMES])assert.ok(!html.includes(needle),`the served HTML never mentions ${needle}`);
 
     const worker=await signIn('staff');
     await worker.page.goto(`${origin}/bn/admin/students/dues?class=${group._id}`,{waitUntil:'domcontentloaded',timeout:180000});
     assert.equal(await worker.page.locator('[data-sms-open]').count(),0,'staff get no send button');
-    /* The other half of R2.7: the admin layout used to hand the WHOLE catalog to the browser, so the
-       deployment checklist (`aiSetup`, which names four variables) sat in the flight payload of every
-       admin page. It now ships only the groups a client component can read, and no shipped value names
-       a variable — checked statically in tests/i18n-catalog.test.ts, and here on a page that has
-       nothing to do with the AI screen or with SMS sending. CENTER_SMS_WRITE_ENABLED is in this list
-       and not in the one above because the SMS page paints that badge on purpose, server-rendered, on
-       the one screen that is about the gate. */
+    /* The other half of R2.7, on a page that has nothing to do with the AI screen or with sending: the
+       admin layout used to hand the WHOLE catalog to the browser, so the deployment checklist sat in
+       the payload of every admin page. It now ships only the groups a client component can read, and
+       the values it does ship name no secret — both checked statically in tests/i18n-catalog.test.ts. */
     const duesHtml=await worker.page.content();
-    for(const needle of [...ENV_NAMES,'CENTER_SMS_WRITE_ENABLED'])assert.ok(!duesHtml.includes(needle),`a staff member’s due list never mentions ${needle}`);
+    for(const needle of [...SERVER_ONLY_NAMES,...SECRET_NAMES])assert.ok(!duesHtml.includes(needle),`a staff member’s due list never mentions ${needle}`);
     await worker.page.goto(`${origin}/bn/admin/sms`,{waitUntil:'domcontentloaded',timeout:180000});
     assert.equal(await worker.page.locator('[data-sms-open]').count(),0,'and no new-message control on the SMS page');
     await worker.context.close();

@@ -65,10 +65,10 @@ export async function saveSmsSettings(_:ActionState,form:FormData):Promise<Actio
     if(!parsed.success)return {status:'error',reason:'invalid'};
     // An unparsable clock would silently disable quiet hours, so refuse it instead of saving it.
     if(parseClock(parsed.data.quietStart)===null||parseClock(parsed.data.quietEnd)===null){
-      return {status:'error',reason:'invalid',message:(await getTranslations('sms'))('actionErrors.enterTimeHh')};
+      return {status:'error',reason:'invalid',message:(await getTranslations('sms'))('actionErrors.timeFormat')};
     }
     const phone=parsed.data.institutePhone.trim();
-    if(phone&&!normalizePhone(phone))return {status:'error',reason:'invalid',message:(await getTranslations('sms'))('actionErrors.instituteNumberValid')};
+    if(phone&&!normalizePhone(phone))return {status:'error',reason:'invalid',message:(await getTranslations('sms'))('actionErrors.instituteNumberInvalid')};
     await CenterSettings.updateOne(
       {key:'main'},
       {$set:{
@@ -99,7 +99,7 @@ export async function sendTestSmsAction(_:ActionState,form:FormData):Promise<Act
     const admin=await requireAdmin();
     const raw=String(form.get('phone')||'').trim();
     const phone=normalizePhone(raw);
-    if(!phone)return {status:'error',reason:'invalid',message:(await getTranslations('sms'))('actionErrors.numberValidXxxxxxxxx')};
+    if(!phone)return {status:'error',reason:'invalid',message:(await getTranslations('sms'))('actionErrors.mobileNumberInvalid')};
     const result=await sendTestSms(phone,admin.id);
     refreshSms();
     const en=await localeIsEn();
@@ -118,7 +118,7 @@ export async function retrySmsBatch(_:ActionState,form:FormData):Promise<ActionS
     if(!parsed.success)return {status:'error',reason:'invalid'};
     const result=await retryFailedSms(parsed.data,admin.id);
     refreshSms();
-    if(!result.retried)return {status:'error',reason:'invalid',message:(await getTranslations('sms'))('actionErrors.failedMessagesRetry')};
+    if(!result.retried)return {status:'error',reason:'invalid',message:(await getTranslations('sms'))('actionErrors.nothingToRetry')};
     return {status:'ok',message:`${result.sent}/${result.retried}`};
   }catch{return {status:'error',reason:'unavailable'}}
 }
@@ -138,8 +138,8 @@ export async function saveSmsTemplate(_:ActionState,form:FormData):Promise<Actio
     const admin=await requireAdmin();
     const parsed=templateSchema.safeParse({key:form.get('key'),name:form.get('name'),body:form.get('body')});
     if(!parsed.success)return {status:'error',reason:'invalid'};
-    if(parsed.data.key==='custom')return {status:'error',reason:'invalid',message:(await getTranslations('sms'))('actionErrors.freeTextStored')};
-    if(!parsed.data.body)return {status:'error',reason:'invalid',message:(await getTranslations('sms'))('actionErrors.messageBodyCannot')};
+    if(parsed.data.key==='custom')return {status:'error',reason:'invalid',message:(await getTranslations('sms'))('actionErrors.freeTextNotStored')};
+    if(!parsed.data.body)return {status:'error',reason:'invalid',message:(await getTranslations('sms'))('actionErrors.emptyBody')};
     const variables=[...new Set([...parsed.data.body.matchAll(/\{(\w+)\}/g)].map(match=>match[1]))];
     await CenterSmsTemplate.updateOne(
       {key:parsed.data.key},

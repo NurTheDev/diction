@@ -18,7 +18,7 @@ function Feedback({state,bn}:{state:ActionState;bn:boolean}){
   const ts=useTranslations('sms');
   if(state.status==='idle')return null;
   const ok=state.status==='ok';
-  const text=state.message||(ok?(ts('panel.saved')):(ts('panel.didWorkPlease')));
+  const text=state.message||(ok?(ts('panel.saved')):(ts('panel.failedTryAgain')));
   return <p className={`admin-feedback ${ok?'ok':'error'}`} role="status" aria-live="polite">{text}</p>;
 }
 
@@ -43,17 +43,17 @@ export function SmsSettingsForm({locale,settings,providerName,balanceOk,balance}
       <label>{ts('panel.institutePhone')}
         <input name="institutePhone" type="tel" maxLength={20} defaultValue={settings.institutePhone} placeholder="01XXXXXXXXX"/>
       </label>
-      <label>{ts('panel.dayMonthDue')}
+      <label>{ts('panel.dueReminderDay')}
         <input name="autoDueDay" type="number" min="1" max="31" required defaultValue={settings.autoDueDay}/>
       </label>
       <fieldset className="admin-fieldset">
         <legend>{ts('panel.autoSend')}</legend>
-        <label className="admin-check"><input name="autoReceipt" type="checkbox" defaultChecked={settings.autoReceipt}/>{ts('panel.receiptPayment')}</label>
-        <label className="admin-check"><input name="autoResult" type="checkbox" defaultChecked={settings.autoResult}/>{ts('panel.resultsPublished')}</label>
-        <label className="admin-check"><input name="autoDue" type="checkbox" defaultChecked={settings.autoDue}/>{ts('panel.dueReminderChosen')}</label>
-        <small>{ts('panel.theseShipOff')}</small>
+        <label className="admin-check"><input name="autoReceipt" type="checkbox" defaultChecked={settings.autoReceipt}/>{ts('panel.autoReceipt')}</label>
+        <label className="admin-check"><input name="autoResult" type="checkbox" defaultChecked={settings.autoResult}/>{ts('panel.autoResult')}</label>
+        <label className="admin-check"><input name="autoDue" type="checkbox" defaultChecked={settings.autoDue}/>{ts('panel.autoDue')}</label>
+        <small>{ts('panel.autoSendWarning')}</small>
       </fieldset>
-      <p className="admin-help">{ts('panel.providerBalance',{provider:providerName,balance:String(balanceOk&&balance!==null?balance:ts('panel.unreadable'))})}</p>
+      <p className="admin-help">{ts('panel.providerBalance',{provider:providerName,balance:String(balanceOk&&balance!==null?balance:ts('panel.balanceUnreadable'))})}</p>
       <button className="button button-navy" disabled={pending}>{pending?(ts('panel.saving')):(ts('panel.saveSettings'))}</button>
       <Feedback state={state} bn={bn}/>
     </form>
@@ -72,7 +72,7 @@ export function SmsTestForm({locale,ownPhone}:{locale:string;ownPhone:string}){
       <button className="button button-navy" disabled={pending}>{pending?(ts('panel.sending')):(ts('panel.sendTest'))}</button>
       <Feedback state={state} bn={bn}/>
     </form>
-    <p className="admin-help">{ts('panel.sendOnlyOwn')}</p>
+    <p className="admin-help">{ts('panel.testHint')}</p>
   </div></section>;
 }
 
@@ -82,7 +82,7 @@ export function SmsRetryButton({locale,batchId,failed}:{locale:string;batchId:st
   const [state,action,pending]=useActionState(retrySmsBatch,{status:'idle'} as ActionState);
   return <form action={action} className="admin-inline">
     <input type="hidden" name="batchId" value={batchId}/>
-    <button className="admin-mini-button" disabled={pending} title={ts('panel.previousOutcomeUnknown')}>
+    <button className="admin-mini-button" disabled={pending} title={ts('panel.retryDuplicateWarning')}>
       {pending?(ts('panel.sending')):ts('panel.retryCount',{count:formatNumber(failed,bn?'bn':'en')})}
     </button>
     {state.status!=='idle'&&<span className={`admin-feedback ${state.status==='ok'?'ok':'error'}`}>{state.message||(state.status==='ok'?'✓':'✗')}</span>}
@@ -95,17 +95,17 @@ export function SmsTemplateEditor({locale,template}:{locale:string;template:SmsT
   const [state,action,pending]=useActionState(saveSmsTemplate,{status:'idle'} as ActionState);
   if(template.key==='custom'){
     return <article className="admin-template"><h3>{template.name}</h3>
-      <p className="admin-help">{ts('panel.freeTextTyped')}</p></article>;
+      <p className="admin-help">{ts('panel.freeTextNote')}</p></article>;
   }
   return <article className="admin-template">
-    <h3>{template.name} {template.edited&&<span className="admin-badge">{ts('panel.edited')}</span>}</h3>
+    <h3>{template.name} {template.edited&&<span className="admin-badge">{ts('panel.templateEdited')}</span>}</h3>
     <form action={action}>
       <input type="hidden" name="key" value={template.key}/>
-      <label>{ts('panel.name')}<input name="name" maxLength={120} required defaultValue={template.name}/></label>
+      <label>{ts('panel.templateName')}<input name="name" maxLength={120} required defaultValue={template.name}/></label>
       <label>{ts('panel.messageBangla')}<textarea name="body" maxLength={2000} rows={3} required defaultValue={template.body}/></label>
-      <label className="admin-check"><input name="active" type="checkbox" defaultChecked={template.active}/>{ts('panel.active')}</label>
-      {template.variables.length>0&&<small>{ts('panel.chips')}: <code>{template.variables.map(v=>`{${v}}`).join(' ')}</code></small>}
-      {template.feeRelated&&<small>{ts('panel.feeRelatedHeld')}</small>}
+      <label className="admin-check"><input name="active" type="checkbox" defaultChecked={template.active}/>{ts('panel.templateActive')}</label>
+      {template.variables.length>0&&<small>{ts('panel.templateChips')}: <code>{template.variables.map(v=>`{${v}}`).join(' ')}</code></small>}
+      {template.feeRelated&&<small>{ts('panel.feeRelatedNote')}</small>}
       <button className="admin-mini-button" disabled={pending}>{pending?(ts('panel.saving')):(ts('panel.saveTemplate'))}</button>
       <Feedback state={state} bn={bn}/>
     </form>
@@ -125,7 +125,7 @@ export function SmsProblemRetry({locale,problemId,attempts}:{locale:string;probl
   return <form action={action} className="admin-inline">
     <input type="hidden" name="problemId" value={problemId}/>
     <button className="admin-mini-button" disabled={pending}
-      title={ts('panel.retryingSendsAgain')}>
+      title={ts('panel.retryCostsWarning')}>
       {pending?(ts('panel.sending')):(attempts>1?(ts('panel.tryAgain')):(ts('panel.retry')))}
     </button>
     {state.status!=='idle'&&<span className={`admin-feedback ${state.status==='ok'?'ok':'error'}`}>{state.message||(state.status==='ok'?'✓':'✗')}</span>}
