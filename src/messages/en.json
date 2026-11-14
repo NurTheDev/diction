@@ -3076,5 +3076,92 @@
       "saved": "Identity link saved.",
       "notSavedPrefix": "Link not saved: "
     }
+  },
+  "sheets": {
+    "msg": {
+      "draftSaved": "Draft saved. Select Publish below to make it public.",
+      "tooLarge": "The PDF must be at most 4 MB.",
+      "invalid": "Enter a Bangla title and a valid PDF of at most 4 MB.",
+      "saveFailed": "Could not save. Check your connection and try again.",
+      "changeSaved": "Change saved.",
+      "changeFailed": "Could not save the change. Please retry.",
+      "pleaseWait": "Please wait…"
+    },
+    "confirm": {
+      "withdraw": "Withdraw this sheet? Downloaded copies cannot be recalled.",
+      "publish": "Publish for everyone? Confirm it contains no private information."
+    },
+    "sheet": {
+      "title": "Public lecture sheets",
+      "steps": "1. Enter details and PDF  2. Save draft  3. Publish from the list below.",
+      "warning": "Warning: once published anyone can view and download the file without login.",
+      "warningNote": "Do not upload student or private information. Downloaded or cached copies cannot be recalled. This is separate from private batch materials. Use only trusted, security-checked PDFs; there is no automatic malware scan.",
+      "savedHeading": "Saved sheets",
+      "none": "No drafts yet.",
+      "publishedState": "Published — public",
+      "draftState": "Draft — private",
+      "openPdf": "Open PDF",
+      "viewPublic": "View public page",
+      "withdraw": "Withdraw",
+      "publish": "Publish",
+      "previewSummary": "PDF preview"
+    },
+    "form": {
+      "newDraft": "New draft",
+      "titleBn": "Bangla title (required)",
+      "subject": "Subject",
+      "className": "Class",
+      "descriptionBn": "Bangla description",
+      "enDetails": "English details (optional)",
+      "file": "PDF file (up to 4 MB)",
+      "saveDraft": "Save draft"
+    },
+    "loadError": "Could not load the information. Refresh the page."
+  },
+  "practice": {
+    "msg": {
+      "csvTooLarge": "CSV must be at most 256 KB.",
+      "csvLoaded": "CSV loaded. Verify the answer key before saving.",
+      "csvFailed": "Could not read CSV. Check headers, four options and correct 1–4.",
+      "incomplete": "Complete the title, subject, each question and four options.",
+      "draftSaved": "Draft saved. Publish it below.",
+      "saveFailed": "Could not save. Check your connection and try again.",
+      "changeSaved": "Change saved.",
+      "changeFailed": "Change failed."
+    },
+    "confirm": {
+      "withdraw": "Withdraw this test?",
+      "publish": "Have you verified the answer key? Everyone can take this test after publication."
+    },
+    "practice": {
+      "title": "Public practice tests",
+      "notice": "Enter Unicode questions or import UTF-8 CSV. Guests can take published tests. Verify every answer before publishing.",
+      "csvFormat": "CSV file format",
+      "csvRules": "Save from Excel as CSV UTF-8. Use the exact header below; correct is the option number 1, 2, 3 or 4. Maximum 30 questions.",
+      "csvTemplate": "Download blank CSV template",
+      "csvQuote": "Quote cells containing commas or newlines. Importing replaces the questions currently in the form.",
+      "savedHeading": "Saved tests",
+      "viewTest": "View test",
+      "withdraw": "Withdraw",
+      "publish": "Publish"
+    },
+    "form": {
+      "title": "Test title",
+      "subject": "Subject",
+      "grade": "Class (optional)",
+      "importCsv": "Import CSV file (optional)",
+      "question": "Question",
+      "option": "Option",
+      "correct": "Correct option",
+      "explanation": "Explanation (optional)",
+      "removeQuestion": "Remove question",
+      "addQuestion": "Add question",
+      "saveDraft": "Save draft"
+    },
+    "state": {
+      "published": "Published",
+      "draft": "Draft"
+    },
+    "loadError": "Could not load tests."
   }
 }

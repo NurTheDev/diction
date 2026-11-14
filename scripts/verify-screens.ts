@@ -45,6 +45,8 @@ export function screenPlan(_milestone:string):ScreenTarget[]{
     {path:'/en/admin/center-exams',label:'center-exams-en'},
     {path:'/en/admin/students/classes',label:'classes-en'},
     {path:'/en/admin/students/legacy-review',label:'legacy-review-en'},
+    {path:'/en/admin/public-sheets',label:'public-sheets-en'},
+    {path:'/en/admin/practice-tests',label:'practice-tests-en'},
   ];
 }
 
