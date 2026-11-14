@@ -1,11 +1,12 @@
 --- tests/sms-send.integration.ts (exit 1) ---
-AssertionError [ERR_ASSERTION]: the operator reads a Bangla reason
-    at run (/home/runner/work/diction/diction/tests/sms-send.integration.ts:110:12)
-    at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {
-  generatedMessage: false,
-  code: 'ERR_ASSERTION',
-  actual: undefined,
-  expected: true,
-  operator: '==',
-  diff: 'simple'
-}
+Error: Couldn't find next-intl config file. Please follow the instructions at https://next-intl.dev/docs/getting-started/app-router
+    at t (/home/runner/work/diction/diction/node_modules/next-intl/dist/esm/production/config.js:1:20)
+    at <anonymous> (/home/runner/work/diction/diction/node_modules/next-intl/dist/esm/production/server/react-server/getConfig.js:1:379)
+    at /home/runner/work/diction/diction/node_modules/react/cjs/react.react-server.development.js:602:36
+    at <anonymous> (/home/runner/work/diction/diction/node_modules/next-intl/dist/esm/production/server/react-server/getConfig.js:1:680)
+    at /home/runner/work/diction/diction/node_modules/react/cjs/react.react-server.development.js:602:36
+    at <anonymous> (/home/runner/work/diction/diction/node_modules/next-intl/dist/esm/production/server/react-server/getTranslations.js:1:203)
+    at /home/runner/work/diction/diction/node_modules/react/cjs/react.react-server.development.js:602:36
+    at sendTestSms (/home/runner/work/diction/diction/src/lib/center/sms-send.ts:484:40)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async run (/home/runner/work/diction/diction/tests/sms-send.integration.ts:282:22)

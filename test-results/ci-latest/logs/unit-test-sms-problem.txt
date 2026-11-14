@@ -1,4 +1,2 @@
---- tests/sms-auto-problem.integration.ts (exit 1) ---
-TypeError: Cannot read properties of undefined (reading 'auto_receipt')
-    at run (/home/runner/work/diction/diction/tests/sms-auto-problem.integration.ts:154:65)
-    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+--- tests/sms-auto-problem.integration.ts (exit 0) ---
+Automatic SMS problems: a toggle that is off records nothing; a payment is saved first and a refused receipt message neither throws at its caller nor touches it; the failure is stored with its trigger, its receipt, the provider’s own Bangla meaning for code 1007 and the context to run again, and the card reports one open problem in plain Bangla with no credential and no stack trace; the same failure again folds into one row that counts attempts; Retry on a refused batch re-sends only the failed rows, resolves the row against the admin who clicked and audits it, and refuses to retry a closed problem; Retry with no batch at all runs the whole send again under a fresh request id; a class nobody is in and a reminder queued for quiet hours are not problems; and every trigger has its own words, with a credential redacted before it can reach the operator.

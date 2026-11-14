@@ -1,11 +1,17 @@
 --- tests/lead-model.integration.ts (exit 1) ---
 AssertionError [ERR_ASSERTION]: in words the owner can act on
++ actual - expected
+
++ 'recycleBin.kinds.k11'
+- 'recycleBin.kinds.k1'
+                      ^
+
     at run (/home/runner/work/diction/diction/tests/lead-model.integration.ts:202:12)
     at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {
   generatedMessage: false,
   code: 'ERR_ASSERTION',
-  actual: undefined,
-  expected: /রূপান্তরিত/,
-  operator: 'match',
+  actual: 'recycleBin.kinds.k11',
+  expected: 'recycleBin.kinds.k1',
+  operator: 'strictEqual',
   diff: 'simple'
 }

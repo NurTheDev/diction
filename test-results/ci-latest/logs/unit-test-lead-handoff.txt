@@ -4,7 +4,7 @@ Lead hand-offs: the three hand-offs land on admitted, trial_booked and not_inter
 
 --- tests/lead-handoff.integration.ts (exit 1) ---
 lead write failed { code: null, fields: [] }
-AssertionError [ERR_ASSERTION]: a live lead converts: {"ok":false,"code":"WRITE_FAILED","messageKey":"errors.WRITE_FAILED","messageParams":{}}
+AssertionError [ERR_ASSERTION]: a live lead converts: {"ok":false,"code":"WRITE_FAILED","messageKey":"errors.WRITE_FAILED","messageParams":{},"messageBn":"লিডটি সংরক্ষণ করা যায়নি। আবার চেষ্টা করুন।","messageEn":"The lead could not be saved. Please try again."}
 
 false !== true
 
