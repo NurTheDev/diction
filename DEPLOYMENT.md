@@ -1,5 +1,10 @@
 # Deployment and operations guide
 
+> **Deploying to staging?** Start with [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) — the step-by-step
+> staging checkpoint (Atlas M0, environment template, Vercel region and cron, BulkSMSBD without IP
+> whitelisting, the locale/middleware check and the ten-line phone smoke checklist). This file is the
+> broader operations and security posture around it.
+
 > **Status:** This is an in-progress system, not a production-ready release. Do not collect real student or guardian information until the privacy, authorization, security and integration gaps in the README have been addressed and independently reviewed. Phases 2–6 are not complete merely because deployment scaffolding exists.
 
 ## 1. Prepare MongoDB Atlas
@@ -25,7 +30,7 @@ Set `DATA_COLLECTION_ENABLED=false` until legal, security and operational review
 
 Optional integrations:
 
-- Resend: `RESEND_API_KEY`, `RESEND_FROM_EMAIL` (a verified sender) and `ADMIN_NOTIFICATION_EMAIL`. Email is best-effort, not queued or guaranteed. SMS is not implemented.
+- Resend: `RESEND_API_KEY`, `RESEND_FROM_EMAIL` (a verified sender) and `ADMIN_NOTIFICATION_EMAIL`. Email is best-effort, not queued or guaranteed. SMS is implemented (R2, BulkSMSBD) and ships behind `SMS_PROVIDER=mock` with `CENTER_SMS_WRITE_ENABLED=false`; see `docs/DEPLOYMENT.md` §5 and `docs/SMS-GOLD-LIVE.md`.
 - AI Study Buddy: `AI_API_KEY`, `AI_API_BASE_URL` (HTTPS OpenAI-compatible API base such as a provider's `/v1` endpoint) and `AI_MODEL`. Review the selected provider's policy, minor/guardian consent, moderation, retention, cost controls and terms before enabling. No image upload or moderation system is implemented.
 - Cloudinary requires its cloud name, API key and API secret for the media library; verify uploads and deletions before use. Google login and online payment processing remain unimplemented.
 

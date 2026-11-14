@@ -60,9 +60,9 @@ A bilingual Next.js App Router foundation for Diction Coaching Center. The publi
 
 ## Atlas and Vercel
 
-Create a MongoDB Atlas cluster and a **least-privilege database user with readWrite on the dictioncoaching database only**. Configure Atlas Network Access to permit your Vercel deployment's outbound connections; Vercel deployments generally do not have fixed outbound IP addresses unless you arrange static egress. Assess the risks before using `0.0.0.0/0` and use strong credentials. URL-encode special characters in the database password in the connection URI. The connection helper explicitly selects `dictioncoaching` and caches connections.
+**[`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) is the staging deployment guide**: free Atlas M0 cluster in Singapore or Mumbai, a **least-privilege database user with readWrite on `dictioncoaching` only**, Network Access at `0.0.0.0/0` (Vercel has no fixed egress IP), the complete environment-variable template with every value described, the Vercel project and region settings, the two cron jobs in `vercel.json` with `CRON_SECRET` in the bearer header, why IP whitelisting must be **off** at BulkSMSBD, the proof that `/api/*` and the cron routes are excluded from locale redirects by `src/proxy.ts`, and a **ten-line smoke checklist you can run from a phone** after every deploy.
 
-In Vercel, import the repository, set the environment variables in project settings for each environment, and deploy. Set `NEXTAUTH_URL` and `AUTH_URL` to the deployment origin and use an independent secret per environment. Cloudinary is optional and Google login is not implemented; Resend and an OpenAI-compatible AI provider are optional integrations that require configuration and testing. Never commit `.env.local`.
+The short version: create the Atlas cluster and its database user, copy `.env.example` to `.env.local`, set `NEXTAUTH_URL` and `AUTH_URL` to the exact deployment origin with an independent secret per environment, deploy, seed from an authorized machine, then work through `docs/DEPLOYMENT.md` §8 and §9. Cloudinary is optional and Google login is not implemented; Resend and an OpenAI-compatible AI provider are optional integrations that require configuration and testing. Never commit `.env.local`.
 
 ## Phase 1 scope and boundaries
 

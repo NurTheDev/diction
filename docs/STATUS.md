@@ -642,3 +642,28 @@ allowance `tests/i18n-routes.test.ts` carried for `src/actions/recovery.ts` is g
 ternary left there picks a catalog locale (`bn`/`en`), which the gate already treats as a code rather
 than a painted word. The gate counts stand at 0 hardcoded language pairs and 0 Bangla lines in route
 files, with 2458 distinct keys used at 3313 call sites, all present in both catalogs.
+
+---
+
+## Staging deployment checkpoint written down (step 4, 2026-11-14)
+
+`docs/DEPLOYMENT.md` is the operator's script for putting this build on a real staging site: a free
+Atlas M0 cluster in Singapore or Mumbai with a `readWrite`-on-`dictioncoaching`-only user and
+`0.0.0.0/0` network access (Vercel has no fixed egress IP), the complete environment template with
+every value described in `.env.example`, the Vercel project settings including function-region
+alignment with Atlas and turning preview-deployment protection off so cron and a phone can reach the
+site, the two `vercel.json` jobs at 01:00 and 07:05 Asia/Dhaka with `CRON_SECRET` (32 characters
+minimum) in the bearer header Vercel adds by itself, why IP whitelisting must be **off** at
+BulkSMSBD, and a ten-line smoke checklist to run from a phone after every deploy. **Nothing was
+deployed**: this is documentation, and the flags that could spend money or publish a child's data all
+still ship off.
+
+Two of its claims are code, so they are checked rather than trusted. `tests/deployment-doc.test.ts`
+(now the 28th suite of `test:unit:core`, and therefore R0.7's proof) asserts that `src/proxy.ts` —
+the Next 16 name for middleware, with no `middleware.ts` beside it — matches only `/`, the locale
+prefixes and paths that are not `api`, not `_next` and not a file name, so a cron call is never
+redirected to `/bn` and never loses its `Authorization` header; that `vercel.json` ships exactly the
+two daily jobs the guide names, at the schedules it prints; that §9 of the guide is ten lines long,
+because a checklist nobody finishes is not a checklist; and that every secret variable in
+`.env.example` is empty. `README.md` and the repository-root `DEPLOYMENT.md` point at the new guide,
+and the root file no longer claims SMS is unimplemented — it shipped in R2, behind `mock`.
