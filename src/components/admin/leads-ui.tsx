@@ -37,7 +37,7 @@ import {LeadHandoff} from './lead-handoff';
 import type {LeadSmsKit} from '@/lib/leads/lead-sms';
 import {formatClass,formatDate,formatNumber,formatTime,type Digits} from '@/lib/admin/format';
 
-const IDLE_SEARCH:LeadSearchActionState={status:'idle',hits:[],total:0,masked:'',messageBn:'',messageEn:''};
+const IDLE_SEARCH:LeadSearchActionState={status:'idle',hits:[],total:0,masked:'',message:''};
 
 /** The quick-add panel: four fields is a complete lead, everything else is behind "more". */
 export function LeadQuickAdd({open=false,language='bn',digits='bn'}:{open?:boolean;language?:'bn'|'en';digits?:Digits}){
@@ -95,12 +95,12 @@ export function LeadQuickAdd({open=false,language='bn',digits='bn'}:{open?:boole
       {more&&<>
         <label>{t('guardianName')}<input className="admin-input" name="guardianName" maxLength={120} autoComplete="off"/></label>
         <label>{t('interestedIn')}<input className="admin-input" name="interestedIn" maxLength={200} autoComplete="off"/></label>
-        <label>{t('source')}<select className="admin-select" name="source" defaultValue="walk_in">{LEAD_SOURCE_OPTIONS.map(option=><option key={option} value={option}>{sourceLabel(option,language)}</option>)}</select></label>
-        <label>{t('status')}<select className="admin-select" name="status" defaultValue="new">{LEAD_STATUS_OPTIONS.map(option=><option key={option} value={option}>{statusLabel(option,language)}</option>)}</select></label>
+        <label>{t('source')}<select className="admin-select" name="source" defaultValue="walk_in">{LEAD_SOURCE_OPTIONS.map(option=><option key={option} value={option}>{sourceLabel(t,option)}</option>)}</select></label>
+        <label>{t('status')}<select className="admin-select" name="status" defaultValue="new">{LEAD_STATUS_OPTIONS.map(option=><option key={option} value={option}>{statusLabel(t,option)}</option>)}</select></label>
         <label>{t('nextFollowUp')}
           <select className="admin-select" name="followUp" value={followUp} onChange={event=>setFollowUp(event.target.value)}>
             <option value="">{t('followUpNone')}</option>
-            {FOLLOW_UP_KEYS.map(option=><option key={option} value={option}>{followUpLabel(option,language)}</option>)}
+            {FOLLOW_UP_KEYS.map(option=><option key={option} value={option}>{followUpLabel(t,option)}</option>)}
           </select>
         </label>
         {followUp==='custom'&&<label>{t('customDay')}<input className="admin-input" name="customDay" type="date"/></label>}
@@ -110,10 +110,10 @@ export function LeadQuickAdd({open=false,language='bn',digits='bn'}:{open?:boole
           until a save succeeds — and the three answers are three submit buttons, so the choice travels in
           the same post as the fields it applies to and never as a second round trip. */}
       {state.status==='dup'&&<div className="lead-dup" role="alert" data-dup-ask="true">
-        <p className="admin-feedback error">{leadFormMessage(state,language)}</p>
+        <p className="admin-feedback error">{leadFormMessage(state)}</p>
         <ul className="lead-notes lead-family">{(state.holders||[]).map(holder=><li key={holder.id}>
           <strong>{holder.studentName}</strong>{' '}
-          <span className="admin-help">{holder.leadId} · {statusLabel(holder.status,language)} · {formatDate(holder.date,digits,language)}</span>{' '}
+          <span className="admin-help">{holder.leadId} · {statusLabel(t,holder.status)} · {formatDate(holder.date,digits,language)}</span>{' '}
           <span className="admin-badge">{holder.masked}</span>
           <button type="submit" name="dupMerge" value={holder.id} className="admin-mini-button" disabled={pending}>{t('dupMergeInto',{name:holder.studentName})}</button>
         </li>)}</ul>
@@ -125,7 +125,7 @@ export function LeadQuickAdd({open=false,language='bn',digits='bn'}:{open?:boole
       <div className="lead-form-foot">
         <button type="submit" className="button button-navy" disabled={pending}><Plus size={18} aria-hidden="true"/>{pending?t('loading'):t('saveAnother')}</button>
         <p className="admin-help">{t('enterSaves')}</p>
-        {state.status!=='idle'&&state.status!=='dup'&&<p role="status" className={`admin-feedback ${state.status==='ok'?'':'error'}`}>{leadFormMessage(state,language)}</p>}
+        {state.status!=='idle'&&state.status!=='dup'&&<p role="status" className={`admin-feedback ${state.status==='ok'?'':'error'}`}>{leadFormMessage(state)}</p>}
       </div>
     </form>
   </section>;
@@ -198,7 +198,7 @@ export function LeadSearch({language='bn',digits='bn',current}:{language?:'bn'|'
     return <button type="button" className="admin-mini-button" onClick={()=>setOpen(true)}><Search size={18} aria-hidden="true"/>{t('search')}</button>;
   }
   const refused=state.status==='refused'||state.status==='error'||state.status==='unauthorized';
-  const message=state.status==='idle'?'':(language==='bn'?state.messageBn:state.messageEn);
+  const message=state.status==='idle'?'':state.message;
   return <section className="admin-panel" aria-label={t('search')}>
     <div className="admin-panel-head"><h2>{t('search')}</h2><button type="button" className="admin-mini-button" onClick={()=>setOpen(false)}>{t('close')}</button></div>
     <form action={action} onSubmit={onSubmit} className="admin-panel-body list-filter">
@@ -216,9 +216,9 @@ export function LeadSearch({language='bn',digits='bn',current}:{language?:'bn'|'
       <caption className="admin-help">{t('searchResults')}</caption>
       <thead><tr><th>{t('colVisitor')}</th><th>{t('colContact')}</th><th>{t('colStatus')}</th><th>{t('colActions')}</th></tr></thead>
       <tbody>{state.hits.map(hit=><tr key={hit.id}>
-        <td data-label={t('colVisitor')}><div><strong>{hit.studentName}</strong><br/><span className="admin-help">{hit.leadId}{hit.classGroup?` · ${formatClass(hit.classGroup,digits,language)}`:hit.classLabel?` · ${hit.classLabel}`:''}</span></div></td>
+        <td data-label={t('colVisitor')}><div><strong>{hit.studentName}</strong><br/><span className="admin-help">{hit.leadId}{hit.classGroup?` · ${formatClass(hit.classGroup,digits,language,t('colClass'))}`:hit.classLabel?` · ${hit.classLabel}`:''}</span></div></td>
         <td data-label={t('colContact')}><div><ContactLinks phones={hit.phones}/></div></td>
-        <td data-label={t('colStatus')}><div><span className={`admin-badge ${statusBadge(hit.status)}`}>{statusLabel(hit.status,language)}</span>{hit.followUp!=='none'&&hit.nextFollowUp&&<span className={`admin-badge ${followUpBadge(hit.followUp)}`}>{formatDate(hit.nextFollowUp,digits,language)}</span>}</div></td>
+        <td data-label={t('colStatus')}><div><span className={`admin-badge ${statusBadge(hit.status)}`}>{statusLabel(t,hit.status)}</span>{hit.followUp!=='none'&&hit.nextFollowUp&&<span className={`admin-badge ${followUpBadge(hit.followUp)}`}>{formatDate(hit.nextFollowUp,digits,language)}</span>}</div></td>
         <td data-label={t('colActions')}><div className="list-row-actions"><LeadDetailDrawer seed={seedOf(hit)} language={language} digits={digits}/></div></td>
       </tr>)}</tbody>
     </table></div></div>}
@@ -236,23 +236,23 @@ export function LeadRowControls({row,language='bn'}:{row:LeadRowView;language?:'
   const [liftState,liftAction,liftPending]=useActionState(liftContactBlock,idleLeadForm);
   const busy=statusPending||followPending||liftPending;
   const states=[statusState,followState,liftState];
-  const message=states.map(state=>leadFormMessage(state,language)).filter(Boolean).pop()||'';
+  const message=states.map(state=>leadFormMessage(state)).filter(Boolean).pop()||'';
   const failed=states.some(state=>state.status==='error');
   return <div className="lead-row">
     <form action={statusAction} className="list-row-actions">
       <input type="hidden" name="id" value={row.id}/>
       <label className="admin-help" htmlFor={`lead-status-${row.id}`}>{t('colStatus')}</label>
       <select id={`lead-status-${row.id}`} className="admin-select" name="status" defaultValue={row.status}>
-        {LEAD_STATUS_OPTIONS.map(option=><option key={option} value={option}>{statusLabel(option,language)}</option>)}
+        {LEAD_STATUS_OPTIONS.map(option=><option key={option} value={option}>{statusLabel(t,option)}</option>)}
       </select>
       <button type="submit" className="admin-mini-button" disabled={busy}>{t('save')}</button>
     </form>
     <form action={followAction} className="list-row-actions">
       <input type="hidden" name="id" value={row.id}/>
-      {FOLLOW_UP_KEYS.filter(key=>key!=='custom').map(key=><button key={key} type="submit" name="followUp" value={key} className="admin-mini-button" disabled={busy}>{followUpLabel(key,language)}</button>)}
+      {FOLLOW_UP_KEYS.filter(key=>key!=='custom').map(key=><button key={key} type="submit" name="followUp" value={key} className="admin-mini-button" disabled={busy}>{followUpLabel(t,key)}</button>)}
       <input className="admin-input" type="date" name="customDay" aria-label={t('customDay')}/>
-      <button type="submit" name="followUp" value="custom" className="admin-mini-button" disabled={busy}>{followUpLabel('custom',language)}</button>
-      <button type="submit" name="followUp" value={FOLLOW_UP_CLEAR} className="admin-mini-button" disabled={busy}>{followUpLabel(FOLLOW_UP_CLEAR,language)}</button>
+      <button type="submit" name="followUp" value="custom" className="admin-mini-button" disabled={busy}>{followUpLabel(t,'custom')}</button>
+      <button type="submit" name="followUp" value={FOLLOW_UP_CLEAR} className="admin-mini-button" disabled={busy}>{followUpLabel(t,FOLLOW_UP_CLEAR)}</button>
     </form>
     {row.doNotContact&&<form action={liftAction} className="list-row-actions">
       <input type="hidden" name="id" value={row.id}/>
@@ -291,19 +291,19 @@ function LeadDetailBody({seed,detail,loading,noteState,noteAction,notePending,re
   }
   const row=detail?.row;
   const phones=row?.phones||seed.phones;
-  const classText=row?.classGroup?formatClass(row.classGroup,digits,language):(row?.classLabel||seed.classLabel||'');
+  const classText=row?.classGroup?formatClass(row.classGroup,digits,language,t('colClass')):(row?.classLabel||seed.classLabel||'');
   const fields:[string,string][]=[
     [t('leadId'),seed.leadId],
     [t('date'),formatDate(seed.date,digits,language)],
     [t('guardianName'),row?.guardianName||seed.guardianName||''],
     [t('classLabel'),classText],
     [t('school'),row?.school||seed.school||''],
-    [t('group'),row?groupLabel(row.group,language):''],
-    [t('shift'),row?shiftLabel(row.shift,language):''],
-    [t('medium'),row?mediumLabel(row.medium,language):''],
-    [t('source'),row?sourceLabel(row.source,language):''],
+    [t('group'),row?groupLabel(t,row.group):''],
+    [t('shift'),row?shiftLabel(t,row.shift):''],
+    [t('medium'),row?mediumLabel(t,row.medium):''],
+    [t('source'),row?sourceLabel(t,row.source):''],
     [t('interestedIn'),row?.interestedIn||''],
-    [t('colStatus'),statusLabel(seed.status,language)],
+    [t('colStatus'),statusLabel(t,seed.status)],
     [t('nextFollowUp'),seed.nextFollowUp?formatDate(seed.nextFollowUp,digits,language):t('followUpNone')],
   ];
   return <>
@@ -341,7 +341,7 @@ function LeadDetailBody({seed,detail,loading,noteState,noteAction,notePending,re
     <h3>{t('notes')}</h3>
     {loading&&<p className="admin-help" role="status">{t('loading')}</p>}
     {!loading&&detail&&<ul className="lead-notes">{detail.notes.length?detail.notes.map((note,index)=><li key={index}>
-      <small><time dateTime={note.at.toISOString()}>{formatDate(note.at,digits,language)} · {formatTime(note.at,digits,language)}</time>{note.byName?` · ${note.byName}`:''}{note.outcome?` · ${noteOutcomeLabel(note.outcome,language)}`:''}</small>
+      <small><time dateTime={note.at.toISOString()}>{formatDate(note.at,digits,language)} · {formatTime(note.at,digits,language)}</time>{note.byName?` · ${note.byName}`:''}{note.outcome?` · ${noteOutcomeLabel(t,note.outcome)}`:''}</small>
       {note.text}
     </li>):<li className="admin-help">{t('noNotes')}</li>}</ul>}
     <form action={noteAction} className="list-filter">
@@ -350,23 +350,23 @@ function LeadDetailBody({seed,detail,loading,noteState,noteAction,notePending,re
       <label>{t('noteOutcome')}
         <select className="admin-select" name="outcome" defaultValue="">
           <option value="">—</option>
-          {LEAD_NOTE_OUTCOME_OPTIONS.map(option=><option key={option} value={option}>{noteOutcomeLabel(option,language)}</option>)}
+          {LEAD_NOTE_OUTCOME_OPTIONS.map(option=><option key={option} value={option}>{noteOutcomeLabel(t,option)}</option>)}
         </select>
       </label>
       <div className="lead-form-foot">
         <button type="submit" className="admin-mini-button" disabled={notePending}>{notePending?t('loading'):t('addNote')}</button>
-        {noteState.status!=='idle'&&<p role="status" className={`admin-feedback ${noteState.status==='ok'?'':'error'}`}>{leadFormMessage(noteState,language)}</p>}
+        {noteState.status!=='idle'&&<p role="status" className={`admin-feedback ${noteState.status==='ok'?'':'error'}`}>{leadFormMessage(noteState)}</p>}
       </div>
     </form>
     {!!(detail?.family||[]).length&&<><h3>{t('family')}</h3>{/* Its own class beside `lead-notes`: the timeline and the family are two lists, and a test (or a stylesheet) that means one of them must be able to say which. */}<ul className="lead-notes lead-family">{detail!.family.map(member=><li key={member.id}>
-      <Link href={`/admin/leads/${member.id}`}>{member.studentName}</Link> <span className="admin-help">{member.leadId} · {statusLabel(member.status,language)}</span>
+      <Link href={`/admin/leads/${member.id}`}>{member.studentName}</Link> <span className="admin-help">{member.leadId} · {statusLabel(t,member.status)}</span>
     </li>)}</ul></>}
     {/* R3.10: leads outside the family that hold one of this lead's numbers. Two deliberate answers:
         tie them into one family (both leads stay), or fold the other one into this one (it is binned,
         behind the browser's own confirm). Neither is offered for a lead already in the family list. */}
     {!!(detail?.dupMates||[]).length&&<><h3>{t('dupMatesTitle')}</h3>
       <ul className="lead-notes lead-family" data-dup-mates="true">{detail!.dupMates.map(mate=><li key={mate.id}>
-        <strong>{mate.studentName}</strong> <span className="admin-help">{mate.leadId} · {statusLabel(mate.status,language)}</span> <span className="admin-badge">{mate.masked}</span>
+        <strong>{mate.studentName}</strong> <span className="admin-help">{mate.leadId} · {statusLabel(t,mate.status)}</span> <span className="admin-badge">{mate.masked}</span>
         <span className="admin-inline">
           <form action={tieAction} className="admin-inline">
             <input type="hidden" name="id" value={seed.id}/><input type="hidden" name="otherId" value={mate.id}/>
@@ -378,7 +378,7 @@ function LeadDetailBody({seed,detail,loading,noteState,noteAction,notePending,re
           </form>
         </span>
       </li>)}</ul>
-      {(mergeState.status!=='idle'||tieState.status!=='idle')&&<p role="status" className={`admin-feedback ${mergeState.status==='error'||tieState.status==='error'?'error':''}`}>{leadFormMessage(mergeState,language)||leadFormMessage(tieState,language)}</p>}
+      {(mergeState.status!=='idle'||tieState.status!=='idle')&&<p role="status" className={`admin-feedback ${mergeState.status==='error'||tieState.status==='error'?'error':''}`}>{leadFormMessage(mergeState)||leadFormMessage(tieState)}</p>}
     </>}
   </>;
 }

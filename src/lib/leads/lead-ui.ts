@@ -15,8 +15,8 @@ import {
 import {leadListQuery,maskPhone} from './vocab';
 import {telHref,whatsappHref} from './lead-phone';
 import {
-  FOLLOW_UP_OPTIONS,LEAD_GROUP_LABELS,LEAD_MEDIUM_LABELS,LEAD_NOTE_OUTCOME_LABELS,LEAD_NOTE_OUTCOMES,
-  LEAD_SHIFT_LABELS,LEAD_SOURCE_LABELS,LEAD_STATUS_LABELS,LEAD_STATUSES,
+  FOLLOW_UP_LABEL_KEYS,FOLLOW_UP_OPTIONS,LEAD_GROUP_LABEL_KEYS,LEAD_MEDIUM_LABEL_KEYS,LEAD_NOTE_OUTCOME_LABEL_KEYS,
+  LEAD_NOTE_OUTCOMES,LEAD_SHIFT_LABEL_KEYS,LEAD_SOURCE_LABEL_KEYS,LEAD_STATUS_LABEL_KEYS,LEAD_STATUSES,
   type FollowUpKey,type LeadGroup,type LeadMedium,type LeadShift,type LeadSource,type LeadStatus,
 } from './vocab';
 
@@ -29,8 +29,7 @@ export type LeadListFiltersShape=Omit<Parameters<typeof leadListQuery>[0],'local
 /** What every lead form action hands back to `useActionState`. */
 export type LeadFormState={
   status:'idle'|'ok'|'error'|'dup';
-  messageBn:string;
-  messageEn:string;
+  message:string;
   /** Set on a successful quick-add, so the panel can say which id it wrote. */
   leadId?:string;
   /** Which field a refusal was about, so the panel can point at it. */
@@ -45,51 +44,47 @@ export type LeadFormState={
  */
 export interface LeadDupHolderView{id:string;leadId:string;studentName:string;status:LeadStatus;date:string;masked:string}
 
-export const idleLeadForm:LeadFormState={status:'idle',messageBn:'',messageEn:''};
+export const idleLeadForm:LeadFormState={status:'idle',message:''};
 
-export function leadFormMessage(state:LeadFormState|null|undefined,language:'bn'|'en'):string{
-  if(!state||state.status==='idle')return '';
-  return language==='bn'?state.messageBn:state.messageEn;
-}
+export function leadFormMessage(state:LeadFormState|null):string{return state?.message||''}
 
-/** `follow-up বাদ দিন` is not one of the five options — it is the sixth control, and it clears the day. */
+/** The clear control is not one of the five options — it is the sixth control, and it clears the day. */
 export const FOLLOW_UP_CLEAR='clear';
 
-type Labels={bn:string;en:string};
-const pick=(labels:Labels|undefined,fallback:string,language:'bn'|'en'):string=>
-  labels?(language==='bn'?labels.bn:labels.en):fallback;
+/** A translator for the leads namespace — `useTranslations('leads')` or `await getTranslations('leads')`. */
+export type LeadTranslator=(key:string)=>string;
+const label=(t:LeadTranslator,key:string|undefined,fallback:string):string=>key?t(key):fallback;
 
-export function statusLabel(status:LeadStatus|string,language:'bn'|'en'):string{
-  return pick(LEAD_STATUS_LABELS[status as LeadStatus],String(status||''),language);
+export function statusLabel(t:LeadTranslator,status:LeadStatus|string):string{
+  return label(t,LEAD_STATUS_LABEL_KEYS[status as LeadStatus],String(status||''));
 }
-export function sourceLabel(source:LeadSource|string,language:'bn'|'en'):string{
-  return pick(LEAD_SOURCE_LABELS[source as LeadSource],String(source||''),language);
+export function sourceLabel(t:LeadTranslator,source:LeadSource|string):string{
+  return label(t,LEAD_SOURCE_LABEL_KEYS[source as LeadSource],String(source||''));
 }
-export function groupLabel(group:LeadGroup|string,language:'bn'|'en'):string{
-  return pick(LEAD_GROUP_LABELS[group as LeadGroup],String(group||''),language);
+export function groupLabel(t:LeadTranslator,group:LeadGroup|string):string{
+  return label(t,LEAD_GROUP_LABEL_KEYS[group as LeadGroup],String(group||''));
 }
-export function shiftLabel(shift:LeadShift|string,language:'bn'|'en'):string{
-  return pick(LEAD_SHIFT_LABELS[shift as LeadShift],String(shift||''),language);
+export function shiftLabel(t:LeadTranslator,shift:LeadShift|string):string{
+  return label(t,LEAD_SHIFT_LABEL_KEYS[shift as LeadShift],String(shift||''));
 }
-export function mediumLabel(medium:LeadMedium|string,language:'bn'|'en'):string{
-  return pick(LEAD_MEDIUM_LABELS[medium as LeadMedium],String(medium||''),language);
+export function mediumLabel(t:LeadTranslator,medium:LeadMedium|string):string{
+  return label(t,LEAD_MEDIUM_LABEL_KEYS[medium as LeadMedium],String(medium||''));
 }
-export function noteOutcomeLabel(outcome:string,language:'bn'|'en'):string{
-  return pick(LEAD_NOTE_OUTCOME_LABELS[outcome as keyof typeof LEAD_NOTE_OUTCOME_LABELS],String(outcome||''),language);
+export function noteOutcomeLabel(t:LeadTranslator,outcome:string):string{
+  return label(t,LEAD_NOTE_OUTCOME_LABEL_KEYS[outcome as keyof typeof LEAD_NOTE_OUTCOME_LABEL_KEYS],String(outcome||''));
 }
 
 /** The five quick follow-up buttons, in the order the brief lists them. */
-export function followUpLabel(key:FollowUpKey|typeof FOLLOW_UP_CLEAR,language:'bn'|'en'):string{
-  if(key===FOLLOW_UP_CLEAR)return language==='bn'?'বাদ দিন':'Clear';
-  const option=FOLLOW_UP_OPTIONS.find(entry=>entry.key===key);
-  return option?(language==='bn'?option.bn:option.en):'';
+export function followUpLabel(t:LeadTranslator,key:FollowUpKey|typeof FOLLOW_UP_CLEAR):string{
+  if(key===FOLLOW_UP_CLEAR)return t('followUpLabels.clear');
+  return label(t,FOLLOW_UP_LABEL_KEYS[key],'');
 }
 
 export const LEAD_STATUS_OPTIONS=LEAD_STATUSES as readonly LeadStatus[];
-export const LEAD_SOURCE_OPTIONS=Object.keys(LEAD_SOURCE_LABELS) as LeadSource[];
-export const LEAD_GROUP_OPTIONS=Object.keys(LEAD_GROUP_LABELS) as LeadGroup[];
-export const LEAD_SHIFT_OPTIONS=Object.keys(LEAD_SHIFT_LABELS) as LeadShift[];
-export const LEAD_MEDIUM_OPTIONS=Object.keys(LEAD_MEDIUM_LABELS) as LeadMedium[];
+export const LEAD_SOURCE_OPTIONS=Object.keys(LEAD_SOURCE_LABEL_KEYS) as LeadSource[];
+export const LEAD_GROUP_OPTIONS=Object.keys(LEAD_GROUP_LABEL_KEYS) as LeadGroup[];
+export const LEAD_SHIFT_OPTIONS=Object.keys(LEAD_SHIFT_LABEL_KEYS) as LeadShift[];
+export const LEAD_MEDIUM_OPTIONS=Object.keys(LEAD_MEDIUM_LABEL_KEYS) as LeadMedium[];
 export const LEAD_NOTE_OUTCOME_OPTIONS=LEAD_NOTE_OUTCOMES as readonly string[];
 export const FOLLOW_UP_KEYS=FOLLOW_UP_OPTIONS.map(option=>option.key);
 
@@ -215,7 +210,7 @@ export type LeadSearchHitView=Omit<LeadSearchHit,'phones'>&{phones:LeadPhoneView
 
 export interface LeadSearchActionState{
   status:'idle'|'found'|'empty'|'refused'|'unauthorized'|'error';
-  hits:LeadSearchHitView[];total:number;masked:string;messageBn:string;messageEn:string;
+  hits:LeadSearchHitView[];total:number;masked:string;message:string;
 }
 
 /** The strip, for one search answer: every phone becomes a view and nothing else is touched. */

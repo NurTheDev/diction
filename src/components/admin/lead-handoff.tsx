@@ -92,7 +92,7 @@ export function LeadHandoff({leadId,handoff,language,digits,onDone}:{
         </button>
       </div>
       {blocked&&<p className="admin-help" data-handoff-blocked="true">{t('handoffBlocked')}:
-        {language==='bn'?blocked.messageBn:blocked.messageEn}</p>}
+        {t(blocked.messageKey,Object.fromEntries(Object.entries(blocked.messageParams||{}).map(([k,v])=>[k,typeof v==='number'?formatNumber(v,digits):v])) as never)}</p>}
     </div>
 
     {/* 1 · Convert to admission. What the lead already knows is filled in; the rest is the operator's,
@@ -125,7 +125,7 @@ function DialogFoot({state,language,pending,onClose}:{
   state:LeadFormState|null;language:'bn'|'en';pending:boolean;onClose:()=>void;
 }){
   const t=useTranslations('leads');
-  const message=leadFormMessage(state,language);
+  const message=leadFormMessage(state);
   const ok=state?.status==='ok';
   return <>
     {message&&<p className={ok?'admin-feedback':'admin-feedback error'} data-handoff-message={state?.status||'idle'}
@@ -172,7 +172,7 @@ function AdmissionBody({leadId,handoff,language,digits,subjectLabels,genders,med
       <small>{t('handoffPhoneNote')}</small></label>
     <label><span>{f('grade')} *</span>
       <select className="admin-select" name="grade" defaultValue={prefill.grade||'4'} data-handoff-grade="true">
-        {HANDOFF_GRADES.map(grade=><option key={grade} value={grade}>{formatClass(grade,digits,language)}</option>)}
+        {HANDOFF_GRADES.map(grade=><option key={grade} value={grade}>{formatClass(grade,digits,language,t('colClass'))}</option>)}
       </select></label>
     <label><span>{f('school')} *</span>
       <input className="admin-input" name="school" defaultValue={prefill.school} required minLength={2} maxLength={160}/></label>
@@ -259,7 +259,7 @@ function TrialBody({leadId,handoff,language,digits,subjectLabels,onClose,onDone}
       <label><span>{t('handoffGrade')}</span>
         <select className="admin-select" value={grade} data-handoff-grade="true"
           onChange={event=>setGrade(event.target.value)}>
-          {HANDOFF_GRADES.map(value=><option key={value} value={value}>{formatClass(value,digits,language)}</option>)}
+          {HANDOFF_GRADES.map(value=><option key={value} value={value}>{formatClass(value,digits,language,t('colClass'))}</option>)}
         </select></label>
       <label><span>{t('handoffSubject')}</span>
         <select className="admin-select" value={subject} data-handoff-subject="true"

@@ -40,8 +40,8 @@ function run(){
   assert.equal(read('শ্রেণি ৯').classGroup,9);
   assert.equal(read('grade 11').classGroup,11);
   assert.equal(read('XI').classLabel,'XI','and the label as written is always kept beside the reading');
-  assert.match(read('New 9').readBn,/নতুন সেশন/,'the preview sentence says the session in Bangla');
-  assert.match(read('New 9').readEn,/next session/,'and in English');
+  assert.equal(read('New 9').readKey,'classRead.group','the preview carries the catalog key of the reading');
+  assert.equal(read('New 9').readParams.session,1,'and marks the coming session as a parameter, for either language to word');
 
   // ---- 2. An exam batch is arithmetic on the visit year — and only that.
   assert.equal(read('SSC 25',at('2025-06-01')).classGroup,10,'SSC is the class-10 exam, so a 2025 visitor sitting SSC 25 is in class 10');
@@ -58,7 +58,7 @@ function run(){
   assert.equal(outOfRange.exam,'ssc','though the exam and year are still kept, because they were written');
   assert.equal(outOfRange.examYear,2014);
   assert.equal(outOfRange.flags[0].code,'exam_year_out_of_range');
-  assert.match(outOfRange.flags[0].messageEn,/left empty rather than guessed/,'and the flag says it was left empty rather than guessed');
+  assert.equal(outOfRange.flags[0].messageKey,'classFlags.examYear','and the flag carries the catalog key of the not-derived sentence');
 
   // ---- 3. What cannot be read is reported, never repaired and never dropped.
   for(const raw of ['IIII','XIII','13','0','Column 1','Science','-','N/A','class','abc','১৩']){
@@ -66,8 +66,8 @@ function run(){
     assert.equal(result.classGroup,null,`"${raw}" derives no class`);
     assert.equal(result.classLabel,String(raw),'the label is kept exactly as written');
     assert.equal(result.flags.length,1,`"${raw}" is reported once`);
-    assert.match(result.flags[0].messageEn,/kept|empty/);
-    assert.ok(result.flags[0].messageBn,'in Bangla as well');
+    assert.ok(result.flags[0].messageKey,'the flag carries a catalog key');
+    assert.ok(result.flags[0].messageKey.startsWith('classFlags.'),'in the classFlags namespace, where both languages live');
   }
   assert.equal(read('IIII').flags[0].code,'unrecognized','IIII is not 4, because a Roman numeral is a table and not a pattern');
   assert.equal(read('13').flags[0].code,'out_of_range','13 is not a class');
@@ -75,7 +75,7 @@ function run(){
   assert.equal(read('').classLabel,'','an empty cell keeps nothing');
   assert.equal(read('').flags.length,0,'and is not an error to report');
   assert.equal(read(null).classGroup,null,'a missing cell derives no class');
-  assert.match(read('').readBn,/লেখা নেই/,'the preview says nothing was written');
+  assert.equal(read('').readKey,'classRead.empty','the preview says nothing was written, by catalog key');
   assert.equal(read('New').classGroup,null,'"New" with no class after it is not a class');
 
   // ---- 4. Column values map from a table, and an unmapped cell becomes a question, not a default.

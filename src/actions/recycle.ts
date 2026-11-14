@@ -27,7 +27,7 @@ export async function softDeleteItem(_:ActionState,form:FormData):Promise<Action
     const kind=kindSchema.safeParse(form.get('kind')),id=idSchema.safeParse(form.get('id'));
     if(!kind.success||!id.success)return {status:'error'};
     const outcome=await softDelete(kind.data as RecycleKind,id.data,admin.id);
-    if(outcome.status==='blocked')return {status:'conflict',message:(await currentLocale())==='en'?outcome.messageEn:outcome.messageBn};
+    if(outcome.status==='blocked')return {status:'conflict',message:outcome.message};
     if(outcome.status==='missing')return {status:'error'};
     refreshBin();
     return {status:'ok',message:outcome.name};
@@ -60,7 +60,7 @@ export async function bulkDeleteItems(_:ActionState,form:FormData):Promise<Actio
     for(const id of ids){
       const outcome=await softDelete(kind.data as RecycleKind,id,admin.id);
       if(outcome.status==='ok')done++;
-      else if(outcome.status==='blocked')blocked.push(language==='en'?outcome.messageEn:outcome.messageBn);
+      else if(outcome.status==='blocked')blocked.push(outcome.message);
     }
     refreshBin();
     if(!done&&blocked.length)return {status:'conflict',message:blocked.join(' ')};

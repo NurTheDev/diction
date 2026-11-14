@@ -22,73 +22,42 @@
  *      Asia/Dhaka, so "today" and "overdue" mean the same thing at 23:59 as at 00:01 and do not
  *      depend on the zone the server happens to run in.
  */
+import {asciiDigits} from '../admin/format';
 import {dhakaDay,dhakaToday} from '@/lib/admin/today';
 import {isNumberAttempt,PHONE_SEARCH_MIN_DIGITS} from './lead-phone';
 
 export const LEAD_STATUSES=['new','called','interested','trial_booked','admitted','not_interested','no_answer','do_not_contact'] as const;
 export type LeadStatus=typeof LEAD_STATUSES[number];
 
-export const LEAD_STATUS_LABELS:Record<LeadStatus,{bn:string;en:string}>={
-  new:{bn:'নতুন',en:'New'},
-  called:{bn:'কল করা হয়েছে',en:'Called'},
-  interested:{bn:'আগ্রহী',en:'Interested'},
-  trial_booked:{bn:'ট্রায়াল নির্ধারিত',en:'Trial booked'},
-  admitted:{bn:'ভর্তি',en:'Admitted'},
-  not_interested:{bn:'আগ্রহী নন',en:'Not interested'},
-  no_answer:{bn:'সাড়া নেই',en:'No answer'},
-  do_not_contact:{bn:'যোগাযোগ করবেন না',en:'Do not contact'},
-};
+/** Message-catalog keys: the words live in bn.json / en.json under leads.statusLabels. */
+export const LEAD_STATUS_LABEL_KEYS:Record<LeadStatus,string>={new:'statusLabels.new',called:'statusLabels.called',interested:'statusLabels.interested',trial_booked:'statusLabels.trial_booked',admitted:'statusLabels.admitted',not_interested:'statusLabels.not_interested',no_answer:'statusLabels.no_answer',do_not_contact:'statusLabels.do_not_contact'};
 
 export const LEAD_SOURCES=['walk_in','phone','facebook','referral','other'] as const;
 export type LeadSource=typeof LEAD_SOURCES[number];
 
-export const LEAD_SOURCE_LABELS:Record<LeadSource,{bn:string;en:string}>={
-  walk_in:{bn:'সরাসরি এসেছেন',en:'Walk-in'},
-  phone:{bn:'ফোনে জানতে চেয়েছেন',en:'Phone'},
-  facebook:{bn:'ফেসবুক',en:'Facebook'},
-  referral:{bn:'পরিচিত কারো মাধ্যমে',en:'Referral'},
-  other:{bn:'অন্যান্য',en:'Other'},
-};
+export const LEAD_SOURCE_LABEL_KEYS:Record<LeadSource,string>={walk_in:'sourceLabels.walk_in',phone:'sourceLabels.phone',facebook:'sourceLabels.facebook',referral:'sourceLabels.referral',other:'sourceLabels.other'};
 
 export const LEAD_SHIFTS=['morning','evening','any'] as const;
 export type LeadShift=typeof LEAD_SHIFTS[number];
 
-export const LEAD_SHIFT_LABELS:Record<LeadShift,{bn:string;en:string}>={
-  morning:{bn:'সকাল',en:'Morning'},
-  evening:{bn:'সন্ধ্যা',en:'Evening'},
-  any:{bn:'যেকোনো',en:'Any'},
-};
+export const LEAD_SHIFT_LABEL_KEYS:Record<LeadShift,string>={morning:'shiftLabels.morning',evening:'shiftLabels.evening',any:'shiftLabels.any'};
 
 /** "Bangla Version" and "English Version" are how the sheet says it; unknown stays unknown. */
 export const LEAD_MEDIUMS=['bangla','english_version','unknown'] as const;
 export type LeadMedium=typeof LEAD_MEDIUMS[number];
 
-export const LEAD_MEDIUM_LABELS:Record<LeadMedium,{bn:string;en:string}>={
-  bangla:{bn:'বাংলা ভার্সন',en:'Bangla Version'},
-  english_version:{bn:'ইংলিশ ভার্সন',en:'English Version'},
-  unknown:{bn:'অজানা',en:'Unknown'},
-};
+export const LEAD_MEDIUM_LABEL_KEYS:Record<LeadMedium,string>={bangla:'mediumLabels.bangla',english_version:'mediumLabels.english_version',unknown:'mediumLabels.unknown'};
 
 export const LEAD_GROUPS=['science','arts','commerce','unknown'] as const;
 export type LeadGroup=typeof LEAD_GROUPS[number];
 
-export const LEAD_GROUP_LABELS:Record<LeadGroup,{bn:string;en:string}>={
-  science:{bn:'বিজ্ঞান',en:'Science'},
-  arts:{bn:'মানবিক',en:'Arts'},
-  commerce:{bn:'ব্যবসায় শিক্ষা',en:'Commerce'},
-  unknown:{bn:'অজানা',en:'Unknown'},
-};
+export const LEAD_GROUP_LABEL_KEYS:Record<LeadGroup,string>={science:'groupLabels.science',arts:'groupLabels.arts',commerce:'groupLabels.commerce',unknown:'groupLabels.unknown'};
 
 /** What a note can conclude. A note with no outcome is allowed: not every call ends in a verdict. */
 export const LEAD_NOTE_OUTCOMES=['no_answer','call_back_later','interested','not_interested'] as const;
 export type LeadNoteOutcome=typeof LEAD_NOTE_OUTCOMES[number];
 
-export const LEAD_NOTE_OUTCOME_LABELS:Record<LeadNoteOutcome,{bn:string;en:string}>={
-  no_answer:{bn:'সাড়া নেই',en:'No answer'},
-  call_back_later:{bn:'পরে কল করতে হবে',en:'Call back later'},
-  interested:{bn:'আগ্রহী',en:'Interested'},
-  not_interested:{bn:'আগ্রহী নন',en:'Not interested'},
-};
+export const LEAD_NOTE_OUTCOME_LABEL_KEYS:Record<LeadNoteOutcome,string>={no_answer:'outcomeLabels.no_answer',call_back_later:'outcomeLabels.call_back_later',interested:'outcomeLabels.interested',not_interested:'outcomeLabels.not_interested'};
 
 /**
  * The quick next-follow-up buttons on every row. `custom` opens a date field instead of guessing:
@@ -96,12 +65,14 @@ export const LEAD_NOTE_OUTCOME_LABELS:Record<LeadNoteOutcome,{bn:string;en:strin
  * days and a wrong guess would hide a lead that should have been called.
  */
 export const FOLLOW_UP_OPTIONS=[
-  {key:'today',days:0,bn:'আজ',en:'Today'},
-  {key:'tomorrow',days:1,bn:'আগামীকাল',en:'Tomorrow'},
-  {key:'three_days',days:3,bn:'তিন দিন পরে',en:'In 3 days'},
-  {key:'next_week',days:7,bn:'পরের সপ্তাহে',en:'Next week'},
-  {key:'custom',days:null,bn:'তারিখ বেছে নিন',en:'Pick a date'},
+  {key:'today',days:0},
+  {key:'tomorrow',days:1},
+  {key:'three_days',days:3},
+  {key:'next_week',days:7},
+  {key:'custom',days:null},
 ] as const;
+/** Button words live in the catalog under leads.followUpLabels. */
+export const FOLLOW_UP_LABEL_KEYS:Record<FollowUpKey|string,string>={today:'followUpLabels.today',tomorrow:'followUpLabels.tomorrow',three_days:'followUpLabels.three_days',next_week:'followUpLabels.next_week',custom:'followUpLabels.custom'};
 export type FollowUpKey=typeof FOLLOW_UP_OPTIONS[number]['key'];
 
 /** `YYYY-MM-DD` in Dhaka, `days` from today. `custom` needs the day the operator chose. */
@@ -194,14 +165,14 @@ export function leadListQuery(params:{
   const text=String(params.q||'').trim();
   if(text){
     // Digits, spaces, dashes and a leading + are how a number is typed; anything else is a name.
-    // Bangla digits are digits: ০১৭১২৮১৭০৯০ must be refused just as firmly as 01712817090.
+    // Bangla digits are digits: a number typed in Bangla digits must be refused just as firmly as its ASCII form.
     //
     // The threshold is PHONE_SEARCH_MIN_DIGITS, not a longer run, and the two must move together: a
     // fragment short enough to slip into a URL would be long enough for the posted number search to
     // find somebody, so the same digit run cannot be allowed in one path and refused in the other.
     // Searching BY NUMBER is a staff requirement — it simply travels as a form submission, never as a
     // query parameter (see `searchLeadsByPhone` and `src/actions/leads.ts`).
-    const ascii=text.replace(/[০-৯]/g,c=>String('০১২৩৪৫৬৭৮৯'.indexOf(c)));
+    const ascii=asciiDigits(text);
     // One reading of "typed a number", in `lead-phone.ts`, shared with the search box and with the
     // number search itself. `numberShaped` is that question; `refusedPhone` adds the length at which a
     // number search could actually find somebody, which is the length below which a fragment is still

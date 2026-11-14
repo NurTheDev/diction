@@ -104,7 +104,14 @@
     "loginError": "Could not sign in. Please check your details and try again.",
     "signOut": "Sign out",
     "protected": "Secure dashboard",
-    "protectedDesc": "You are signed in. Dashboard features will be added in a later phase."
+    "protectedDesc": "You are signed in. Dashboard features will be added in a later phase.",
+    "dayPeriod": {
+      "morning": "Morning",
+      "noon": "Noon",
+      "afternoon": "Afternoon",
+      "evening": "Evening",
+      "night": "Night"
+    }
   },
   "pages": {
     "eyebrow": "DICTION COACHING CENTER",
@@ -1969,7 +1976,21 @@
     "restored": "Restored.",
     "nameMismatch": "The name did not match, so nothing was deleted.",
     "daysLeftHeader": "Days left",
-    "noResults": "Nothing matched that search."
+    "noResults": "Nothing matched that search.",
+    "kinds": {
+      "k1": "place(s) still use this image",
+      "k2": "student(s) use this class",
+      "k3": "exam(s) use this class",
+      "k4": "saved result(s) belong to this exam",
+      "k5": "booking(s) are scheduled in this slot",
+      "k6": "admission(s) already converted to a student",
+      "k7": "account(s) hold a staff role — disable instead of deleting",
+      "k8": "student profile(s) use this account",
+      "k9": "saved result(s) belong to this exam",
+      "k10": "saved attempt(s) belong to this test",
+      "k11": "lead has already been converted to an admission, a student or a trial booking — deleting it loses that link"
+    },
+    "blocked": "{parts} — cannot be deleted. Archive it instead."
   },
   "leads": {
     "title": "Visitors",
@@ -2034,7 +2055,7 @@
     "doNotContact": "Contact off",
     "allowContact": "Allow contact again",
     "blockedHelp": "No call or SMS reaches this lead until contact is allowed again.",
-    "notes": "Notes",
+    "notes": "Comments",
     "addNote": "Add note",
     "noteText": "What happened",
     "noteOutcome": "Outcome",
@@ -2091,6 +2112,141 @@
     "handoffSave": "Save",
     "handoffCancel": "Cancel",
     "handoffDone": "Hand-off done",
-    "handoffClose": "Close"
+    "handoffClose": "Close",
+    "note": "Note",
+    "statusLabels": {
+      "new": "New",
+      "called": "Called",
+      "interested": "Interested",
+      "trial_booked": "Trial booked",
+      "admitted": "Admitted",
+      "not_interested": "Not interested",
+      "no_answer": "No answer",
+      "do_not_contact": "Do not contact"
+    },
+    "sourceLabels": {
+      "walk_in": "Walk-in",
+      "phone": "Phone",
+      "facebook": "Facebook",
+      "referral": "Referral",
+      "other": "Other"
+    },
+    "shiftLabels": {
+      "morning": "Morning",
+      "evening": "Evening",
+      "any": "Any"
+    },
+    "mediumLabels": {
+      "bangla": "Bangla Version",
+      "english_version": "English Version",
+      "unknown": "Unknown"
+    },
+    "groupLabels": {
+      "science": "Science",
+      "arts": "Arts",
+      "commerce": "Commerce",
+      "unknown": "Unknown"
+    },
+    "outcomeLabels": {
+      "no_answer": "No answer",
+      "call_back_later": "Call back later",
+      "interested": "Interested",
+      "not_interested": "Not interested"
+    },
+    "followUpLabels": {
+      "today": "Today",
+      "tomorrow": "Tomorrow",
+      "three_days": "In 3 days",
+      "next_week": "Next week",
+      "custom": "Pick a date",
+      "clear": "Clear"
+    },
+    "phoneFlags": {
+      "not_a_number": "\"{value}\" is not a number — the text was kept exactly as written.",
+      "invalid": "\"{value}\" is not a valid number.",
+      "short": "\"{value}\" is short ({count} digits) — not guessed; kept exactly as written.",
+      "extra": "\"{value}\" gave one number, but {count} digit(s) were left over — they were not folded into it.",
+      "unreadable": "\"{value}\" could not be read as a valid number."
+    },
+    "phoneSearch": {
+      "empty": "Type a number.",
+      "not_a_number": "{count} character(s) of that is not a number — type a name, an institution or an id.",
+      "too_short": "{count} digit(s) is not enough to search — type at least {min}.",
+      "too_long": "{count} digits is not a number — nothing is searched above {max}."
+    },
+    "errors": {
+      "DUPLICATE": "That record already exists ({field}).",
+      "WRITE_FAILED": "The lead could not be saved. Please try again.",
+      "MISSING": "That lead was not found.",
+      "SAME_LEAD": "A lead cannot be tied to itself.",
+      "NO_NAME": "Write a name — a lead is not saved without one.",
+      "BAD_FOLLOW_UP": "That is not a real date, so no follow-up was set.",
+      "BAD_DUP_TARGET": "Choose which existing lead to merge into.",
+      "NO_NAME_ROW": "A row without a name is not imported; it stays in the preview.",
+      "BAD_DATE": "That date could not be read, so the row was not written.",
+      "ID_BUSY": "Another lead was saved at the same moment. Please try again.",
+      "BAD_STATUS": "That is not one of the statuses.",
+      "NO_NOTE": "An empty note cannot be saved.",
+      "NOTE_TOO_LONG": "A note is limited to 1000 characters.",
+      "NO_CONSENT": "An admission cannot be opened without consent.",
+      "BINNED_ADMISSION": "A binned lead cannot be converted — restore it first.",
+      "NO_CONSENT_TRIAL": "A trial cannot be booked without consent.",
+      "BINNED_TRIAL": "A binned lead cannot book a trial — restore it first.",
+      "SLOT_GONE": "That class is no longer open for booking — pick another time from the list.",
+      "SLOT_FULL": "That class has no seat left.",
+      "BINNED_STATUS": "A binned lead cannot change status — restore it first.",
+      "NO_REASON": "Marking a visitor not interested needs a reason — somebody must be able to read later why this row closed.",
+      "REASON_TOO_SHORT": "That reason is too short — write a few words.",
+      "REASON_TOO_LONG": "Keep the reason within {max} characters.",
+      "ALREADY_CONVERTED": "This visitor already has an admission open.",
+      "ALREADY_BOOKED": "This visitor already has a trial booked.",
+      "NO_PHONE": "An admission or a trial needs a number — add one to the lead first.",
+      "DUPLICATE_PHONE": "This number is already on the visitor list, so no second lead was written. Choose below what to do.",
+      "UNMAPPED_GROUP": "That group was not recognised, so it was left unknown.",
+      "UNMAPPED_MEDIUM": "That medium was not recognised, so it was left unknown.",
+      "UNMAPPED_SHIFT": "That shift was not recognised, so it was left as any.",
+      "UNMAPPED_SOURCE": "That source was not recognised, so it was left as other.",
+      "SAME_LEAD_MERGE": "A lead cannot be merged into itself.",
+      "SOURCE_CONVERTED": "{student} was already converted to an admission or a trial, so it cannot be merged away."
+    },
+    "actionErrors": {
+      "actionErrors.m1": "You do not have access to the visitor list.",
+      "actionErrors.m2": "That did not go through. Please try again.",
+      "actionErrors.m4": "You do not have access to the visitor list.",
+      "actionErrors.m5": "The number search did not run. Please try again."
+    },
+    "success": {
+      "success.m1": "Merged into {leadId} — no new lead was written.",
+      "success.m2": "{source} was merged into {leadId} with {notes} notes and {phones} numbers; the old lead is in the bin.",
+      "success.m3": "Both leads now tie to the same family.",
+      "success.m4": "Note saved (${result.noteCount} in all).",
+      "success.m5": "Admission opened: ${result.reference}",
+      "success.m6": "Trial booked: ${result.reference}",
+      "success.m7": "Marked not interested, with the reason filed as a note.",
+      "STATUS_DNC": "Status changed — this lead will not be contacted.",
+      "STATUS_CHANGED": "Status changed.",
+      "CONTACT_STOPPED": "This lead stays off the contact list.",
+      "CONTACT_ALLOWED": "Contact allowed again.",
+      "FOLLOW_UP_SET": "Follow-up set: {day}",
+      "FOLLOW_UP_CLEARED": "Follow-up cleared.",
+      "SAVED": "Saved — {leadId}{family}",
+      "SAVED_FAMILY": " · tied to the same family as lead {from}"
+    },
+    "classFlags": {
+      "unrecognized": "\"{value}\" gave no class — the label was kept and nothing was guessed.",
+      "examYear": "{kind} {year} does not give a class for a visit in {visit} (it would be {would}) — the class was left empty rather than guessed.",
+      "outOfRange": "{value} is not a class ({min}–{max}) — the class was left empty."
+    },
+    "classRead": {
+      "group": "Class {class}{session}{exam}",
+      "examNoClass": "{exam} {year} — class not derived",
+      "unread": "could not be read",
+      "empty": "nothing written",
+      "newSession": " (next session)"
+    },
+    "noteTemplates": {
+      "admissionOpened": "Admission application opened: {reference}",
+      "trialBooked": "Trial class booked: {reference}"
+    }
   }
 }

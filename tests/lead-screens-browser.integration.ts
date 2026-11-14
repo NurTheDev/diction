@@ -44,6 +44,8 @@ import {formatNumber} from '../src/lib/admin/format';
 import bn from '../src/messages/bn.json';
 
 const t=bn.leads;
+/** Resolve a nested leads key the way next-intl does, so the label helpers can be exercised here. */
+const lt=(key:string):string=>key.split('.').reduce((node:unknown,part:string)=>(node as Record<string,unknown>)?.[part],bn.leads as unknown) as string;
 const SHOTS=path.join('screenshots','r3');
 
 const P1='01712817090',P2='01811223344',P3='01933445566',P4='01611998877';
@@ -174,8 +176,8 @@ async function run(){
     for(const name of [RAHUL,SISTER,OLD,NO_PHONE,BLOCKED,NEXT_WEEK])assert.ok(body.includes(name),`the list shows ${name}`);
     assert.ok(body.includes(MASK_1),`a number is shown as its mask (${MASK_1})`);
     assert.ok(!body.includes(P1),'and the number itself is never printed');
-    assert.ok(body.includes(statusLabel('new','bn')),'with its status');
-    assert.ok(body.includes(statusLabel('do_not_contact','bn')),'including the do-not-contact one');
+    assert.ok(body.includes(statusLabel(lt,'new')),'with its status');
+    assert.ok(body.includes(statusLabel(lt,'do_not_contact')),'including the do-not-contact one');
     assert.ok(body.includes(t.noPhone),'a lead with no number says so instead of leaving an empty cell');
     assert.ok(body.includes(t.lastNote),'the last note is on the row, so the queue can be read without opening anything');
     assert.ok(await boss.page.locator(`a[href="tel:+88${P1.slice(1)}"]`).count()>0,'the call destination is a real link');
@@ -429,17 +431,17 @@ async function run(){
     await row.locator('select[name="status"]').selectOption('called');
     await row.locator('form:has(select[name="status"]) button[type="submit"]').click();
     await until(async()=>(await Lead.findOne({studentName:RAHUL}).lean<{status:string}>())!.status==='called','the inline status dropdown to write');
-    await row.locator('.admin-badge',{hasText:statusLabel('called','bn')}).first().waitFor({timeout:90000});
+    await row.locator('.admin-badge',{hasText:statusLabel(lt,'called')}).first().waitFor({timeout:90000});
     assert.equal((await Lead.findOne({studentName:RAHUL}).lean<{status:string}>())!.status,'called','the inline dropdown really changed the status, and the row re-rendered with it');
 
     const followUpOf=async()=>(await Lead.findOne({studentName:RAHUL}).lean<{nextFollowUp:string|null}>())!.nextFollowUp;
     for(const [key,offset] of [['today',0],['tomorrow',1],['three_days',3],['next_week',7]] as [string,number][]){
-      const label=followUpLabel(key as 'today','bn'),expected=day(offset);
+      const label=followUpLabel(lt,key as 'today'),expected=day(offset);
       await row.locator('form:has(button[name="followUp"]) button',{hasText:label}).first().click();
       await until(async()=>(await followUpOf())===expected,`"${label}" to write ${expected}`);
       assert.equal(await followUpOf(),expected,`"${label}" writes ${expected} — a day in Dhaka, computed by the rule layer and never by the browser`);
     }
-    await row.locator('form:has(button[name="followUp"]) button',{hasText:followUpLabel('clear','bn')}).first().click();
+    await row.locator('form:has(button[name="followUp"]) button',{hasText:followUpLabel(lt,'clear')}).first().click();
     await until(async()=>(await followUpOf())===null,'"clear" to take the promise away');
     assert.equal(await followUpOf(),null,'and "clear" leaves no follow-up behind');
 
@@ -475,7 +477,7 @@ async function run(){
 
     // Working the queue from the widget: one tap moves a lead to tomorrow and it leaves today's list.
     const widgetRow=widget.locator('table.admin-table tbody tr',{hasText:SISTER}).first();
-    await widgetRow.locator('button',{hasText:followUpLabel('tomorrow','bn')}).first().click();
+    await widgetRow.locator('button',{hasText:followUpLabel(lt,'tomorrow')}).first().click();
     // The row leaves the widget as soon as the page revalidates, so its own feedback may never be
     // painted — what has to be true is the day it wrote.
     await until(async()=>(await Lead.findOne({studentName:SISTER}).lean<{nextFollowUp:string|null}>())!.nextFollowUp===day(1),'the widget’s Tomorrow button to write');

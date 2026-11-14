@@ -3,9 +3,11 @@ import {formatNumber,formatDate,formatTime,formatClass} from '../src/lib/admin/f
 const t='2026-11-10T05:25:00.000Z';
 assert.equal(formatDate(t),'১০ নভেম্বর ২০২৬');
 assert.equal(formatDate(t,'en'),'10 নভেম্বর 2026');
-assert.equal(formatTime(t),'সকাল ১১:২৫');
-assert.equal(formatTime(t,'en'),'সকাল 11:25');
-assert.equal(formatTime('2026-11-10T12:25:00.000Z'),'সন্ধ্যা ৬:২৫');
-assert.equal(formatClass('10'),'শ্রেণি ১০');
+const periods:Record<string,string>={morning:'সকাল',noon:'দুপুর',afternoon:'বিকাল',evening:'সন্ধ্যা',night:'রাত'};
+assert.equal(formatTime(t,'bn','bn',k=>periods[k]),'সকাল ১১:২৫');
+assert.equal(formatTime(t,'en','en',k=>periods[k]),'11:25');
+assert.equal(formatTime('2026-11-10T12:25:00.000Z','bn','bn',k=>periods[k]),'সন্ধ্যা ৬:২৫');
+assert.equal(formatClass('10','bn','bn','শ্রেণি'),'শ্রেণি ১০');
+assert.equal(formatClass('10','en','en','Class'),'Class 10');
 assert.equal(formatNumber(99),'৯৯');
 console.log('Admin formatter tests passed.');

@@ -39,7 +39,7 @@ export async function LeadFollowUps({digits='bn',language='bn',limit=6}:{digits?
           return <tr key={row.id}>
             <td data-label={t('colVisitor')}><div>
               <strong>{row.studentName}</strong>
-              <br/><span className="admin-help">{row.leadId}{row.classGroup?` · ${formatClass(row.classGroup,digits,language)}`:row.classLabel?` · ${row.classLabel}`:''}</span>
+              <br/><span className="admin-help">{row.leadId}{row.classGroup?` · ${formatClass(row.classGroup,digits,language,t('colClass'))}`:row.classLabel?` · ${row.classLabel}`:''}</span>
             </div></td>
             <td data-label={t('colContact')}><div className="lead-row">
               {view.phones.length?view.phones.map((phone,index)=><span key={index} className="list-row-actions">
@@ -50,7 +50,7 @@ export async function LeadFollowUps({digits='bn',language='bn',limit=6}:{digits?
             </div></td>
             <td data-label={t('colFollowUp')}><div className="list-row-actions">
               {row.nextFollowUp&&<span className={`admin-badge ${followUpBadge(row.followUp)}`}>{formatDate(row.nextFollowUp,digits,language)}</span>}
-              <span className={`admin-badge ${statusBadge(row.status)}`}>{statusLabel(row.status,language)}</span>
+              <span className={`admin-badge ${statusBadge(row.status)}`}>{statusLabel(t,row.status)}</span>
             </div></td>
             <td data-label={t('colActions')}><div className="lead-row">
               <div className="list-row-actions"><LeadDetailDrawer seed={view} language={language} digits={digits}/></div>

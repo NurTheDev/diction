@@ -9,9 +9,11 @@
  */
 import assert from 'node:assert/strict';
 import {dhakaDay} from '../src/lib/admin/today';
+import bn from '../src/messages/bn.json';
+import en from '../src/messages/en.json';
 import {
-  LEAD_STATUSES,LEAD_STATUS_LABELS,LEAD_SOURCES,LEAD_SOURCE_LABELS,LEAD_SHIFTS,LEAD_SHIFT_LABELS,
-  LEAD_MEDIUMS,LEAD_MEDIUM_LABELS,LEAD_GROUPS,LEAD_GROUP_LABELS,LEAD_NOTE_OUTCOMES,LEAD_NOTE_OUTCOME_LABELS,
+  LEAD_STATUSES,LEAD_STATUS_LABEL_KEYS,LEAD_SOURCES,LEAD_SOURCE_LABEL_KEYS,LEAD_SHIFTS,LEAD_SHIFT_LABEL_KEYS,
+  LEAD_MEDIUMS,LEAD_MEDIUM_LABEL_KEYS,LEAD_GROUPS,LEAD_GROUP_LABEL_KEYS,LEAD_NOTE_OUTCOMES,LEAD_NOTE_OUTCOME_LABEL_KEYS,
   FOLLOW_UP_OPTIONS,canContact,statusToFlags,nextFollowUpDay,followUpState,followUpWindows,
   maskPhone,leadPath,leadListQuery,familyKeyFromPhones,archiveSuggestionDay,suggestsArchive,
 } from '../src/lib/leads/vocab';
@@ -22,14 +24,17 @@ const at=(day:string,hhmm='10:00'):Date=>new Date(`${day}T${hhmm}:00+06:00`);
 function run(){
   // ---- 1. The brief's eight statuses, each with words an operator reads.
   assert.deepEqual([...LEAD_STATUSES],['new','called','interested','trial_booked','admitted','not_interested','no_answer','do_not_contact'],'the brief\'s eight statuses, and no ninth');
-  for(const [values,labels] of [
-    [LEAD_STATUSES,LEAD_STATUS_LABELS],[LEAD_SOURCES,LEAD_SOURCE_LABELS],[LEAD_SHIFTS,LEAD_SHIFT_LABELS],
-    [LEAD_MEDIUMS,LEAD_MEDIUM_LABELS],[LEAD_GROUPS,LEAD_GROUP_LABELS],[LEAD_NOTE_OUTCOMES,LEAD_NOTE_OUTCOME_LABELS],
+  const resolve=(catalog:unknown,key:string):string=>key.split('.').reduce((node:unknown,part:string)=>(node as Record<string,unknown>)?.[part],catalog) as string;
+  for(const [values,keys] of [
+    [LEAD_STATUSES,LEAD_STATUS_LABEL_KEYS],[LEAD_SOURCES,LEAD_SOURCE_LABEL_KEYS],[LEAD_SHIFTS,LEAD_SHIFT_LABEL_KEYS],
+    [LEAD_MEDIUMS,LEAD_MEDIUM_LABEL_KEYS],[LEAD_GROUPS,LEAD_GROUP_LABEL_KEYS],[LEAD_NOTE_OUTCOMES,LEAD_NOTE_OUTCOME_LABEL_KEYS],
   ] as const){
     for(const value of values){
-      const label=(labels as Record<string,{bn:string;en:string}>)[value];
-      assert.ok(label&&label.bn&&label.en,`${value} has both a Bangla and an English label`);
-      assert.ok(!/[A-Za-z]/.test(label.bn),`${value}’s Bangla label is Bangla`);
+      const key=(keys as Record<string,string>)[value];
+      const bnLabel=resolve(bn.leads,key),enLabel=resolve(en.leads,key);
+      assert.ok(bnLabel&&enLabel,`${value} has both a Bangla and an English label in the catalogue (${key})`);
+      assert.ok(!/[A-Za-z]/.test(bnLabel),`${value}’s Bangla label is Bangla`);
+      assert.ok(!/[\u0980-\u09ff]/.test(enLabel),`${value}’s English label has no Bangla characters`);
     }
     assert.equal(new Set(values).size,values.length,`${values[0]}… has no duplicate value`);
   }

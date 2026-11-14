@@ -45,8 +45,8 @@ export interface HandoffLead{
 }
 
 export type HandoffRefusalCode='MISSING'|'BINNED'|'ALREADY_CONVERTED'|'ALREADY_BOOKED'|'NO_PHONE'|'NO_REASON'|'REASON_TOO_SHORT'|'REASON_TOO_LONG'|'SLOT_FULL'|'SLOT_GONE'|'NO_CONSENT';
-export interface HandoffRefusal{ok:false;code:HandoffRefusalCode;messageBn:string;messageEn:string}
-const refusal=(code:HandoffRefusalCode,messageBn:string,messageEn:string):HandoffRefusal=>({ok:false,code,messageBn,messageEn});
+export interface HandoffRefusal{ok:false;code:HandoffRefusalCode;messageKey:string;messageParams:Record<string,string|number>}
+const refusal=(code:HandoffRefusalCode,messageKey:string,messageParams:Record<string,string|number>={}):HandoffRefusal=>({ok:false,code,messageKey,messageParams});
 
 /** The admission grade list is the intake schema's own: classes 4–12, nothing invented above or below. */
 export const HANDOFF_GRADES=['4','5','6','7','8','9','10','11','12'] as const;
@@ -78,15 +78,9 @@ export function trialPrefill(lead:HandoffLead):TrialPrefill{
 /** The reason behind "not interested": required, trimmed, and bounded. */
 export function notInterestedReason(raw:unknown):{ok:true;reason:string}|HandoffRefusal{
   const reason=String(raw||'').trim().replace(/\s+/g,' ');
-  if(!reason)return refusal('NO_REASON',
-    '"আগ্রহী নন" লিখতে একটি কারণ লাগবে — পরে এই সারিটি কে কেন বন্ধ করল জানা যাবে।',
-    'Marking a visitor not interested needs a reason — somebody must be able to read later why this row closed.');
-  if(reason.length<NOT_INTERESTED_REASON_MIN)return refusal('REASON_TOO_SHORT',
-    'কারণটি খুব ছোট — অন্তত কয়েকটি শব্দ লিখুন।',
-    'That reason is too short — write a few words.');
-  if(reason.length>NOT_INTERESTED_REASON_MAX)return refusal('REASON_TOO_LONG',
-    `কারণটি ${NOT_INTERESTED_REASON_MAX} অক্ষরের মধ্যে রাখুন।`,
-    `Keep the reason within ${NOT_INTERESTED_REASON_MAX} characters.`);
+  if(!reason)return refusal('NO_REASON','errors.NO_REASON');
+  if(reason.length<NOT_INTERESTED_REASON_MIN)return refusal('REASON_TOO_SHORT','errors.REASON_TOO_SHORT');
+  if(reason.length>NOT_INTERESTED_REASON_MAX)return refusal('REASON_TOO_LONG','errors.REASON_TOO_LONG',{max:NOT_INTERESTED_REASON_MAX});
   return {ok:true,reason};
 }
 
@@ -114,14 +108,8 @@ export function handoffReference(prefix:'ADM'|'TRI',now:Date=new Date()):string{
 
 /** What stops a hand-off, read off the lead alone — the checks a screen can show before any write. */
 export function handoffBlock(lead:Pick<HandoffLead,'admission'|'trialBooking'|'phones'>,kind:'admission'|'trial'):HandoffRefusal|null{
-  if(kind==='admission'&&lead.admission)return refusal('ALREADY_CONVERTED',
-    'এই ভিজিটরের একটি ভর্তি আবেদন আগেই খোলা হয়েছে।',
-    'This visitor already has an admission open.');
-  if(kind==='trial'&&lead.trialBooking)return refusal('ALREADY_BOOKED',
-    'এই ভিজিটরের একটি ট্রায়াল ক্লাস আগেই বুক হয়ে আছে।',
-    'This visitor already has a trial booked.');
-  if(!lead.phones.length)return refusal('NO_PHONE',
-    'নাম্বার ছাড়া ভর্তি বা ট্রায়াল খোলা যায় না — আগে লিডে নাম্বার যোগ করুন।',
-    'An admission or a trial needs a number — add one to the lead first.');
+  if(kind==='admission'&&lead.admission)return refusal('ALREADY_CONVERTED','errors.ALREADY_CONVERTED');
+  if(kind==='trial'&&lead.trialBooking)return refusal('ALREADY_BOOKED','errors.ALREADY_BOOKED');
+  if(!lead.phones.length)return refusal('NO_PHONE','errors.NO_PHONE');
   return null;
 }

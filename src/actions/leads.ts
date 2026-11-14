@@ -19,6 +19,9 @@
  * (`searchHitViews`): the rule layer matches on a normalized number and keeps it, and the browser gets
  * the mask plus the `tel:` and `wa.me` destinations, which is all a screen may hold.
  */
+import {cookies} from 'next/headers';
+import {getTranslations} from 'next-intl/server';
+import {formatNumber} from '@/lib/admin/format';
 import {revalidatePath} from 'next/cache';
 import {requireArchiver} from '@/lib/admin/guard';
 import {
@@ -42,17 +45,27 @@ function refreshLeadPage(id:string):void{
   for(const locale of ['bn','en'])revalidatePath(`/${locale}/admin/leads/${id}`);
 }
 
-function refused(error:unknown):LeadFormState{
+async function refused(error:unknown):Promise<LeadFormState>{
   if(String((error as Error)?.message||'')==='UNAUTHORIZED'){
-    return {status:'error',messageBn:'ভিজিটর তালিকায় লেখার অনুমতি নেই।',messageEn:'You do not have access to the visitor list.'};
+    return {status:'error',message:await leadMsg({messageKey:'actionErrors.m1',messageParams:{}})};
   }
   // Not the error text: a driver error can quote the value it choked on, and on this screen that value
   // can be a parent's number. The name is enough to tell a timeout from a validation error.
   console.error('lead action failed',{name:(error as Error)?.name||'unknown'});
-  return {status:'error',messageBn:'কাজটি করা যায়নি। আবার চেষ্টা করুন।',messageEn:'That did not go through. Please try again.'};
+  return {status:'error',message:await leadMsg({messageKey:'actionErrors.m2',messageParams:{}})};
 }
 
-const IDLE:LeadSearchActionState={status:'idle',hits:[],total:0,masked:'',messageBn:'',messageEn:''};
+
+/** The acting user's digit preference, so a server-side sentence counts in the digits they chose. */
+async function leadDigits(userId:string):Promise<'bn'|'en'>{return (await cookies()).get(`diction_digits_${userId}`)?.value==='en'?'en':'bn'}
+/** Translate a rule-layer refusal into one sentence in the acting user's locale and digits. */
+async function leadMsg(r:{messageKey:string;messageParams?:Record<string,string|number>;messageText?:string},digits:'bn'|'en'='bn'):Promise<string>{
+  if(r.messageText)return r.messageText;
+  const t=await getTranslations('leads');
+  return t(r.messageKey,Object.fromEntries(Object.entries(r.messageParams||{}).map(([k,v])=>[k,typeof v==='number'?formatNumber(v,digits):v])) as never);
+}
+
+const IDLE:LeadSearchActionState={status:'idle',hits:[],total:0,masked:'',message:''};
 const text=(form:FormData,key:string):string=>String(form.get(key)??'').trim();
 
 /**
@@ -64,15 +77,16 @@ const text=(form:FormData,key:string):string=>String(form.get(key)??'').trim();
 export async function searchLeadsByNumber(_:LeadSearchActionState|null,form:FormData):Promise<LeadSearchActionState>{
   try{
     const staff=await requireArchiver();
+    const digits=await leadDigits(String(staff.id));
     // `staff.id`, not `_id`: getCurrentUser() hands back a projected session user.
     const result=await searchLeadsByPhone(form.get('phone'),new Date(),25,String(staff.id));
-    return {status:result.status,hits:searchHitViews(result.hits),total:result.total,masked:result.masked,messageBn:result.messageBn,messageEn:result.messageEn};
+    return {status:result.status,hits:searchHitViews(result.hits),total:result.total,masked:result.masked,message:await leadMsg(result,digits)};
   }catch(error){
     if(String((error as Error)?.message||'')==='UNAUTHORIZED'){
-      return {...IDLE,status:'unauthorized',messageBn:'ভিজিটর তালিকা দেখার অনুমতি নেই।',messageEn:'You do not have access to the visitor list.'};
+      return {...IDLE,status:'unauthorized',message:await leadMsg({messageKey:'actionErrors.m4',messageParams:{}})};
     }
     console.error('lead number search failed',{name:(error as Error)?.name||'unknown'});
-    return {...IDLE,status:'error',messageBn:'নাম্বার দিয়ে খোঁজা যায়নি। আবার চেষ্টা করুন।',messageEn:'The number search did not run. Please try again.'};
+    return {...IDLE,status:'error',message:await leadMsg({messageKey:'actionErrors.m5',messageParams:{}})};
   }
 }
 
@@ -84,6 +98,7 @@ export async function searchLeadsByNumber(_:LeadSearchActionState|null,form:Form
 export async function quickAddLead(_:LeadFormState|null,form:FormData):Promise<LeadFormState>{
   try{
     const staff=await requireArchiver();
+    const digits=await leadDigits(String(staff.id));
     const followUp=text(form,'followUp');
     // R3.10: the duplicate question is answered by whichever button the operator pressed. A merge button
     // carries the lead it names; the sibling and separate buttons carry only the choice.
@@ -100,15 +115,15 @@ export async function quickAddLead(_:LeadFormState|null,form:FormData):Promise<L
     },String(staff.id));
     if(result.ok===false&&'holders' in result){
       // The question, not an error: the form keeps what was typed and the panel lists who holds the number.
-      return {status:'dup',holders:result.holders,messageBn:result.messageBn,messageEn:result.messageEn};
+      return {status:'dup',holders:result.holders,message:await leadMsg(result,digits)};
     }
-    if(result.ok===false)return {status:'error',messageBn:result.messageBn,messageEn:result.messageEn,field:result.code};
+    if(result.ok===false)return {status:'error',message:await leadMsg(result,digits),field:result.code};
     refreshLeads();
     if(result.mergedInto){
-      return {status:'ok',leadId:result.leadId,messageBn:`${result.leadId} লিডে মিলিয়ে দেওয়া হয়েছে — নতুন লিড বানানো হয়নি।`,messageEn:`Merged into ${result.leadId} — no new lead was written.`};
+      return {status:'ok',leadId:result.leadId,message:await leadMsg({messageKey:'success.m1',messageParams:{leadId:result.leadId}},digits)};
     }
-    return {status:'ok',leadId:result.leadId,messageBn:`সংরক্ষিত হয়েছে — ${result.leadId}${result.inheritedFrom?` · একই পরিবারের ${result.inheritedFrom} লিডের সাথে যুক্ত`:''}`,messageEn:`Saved — ${result.leadId}${result.inheritedFrom?` · joined to ${result.inheritedFrom} in the same family`:''}`};
-  }catch(error){return refused(error)}
+    return {status:'ok',leadId:result.leadId,message:await leadMsg({messageKey:'success.SAVED',messageParams:{leadId:result.leadId,family:result.inheritedFrom?await leadMsg({messageKey:'success.SAVED_FAMILY',messageParams:{from:result.inheritedFrom||''}},digits):''}},digits)};
+  }catch(error){return await refused(error)}
 }
 
 /**
@@ -119,58 +134,62 @@ export async function quickAddLead(_:LeadFormState|null,form:FormData):Promise<L
 export async function mergeTwoLeads(_:LeadFormState|null,form:FormData):Promise<LeadFormState>{
   try{
     const staff=await requireArchiver();
+    const digits=await leadDigits(String(staff.id));
     const result=await mergeLeads(text(form,'targetId'),text(form,'sourceId'),String(staff.id));
-    if(result.ok===false)return {status:'error',messageBn:result.messageBn,messageEn:result.messageEn,field:result.code};
+    if(result.ok===false)return {status:'error',message:await leadMsg(result,digits),field:result.code};
     refreshLeads();refreshLeadPage(result.id);
     return {status:'ok',leadId:result.leadId,
-      messageBn:`${result.sourceLeadId} কে ${result.leadId}-এ মিলিয়ে দেওয়া হয়েছে — ${result.movedNotes||0}টি নোট ও ${result.movedPhones||0}টি নাম্বারসহ; পুরনো লিডটি বিনে আছে।`,
-      messageEn:`${result.sourceLeadId} was merged into ${result.leadId} with ${result.movedNotes||0} notes and ${result.movedPhones||0} numbers; the old lead is in the bin.`};
-  }catch(error){return refused(error)}
+      message:await leadMsg({messageKey:'success.m2',messageParams:{leadId:result.leadId,source:result.sourceLeadId||'',notes:result.movedNotes||0,phones:result.movedPhones||0}},digits)};
+  }catch(error){return await refused(error)}
 }
 
 /** R3.10, "add as sibling" for two leads that stay two leads: both wear one family key afterwards. */
 export async function tieLeadFamilies(_:LeadFormState|null,form:FormData):Promise<LeadFormState>{
   try{
     const staff=await requireArchiver();
+    const digits=await leadDigits(String(staff.id));
     const result=await tieLeadFamily(text(form,'id'),text(form,'otherId'),String(staff.id));
-    if(result.ok===false)return {status:'error',messageBn:result.messageBn,messageEn:result.messageEn,field:result.code};
+    if(result.ok===false)return {status:'error',message:await leadMsg(result,digits),field:result.code};
     refreshLeads();refreshLeadPage(text(form,'id'));refreshLeadPage(text(form,'otherId'));
-    return {status:'ok',messageBn:'দুটি লিড এখন একই পরিবারে যুক্ত।',messageEn:'Both leads now tie to the same family.'};
-  }catch(error){return refused(error)}
+    return {status:'ok',message:await leadMsg({messageKey:'success.m3',messageParams:{}},digits)};
+  }catch(error){return await refused(error)}
 }
 
 /** The inline status dropdown on every row. `doNotContact` stays sticky; the rule layer owns that. */
 export async function changeLeadStatus(_:LeadFormState|null,form:FormData):Promise<LeadFormState>{
   try{
     const staff=await requireArchiver();
+    const digits=await leadDigits(String(staff.id));
     const result=await updateLeadStatus(text(form,'id'),text(form,'status'),String(staff.id),new Date(),text(form,'note')||undefined);
-    if(result.ok===false)return {status:'error',messageBn:result.messageBn,messageEn:result.messageEn,field:result.code};
+    if(result.ok===false)return {status:'error',message:await leadMsg(result,digits),field:result.code};
     refreshLeads();
-    return {status:'ok',messageBn:result.doNotContact?'অবস্থা বদলেছে — এই লিডে আর যোগাযোগ করা হবে না।':'অবস্থা বদলেছে।',messageEn:result.doNotContact?'Status changed — this lead will not be contacted.':'Status changed.'};
-  }catch(error){return refused(error)}
+    return {status:'ok',message:await leadMsg({messageKey:result.doNotContact?'success.STATUS_DNC':'success.STATUS_CHANGED',messageParams:{}},digits)};
+  }catch(error){return await refused(error)}
 }
 
 /** The five follow-up buttons. The day is computed in the rule layer, never in the browser. */
 export async function chooseLeadFollowUp(_:LeadFormState|null,form:FormData):Promise<LeadFormState>{
   try{
     const staff=await requireArchiver();
+    const digits=await leadDigits(String(staff.id));
     const key=text(form,'followUp')||FOLLOW_UP_CLEAR;
     const result=await setLeadFollowUp(text(form,'id'),key as FollowUpKey|typeof FOLLOW_UP_CLEAR,String(staff.id),new Date(),text(form,'customDay')||undefined);
-    if(result.ok===false)return {status:'error',messageBn:result.messageBn,messageEn:result.messageEn,field:result.code};
+    if(result.ok===false)return {status:'error',message:await leadMsg(result,digits),field:result.code};
     refreshLeads();
-    return {status:'ok',messageBn:result.nextFollowUp?`ফলো-আপ বসেছে: ${result.nextFollowUp}`:'ফলো-আপ বাদ দেওয়া হয়েছে।',messageEn:result.nextFollowUp?`Follow-up set: ${result.nextFollowUp}`:'Follow-up cleared.'};
-  }catch(error){return refused(error)}
+    return {status:'ok',message:await leadMsg({messageKey:result.nextFollowUp?'success.FOLLOW_UP_SET':'success.FOLLOW_UP_CLEARED',messageParams:result.nextFollowUp?{day:result.nextFollowUp}:{}},digits)};
+  }catch(error){return await refused(error)}
 }
 
 /** A note in the drawer's timeline. */
 export async function writeLeadNote(_:LeadFormState|null,form:FormData):Promise<LeadFormState>{
   try{
     const staff=await requireArchiver();
+    const digits=await leadDigits(String(staff.id));
     const result=await addLeadNote(text(form,'id'),text(form,'text'),text(form,'outcome'),String(staff.id));
-    if(result.ok===false)return {status:'error',messageBn:result.messageBn,messageEn:result.messageEn,field:result.code};
+    if(result.ok===false)return {status:'error',message:await leadMsg(result,digits),field:result.code};
     refreshLeads();
-    return {status:'ok',messageBn:`টীকা সংরক্ষিত হয়েছে (${result.noteCount}টি)।`,messageEn:`Note saved (${result.noteCount} in all).`};
-  }catch(error){return refused(error)}
+    return {status:'ok',message:await leadMsg({messageKey:'success.m4',messageParams:{}},digits)};
+  }catch(error){return await refused(error)}
 }
 
 /**
@@ -197,11 +216,12 @@ export async function loadLeadDetail(key:string):Promise<LeadDetailView|null>{
 export async function liftContactBlock(_:LeadFormState|null,form:FormData):Promise<LeadFormState>{
   try{
     const staff=await requireArchiver();
+    const digits=await leadDigits(String(staff.id));
     const result=await setContactPermission(text(form,'id'),text(form,'allowed')==='true',String(staff.id));
-    if(result.ok===false)return {status:'error',messageBn:result.messageBn,messageEn:result.messageEn,field:result.code};
+    if(result.ok===false)return {status:'error',message:await leadMsg(result,digits),field:result.code};
     refreshLeads();
-    return {status:'ok',messageBn:result.doNotContact?'এই লিডে যোগাযোগ বন্ধ রাখা হয়েছে।':'যোগাযোগের অনুমতি ফিরিয়ে দেওয়া হয়েছে।',messageEn:result.doNotContact?'This lead stays off the contact list.':'Contact allowed again.'};
-  }catch(error){return refused(error)}
+    return {status:'ok',message:await leadMsg({messageKey:result.doNotContact?'success.CONTACT_STOPPED':'success.CONTACT_ALLOWED',messageParams:{}},digits)};
+  }catch(error){return await refused(error)}
 }
 
 /**
@@ -217,40 +237,43 @@ function subjectList(form:FormData):string[]{
 export async function submitLeadAdmission(_:LeadFormState|null,form:FormData):Promise<LeadFormState>{
   try{
     const staff=await requireArchiver();
+    const digits=await leadDigits(String(staff.id));
     const result=await convertLeadToAdmission(text(form,'id'),{
       studentName:text(form,'studentName'),guardianName:text(form,'guardianName'),grade:text(form,'grade'),
       school:text(form,'school'),dob:text(form,'dob'),gender:text(form,'gender'),relation:text(form,'relation'),
       medium:text(form,'medium'),previousResult:text(form,'previousResult'),courseType:text(form,'courseType')||'individual',
       subjects:subjectList(form),packageName:text(form,'packageName'),consent:true,email:text(form,'email'),
     },String(staff.id));
-    if(result.ok===false)return {status:'error',messageBn:result.messageBn,messageEn:result.messageEn,field:result.code};
+    if(result.ok===false)return {status:'error',message:await leadMsg(result,digits),field:result.code};
     refreshLeads();refreshLeadPage(text(form,'id'));refreshIntake();
-    return {status:'ok',messageBn:`ভর্তি আবেদন খোলা হয়েছে: ${result.reference}`,messageEn:`Admission opened: ${result.reference}`};
-  }catch(error){return refused(error)}
+    return {status:'ok',message:await leadMsg({messageKey:'success.m5',messageParams:{}},digits)};
+  }catch(error){return await refused(error)}
 }
 
 export async function submitLeadTrial(_:LeadFormState|null,form:FormData):Promise<LeadFormState>{
   try{
     const staff=await requireArchiver();
+    const digits=await leadDigits(String(staff.id));
     const result=await bookLeadTrial(text(form,'id'),{
       slotId:text(form,'slotId'),slotStartAt:text(form,'slotStartAt'),slotEndAt:text(form,'slotEndAt'),
       grade:text(form,'grade'),subject:text(form,'subject'),studentName:text(form,'studentName'),
       consent:true,email:text(form,'email'),
     },String(staff.id));
-    if(result.ok===false)return {status:'error',messageBn:result.messageBn,messageEn:result.messageEn,field:result.code};
+    if(result.ok===false)return {status:'error',message:await leadMsg(result,digits),field:result.code};
     refreshLeads();refreshLeadPage(text(form,'id'));refreshIntake();
-    return {status:'ok',messageBn:`ট্রায়াল বুক হয়েছে: ${result.reference}`,messageEn:`Trial booked: ${result.reference}`};
-  }catch(error){return refused(error)}
+    return {status:'ok',message:await leadMsg({messageKey:'success.m6',messageParams:{}},digits)};
+  }catch(error){return await refused(error)}
 }
 
 export async function submitLeadNotInterested(_:LeadFormState|null,form:FormData):Promise<LeadFormState>{
   try{
     const staff=await requireArchiver();
+    const digits=await leadDigits(String(staff.id));
     const result=await markLeadNotInterested(text(form,'id'),text(form,'reason'),String(staff.id));
-    if(result.ok===false)return {status:'error',messageBn:result.messageBn,messageEn:result.messageEn,field:result.code};
+    if(result.ok===false)return {status:'error',message:await leadMsg(result,digits),field:result.code};
     refreshLeads();refreshLeadPage(text(form,'id'));
-    return {status:'ok',messageBn:'অবস্থা "আগ্রহী নন" হয়েছে এবং কারণটি টীকা হিসেবে জমা আছে।',messageEn:'Marked not interested, with the reason filed as a note.'};
-  }catch(error){return refused(error)}
+    return {status:'ok',message:await leadMsg({messageKey:'success.m7',messageParams:{}},digits)};
+  }catch(error){return await refused(error)}
 }
 
 /** The trial dialog asks for the slots it may offer when it opens: a seat is a fact of the moment. */

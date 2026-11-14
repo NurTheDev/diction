@@ -18,6 +18,7 @@
  * error message, or a `console` line, and the duplicate-phone report hands out MASKED numbers only —
  * an aggregate result is the kind of thing that ends up pasted into a log.
  */
+import {getTranslations} from 'next-intl/server';
 import mongoose,{isValidObjectId,type FilterQuery} from 'mongoose';
 import {Lead,nextLeadId} from '@/models/Lead';
 import type {LeadPhoneRow,LeadFlagRow} from '@/models/Lead';
@@ -65,8 +66,17 @@ interface LeadDoc{
 }
 
 /** Every refusal this module can return. Nothing throws for an operator's input. */
-export type Refusal={ok:false;code:string;messageBn:string;messageEn:string};
-function refuse(code:string,messageBn:string,messageEn:string):Refusal{return {ok:false,code,messageBn,messageEn}}
+export type Refusal={ok:false;code:string;messageKey:string;messageParams:Record<string,string|number>;messageText?:string};
+function refuse(code:string,messageKey:string,messageParams:Record<string,string|number>={}):Refusal{return {ok:false,code,messageKey,messageParams}}
+/* Stored flag rows keep both languages side by side so a lead written under one locale still explains
+   itself under the other; the sentences themselves live in the catalogs. */
+import bnMessages from '@/messages/bn.json';
+import enMessages from '@/messages/en.json';
+const resolveMessage=(catalog:unknown,key:string):string=>key.split('.').reduce((node:unknown,part:string)=>(node as Record<string,unknown>)?.[part],catalog) as string;
+const fillMessage=(template:string,params:Record<string,string|number>):string=>template.replace(/\{(\w+)\}/g,(_,name)=>String(params[name]??'' ));
+export function renderMessagePair(key:string,params:Record<string,string|number>={}):{messageBn:string;messageEn:string}{
+  return {messageBn:fillMessage(resolveMessage(bnMessages.leads,key),params),messageEn:fillMessage(resolveMessage(enMessages.leads,key),params)};
+}
 
 export interface LeadWriteOk{
   ok:true;id:string;leadId:string;familyKey:string|null;
@@ -94,7 +104,7 @@ export interface LeadDupHolder{id:string;leadId:string;studentName:string;status
  * Quick-add's question instead of a write: this number is already on the list, here is who holds it, and
  * nothing was saved until the operator answers with `sibling`, `merge` or `separate`.
  */
-export interface LeadDupAsk{ok:false;code:'DUPLICATE_PHONE';holders:LeadDupHolder[];messageBn:string;messageEn:string}
+export interface LeadDupAsk{ok:false;code:'DUPLICATE_PHONE';holders:LeadDupHolder[];messageKey:string;messageParams:Record<string,string|number>}
 export type LeadWriteResult=LeadWriteOk|Refusal|LeadDupAsk;
 
 function lastNoteOf(doc:LeadDoc):LeadLastNote{
@@ -127,10 +137,10 @@ function writeRefusal(error:unknown):Refusal{
   const keys=Object.keys((error as {keyPattern?:Record<string,unknown>})?.keyPattern||{});
   if(code===11000){
     const field=keys.join(',')||'value';
-    return refuse('DUPLICATE',`এই তথ্যটি আগেই সংরক্ষিত আছে (${field})।`,`That record already exists (${field}).`);
+    return refuse('DUPLICATE','errors.DUPLICATE',{field:field});
   }
   console.error('lead write failed',{code:code??null,fields:keys});
-  return refuse('WRITE_FAILED','লিডটি সংরক্ষণ করা যায়নি। আবার চেষ্টা করুন।','The lead could not be saved. Please try again.');
+  return refuse('WRITE_FAILED','errors.WRITE_FAILED');
 }
 
 /**
@@ -157,7 +167,7 @@ export async function resolveFamilyKey(phones:(string|null|undefined)[]):Promise
   return {familyKey,inheritedFrom,mergedFrom,mergedLeads};
 }
 
-/** Which leads already hold a number — the warning behind "এই নাম্বারটি আগেই আছে". */
+/** Which leads already hold a number — the warning behind "this number is already here". */
 export async function leadsWithPhone(phone:string):Promise<{id:string;leadId:string;studentName:string;masked:string}[]>{
   const normalized=String(phone||'').trim();
   if(!/^01[3-9]\d{8}$/.test(normalized))return [];
@@ -224,7 +234,7 @@ async function applyPlan(target:LeadDupDoc,plan:LeadMergePlan,mergeNote:LeadDupN
 /** Quick-add's "merge into that lead": the source is the FORM, not a row, so nothing is binned. */
 async function mergeQuickAddInto(targetId:string,source:LeadDupDoc,actorId:string,now:Date):Promise<LeadWriteResult>{
   const target=await findFull(targetId);
-  if(!target)return refuse('MISSING','লিডটি খুঁজে পাওয়া যায়নি।','That lead was not found.');
+  if(!target)return refuse('MISSING','errors.MISSING');
   const plan=planLeadMerge(target,source);
   if(plan.ok===false)return plan;
   try{
@@ -245,12 +255,12 @@ async function mergeQuickAddInto(targetId:string,source:LeadDupDoc,actorId:strin
  */
 export async function mergeLeads(targetId:string,sourceId:string,actorId:string,now:Date=new Date()):Promise<LeadWriteResult>{
   const [target,source]=await Promise.all([findFull(targetId),findFull(sourceId)]);
-  if(!target||!source)return refuse('MISSING','লিডটি খুঁজে পাওয়া যায়নি।','That lead was not found.');
+  if(!target||!source)return refuse('MISSING','errors.MISSING');
   const plan=planLeadMerge(target,source);
   if(plan.ok===false)return plan;
   const binned=await softDelete('lead',source.id,actorId,now);
-  if(binned.status==='blocked')return refuse('MERGE_BLOCKED',binned.messageBn,binned.messageEn);
-  if(binned.status==='missing')return refuse('MISSING','লিডটি খুঁজে পাওয়া যায়নি।','That lead was not found.');
+  if(binned.status==='blocked')return {...refuse('MERGE_BLOCKED','recycleBin.blocked',{}),messageText:binned.message};
+  if(binned.status==='missing')return refuse('MISSING','errors.MISSING');
   let repointed=0;
   try{
     repointed=await applyPlan(target,plan,{at:now,text:`merge ${source.leadId} ${source.studentName}`.slice(0,1000),outcome:'',by:actorId},actorId);
@@ -270,8 +280,8 @@ export async function mergeLeads(targetId:string,sourceId:string,actorId:string,
  */
 export async function tieLeadFamily(id:string,otherId:string,actorId:string):Promise<{ok:true;familyKey:string|null;repointed:number}|Refusal>{
   const [self,other]=await Promise.all([findFull(id),findFull(otherId)]);
-  if(!self||!other||self.binned||other.binned)return refuse('MISSING','লিডটি খুঁজে পাওয়া যায়নি।','That lead was not found.');
-  if(self.id===other.id)return refuse('SAME_LEAD','একই লিডকে নিজের সাথে যুক্ত করা যায় না।','A lead cannot be tied to itself.');
+  if(!self||!other||self.binned||other.binned)return refuse('MISSING','errors.MISSING');
+  if(self.id===other.id)return refuse('SAME_LEAD','errors.SAME_LEAD');
   const tie=tieFamilyKeys(self,other);
   await Lead.updateMany({_id:{$in:[self.id,other.id]}},{$set:{familyKey:tie.familyKey}});
   let repointed=0;
@@ -299,24 +309,24 @@ export interface QuickLeadInput{
  */
 export async function createQuickLead(input:QuickLeadInput,actorId:string,now:Date=new Date()):Promise<LeadWriteResult>{
   const studentName=String(input.studentName||'').trim();
-  if(!studentName)return refuse('NO_NAME','নাম লিখুন — নাম ছাড়া লিড সংরক্ষণ হয় না।','Write a name — a lead is not saved without one.');
+  if(!studentName)return refuse('NO_NAME','errors.NO_NAME');
   const phoneText=String(input.phone||'').trim();
   const read=parsePhoneCell(phoneText);
   if(phoneText&&!read.phones.length){
     const flag=read.flags[0];
-    return refuse('BAD_PHONE',flag?.messageBn||'নাম্বারটি পড়া যায়নি।','That number could not be read.');
+    return refuse('BAD_PHONE',flag?flag.messageKey:'errors.BAD_PHONE',flag?.messageParams||{});
   }
   const followUpKey=input.followUp;
   let nextFollowUp:string|null=null;
   if(followUpKey&&followUpKey!=='clear'){
     nextFollowUp=nextFollowUpDay(followUpKey,now,input.customDay);
-    if(!nextFollowUp)return refuse('BAD_FOLLOW_UP','এই তারিখটি আসল নয়, তাই ফলো-আপ বসানো হয়নি।','That is not a real date, so no follow-up was set.');
+    if(!nextFollowUp)return refuse('BAD_FOLLOW_UP','errors.BAD_FOLLOW_UP');
   }
   const classRead=normalizeClassLabel(input.classLabel||'',now);
   const phones:LeadPhoneRow[]=read.phones.map(row=>({normalized:row.normalized,original:row.original.slice(0,80)}));
   const flags:LeadFlagRow[]=[
-    ...classRead.flags.map(flag=>({field:'classLabel',code:flag.code,original:String(input.classLabel||'').slice(0,200),messageBn:flag.messageBn,messageEn:flag.messageEn,suggested:String(flag.suggested??'')})),
-    ...read.flags.map(flag=>({field:'phones',code:flag.code,original:flag.original.slice(0,200),messageBn:flag.messageBn,messageEn:flag.messageEn,suggested:''})),
+    ...classRead.flags.map(flag=>({field:'classLabel',code:flag.code,original:String(input.classLabel||'').slice(0,200),...renderMessagePair(flag.messageKey,flag.messageParams),suggested:String(flag.suggested??'')})),
+    ...read.flags.map(flag=>({field:'phones',code:flag.code,original:flag.original.slice(0,200),...renderMessagePair(flag.messageKey,flag.messageParams),suggested:''})),
   ];
   const status=(LEAD_STATUSES as readonly string[]).includes(String(input.status||''))?String(input.status) as LeadStatus:'new';
   const source=(LEAD_SOURCES as readonly string[]).includes(String(input.source||''))?String(input.source) as LeadSource:'walk_in';
@@ -329,13 +339,12 @@ export async function createQuickLead(input:QuickLeadInput,actorId:string,now:Da
   // The spec's duplicate rule: WARN and SHOW before anything is written. No choice, no second lead.
   if(holders.length&&!input.dupChoice){
     return {ok:false,code:'DUPLICATE_PHONE',holders,
-      messageBn:'এই নাম্বারটি ভিজিটর তালিকায় আগে থেকেই আছে — দ্বিতীয় লিড বানানো হয়নি। নিচে থেকে বেছে নিন।',
-      messageEn:'This number is already on the visitor list, so no second lead was written. Choose below what to do.'};
+      messageKey:'errors.DUPLICATE_PHONE',messageParams:{}};
   }
   if(holders.length&&input.dupChoice==='merge'){
     const asked=String(input.dupTarget||'').trim();
     const target=holders.find(holder=>holder.id===asked||holder.leadId===asked)||(holders.length===1?holders[0]:undefined);
-    if(!target)return refuse('BAD_DUP_TARGET','কোন্ লিডের সাথে মেলাবেন তা বেছে নিন।','Choose which existing lead to merge into.');
+    if(!target)return refuse('BAD_DUP_TARGET','errors.BAD_DUP_TARGET');
     return mergeQuickAddInto(target.id,{
       id:'',leadId:'',studentName,guardianName:String(input.guardianName||'').trim().slice(0,120),
       school:String(input.school||'').trim().slice(0,160),classLabel:classRead.classLabel,classGroup:classRead.classGroup,
@@ -380,27 +389,27 @@ export interface SheetLeadInput{
  */
 export async function createSheetLead(input:SheetLeadInput,actorId:string,now:Date=new Date()):Promise<LeadWriteResult>{
   const studentName=String(input.studentName||'').trim();
-  if(!studentName)return refuse('NO_NAME','নাম ছাড়া সারি আমদানি হয় না — এটি প্রিভিউতে থেকে যাবে।','A row without a name is not imported; it stays in the preview.');
-  if(!/^\d{4}-\d{2}-\d{2}$/.test(String(input.date||'')))return refuse('BAD_DATE','তারিখটি পড়া যায়নি, তাই সারিটি লেখা হয়নি।','That date could not be read, so the row was not written.');
+  if(!studentName)return refuse('NO_NAME','errors.NO_NAME_ROW');
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(String(input.date||'')))return refuse('BAD_DATE','errors.BAD_DATE');
   const phones=(input.phones||[]).filter(row=>/^01[3-9]\d{8}$/.test(row.normalized));
   const flags=[...(input.flags||[])];
   // `group`/`medium`/`shift` have an honest "we do not know" value. `source` does not, so an unmapped
   // source becomes `other` AND a flag quoting the sheet — the reader can see it was never recognised,
   // which is the difference between "the sheet did not say" and "the sheet said something we could not
   // read". Both are stored; only the second is a doubt worth showing.
-  const unmapped=(field:string,value:unknown,read:unknown,messageBn:string,messageEn:string)=>{
+  const unmapped=(field:string,value:unknown,read:unknown,messageKey:string)=>{
     const text=String(value==null?'':value).trim();
-    if(text&&!read)flags.push({field,code:'unmapped',original:text.slice(0,200),messageBn,messageEn,suggested:''});
+    if(text&&!read)flags.push({field,code:'unmapped',original:text.slice(0,200),...renderMessagePair(messageKey),suggested:''});
   };
   const raw=input.raw||{};
-  unmapped('group',raw.group,input.group,'গ্রুপটি চেনা যায়নি, তাই "অজানা" রাখা হয়েছে।','That group was not recognised, so it was left unknown.');
-  unmapped('medium',raw.medium,input.medium,'মাধ্যমটি চেনা যায়নি, তাই "অজানা" রাখা হয়েছে।','That medium was not recognised, so it was left unknown.');
-  unmapped('shift',raw.shift,input.shift,'শিফটটি চেনা যায়নি, তাই "যেকোনো" রাখা হয়েছে।','That shift was not recognised, so it was left as any.');
-  unmapped('source',raw.source,input.source,'উৎসটি চেনা যায়নি, তাই "অন্যান্য" রাখা হয়েছে।','That source was not recognised, so it was left as other.');
+  unmapped('group',raw.group,input.group,'errors.UNMAPPED_GROUP');
+  unmapped('medium',raw.medium,input.medium,'errors.UNMAPPED_MEDIUM');
+  unmapped('shift',raw.shift,input.shift,'errors.UNMAPPED_SHIFT');
+  unmapped('source',raw.source,input.source,'errors.UNMAPPED_SOURCE');
   const group=input.group||'unknown';const medium=input.medium||'unknown';const shift=input.shift||'any';
   const source=input.source||'other';
   const classRead=input.classLabel?normalizeClassLabel(input.classLabel,now):null;
-  if(classRead)for(const flag of classRead.flags)flags.push({field:'classLabel',code:flag.code,original:classRead.classLabel.slice(0,200),messageBn:flag.messageBn,messageEn:flag.messageEn,suggested:String(flag.suggested??'')});
+  if(classRead)for(const flag of classRead.flags)flags.push({field:'classLabel',code:flag.code,original:classRead.classLabel.slice(0,200),...renderMessagePair(flag.messageKey,flag.messageParams),suggested:String(flag.suggested??'')});
   const family=await resolveFamilyKey(phones.map(row=>row.normalized));
   const status=(LEAD_STATUSES as readonly string[]).includes(String(input.status||''))?String(input.status) as LeadStatus:'new';
   const noteText=String(input.notes||'').trim();
@@ -437,7 +446,7 @@ async function finishCreate(doc:Record<string,unknown>,family:FamilyResolution,f
       return writeRefusal(error);
     }
   }
-  return refuse('ID_BUSY','একই সময়ে আরেকটি লিড সংরক্ষিত হয়েছে। আবার চেষ্টা করুন।','Another lead was saved at the same moment. Please try again.');
+  return refuse('ID_BUSY','errors.ID_BUSY');
 }
 
 export interface LeadSearchHit{
@@ -457,7 +466,7 @@ export interface LeadPhoneSearchResult{
   total:number;
   /** What the UI may echo back: a mask, never the digits that were typed. */
   masked:string;
-  code:string;messageBn:string;messageEn:string;
+  code:string;messageKey:string;messageParams:Record<string,string|number>;
 }
 
 /**
@@ -476,7 +485,7 @@ export interface LeadPhoneSearchResult{
  */
 export async function searchLeadsByPhone(raw:unknown,now:Date=new Date(),limit=25,actorId?:string):Promise<LeadPhoneSearchResult>{
   const read=phoneSearchDigits(raw);
-  if(read.ok===false)return {status:'refused',hits:[],total:0,masked:'—',code:read.code,messageBn:read.messageBn,messageEn:read.messageEn};
+  if(read.ok===false)return {status:'refused',hits:[],total:0,masked:'—',code:read.code,messageKey:read.messageKey,messageParams:read.messageParams};
   const filter={'phones.normalized':{$regex:new RegExp(regexEscape(read.digits))}};
   const [docs,total]=await Promise.all([
     Lead.find(filter).sort({date:-1,createdAt:-1}).limit(limit).lean<LeadDoc[]>(),
@@ -491,7 +500,7 @@ export async function searchLeadsByPhone(raw:unknown,now:Date=new Date(),limit=2
     phones:(doc.phones||[]).map(phone=>({normalized:phone.normalized,original:phone.original,tel:telHref(phone.normalized),whatsapp:whatsappHref(phone.normalized),masked:maskPhone(phone.normalized)})),
   }));
   return {status:hits.length?'found':'empty',hits,total,masked:phoneSearchMask(read.digits),code:'',
-    messageBn:hits.length?'':'এই নাম্বারে কোনো লিড পাওয়া যায়নি।',messageEn:hits.length?'':'No lead holds that number.'};
+    messageKey:hits.length?'':'errors.SEARCH_EMPTY',messageParams:{}};
 }
 
 export interface LeadListParams{
@@ -534,7 +543,7 @@ export function leadListFilter(params:LeadListParams,now:Date=new Date()):Filter
 /**
  * The list. `q` goes through `leadListQuery` first — the same function that refuses to put a number in a
  * URL — so a phone-shaped search is dropped here too and reported, instead of matching leads by number.
- * Names, schools and lead ids stay searchable, because a URL with `?q=রাহুল` in it leaks nothing.
+ * Names, schools and lead ids stay searchable, because a URL with a Bangla name in it leaks nothing.
  */
 export async function listLeads(params:LeadListParams,now:Date=new Date()):Promise<LeadListResult>{
   const filter=leadListFilter(params,now);
@@ -625,14 +634,14 @@ async function findLive(id:string):Promise<LeadDoc|null>{
 }
 
 /**
- * A status change. `doNotContact` is STICKY: choosing "যোগাযোগ করবেন না" sets it, and moving the status
+ * A status change. `doNotContact` is STICKY: choosing "do not contact" sets it, and moving the status
  * back to anything else afterwards does not unset it — an operator un-marking a status must not silently
  * put a parent back on a calling list. Clearing it is its own deliberate action.
  */
 export async function updateLeadStatus(id:string,status:string,actorId:string,now:Date=new Date(),note?:string):Promise<LeadUpdateResult>{
-  if(!(LEAD_STATUSES as readonly string[]).includes(status))return refuse('BAD_STATUS','এই অবস্থাটি নেই।','That is not one of the statuses.');
+  if(!(LEAD_STATUSES as readonly string[]).includes(status))return refuse('BAD_STATUS','errors.BAD_STATUS');
   const current=await findLive(id);
-  if(!current)return refuse('MISSING','লিডটি খুঁজে পাওয়া যায়নি।','That lead was not found.');
+  if(!current)return refuse('MISSING','errors.MISSING');
   const flags=statusToFlags(status as LeadStatus,{doNotContact:current.doNotContact});
   const text=String(note||'').trim();
   const update:FilterQuery<unknown>={$set:{status,doNotContact:flags.doNotContact}};
@@ -645,7 +654,7 @@ export async function updateLeadStatus(id:string,status:string,actorId:string,no
 /** Deliberately un-marking "do not contact" — separate from a status change, so it cannot happen by accident. */
 export async function setContactPermission(id:string,allowed:boolean,actorId:string):Promise<{ok:true;doNotContact:boolean}|Refusal>{
   const current=await findLive(id);
-  if(!current)return refuse('MISSING','লিডটি খুঁজে পাওয়া যায়নি।','That lead was not found.');
+  if(!current)return refuse('MISSING','errors.MISSING');
   await Lead.updateOne({_id:id},{$set:{doNotContact:!allowed,...(allowed&&current.status==='do_not_contact'?{status:'called' as LeadStatus}:{})}});
   await audit(actorId,allowed?'lead.contact.allowed':'lead.contact.blocked',current.leadId);
   return {ok:true,doNotContact:!allowed};
@@ -658,11 +667,11 @@ export async function setContactPermission(id:string,allowed:boolean,actorId:str
  */
 export async function setLeadFollowUp(id:string,key:FollowUpKey|'clear',actorId:string,now:Date=new Date(),customDay?:string):Promise<{ok:true;nextFollowUp:string|null;state:'none'|'today'|'overdue'|'later'}|Refusal>{
   const current=await findLive(id);
-  if(!current)return refuse('MISSING','লিডটি খুঁজে পাওয়া যায়নি।','That lead was not found.');
+  if(!current)return refuse('MISSING','errors.MISSING');
   let nextFollowUp:string|null=null;
   if(key!=='clear'){
     nextFollowUp=nextFollowUpDay(key,now,customDay);
-    if(!nextFollowUp)return refuse('BAD_FOLLOW_UP','এই তারিখটি আসল নয়, তাই ফলো-আপ বসানো হয়নি।','That is not a real date, so no follow-up was set.');
+    if(!nextFollowUp)return refuse('BAD_FOLLOW_UP','errors.BAD_FOLLOW_UP');
   }
   await Lead.updateOne({_id:id},{$set:{nextFollowUp}});
   await audit(actorId,'lead.follow-up',current.leadId);
@@ -672,10 +681,10 @@ export async function setLeadFollowUp(id:string,key:FollowUpKey|'clear',actorId:
 /** A note in the drawer's timeline. `outcome` is optional; the note is the record either way. */
 export async function addLeadNote(id:string,text:string,outcome:string,actorId:string,now:Date=new Date()):Promise<{ok:true;noteCount:number}|Refusal>{
   const body=String(text||'').trim();
-  if(!body)return refuse('NO_NOTE','খালি নোট লেখা যায় না।','An empty note cannot be saved.');
-  if(body.length>1000)return refuse('NOTE_TOO_LONG','নোট ১০০০ অক্ষরের বেশি হলে সংরক্ষণ হয় না।','A note is limited to 1000 characters.');
+  if(!body)return refuse('NO_NOTE','errors.NO_NOTE');
+  if(body.length>1000)return refuse('NOTE_TOO_LONG','errors.NOTE_TOO_LONG');
   const current=await Lead.findById(id).select('leadId notes').lean<{leadId:string;notes:unknown[]}>()||null;
-  if(!current)return refuse('MISSING','লিডটি খুঁজে পাওয়া যায়নি।','That lead was not found.');
+  if(!current)return refuse('MISSING','errors.MISSING');
   await Lead.updateOne({_id:id},{$push:{notes:{at:now,by:actorId,text:body,outcome:outcome||''}}},{runValidators:true});
   await audit(actorId,'lead.note',current.leadId);
   return {ok:true,noteCount:(current.notes||[]).length+1};
@@ -724,7 +733,7 @@ export async function contactableLeadSelection(params:LeadListParams={},now:Date
 /**
  * Bulk-SMS recipients. `CONTACTABLE_LEAD_FILTER` is applied as its own `$and` branch so no caller-supplied
  * filter can override it, and the number left out is returned as well as the list — the send dialog has to
- * be able to say "৩ জন বাদ: যোগাযোগ করবেন না" rather than quietly dropping them.
+ * be able to say "3 left out: do not contact" rather than quietly dropping them.
  */
 export async function contactableLeads(extra:FilterQuery<unknown>={},limit=5000):Promise<LeadSmsSelection>{
   const guarded={$and:[{...CONTACTABLE_LEAD_FILTER},extra]} as FilterQuery<unknown>;
@@ -750,8 +759,8 @@ export interface LeadSmsRow{id:string;leadId:string;studentName:string;phone:str
  *
  * Blocked and phoneless leads are RETURNED rather than dropped, and that is the whole point of this
  * function sitting beside `contactableLeads()`: that one answers "how many are in, how many were left
- * out", which is what the button on the list says, while this one lets the dialog name them — "রাহুল বাদ,
- * যোগাযোগ করবেন না" and "৩ জন বাদ" are not the same sentence, and only the first tells an operator
+ * out", which is what the button on the list says, while this one lets the dialog name them — "Rahul left,
+ * do not contact" and "3 left out" are not the same sentence, and only the first tells an operator
  * where a visitor went. The rule is `canContact()`, re-read here, at the moment the plan is built, so a
  * visitor blocked after the dialog was opened is still not texted.
  *
@@ -827,10 +836,10 @@ async function handoffLead(id:string){
 }
 
 export async function convertLeadToAdmission(leadId:string,input:HandoffAdmissionInput,actorId:string,now:Date=new Date()):Promise<HandoffWriteOk|Refusal|HandoffRefusal>{
-  if(!input.consent)return refuse('NO_CONSENT','সম্মতি ছাড়া ভর্তি আবেদন খোলা যায় না।','An admission cannot be opened without consent.');
+  if(!input.consent)return refuse('NO_CONSENT','errors.NO_CONSENT');
   const lead=await handoffLead(leadId);
-  if(!lead)return refuse('MISSING','লিডটি খুঁজে পাওয়া যায়নি।','That lead was not found.');
-  if(lead.deletedAt)return refuse('BINNED','বিনে থাকা লিড থেকে ভর্তি খোলা যায় না — আগে ফেরত আনুন।','A binned lead cannot be converted — restore it first.');
+  if(!lead)return refuse('MISSING','errors.MISSING');
+  if(lead.deletedAt)return refuse('BINNED','errors.BINNED_ADMISSION');
   const block=handoffBlock({admission:lead.admission?String(lead.admission):null,trialBooking:lead.trialBooking?String(lead.trialBooking):null,phones:lead.phones||[]},'admission');
   if(block)return block;
   const reference=handoffReference('ADM',now);
@@ -848,7 +857,7 @@ export async function convertLeadToAdmission(leadId:string,input:HandoffAdmissio
       admissionId=String(row[0]._id);
       await Lead.updateOne({_id:leadId},{
         $set:{admission:row[0]._id,status:HANDOFF_STATUS.admission,convertedAt:now},
-        $push:{notes:{at:now,by:actorId,text:`ভর্তি আবেদন খোলা হয়েছে: ${reference}`,outcome:'interested'}},
+        $push:{notes:{at:now,by:actorId,text:(await getTranslations('leads'))('noteTemplates.admissionOpened',{reference}),outcome:'interested'}},
       },{runValidators:true,session});
     });
     await audit(actorId,'lead.admission',lead.leadId);
@@ -861,17 +870,17 @@ export interface HandoffTrialInput{
   studentName:string;
 }
 export async function bookLeadTrial(leadId:string,input:HandoffTrialInput,actorId:string,now:Date=new Date()):Promise<HandoffWriteOk|Refusal|HandoffRefusal>{
-  if(!input.consent)return refuse('NO_CONSENT','সম্মতি ছাড়া ট্রায়াল বুক করা যায় না।','A trial cannot be booked without consent.');
+  if(!input.consent)return refuse('NO_CONSENT','errors.NO_CONSENT_TRIAL');
   const lead=await handoffLead(leadId);
-  if(!lead)return refuse('MISSING','লিডটি খুঁজে পাওয়া যায়নি।','That lead was not found.');
-  if(lead.deletedAt)return refuse('BINNED','বিনে থাকা লিড থেকে ট্রায়াল বুক করা যায় না — আগে ফেরত আনুন।','A binned lead cannot book a trial — restore it first.');
+  if(!lead)return refuse('MISSING','errors.MISSING');
+  if(lead.deletedAt)return refuse('BINNED','errors.BINNED_TRIAL');
   const block=handoffBlock({admission:lead.admission?String(lead.admission):null,trialBooking:lead.trialBooking?String(lead.trialBooking):null,phones:lead.phones||[]},'trial');
   if(block)return block;
   const slot=await Slot.findById(input.slotId).select('enabled startAt endAt booked capacity grade subject').lean<{enabled:boolean;startAt:Date;endAt:Date;booked:number;capacity:number;grade:string;subject:string}|null>();
   if(!slot||slot.enabled===false||new Date(slot.startAt).getTime()<=now.getTime())
-    return refuse('SLOT_GONE','ক্লাসটি আর বুক করার মতো নেই — তালিকা থেকে নতুন সময় বাছুন।','That class is no longer open for booking — pick another time from the list.');
+    return refuse('SLOT_GONE','errors.SLOT_GONE');
   if((slot.booked||0)>=(slot.capacity||0))
-    return refuse('SLOT_FULL','এই ক্লাসে আর আসন নেই।','That class has no seat left.');
+    return refuse('SLOT_FULL','errors.SLOT_FULL');
   const reference=handoffReference('TRI',now);
   const phone=(lead.phones||[])[0]?.normalized||'';
   const session=await mongoose.startSession();
@@ -891,14 +900,14 @@ export async function bookLeadTrial(leadId:string,input:HandoffTrialInput,actorI
       bookingId=String(row[0]._id);
       await Lead.updateOne({_id:leadId},{
         $set:{trialBooking:row[0]._id,status:HANDOFF_STATUS.trial},
-        $push:{notes:{at:now,by:actorId,text:`ট্রায়াল ক্লাস বুক হয়েছে: ${reference}`,outcome:'interested'}},
+        $push:{notes:{at:now,by:actorId,text:(await getTranslations('leads'))('noteTemplates.trialBooked',{reference}),outcome:'interested'}},
       },{runValidators:true,session});
     });
     await audit(actorId,'lead.trial',lead.leadId);
     return {ok:true,id:bookingId,leadId:lead.leadId,reference};
   }catch(error){
     if((error as {message?:string}).message==='SLOT_FULL')
-      return refuse('SLOT_FULL','এই ক্লাসে আর আসন নেই।','That class has no seat left.');
+      return refuse('SLOT_FULL','errors.SLOT_FULL');
     return writeRefusal(error);
   }finally{await session.endSession()}
 }
@@ -907,13 +916,13 @@ export async function markLeadNotInterested(leadId:string,rawReason:unknown,acto
   const reason=notInterestedReason(rawReason);
   if(!reason.ok)return reason;
   const lead=await handoffLead(leadId);
-  if(!lead)return refuse('MISSING','লিডটি খুঁজে পাওয়া যায়নি।','That lead was not found.');
-  if(lead.deletedAt)return refuse('BINNED','বিনে থাকা লিডের অবস্থা বদলানো যায় না — আগে ফেরত আনুন।','A binned lead cannot change status — restore it first.');
+  if(!lead)return refuse('MISSING','errors.MISSING');
+  if(lead.deletedAt)return refuse('BINNED','errors.BINNED_STATUS');
   const updated=await Lead.findByIdAndUpdate(leadId,{
     $set:{status:HANDOFF_STATUS.notInterested},
     $push:{notes:{at:now,by:actorId,text:reason.reason,outcome:'not_interested'}},
   },{new:true,runValidators:true}).select('notes leadId').lean<{notes:unknown[];leadId:string}|null>();
-  if(!updated)return refuse('MISSING','লিডটি খুঁজে পাওয়া যায়নি।','That lead was not found.');
+  if(!updated)return refuse('MISSING','errors.MISSING');
   await audit(actorId,'lead.not_interested',updated.leadId);
   return {ok:true,leadId:updated.leadId,noteCount:(updated.notes||[]).length};
 }

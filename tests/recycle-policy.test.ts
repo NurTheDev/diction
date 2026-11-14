@@ -3,14 +3,20 @@ import assert from 'node:assert/strict';
 import {blockedMessage,purgeExpired,kindDef,recycleRegistry,restoreRecord,softDelete,type ReferenceCount} from '../src/lib/admin/recycle';
 import {RECYCLE_RETENTION_DAYS,purgeAtFor,liveFilter,binFilter} from '../src/models/recycle';
 
-// The brief's own example sentence, in both languages.
-const students:ReferenceCount[]=[{count:14,bn:'জন শিক্ষার্থী এই ক্লাস ব্যবহার করে',en:'student(s) use this class'}];
-assert.equal(blockedMessage(students,true),'১৪ জন শিক্ষার্থী এই ক্লাস ব্যবহার করে — মুছে ফেলা যাবে না। আর্কাইভ করুন।');
-assert.equal(blockedMessage(students,false),'14 student(s) use this class — cannot be deleted. Archive it instead.');
+// The brief's own example sentence, in both languages, composed from the catalogue the UI reads.
+import bnMessages from '../src/messages/bn.json';
+import enMessages from '../src/messages/en.json';
+const resolve=(catalog:unknown,key:string):string=>key.split('.').reduce((node:unknown,part:string)=>(node as Record<string,unknown>)?.[part],catalog) as string;
+const fill=(template:string,params:Record<string,unknown>):string=>template.replace(/\{(\w+)\}/g,(_,name)=>String(params[name]??''));
+const tbn=(key:string,params?:Record<string,unknown>)=>fill(resolve(bnMessages.recycleBin,key),params||{});
+const ten=(key:string,params?:Record<string,unknown>)=>fill(resolve(enMessages.recycleBin,key),params||{});
+const students:ReferenceCount[]=[{count:14,messageKey:'recycleBin.kinds.k2'}];
+assert.equal(blockedMessage(students,'bn',tbn),`১৪ ${resolve(bnMessages.recycleBin,'kinds.k2')} — মুছে ফেলা যাবে না। আর্কাইভ করুন।`);
+assert.equal(blockedMessage(students,'en',ten),'14 '+resolve(enMessages.recycleBin,'kinds.k2')+' — cannot be deleted. Archive it instead.');
 
 // Several reasons are joined, and Bangla digits are used for Bangla.
-const two:ReferenceCount[]=[students[0],{count:3,bn:'টি পরীক্ষা এই ক্লাস ব্যবহার করে',en:'exam(s) use this class'}];
-assert.equal(blockedMessage(two,true),'১৪ জন শিক্ষার্থী এই ক্লাস ব্যবহার করে; ৩ টি পরীক্ষা এই ক্লাস ব্যবহার করে — মুছে ফেলা যাবে না। আর্কাইভ করুন।');
+const two:ReferenceCount[]=[students[0],{count:3,messageKey:'recycleBin.kinds.k3'}];
+assert.equal(blockedMessage(two,'bn',tbn),`১৪ ${resolve(bnMessages.recycleBin,'kinds.k2')}; ৩ ${resolve(bnMessages.recycleBin,'kinds.k3')} — মুছে ফেলা যাবে না। আর্কাইভ করুন।`);
 
 // Retention is 30 days, computed from the moment of deletion.
 assert.equal(RECYCLE_RETENTION_DAYS,30);

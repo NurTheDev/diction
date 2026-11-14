@@ -1,9 +1,9 @@
 /**
  * R3 · Visitor leads — reading the sheet's phone numbers.
  *
- * One cell of the Visitor sheet can hold `01712817090`, `0 1934-595247`, `০১৭১২৮১৭০৯০`, two numbers
+ * One cell of the Visitor sheet can hold `01712817090`, `0 1934-595247`, the same number in Bangla digits, two numbers
  * separated by a comma, a space or a word, a number without its leading zero, a number with a label
- * after it (`01712817090 বাবা`), or ten digits that are simply short. All of them are read here, in one
+ * after it (a number followed by a Bangla word for father), or ten digits that are simply short. All of them are read here, in one
  * place, and the rule for every doubtful case is the same: **clean it, never repair it.** Separators
  * carry no information so they go; a missing leading zero is added, because that is what the national
  * format means and not a guess; and anything still not a valid `01XXXXXXXXX` is flagged with the text
@@ -14,16 +14,16 @@
  * and nowhere else, so no screen can invent a variant. They are third-party hrefs in the operator's own
  * browser: never a route of this app, never a query parameter, never written to a log or an audit row.
  */
+import {asciiDigits} from '../admin/format';
 import {normalizePhone} from '@/lib/center/phone';
 import {formatNumber} from '@/lib/admin/format';
 
 export interface PhoneRead{normalized:string;original:string}
-export interface PhoneFlag{original:string;code:'short'|'long'|'extra'|'not_a_number'|'invalid';messageBn:string;messageEn:string}
+export interface PhoneFlag{original:string;code:'short'|'long'|'extra'|'not_a_number'|'invalid';messageKey:string;messageParams:Record<string,string|number>}
 export interface PhoneCellResult{phones:PhoneRead[];flags:PhoneFlag[];sawText:boolean}
 
-const BANGLA_DIGITS=/[০-৯]/g;
 /** Explicit separators between two numbers. A space is NOT one: `0 1934-595247` is a single number. */
-const CELL_SEPARATORS=/[,;।\n\r\t]+/;
+const CELL_SEPARATORS=/[,;\u0964\n\r\t]+/; // i18n-scan-allow: the Bangla full stop is punctuation the sheet is written with
 /** A national mobile number, with or without its leading zero, with or without the 88 country code. */
 const numberPattern=()=>/(?:\+?88)?0?1[3-9]\d{8}/g;
 
@@ -37,19 +37,18 @@ export function parsePhoneCell(raw:unknown):PhoneCellResult{
   // Split the RAW cell, so a flag can quote what was actually written — Bangla digits and all — while
   // the parsing works on the same text with Bangla digits converted.
   const rawPieces=written.split(CELL_SEPARATORS);
-  const asciiPieces=written.replace(BANGLA_DIGITS,c=>String('০১২৩৪৫৬৭৮৯'.indexOf(c))).split(CELL_SEPARATORS);
+  const asciiPieces=asciiDigits(written).split(CELL_SEPARATORS);
   for(const [index,asciiPiece] of asciiPieces.entries()){
     const trimmed=asciiPiece.trim();
     if(!trimmed)continue;
     const original=(rawPieces[index]||asciiPiece).trim();
-    // Only digit runs are read, so a label inside the cell ("বাবা", "mother", "২য় নম্বর") neither
+    // Only digit runs are read, so a label inside the cell (a Bangla word for father, "mother", an
     // breaks the number nor becomes part of it.
     const runs=trimmed.match(/\d+/g)||[];
     const digits=runs.join('');
     if(!digits){
       flags.push({original,code:'not_a_number',
-        messageBn:`"${trimmed}" নম্বর নয় — লেখাটি যেমন আছে তেমনি রাখা হয়েছে।`,
-        messageEn:`"${trimmed}" is not a number — the text was kept exactly as written.`});
+        messageKey:'phoneFlags.not_a_number',messageParams:{value:trimmed}});
       continue;
     }
     let consumed=0;
@@ -58,7 +57,7 @@ export function parsePhoneCell(raw:unknown):PhoneCellResult{
       consumed+=hit[0].length;
       if(!normalized){
         flags.push({original,code:'invalid',
-          messageBn:`"${trimmed}" সঠিক নম্বর নয়।`,messageEn:`"${trimmed}" is not a valid number.`});
+          messageKey:'phoneFlags.invalid',messageParams:{value:trimmed}});
         continue;
       }
       if(!phones.some(phone=>phone.normalized===normalized))phones.push({normalized,original});
@@ -68,16 +67,8 @@ export function parsePhoneCell(raw:unknown):PhoneCellResult{
       // Found a real number but digits remain: reported, not folded into the number.
       const code=consumed>0?'extra':leftover<=10?'short':leftover>=12?'long':'invalid';
       flags.push({original,code,
-        messageBn:code==='short'
-          ? `"${trimmed}" ছোট (${leftover} অঙ্ক) — অনুমান করা হয়নি, যেমন লেখা আছে তেমনি রাখা হয়েছে।`
-          : code==='extra'
-            ? `"${trimmed}" থেকে একটি নম্বর পড়া গেছে, কিন্তু অতিরিক্ত ${leftover} অঙ্ক ছিল — সেটি যোগ করা হয়নি।`
-            : `"${trimmed}" থেকে একটি সঠিক নম্বর পড়া যায়নি।`,
-        messageEn:code==='short'
-          ? `"${trimmed}" is short (${leftover} digits) — not guessed; kept exactly as written.`
-          : code==='extra'
-            ? `"${trimmed}" gave one number, but ${leftover} digit(s) were left over — they were not folded into it.`
-            : `"${trimmed}" could not be read as a valid number.`});
+        messageKey:code==='short'?'phoneFlags.short':code==='extra'?'phoneFlags.extra':'phoneFlags.unreadable',
+        messageParams:{value:trimmed,count:leftover}});
     }
   }
   return {phones,flags,sawText};
@@ -112,7 +103,7 @@ export const PHONE_SEARCH_MAX_DIGITS=15;
 
 export type PhoneSearchRead=
   |{ok:true;digits:string;length:number;hadCountryCode:boolean;hadLeadingZero:boolean}
-  |{ok:false;code:'empty'|'not_a_number'|'too_short'|'too_long';messageBn:string;messageEn:string};
+  |{ok:false;code:'empty'|'not_a_number'|'too_short'|'too_long';messageKey:string;messageParams:Record<string,string|number>};
 
 /**
  * Is this text an attempt to type a NUMBER, rather than a name, a school or a lead id?
@@ -129,35 +120,35 @@ export type PhoneSearchRead=
  *
  * - it starts with a digit — ASCII or Bangla — or with the `+` or `(` a number is written with;
  * - after that it holds digits, spaces, the punctuation a number is grouped with (dash, brackets, plus,
- *   dot) and WORDS. A word is allowed because a number arrives with one attached: `01712817090 বাবা` is
+ *   dot) and WORDS. A word is allowed because a number arrives with one attached: a number plus a Bangla word is
  *   one cell of the owner's own sheet, "father" written beside the number, and an operator who pastes
  *   that into the search box means the number in it. A label does not turn a number into a word search;
  *   `phoneSearchDigits()` drops it and matches the digits, exactly as `parsePhoneCell()` always has.
  *
  * So `V-2026-0001` is NOT one — it starts with a letter, and it is a lead id an operator may legitimately
- * search and share — and neither is `ধানমন্ডি ৯` (a school with a class digit in it) or `Diction
+ * search and share — and neither is a Bangla school name with a class digit in it or `Diction
  * Coaching`. `12` IS one: a number attempt that is simply too short to look anybody up by, which is a
  * different fact about it and gets a different answer.
  */
 export function isNumberAttempt(raw:unknown):boolean{
-  // Bangla digits are digits: ০১৭১২৮১৭০৯০ has to be read the same way 01712817090 is.
-  const ascii=toAsciiDigits(String(raw==null?'':raw).trim());
+  // Bangla digits are digits: a number written in Bangla digits has to be read the same way as its ASCII form.
+  const ascii=asciiDigits(String(raw==null?'':raw).trim());
   if(!ascii||ascii.length>PHONE_ATTEMPT_MAX_LENGTH)return false;
   return NUMBER_SHAPE.test(ascii)&&/[\d]/.test(ascii);
 }
 
 // A number starts with a digit — ASCII or Bangla — or with the `+` or `(` it is written with. After
 // that it is digits, the punctuation a number is grouped with, and words: a number arrives with a word
-// attached (`01712817090 বাবা` is one cell of the owner's own sheet), and an operator who pastes that
+// attached (number plus Bangla word is one cell of the owner's own sheet), and an operator who pastes that
 // into the search box means the number in it, not a word search. `parsePhoneCell()` has always read
 // that cell the same way; this is the same reading of the same text at the other end of the app.
 // `\p{M}` is in that class beside `\p{L}` because Bangla — like Devanagari, Tamil and most of the
-// scripts this app is written in — builds a word out of letters AND combining vowel signs: বাবা is
+// scripts this app is written in — builds a word out of letters AND combining vowel signs, so a Bangla word is
 // U+09AC U+09BE U+09AC U+09BE, letter-mark-letter-mark. A class of letters alone matches none of it, so
-// the label rule silently failed on the very language it was written for, and `01712817090 বাবা` was
+// the label rule silently failed on the very language it was written for, and a labelled number was
 // refused as "not a number". The `-` sits last for a duller reason: between `+` and `\p{L}` V8 reads it
 // as a range from `+` to a property escape and rejects the whole expression.
-const NUMBER_SHAPE=/^(?:[0-9+(]|[০-৯])[0-9\s().\p{L}\p{M}+-]*$/u;
+const NUMBER_SHAPE=/^(?:[0-9+(]|[\u09e6-\u09ef])[0-9\s().\p{L}\p{M}+-]*$/u; // i18n-scan-allow: Bangla digit range as escapes, a shape test not a sentence
 
 /**
  * Above this many characters it is a paste, not a number somebody typed: an SMS body, an id list, a
@@ -167,16 +158,12 @@ const NUMBER_SHAPE=/^(?:[0-9+(]|[০-৯])[0-9\s().\p{L}\p{M}+-]*$/u;
  */
 export const PHONE_ATTEMPT_MAX_LENGTH=40;
 
-/** Bangla digits are digits, everywhere in this file: ০১৭১২৮১৭০৯০ reads as 01712817090. */
-function toAsciiDigits(written:string):string{
-  return written.replace(BANGLA_DIGITS,c=>String('০১২৩৪৫৬৭৮৯'.indexOf(c)));
-}
 
 export function phoneSearchDigits(raw:unknown):PhoneSearchRead{
   const written=String(raw==null?'':raw);
-  if(!written.trim())return {ok:false,code:'empty',messageBn:'নাম্বার লিখুন।',messageEn:'Type a number.'};
-  if(!isNumberAttempt(written))return {ok:false,code:'not_a_number',messageBn:`${formatNumber(written.trim().replace(/\s+/g,' ').length,'bn')} অক্ষরের লেখা কোনো নাম্বার নয় — নাম, প্রতিষ্ঠান বা আইডি লিখুন।`,messageEn:`${written.trim().length} character(s) of that is not a number — type a name, an institution or an id.`};
-  const ascii=toAsciiDigits(written);
+  if(!written.trim())return {ok:false,code:'empty',messageKey:'phoneSearch.empty',messageParams:{}};
+  if(!isNumberAttempt(written))return {ok:false,code:'not_a_number',messageKey:'phoneSearch.not_a_number',messageParams:{count:written.trim().replace(/\s+/g,' ').length}};
+  const ascii=asciiDigits(written);
   let digits=ascii.replace(/\D/g,'');
   let hadCountryCode=false;
   if(/^0088/.test(digits)){digits=digits.slice(4);hadCountryCode=true}
@@ -186,10 +173,10 @@ export function phoneSearchDigits(raw:unknown):PhoneSearchRead{
   const hadLeadingZero=/^0/.test(digits);
   // A refusal quotes how MANY digits were typed, never which — the message ends up on a screen, in an
   // error boundary and, if anybody is careless, in a screenshot shared outside the admin.
-  // Bangla digits in the Bangla sentence: `Number('৪')` is NaN the other way round, and a message that
+  // Bangla digits in the Bangla sentence: Number() of a Bangla digit is NaN the other way round, and a message that
   // mixes 4 into Bangla prose reads like a placeholder somebody forgot to fill in.
-  if(digits.length<PHONE_SEARCH_MIN_DIGITS)return {ok:false,code:'too_short',messageBn:`${formatNumber(digits.length,'bn')} অঙ্ক দিয়ে নাম্বার খোঁজা যায় না — অন্তত ${formatNumber(PHONE_SEARCH_MIN_DIGITS,'bn')} অঙ্ক লিখুন।`,messageEn:`${digits.length} digit(s) is not enough to search — type at least ${PHONE_SEARCH_MIN_DIGITS}.`};
-  if(digits.length>PHONE_SEARCH_MAX_DIGITS)return {ok:false,code:'too_long',messageBn:`${formatNumber(digits.length,'bn')} অঙ্ক কোনো নাম্বার নয় — ${formatNumber(PHONE_SEARCH_MAX_DIGITS,'bn')} অঙ্কের বেশি হলে খোঁজা হয় না।`,messageEn:`${digits.length} digits is not a number — nothing is searched above ${PHONE_SEARCH_MAX_DIGITS}.`};
+  if(digits.length<PHONE_SEARCH_MIN_DIGITS)return {ok:false,code:'too_short',messageKey:'phoneSearch.too_short',messageParams:{count:digits.length,min:PHONE_SEARCH_MIN_DIGITS}};
+  if(digits.length>PHONE_SEARCH_MAX_DIGITS)return {ok:false,code:'too_long',messageKey:'phoneSearch.too_long',messageParams:{count:digits.length,max:PHONE_SEARCH_MAX_DIGITS}};
   return {ok:true,digits,length:digits.length,hadCountryCode,hadLeadingZero};
 }
 

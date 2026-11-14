@@ -11,6 +11,7 @@
  * requireArchiver() for archive-style writes. This file only moves data and writes the audit row.
  */
 import type {Model, Types} from 'mongoose';
+import {formatNumber,type Digits} from './format';
 import {Editorial} from '@/models/Editorial';
 import {Lead} from '@/models/Lead';
 import {Course} from '@/models/Course';
@@ -32,13 +33,12 @@ import {managedStaffRoles} from '@/schemas/admin-staff';
 import {binFilter,liveFilter,purgeAtFor,RECYCLE_RETENTION_DAYS} from '@/models/recycle';
 import {audit} from '@/lib/admin/helpers';
 import {getCloudinary} from '@/lib/cloudinary';
-import {formatNumber} from '@/lib/admin/format';
 import {revalidatePath} from 'next/cache';
 
 export {recycleKinds,archivableKinds,canArchiveKind} from './recycle-kinds';
 export type RecycleKind=import('./recycle-kinds').RecycleKind;
 
-export interface ReferenceCount{count:number;bn:string;en:string}
+export interface ReferenceCount{count:number;messageKey:string}
 export interface CloudAsset{publicId:string;resource:'image'|'raw'|'video'}
 type AnyDoc=Record<string,any>&{_id:Types.ObjectId};
 
@@ -79,7 +79,7 @@ export const recycleRegistry:RecycleKindDef[]=[
        HeroBanner.countDocuments({imageUrl:url}),
      ]);
      const total=editorial+teacher+settings+hero;
-     return total?[{count:total,bn:'টি জায়গায় ছবিটি এখনো ব্যবহৃত',en:'place(s) still use this image'}]:[];
+     return total?[{count:total,messageKey:'recycleBin.kinds.k1'}]:[];
    },
    assets:d=>d.storage==='mongo'||!d.publicId?[]:[{publicId:String(d.publicId),resource:'image'}]},
   {kind:'portalNotice',labelBn:'পোর্টাল নোটিশ',labelEn:'Portal notice',model:()=>PortalNotice,nameOf:d=>localized(d,'title'),archiveSet:{published:false}},
@@ -98,14 +98,14 @@ export const recycleRegistry:RecycleKindDef[]=[
        CenterExam.countDocuments({classGroups:id,...liveFilter}),
      ]);
      const refs:ReferenceCount[]=[];
-     if(students)refs.push({count:students,bn:'জন শিক্ষার্থী এই ক্লাস ব্যবহার করে',en:'student(s) use this class'});
-     if(exams)refs.push({count:exams,bn:'টি পরীক্ষা এই ক্লাস ব্যবহার করে',en:'exam(s) use this class'});
+     if(students)refs.push({count:students,messageKey:'recycleBin.kinds.k2'});
+     if(exams)refs.push({count:exams,messageKey:'recycleBin.kinds.k3'});
      return refs;
    }},
   {kind:'centerExam',labelBn:'কেন্দ্রের পরীক্ষা',labelEn:'Center exam',model:()=>CenterExam,nameOf:d=>localized(d,'name'),
    references:async id=>{
      const results=await CenterExamResult.countDocuments({exam:id});
-     return results?[{count:results,bn:'জন শিক্ষার্থীর ফল এই পরীক্ষায় সংরক্ষিত',en:'saved result(s) belong to this exam'}]:[];
+     return results?[{count:results,messageKey:'recycleBin.kinds.k4'}]:[];
    }},
   // ── second wave (§E6): the record types that had no destructive control at all ────────────
   {kind:'slot',labelBn:'ট্রায়াল ক্লাস স্লট',labelEn:'Trial class slot',model:()=>Slot,
@@ -113,13 +113,13 @@ export const recycleRegistry:RecycleKindDef[]=[
    publicPaths:()=>['/trial-class'],archiveSet:{enabled:false},
    references:async id=>{
      const bookings=await TrialBooking.countDocuments({slot:id,status:'booked'});
-     return bookings?[{count:bookings,bn:'টি বুকিং এই স্লটে নির্ধারিত',en:'booking(s) are scheduled in this slot'}]:[];
+     return bookings?[{count:bookings,messageKey:'recycleBin.kinds.k5'}]:[];
    }},
   {kind:'trialBooking',labelBn:'ট্রায়াল বুকিং',labelEn:'Trial booking',model:()=>TrialBooking,nameOf:d=>d.studentName||d.reference},
   {kind:'admission',labelBn:'ভর্তি আবেদন',labelEn:'Admission application',model:()=>Admission,nameOf:d=>d.studentName||d.reference,
    references:async id=>{
      const doc=await Admission.findById(id).select('status').lean<AnyDoc>();
-     return doc&&doc.status==='enrolled'?[{count:1,bn:'টি ভর্তি ইতোমধ্যে শিক্ষার্থীতে রূপান্তরিত',en:'admission(s) already converted to a student'}]:[];
+     return doc&&doc.status==='enrolled'?[{count:1,messageKey:'recycleBin.kinds.k6'}]:[];
    }},
   {kind:'contactMessage',labelBn:'যোগাযোগ বার্তা',labelEn:'Contact message',model:()=>ContactMessage,nameOf:d=>d.name||d.reference},
   {kind:'heroBanner',labelBn:'হিরো ব্যানার',labelEn:'Hero banner',model:()=>HeroBanner,nameOf:d=>d.key||'home',
@@ -132,22 +132,22 @@ export const recycleRegistry:RecycleKindDef[]=[
      const doc=await User.findById(id).select('role').lean<AnyDoc>();
      if(!doc)return [];
      const refs:ReferenceCount[]=[];
-     if((managedStaffRoles as readonly string[]).includes(doc.role))refs.push({count:1,bn:'টি অ্যাকাউন্ট স্টাফ ভূমিকায় — নিষ্ক্রিয় করুন, মুছবেন না',en:'account(s) hold a staff role — disable instead of deleting'});
+     if((managedStaffRoles as readonly string[]).includes(doc.role))refs.push({count:1,messageKey:'recycleBin.kinds.k7'});
      const profiles=await AcademicStudent.countDocuments({user:id});
-     if(profiles)refs.push({count:profiles,bn:'টি শিক্ষার্থী প্রোফাইল এই অ্যাকাউন্ট ব্যবহার করে',en:'student profile(s) use this account'});
+     if(profiles)refs.push({count:profiles,messageKey:'recycleBin.kinds.k8'});
      return refs;
    }},
   {kind:'exam',labelBn:'পরীক্ষা (পুরোনো একাডেমিক)',labelEn:'Legacy academic exam',model:()=>Exam,nameOf:d=>d.titleBn||d.titleEn,
    archiveSet:{published:false},
    references:async id=>{
      const results=await Result.countDocuments({exam:id});
-     return results?[{count:results,bn:'টি সংরক্ষিত ফল এই পরীক্ষায়',en:'saved result(s) belong to this exam'}]:[];
+     return results?[{count:results,messageKey:'recycleBin.kinds.k9'}]:[];
    }},
   {kind:'modelTest',labelBn:'মডেল টেস্ট',labelEn:'Model test',model:()=>ModelTest,nameOf:d=>d.titleBn||d.titleEn,
    archiveSet:{published:false},
    references:async id=>{
      const attempts=await TestAttempt.countDocuments({test:id});
-     return attempts?[{count:attempts,bn:'টি সংরক্ষিত চেষ্টা এই টেস্টে',en:'saved attempt(s) belong to this test'}]:[];
+     return attempts?[{count:attempts,messageKey:'recycleBin.kinds.k10'}]:[];
    }},
   // ── R3: visitor leads. Archiving is deliberately NOT offered here — a lead has no "unpublished"
   // state, and the brief's 18-month rule is a suggestion on the list, not a field write.
@@ -156,7 +156,7 @@ export const recycleRegistry:RecycleKindDef[]=[
      const doc=await Lead.findById(id).select('admission trialBooking student').lean<AnyDoc>();
      if(!doc)return [];
      return doc.admission||doc.student||doc.trialBooking
-       ? [{count:1,bn:'টি লিড ইতোমধ্যে ভর্তি, শিক্ষার্থী বা ট্রায়াল বুকিংয়ে রূপান্তরিত — মুছে ফেললে সেই সংযোগ হারাবে',en:'lead has already been converted to an admission, a student or a trial booking — deleting it loses that link'}]
+       ? [{count:1,messageKey:'recycleBin.kinds.k11'}]
        : [];
    }},
 ];
@@ -182,23 +182,22 @@ export function kindDef(kind:RecycleKind):RecycleKindDef{
 }
 
 /** "১৪ জন শিক্ষার্থী এই ক্লাস ব্যবহার করে — মুছে ফেলা যাবে না। আর্কাইভ করুন।" */
-export function blockedMessage(refs:ReferenceCount[],bn:boolean):string{
-  const parts=refs.map(ref=>`${formatNumber(ref.count,bn?'bn':'en')} ${bn?ref.bn:ref.en}`);
-  const joined=parts.join(bn?'; ':'; ');
-  return bn?`${joined} — মুছে ফেলা যাবে না। আর্কাইভ করুন।`:`${joined} — cannot be deleted. Archive it instead.`;
+export function blockedMessage(refs:ReferenceCount[],digits:Digits,t:(key:string,params?:Record<string,unknown>)=>string):string{
+  const parts=refs.map(ref=>`${formatNumber(ref.count,digits)} ${t(ref.messageKey.replace('recycleBin.',''))}`).join('; ');
+  return t('blocked',{parts});
 }
 
 export type SoftDeleteResult=
   |{status:'ok';purgeAt:Date;name:string}
-  |{status:'blocked';refs:ReferenceCount[];messageBn:string;messageEn:string}
+  |{status:'blocked';refs:ReferenceCount[];message:string}
   |{status:'missing'};
 
 /** Moves a live record into the bin for RECYCLE_RETENTION_DAYS. Refuses, with counts, when referenced. */
-export async function softDelete(kind:RecycleKind,id:string,actor:string,now:Date=new Date()):Promise<SoftDeleteResult>{
+export async function softDelete(kind:RecycleKind,id:string,actor:string,now:Date=new Date(),digits:Digits='bn',t:(key:string,params?:Record<string,unknown>)=>string=(k)=>k):Promise<SoftDeleteResult>{
   const def=kindDef(kind);
   const refs=def.references?await def.references(id):[];
   const blocking=refs.filter(ref=>ref.count>0);
-  if(blocking.length)return {status:'blocked',refs:blocking,messageBn:blockedMessage(blocking,true),messageEn:blockedMessage(blocking,false)};
+  if(blocking.length)return {status:'blocked',refs:blocking,message:blockedMessage(blocking,digits,t)};
   const purgeAt=purgeAtFor(now);
   const doc=await def.model().findById(id).lean<AnyDoc>();
   const updated=await def.model().updateOne({_id:id,...liveFilter},{$set:{deletedAt:now,deletedBy:actor,purgeAt}});

@@ -43,20 +43,20 @@ function run(){
   assert.equal(short.flags.length,1);
   assert.equal(short.flags[0].code,'short');
   assert.equal(short.flags[0].original,'0171281709','what was written is what gets shown');
-  assert.match(short.flags[0].messageBn,/অনুমান করা হয়নি/,'and the sentence says it was not guessed');
-  assert.match(short.flags[0].messageEn,/not guessed/);
+  assert.equal(short.flags[0].messageKey,'phoneFlags.short','and the flag carries the catalog key of the not-guessed sentence');
+  assert.equal(short.flags[0].messageParams.count,10,'with the leftover digit count as a parameter');
   assert.equal(read('01212817090').phones.length,0,'a prefix that does not exist is not a number');
   assert.equal(read('01212817090').flags[0].code,'invalid');
   const extra=read('01712817090123');
   assert.deepEqual(numbers('01712817090123'),['01712817090'],'one real number was read');
   assert.equal(extra.flags[0].code,'extra','and the digits left over are reported, not folded into it');
-  assert.match(extra.flags[0].messageEn,/left over/);
+  assert.equal(extra.flags[0].messageKey,'phoneFlags.extra','and the leftover digits get the extra-digits sentence');
   assert.deepEqual(numbers('0171281709001911223344'),['01712817090','01911223344'],'two numbers written with nothing between them still read as two');
   assert.equal(read('না').phones.length,0,'a word instead of a number');
   assert.equal(read('না').flags[0].code,'not_a_number');
   assert.equal(read('না').flags[0].original,'না','kept exactly as written');
   assert.equal(read('না').sawText,true,'something was written, so this is not "no number at all"');
-  assert.match(read('না').flags[0].messageBn,/নম্বর নয়/,'and the sentence says it is not a number');
+  assert.equal(read('না').flags[0].messageKey,'phoneFlags.not_a_number','and the flag says it is not a number, by catalog key');
 
   // ---- 4. Nothing written is different from something unreadable — the sheet has both.
   for(const empty of ['', '   ', null, undefined]){
@@ -82,7 +82,7 @@ function run(){
   // number. Three tiny readers keep the assertions below readable.
   const digitsOf=(typed:string):string=>{const read=phoneSearchDigits(typed);return read.ok===true?read.digits:''};
   const refusalOf=(typed:string):string=>{const read=phoneSearchDigits(typed);return read.ok===false?read.code:''};
-  const messageOf=(typed:string):string=>{const read=phoneSearchDigits(typed);return read.ok===false?read.messageBn:''};
+  const messageOf=(typed:string):string=>{const read=phoneSearchDigits(typed);return read.ok===false?read.messageKey:''};
   const readOk=(typed:string)=>{const read=phoneSearchDigits(typed);return read.ok===true?read:null};
   assert.deepEqual([digitsOf('01712817090'),digitsOf('1712817090')],['01712817090','1712817090'],'typed digits, with the leading zero or without it');
   assert.equal(digitsOf('০১৭১২৮১৭০৯০'),'01712817090','Bangla digits read as the same number');
@@ -96,8 +96,8 @@ function run(){
   assert.equal(readOk('7090')?.length,PHONE_SEARCH_MIN_DIGITS,'and four digits is the shortest search allowed');
   assert.equal(digitsOf('1712817'),'1712817','so is a fragment from the middle');
   assert.equal(refusalOf('12'),'too_short','two digits is refused');
-  assert.ok(messageOf('12').includes('২ অঙ্ক'),'the refusal counts the digits in Bangla…');
-  assert.ok(!messageOf('12').includes('12'),'…and does not quote the digits that were typed');
+  assert.equal(messageOf('12'),'phoneSearch.too_short','the refusal is the too-short sentence, by catalog key');
+  assert.equal((phoneSearchDigits('12') as {messageParams?:Record<string,number>}).messageParams?.count,2,'counting the digits as a parameter, never quoting them');
   assert.equal(refusalOf('   '),'empty','an empty box is refused, not searched');
   assert.equal(refusalOf('0'.repeat(PHONE_SEARCH_MAX_DIGITS+1)),'too_long','and sixteen digits is not a number');
   assert.equal(digitsOf('৭০৯০'),'7090','a Bangla fragment reads the same way');
@@ -132,10 +132,10 @@ function run(){
   assert.equal(isNumberAttempt(paste),false,`${PHONE_ATTEMPT_MAX_LENGTH+1} characters of digits is a paste, not a number`);
   assert.equal(isNumberAttempt('0'.repeat(PHONE_ATTEMPT_MAX_LENGTH)),true,'exactly at the limit it is still read as one');
   assert.equal(refusalOf(paste),'not_a_number','and the search says so instead of running it');
-  assert.ok(messageOf(paste).includes('নাম্বার নয়'),'in Bangla, and telling the operator what to type instead');
-  assert.ok(!messageOf(paste).includes('0'.repeat(6)),'the refusal does not quote the paste back');
+  assert.equal(messageOf(paste),'phoneSearch.not_a_number','a paste longer than any number is refused as not a number, by catalog key');
+  assert.equal((phoneSearchDigits(paste) as {messageParams?:Record<string,number>}).messageParams?.count,paste.length,'and the count is a parameter, so the paste is never quoted back');
   assert.equal(refusalOf('রাহুল'),'not_a_number','a name posted to the number search is answered, not run');
-  assert.ok(messageOf('রাহুল').includes('৫'),'counting the characters typed');
+  assert.equal((phoneSearchDigits('রাহুল') as {messageParams?:Record<string,number>}).messageParams?.count,'রাহুল'.length,'counting the characters typed, as a parameter');
   assert.ok(!messageOf('রাহুল').includes('রাহুল'),'and never quoting them');
   assert.ok(!phoneSearchMask('01712817090').includes('01712817090'),'and the mask is never the number');
   assert.equal(phoneSearchMask(''),'****','nothing typed, nothing shown');

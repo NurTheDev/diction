@@ -46,9 +46,9 @@ export interface LeadDupDoc{
   familyKey:string|null;converted:boolean;binned:boolean;
 }
 
-export type LeadMergeRefusal={ok:false;code:'MISSING'|'SAME_LEAD'|'SOURCE_CONVERTED';messageBn:string;messageEn:string};
-function refusal(code:LeadMergeRefusal['code'],messageBn:string,messageEn:string):LeadMergeRefusal{
-  return {ok:false,code,messageBn,messageEn};
+export type LeadMergeRefusal={ok:false;code:'MISSING'|'SAME_LEAD'|'SOURCE_CONVERTED';messageKey:string;messageParams:Record<string,string|number>};
+function refusal(code:LeadMergeRefusal['code'],messageKey:string,messageParams:Record<string,string|number>={}):LeadMergeRefusal{
+  return {ok:false,code,messageKey,messageParams};
 }
 
 export interface LeadMergePlan{
@@ -70,13 +70,11 @@ export interface LeadMergePlan{
 
 export function planLeadMerge(target:LeadDupDoc,source:LeadDupDoc):LeadMergePlan|LeadMergeRefusal{
   if(!target||!source||target.binned||source.binned){
-    return refusal('MISSING','লিডটি খুঁজে পাওয়া যায়নি।','That lead was not found.');
+    return refusal('MISSING','errors.MISSING');
   }
-  if(target.id===source.id)return refusal('SAME_LEAD','একই লিডকে নিজের সাথে মেলানো যায় না।','A lead cannot be merged into itself.');
+  if(target.id===source.id)return refusal('SAME_LEAD','errors.SAME_LEAD_MERGE');
   if(source.converted){
-    return refusal('SOURCE_CONVERTED',
-      `${source.studentName} লিডটি ইতিমধ্যে ভর্তি বা ট্রায়ালে রূপান্তরিত হয়েছে — তাই মুছে মেলানো যায় না।`,
-      `${source.studentName} was already converted to an admission or a trial, so it cannot be merged away.`);
+    return refusal('SOURCE_CONVERTED','errors.SOURCE_CONVERTED',{student:source.studentName});
   }
   const held=new Set((target.phones||[]).map(phone=>phone.normalized));
   const phonesToAdd=(source.phones||[]).filter(phone=>phone.normalized&&!held.has(phone.normalized));

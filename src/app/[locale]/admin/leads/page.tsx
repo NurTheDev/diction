@@ -119,7 +119,7 @@ export default async function Leads({params,searchParams}:{params:Promise<{local
     <nav className="lead-chips" aria-label={t('colStatus')}>
       <Link href={hrefOf({status:undefined})} className={status?'':'selected'}>{t('all')} <span>{formatNumber(everyLead,digits)}</span></Link>
       {counts.map(entry=><Link key={entry.status} href={hrefOf({status:entry.status})} className={status===entry.status?'selected':''}>
-        {statusLabel(entry.status,language)} <span>{formatNumber(entry.count,digits)}</span>
+        {statusLabel(t,entry.status)} <span>{formatNumber(entry.count,digits)}</span>
       </Link>)}
     </nav>
 
@@ -132,27 +132,27 @@ export default async function Leads({params,searchParams}:{params:Promise<{local
         {q&&!result.refusedPhone&&<input type="hidden" name="q" value={q}/>}
         <label>{t('colStatus')}<select className="admin-select" name="status" defaultValue={status}>
           <option value="">{t('all')}</option>
-          {LEAD_STATUSES.map(option=><option key={option} value={option}>{statusLabel(option,language)}</option>)}
+          {LEAD_STATUSES.map(option=><option key={option} value={option}>{statusLabel(t,option)}</option>)}
         </select></label>
         <label>{t('classGroup')}<select className="admin-select" name="classGroup" defaultValue={classGroup}>
           <option value="">{t('all')}</option>
-          {Array.from({length:12},(_,index)=>index+1).map(value=><option key={value} value={String(value)}>{formatClass(value,digits,language)}</option>)}
+          {Array.from({length:12},(_,index)=>index+1).map(value=><option key={value} value={String(value)}>{formatClass(value,digits,language,t('colClass'))}</option>)}
         </select></label>
         <label>{t('group')}<select className="admin-select" name="group" defaultValue={group}>
           <option value="">{t('all')}</option>
-          {LEAD_GROUPS.map(option=><option key={option} value={option}>{groupLabel(option,language)}</option>)}
+          {LEAD_GROUPS.map(option=><option key={option} value={option}>{groupLabel(t,option)}</option>)}
         </select></label>
         <label>{t('shift')}<select className="admin-select" name="shift" defaultValue={shift}>
           <option value="">{t('all')}</option>
-          {LEAD_SHIFTS.map(option=><option key={option} value={option}>{shiftLabel(option,language)}</option>)}
+          {LEAD_SHIFTS.map(option=><option key={option} value={option}>{shiftLabel(t,option)}</option>)}
         </select></label>
         <label>{t('medium')}<select className="admin-select" name="medium" defaultValue={medium}>
           <option value="">{t('all')}</option>
-          {LEAD_MEDIUMS.map(option=><option key={option} value={option}>{mediumLabel(option,language)}</option>)}
+          {LEAD_MEDIUMS.map(option=><option key={option} value={option}>{mediumLabel(t,option)}</option>)}
         </select></label>
         <label>{t('source')}<select className="admin-select" name="source" defaultValue={source}>
           <option value="">{t('all')}</option>
-          {LEAD_SOURCES.map(option=><option key={option} value={option}>{sourceLabel(option,language)}</option>)}
+          {LEAD_SOURCES.map(option=><option key={option} value={option}>{sourceLabel(t,option)}</option>)}
         </select></label>
         <label>{t('colFollowUp')}<select className="admin-select" name="followUp" defaultValue={followUp}>
           <option value="">{t('all')}</option>
@@ -196,7 +196,7 @@ export default async function Leads({params,searchParams}:{params:Promise<{local
               {row.flags.slice(0,2).map((flag,index)=><p key={index} className="lead-flag">{language==='bn'?flag.messageBn:flag.messageEn}</p>)}
             </div></td>
             <td data-label={t('colClass')}><div>
-              {row.classGroup?formatClass(row.classGroup,digits,language):(row.classLabel||t('unknownValue'))}
+              {row.classGroup?formatClass(row.classGroup,digits,language,t('colClass')):(row.classLabel||t('unknownValue'))}
               {row.school&&<><br/><span className="admin-help">{row.school}</span></>}
               {row.interestedIn&&<><br/><span className="admin-help">{row.interestedIn}</span></>}
             </div></td>
@@ -210,7 +210,7 @@ export default async function Leads({params,searchParams}:{params:Promise<{local
               </span>):<span className="admin-help">{t('noPhone')}</span>}
             </div></td>
             <td data-label={t('colStatus')}><div className="list-row-actions">
-              <span className={`admin-badge ${statusBadge(row.status)}`}>{statusLabel(row.status,language)}</span>
+              <span className={`admin-badge ${statusBadge(row.status)}`}>{statusLabel(t,row.status)}</span>
               {row.doNotContact&&<span className="admin-badge disabled">{t('doNotContact')}</span>}
             </div></td>
             <td data-label={t('colFollowUp')}><div>

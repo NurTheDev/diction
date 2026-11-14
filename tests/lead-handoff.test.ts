@@ -10,6 +10,9 @@
  * the mask and never the digits, because a prefill is served HTML.
  */
 import assert from 'node:assert/strict';
+import bn from '../src/messages/bn.json';
+import en from '../src/messages/en.json';
+const resolve=(catalog:unknown,key:string):string=>key.split('.').reduce((node:unknown,part:string)=>(node as Record<string,unknown>)?.[part],catalog) as string;
 import {
   HANDOFF_GRADES,HANDOFF_STATUS,NOT_INTERESTED_REASON_MAX,NOT_INTERESTED_REASON_MIN,
   admissionPrefill,bookableSlot,handoffBlock,handoffGrade,handoffReference,notInterestedReason,
@@ -67,11 +70,13 @@ function run(){
   //    off with its reason instead of letting an operator fill a form in and discover it afterwards.
   const converted=handoffBlock(lead({admission:'64b0000000000000000000b1'}),'admission');
   assert.equal(converted?.code,'ALREADY_CONVERTED');
-  assert.ok(converted!.messageBn.includes('ভর্তি')&&converted!.messageEn.toLowerCase().includes('admission'));
+  assert.equal(converted!.messageKey,'errors.ALREADY_CONVERTED');
+  assert.ok(resolve(bn.leads,converted!.messageKey).includes('ভর্তি')&&resolve(en.leads,converted!.messageKey).toLowerCase().includes('admission'));
   assert.equal(handoffBlock(lead({admission:'64b0000000000000000000b1'}),'trial'),null,'an admission does not close the trial');
   const booked=handoffBlock(lead({trialBooking:'64b0000000000000000000b2'}),'trial');
   assert.equal(booked?.code,'ALREADY_BOOKED');
-  assert.ok(booked!.messageBn.includes('ট্রায়াল')&&booked!.messageEn.toLowerCase().includes('trial'));
+  assert.equal(booked!.messageKey,'errors.ALREADY_BOOKED');
+  assert.ok(resolve(bn.leads,booked!.messageKey).includes('ট্রায়াল')&&resolve(en.leads,booked!.messageKey).toLowerCase().includes('trial'));
   assert.equal(handoffBlock(lead({phones:[]}),'admission')?.code,'NO_PHONE');
   assert.equal(handoffBlock(lead({phones:[]}),'trial')?.code,'NO_PHONE','neither hand-off can be opened without a number to reach');
   assert.equal(handoffBlock(lead(),'admission'),null);
@@ -89,8 +94,9 @@ function run(){
   assert.equal((reason as {reason:string}).reason,'অন্য কোচিংয়ে ভর্তি','trimmed and collapsed, so the timeline reads as one line');
   const noReason=notInterestedReason('');
   assert.ok(noReason.ok===false);
-  assert.ok((noReason as {messageBn:string}).messageBn.includes('কারণ'),'the Bangla sentence says a reason is what is missing');
-  assert.ok((noReason as {messageEn:string}).messageEn.toLowerCase().includes('reason'));
+  assert.equal((noReason as {messageKey:string}).messageKey,'errors.NO_REASON');
+  assert.ok(resolve(bn.leads,'errors.NO_REASON').includes('কারণ'),'the Bangla sentence says a reason is what is missing');
+  assert.ok(resolve(en.leads,'errors.NO_REASON').toLowerCase().includes('reason'));
 
   // 7. Which seat is still bookable: switched on, still in the future, and with a seat left.
   const now=new Date('2026-11-12T04:00:00.000Z');
