@@ -1504,7 +1504,7 @@
     "testing": "Testing…",
     "ok": "The provider returned an answer. Now test the student chat with a test account.",
     "configuration": "Configuration or safety flags are missing.",
-    "forbidden": "Your session or site origin could not be verified. Sign in again and check NEXTAUTH_URL.",
+    "forbidden": "Your session or site origin could not be verified. Sign in again; if it keeps happening, the site’s own address is not set correctly on the server.",
     "rate": "Too many diagnostic tests. Try again later.",
     "key": "The provider rejected the key or account permissions. Check the private key in your hosting settings.",
     "quota": "The provider reported a quota or rate limit. Check your provider project and free-tier availability.",
@@ -2497,7 +2497,7 @@
     "problems": {
       "prefix": "The {trigger} did not go out. ",
       "notConfigured": "The provider is not configured — messages cannot be sent right now. The connection panel shows what is missing.",
-      "disabled": "The sending gate is closed — CENTER_SMS_WRITE_ENABLED is not \"true\".",
+      "disabled": "The sending gate is closed — the SMS page shows whether sending is turned on.",
       "invalid": "The number or the message was not acceptable.",
       "emptyMessage": "The message body is empty.",
       "unrenderedVariable": "{chip} has no value, so the message would have gone out with a hole in it.",

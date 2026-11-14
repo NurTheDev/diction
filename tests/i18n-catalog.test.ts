@@ -22,6 +22,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import bnMessages from '../src/messages/bn.json';
 import enMessages from '../src/messages/en.json';
+import {SERVER_ONLY_NAMESPACES} from '../src/i18n/client-namespaces';
 
 type Catalog=Record<string,unknown>;
 const BN=/[\u0980-\u09ff]/;
@@ -182,5 +183,42 @@ const bnRange=(catalog:Catalog):string[]=>leaves(catalog).filter(key=>BN.test(St
 const ALLOWED_IN_EN=['nav.language','nav.languageShort','adminRedesign.banglaDigits','adminWork.bnTab'];
 const banglaInEn=bnRange(enMessages as Catalog);
 assert.deepEqual(banglaInEn,[...ALLOWED_IN_EN].sort(),'English values carry Bangla only where the word is the name of the language itself');
+
+// ── 5. What the browser is allowed to receive ──────────────────────────────────────────────────
+/* The flight payload is part of the served HTML, so a catalog value travels to the reader's machine
+   whether or not anything paints it. Two rules keep that safe:
+
+   · a group no client component reads is server-only, and `src/i18n/client-namespaces.ts` says so —
+     if a `'use client'` file starts reading one of those groups, the layouts would have to ship it
+     and the list is wrong, so fail here instead of painting a raw key in production;
+   · nothing that IS shipped may name an environment variable. `aiSetup` is the deployment checklist
+     and names four variables; it stays on the server. `aiTest.forbidden` and `sms.problems.disabled`
+     used to name one each and reached every admin page (R2.7) — they now say what is wrong and point
+     at the screen that shows the knob. The badge on the SMS page and the AI setup page still name
+     their variables, server-rendered, on the screens that are about them. */
+const shipped=(namespace:string):boolean=>!SERVER_ONLY_NAMESPACES.includes(namespace as typeof SERVER_ONLY_NAMESPACES[number]);
+const readByClient=new Set<string>();
+const notFiltered:string[]=[];
+for(const file of sourceFiles('src')){
+  const text=fs.readFileSync(file,'utf8');
+  if(text.startsWith("'use client'")||text.startsWith('"use client"')){
+    for(const match of text.matchAll(/useTranslations\(\s*'([^']+)'/g))readByClient.add(match[1].split('.')[0]);
+  }
+  // A layout that hands the catalog to the client has to hand it the filtered one.
+  if(/NextIntlClientProvider/.test(text)&&/getMessages\(\)/.test(text)&&!/clientMessages\(|clientNamespaces/.test(text))notFiltered.push(file);
+}
+assert.deepEqual([...readByClient].filter(ns=>!shipped(ns)).sort(),[],'no client component reads a group the layouts keep on the server');
+assert.deepEqual(notFiltered.sort(),[],'every layout that ships messages to the client filters them first');
+const ENV_NAME=/\b[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+\b/;
+const namedVariables:string[]=[];
+for(const [loc,catalog] of [['bn',bnMessages],['en',enMessages]] as const){
+  for(const key of leaves(catalog as Catalog)){
+    if(!shipped(key.split('.')[0]))continue;
+    const hit=ENV_NAME.exec(String(walk(catalog as Catalog,key)));
+    if(hit)namedVariables.push(`${loc} ${key} names ${hit[0]}`);
+  }
+}
+assert.deepEqual(namedVariables.sort(),[],'no value the browser receives names an environment variable');
+console.log(`Browser exposure: ${readByClient.size} groups are read by client components, ${SERVER_ONLY_NAMESPACES.length} stay on the server, and no shipped value names a variable.`);
 
 console.log('A.7 · the catalogs are whole: parity both ways, no mis-nested keys, no leftover templates, every key src/ asks for resolves in both languages, and Bangla inside an English value only where a language names itself.');
