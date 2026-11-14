@@ -119,7 +119,40 @@
     "loading": "Loading…",
     "errorTitle": "Sorry, something went wrong",
     "tryAgain": "Try again",
-    "notFound": "Page not found"
+    "notFound": "Page not found",
+    "months": {
+      "january": "January",
+      "february": "February",
+      "march": "March",
+      "april": "April",
+      "may": "May",
+      "june": "June",
+      "july": "July",
+      "august": "August",
+      "september": "September",
+      "october": "October",
+      "november": "November",
+      "december": "December"
+    },
+    "monthsShort": {
+      "january": "Jan",
+      "february": "Feb",
+      "march": "Mar",
+      "april": "Apr",
+      "may": "May",
+      "june": "Jun",
+      "july": "Jul",
+      "august": "Aug",
+      "september": "Sep",
+      "october": "Oct",
+      "november": "Nov",
+      "december": "Dec"
+    },
+    "dateParts": {
+      "day": "Day",
+      "month": "Month",
+      "year": "Year"
+    }
   },
   "pages": {
     "eyebrow": "DICTION COACHING CENTER",

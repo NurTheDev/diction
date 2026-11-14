@@ -119,7 +119,40 @@
     "loading": "লোড হচ্ছে…",
     "errorTitle": "দুঃখিত, কিছু একটা ঠিকঠাক হয়নি",
     "tryAgain": "আবার চেষ্টা করুন",
-    "notFound": "পৃষ্ঠাটি খুঁজে পাওয়া যায়নি"
+    "notFound": "পৃষ্ঠাটি খুঁজে পাওয়া যায়নি",
+    "months": {
+      "january": "জানুয়ারি",
+      "february": "ফেব্রুয়ারি",
+      "march": "মার্চ",
+      "april": "এপ্রিল",
+      "may": "মে",
+      "june": "জুন",
+      "july": "জুলাই",
+      "august": "আগস্ট",
+      "september": "সেপ্টেম্বর",
+      "october": "অক্টোবর",
+      "november": "নভেম্বর",
+      "december": "ডিসেম্বর"
+    },
+    "monthsShort": {
+      "january": "জানু",
+      "february": "ফেব্রু",
+      "march": "মার্চ",
+      "april": "এপ্রিল",
+      "may": "মে",
+      "june": "জুন",
+      "july": "জুলাই",
+      "august": "আগস্ট",
+      "september": "সেপ্টে",
+      "october": "অক্টো",
+      "november": "নভে",
+      "december": "ডিসে"
+    },
+    "dateParts": {
+      "day": "দিন",
+      "month": "মাস",
+      "year": "বছর"
+    }
   },
   "pages": {
     "eyebrow": "ডিকশন কোচিং সেন্টার",
