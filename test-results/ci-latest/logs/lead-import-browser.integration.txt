@@ -1,12 +1,1 @@
-AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
-
-true !== false
-
-    at run (/home/runner/work/diction/diction/tests/lead-import-browser.integration.ts:87:14) {
-  generatedMessage: true,
-  code: 'ERR_ASSERTION',
-  actual: true,
-  expected: false,
-  operator: 'strictEqual',
-  diff: 'simple'
-}
+Visitor import wizard in the browser: the fake sheet read in Bangla with its counts, its unnamed column asked about, its two dates accepted by hand, eight leads committed and the batch undone with a reason; the same dry run read in English; photographed at 360 px and 1440 px in both languages.

@@ -2,19 +2,5 @@
 Visitor import dry run: 9 synthetic rows read from XLSX and CSV alike — 6 ready, 2 awaiting a date decision, 1 blocked for want of a name, 2 sibling rows flagged together, the unnamed column asked about and the sheet’s own year offered as a suggestion. Nothing written.
 
 
---- tests/lead-import.integration.ts (exit 1) ---
-AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
-+ actual - expected
-
-+ 'ALREADY_UNDONE'
-- 'NOT_LATEST'
-
-    at run (/home/runner/work/diction/diction/tests/lead-import.integration.ts:111:12)
-    at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {
-  generatedMessage: true,
-  code: 'ERR_ASSERTION',
-  actual: 'ALREADY_UNDONE',
-  expected: 'NOT_LATEST',
-  operator: 'strictEqual',
-  diff: 'simple'
-}
+--- tests/lead-import.integration.ts (exit 0) ---
+Visitor import commit: 8 synthetic leads written with the Bangla comment as first note and one familyKey across the sibling rows; the same file again wrote nothing (IMPORT_NOTHING); undo binned all 8 through the Recycle Bin and the register shows the batch undone with its reason.
