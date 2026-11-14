@@ -164,7 +164,7 @@ export default function SendSmsDialog({open,onClose,request,templates,titleBn,ti
     if(!requestId)return;
     setLoadingPreview(true);
     const {status,data}=await call({mode:'preview',requestId,templateKey,text,subject,target:sendTarget,groupSiblings});
-    if(status&&data?.ok&&data.preview){setPreview(data.preview);setPreviewError('')}
+    if(status&&data?.ok&&data.preview){setPreview(data.preview);setDaily(data.daily||null);setPreviewError('')}
     else{setPreview(data?.preview||null);setDaily(data?.daily||null);setPreviewError(String((en?data?.messageEn:data?.messageBn)||data?.detail||data?.error||data?.blocked||(status?'UNAVAILABLE':'NETWORK')))}
     setLoadingPreview(false);
   },[call,requestId,templateKey,text,subject,sendTarget,groupSiblings]);

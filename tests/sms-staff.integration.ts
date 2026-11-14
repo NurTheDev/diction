@@ -25,6 +25,7 @@ import {CenterSettings,CenterSmsBatch,CenterSmsLog} from '../src/models/CenterRe
 import {createQuickLead} from '../src/lib/leads/leads';
 import {runSmsDialog} from '../src/lib/center/sms-dialog';
 import {sentMessagesToday,smsBatchExists} from '../src/lib/center/sms-send';
+import {dhakaDay} from '../src/lib/admin/today';
 import {smsDialogData,visitorSmsDialogData} from '../src/lib/center/sms-dialog-data';
 import {STAFF_SMS_TEMPLATE,dailyLimitReachedMessage} from '../src/lib/center/sms-staff';
 
@@ -100,9 +101,12 @@ async function run(){
     // ── 3. The day's count is per operator, per Dhaka day, and per message ACTUALLY SENT.
     assert.equal(await sentMessagesToday(deskId,now),0,'nothing spent yet');
     const backdated=await CenterSmsBatch.create({requestId:randomUUID(),purpose:'visitor_thanks',createdBy:deskId,trigger:'manual',status:'done',recipientCount:7,sentCount:7,segmentCount:7,estimatedCost:3.5});
-    // Back-dated with an update rather than at create time: the timestamps plugin owns `createdAt` on
-    // insert, and a "yesterday" batch that is really today's would prove nothing at all.
-    await CenterSmsBatch.updateOne({_id:backdated._id},{$set:{createdAt:new Date(now.getTime()-26*3600*1000)}});
+    // Back-dated through the raw collection, not the model: `timestamps:true` makes `createdAt`
+    // immutable, so a Mongoose update strips the $set and a "yesterday" batch stays today's — which would
+    // make the day boundary below look proven when it was never tested at all.
+    await CenterSmsBatch.collection.updateOne({_id:backdated._id},{$set:{createdAt:new Date(now.getTime()-26*3600*1000)}});
+    assert.ok(dhakaDay((await CenterSmsBatch.findById(backdated._id).lean<{createdAt:Date}>()).createdAt)!==dhakaDay(now),
+      'the fixture really is yesterday in Dhaka before anything is claimed about it');
     await CenterSmsBatch.create({requestId:randomUUID(),purpose:'due_reminder',createdBy:bossId,trigger:'manual',status:'done',recipientCount:9,sentCount:9,segmentCount:9,estimatedCost:4.5});
     await CenterSmsBatch.create({requestId:randomUUID(),purpose:'visitor_thanks',createdBy:deskId,trigger:'manual',status:'failed',recipientCount:4,sentCount:0,failedCount:4,segmentCount:4,estimatedCost:0});
     assert.equal(await sentMessagesToday(deskId,now),0,'yesterday is another day, and a chunk that sent nothing counts as nothing');
