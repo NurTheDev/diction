@@ -137,7 +137,9 @@ async function run(){
       assert.ok(!BANGLA_DIGIT.test(monthFile.text),'…and the whole file keeps Latin digits, so Excel can add the column up');
       assert.ok(rows[2].includes(`"${F.totalRow}"`),'the totals row is in the file too');
 
-      // switch the breakdown to source and ask for all five
+      // switch the breakdown to source and ask for all five. The filters live in a closed <details>,
+      // so open it the way a person would — by tapping its summary — before touching what is inside.
+      await page.locator('.admin-help-panel summary').click();
       await page.selectOption('select[name=breakdown]','source');
       await page.getByRole('button',{name:bn.leads.apply}).click();
       await page.getByRole('heading',{name:F.title}).waitFor({timeout:60000});
