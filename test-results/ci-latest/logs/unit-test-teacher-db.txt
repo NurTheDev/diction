@@ -1,0 +1,16 @@
+--- tests/teacher-cv-bank.integration.ts (exit 1) ---
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
++ actual - expected
+
++ undefined
+- 'DUPLICATE'
+
+    at run (/home/runner/work/diction/diction/tests/teacher-cv-bank.integration.ts:119:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: undefined,
+  expected: 'DUPLICATE',
+  operator: 'strictEqual',
+  diff: 'simple'
+}

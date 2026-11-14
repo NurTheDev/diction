@@ -1,0 +1,9 @@
+AssertionError [ERR_ASSERTION]: …and the shift read from the bare hours
+    at run (/home/runner/work/diction/diction/tests/teacher-cv-screens-browser.integration.ts:249:12) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}

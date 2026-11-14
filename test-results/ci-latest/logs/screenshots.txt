@@ -1,90 +1,6 @@
       "scrollWidth": 1440
     },
     {
-      "path": "/bn/login",
-      "width": 360,
-      "clientWidth": 360,
-      "scrollWidth": 360
-    },
-    {
-      "path": "/bn/login",
-      "width": 1440,
-      "clientWidth": 1440,
-      "scrollWidth": 1440
-    },
-    {
-      "path": "/bn/admin",
-      "width": 360,
-      "clientWidth": 360,
-      "scrollWidth": 360
-    },
-    {
-      "path": "/bn/admin",
-      "width": 1440,
-      "clientWidth": 1440,
-      "scrollWidth": 1440
-    },
-    {
-      "path": "/bn/admin/students",
-      "width": 360,
-      "clientWidth": 360,
-      "scrollWidth": 360
-    },
-    {
-      "path": "/bn/admin/students",
-      "width": 1440,
-      "clientWidth": 1440,
-      "scrollWidth": 1440
-    },
-    {
-      "path": "/bn/admin/students/collect",
-      "width": 360,
-      "clientWidth": 360,
-      "scrollWidth": 360
-    },
-    {
-      "path": "/bn/admin/students/collect",
-      "width": 1440,
-      "clientWidth": 1440,
-      "scrollWidth": 1440
-    },
-    {
-      "path": "/bn/admin/students/fees-grid",
-      "width": 360,
-      "clientWidth": 360,
-      "scrollWidth": 360
-    },
-    {
-      "path": "/bn/admin/students/fees-grid",
-      "width": 1440,
-      "clientWidth": 1440,
-      "scrollWidth": 1440
-    },
-    {
-      "path": "/bn/admin/students/dues",
-      "width": 360,
-      "clientWidth": 360,
-      "scrollWidth": 360
-    },
-    {
-      "path": "/bn/admin/students/dues",
-      "width": 1440,
-      "clientWidth": 1440,
-      "scrollWidth": 1440
-    },
-    {
-      "path": "/bn/admin/students/import",
-      "width": 360,
-      "clientWidth": 360,
-      "scrollWidth": 360
-    },
-    {
-      "path": "/bn/admin/students/import",
-      "width": 1440,
-      "clientWidth": 1440,
-      "scrollWidth": 1440
-    },
-    {
       "path": "/bn/admin/students/removed",
       "width": 360,
       "clientWidth": 360,
@@ -392,6 +308,90 @@
     },
     {
       "path": "/en/admin/leads/funnel",
+      "width": 1440,
+      "clientWidth": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "path": "/bn/admin/teacher-cvs",
+      "width": 360,
+      "clientWidth": 360,
+      "scrollWidth": 360
+    },
+    {
+      "path": "/bn/admin/teacher-cvs",
+      "width": 1440,
+      "clientWidth": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "path": "/bn/admin/teacher-cvs?new=1",
+      "width": 360,
+      "clientWidth": 360,
+      "scrollWidth": 360
+    },
+    {
+      "path": "/bn/admin/teacher-cvs?new=1",
+      "width": 1440,
+      "clientWidth": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "path": "/bn/admin/teacher-cvs/find",
+      "width": 360,
+      "clientWidth": 360,
+      "scrollWidth": 360
+    },
+    {
+      "path": "/bn/admin/teacher-cvs/find",
+      "width": 1440,
+      "clientWidth": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "path": "/bn/admin/teacher-cvs/import",
+      "width": 360,
+      "clientWidth": 360,
+      "scrollWidth": 360
+    },
+    {
+      "path": "/bn/admin/teacher-cvs/import",
+      "width": 1440,
+      "clientWidth": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "path": "/en/admin/teacher-cvs",
+      "width": 360,
+      "clientWidth": 360,
+      "scrollWidth": 360
+    },
+    {
+      "path": "/en/admin/teacher-cvs",
+      "width": 1440,
+      "clientWidth": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "path": "/en/admin/teacher-cvs/find",
+      "width": 360,
+      "clientWidth": 360,
+      "scrollWidth": 360
+    },
+    {
+      "path": "/en/admin/teacher-cvs/find",
+      "width": 1440,
+      "clientWidth": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "path": "/en/admin/teacher-cvs/import",
+      "width": 360,
+      "clientWidth": 360,
+      "scrollWidth": 360
+    },
+    {
+      "path": "/en/admin/teacher-cvs/import",
       "width": 1440,
       "clientWidth": 1440,
       "scrollWidth": 1440
