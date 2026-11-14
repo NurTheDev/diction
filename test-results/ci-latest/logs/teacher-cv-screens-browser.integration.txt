@@ -1,5 +1,5 @@
-AssertionError [ERR_ASSERTION]: and its timeline note is there, word for word
-    at run (/home/runner/work/diction/diction/tests/teacher-cv-screens-browser.integration.ts:295:12) {
+AssertionError [ERR_ASSERTION]: and it counts the one CV that was picked, not the page and not the bank
+    at run (/home/runner/work/diction/diction/tests/teacher-cv-screens-browser.integration.ts:407:12) {
   generatedMessage: false,
   code: 'ERR_ASSERTION',
   actual: false,
