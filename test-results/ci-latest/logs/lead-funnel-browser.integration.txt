@@ -1,10 +1,38 @@
-locator.innerText: Error: strict mode violation: locator('.funnel-kpis') resolved to 2 elements:
-    1) <div class="admin-kpis funnel-kpis">…</div> aka getByText('ভিজিটর৬ট্রায়াল বুক৩ভর্তি২')
-    2) <div class="admin-kpis funnel-kpis">…</div> aka getByText('ভিজিটর → ট্রায়াল৫০%ট্রায়াল → ভর্তি৩৩.৩%ভিজিটর → ভর্তি৩৩.৩%')
-
+page.selectOption: Timeout 30000ms exceeded.
 Call log:
-  - waiting for locator('.funnel-kpis')
+  - waiting for locator('select[name=breakdown]')
+    - locator resolved to <select name="breakdown" class="admin-select">…</select>
+  - attempting select option action
+    2 × waiting for element to be visible and enabled
+      - element is not visible
+    - retrying select option action
+    - waiting 20ms
+    2 × waiting for element to be visible and enabled
+      - element is not visible
+    - retrying select option action
+      - waiting 100ms
+    60 × waiting for element to be visible and enabled
+       - element is not visible
+     - retrying select option action
+       - waiting 500ms
 
-    at run (/home/runner/work/diction/diction/tests/lead-funnel-browser.integration.ts:97:54) {
-  log: [ "  - waiting for locator('.funnel-kpis')" ]
+    at run (/home/runner/work/diction/diction/tests/lead-funnel-browser.integration.ts:141:18) {
+  log: [
+    "  - waiting for locator('select[name=breakdown]')",
+    '    - locator resolved to <select name="breakdown" class="admin-select">…</select>',
+    '  - attempting select option action',
+    '    2 × waiting for element to be visible and enabled',
+    '      - element is not visible',
+    '    - retrying select option action',
+    '    - waiting 20ms',
+    '    2 × waiting for element to be visible and enabled',
+    '      - element is not visible',
+    '    - retrying select option action',
+    '      - waiting 100ms',
+    '    60 × waiting for element to be visible and enabled',
+    '       - element is not visible',
+    '     - retrying select option action',
+    '       - waiting 500ms'
+  ],
+  name: 'TimeoutError'
 }
