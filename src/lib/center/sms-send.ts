@@ -5,9 +5,13 @@
  *   • idempotency — one CenterSmsBatch per requestId (unique index), so a double-click or a
  *     browser refresh cannot send twice; the second call returns the first batch untouched;
  *   • batching — about 100 recipients per provider call, so 500 recipients is 5 calls;
- *   • retries — only for codes that provably were not submitted (1005 internal error). An
- *     `unknown` outcome is never auto-retried: a timeout may have happened after submission, and
- *     a blind retry would double-send. The operator's explicit "Retry failed" is the only path;
+ *   • retries — at most two extra attempts, a short wait apart, and only for a failure that proves
+ *     the message was NOT submitted: code 1005 (the provider's own internal error) and a `network`
+ *     failure, where the request never reached BulkSMSBD. A `timeout` is never auto-retried: the
+ *     request was on the wire and the provider may have taken it, so a blind retry would double-send
+ *     and double-charge. That one stays the operator's explicit "Retry failed", and the dialog says
+ *     so before it runs. Every attempt is counted on the log row, so a row can be read as the record
+ *     of what actually went out;
  *   • quiet hours — a send inside the window is stored as a `queued` batch with `scheduledFor`,
  *     and flushQueuedSms() (daily job) sends it when the window closes;
  *   • audit — every log row carries segments and cost, so "this month's cost" is a stored sum and
@@ -19,14 +23,42 @@ import 'server-only';
 import {CenterSmsBatch,CenterSmsLog,CenterSmsTemplate,CenterSettings} from '@/models/CenterRecords';
 import {dhakaDay} from '@/lib/admin/today';
 import {audit} from '@/lib/admin/helpers';
-import {SMS_BATCH_SIZE,createSmsProvider,estimateSms,smsCodeMessage,smsCodeMessageKey,type SmsProvider} from './sms-provider';
+import {SMS_BATCH_SIZE,createSmsProvider,estimateSms,smsCodeMessage,smsCodeMessageKey,type SmsFailureReason,type SmsOutcome,type SmsProvider} from './sms-provider';
 import {chunkRecipients,resolveRecipients,SMS_SKIP_LABEL_KEYS,type SmsAudience,type SmsCandidateStudent,type SmsSkipReason} from './sms-recipients';
 import {defaultTemplate,renderSmsTemplate,templateVariablesOf,type SmsVariable} from './sms-templates';
 import {inQuietHours,msUntilQuietEnds,quietUntilLabel} from './sms-quiet';
 import {normalizePhone} from './phone';
 
-/** Provider codes worth one automatic retry: the message provably was not submitted. */
+/** Provider codes worth another attempt: the provider answered that it did not take the message. */
 const TRANSIENT_CODES=new Set(['1005']);
+/** Failure reasons worth another attempt: the request never reached the provider, so nothing was sent. */
+const RETRYABLE_REASONS=new Set<SmsFailureReason>(['network']);
+/** Two extra attempts. Short, so a hiccup has time to clear without holding 100 recipients hostage. */
+const RETRY_WAITS_MS=[600,1800];
+
+/** Whether another attempt can be made without risking a second message for the same recipient. */
+export function smsRetryable(outcome:SmsOutcome):boolean{
+  if(outcome.status==='submitted')return false;
+  if(outcome.status==='rejected')return !!outcome.code&&TRANSIENT_CODES.has(outcome.code);
+  return !!outcome.reason&&RETRYABLE_REASONS.has(outcome.reason);
+}
+
+/**
+ * One provider call, plus at most two more if — and only if — each failure proves nothing was
+ * submitted. Returns the attempt count with the outcome, because the log row records it: an audit
+ * that cannot say how many times a message went out cannot show that it went out once.
+ */
+export async function submitWithRetry(send:()=>Promise<SmsOutcome>,waits:number[]=RETRY_WAITS_MS,
+  sleep:(ms:number)=>Promise<void>=(ms)=>new Promise<void>(resolve=>setTimeout(resolve,ms))):Promise<{outcome:SmsOutcome;attempts:number}>{
+  let outcome=await send(),attempts=1;
+  for(const wait of waits){
+    if(!smsRetryable(outcome))break;
+    await sleep(wait);
+    outcome=await send();
+    attempts++;
+  }
+  return {outcome,attempts};
+}
 
 const TEST_SMS_BODY='ডিকশন কোচিং: এসএমএস সংযোগ পরীক্ষা। যোগাযোগ: {institute_phone}'; // i18n-scan-allow: SMS message body
 export interface SmsSettingsRow{
@@ -293,6 +325,8 @@ export interface SmsExecuteOptions{
   /** Drop recipients already sent this template+month in the last 24 hours ("skip those"). */
   skipDuplicates?:boolean;
   now?:Date;
+  /** Waits between the automatic attempts. Tests pass zeroes; a send uses [600, 1800]. */
+  retryWaitsMs?:number[];
 }
 
 /**
@@ -366,7 +400,7 @@ export async function executeSmsPlan(plan:SmsPlan,options:SmsExecuteOptions={}):
     return {batchId,requestId:plan.requestId,status:'queued',sent:0,failed:0,skipped:skippedCount,queued:items.length,recipientCount:items.length,segmentCount,estimatedCost,quietUntil:plan.quietUntil,message:`quiet-hours: queued until ${plan.quietUntil}`};
   }
 
-  const outcome=await sendChunks(pending,provider,now);
+  const outcome=await sendChunks(pending,provider,now,options.retryWaitsMs);
   await finalizeBatch(batchId,outcome,skippedCount,items.length,segmentCount,estimatedCost);
   if(options.actor)await audit(options.actor,outcome.failed?'sms.send.partial':'sms.send',batchId);
   return {
@@ -386,7 +420,7 @@ interface PendingRow{_id?:unknown;batch:string;student?:string;lead?:string;phon
  * call, so every student sharing that phone legitimately shares the outcome. `sent`/`failed` count
  * messages (phones), which is what the provider bills and what the batch reports.
  */
-async function sendChunks(rows:PendingRow[],provider:SmsProvider,now:Date):Promise<{sent:number;failed:number}>{
+async function sendChunks(rows:PendingRow[],provider:SmsProvider,now:Date,waits?:number[]):Promise<{sent:number;failed:number}>{
   let sent=0,failed=0;
   const byPhone=new Map<string,PendingRow[]>();
   for(const row of rows){
@@ -396,17 +430,18 @@ async function sendChunks(rows:PendingRow[],provider:SmsProvider,now:Date):Promi
   }
   for(const chunk of chunkRecipients([...byPhone.keys()],SMS_BATCH_SIZE)){
     const items=chunk.map(phone=>({phone,message:byPhone.get(phone)![0].message}));
-    let outcome=await provider.sendMany(items);
-    // One automatic retry, and only for a code proving the provider never took the message. An
-    // `unknown` outcome is never retried here: it may already have been submitted.
-    if(outcome.status==='rejected'&&outcome.code&&TRANSIENT_CODES.has(outcome.code))outcome=await provider.sendMany(items);
+    const {outcome,attempts}=await submitWithRetry(()=>provider.sendMany(items),waits);
     const affected=chunk.flatMap(phone=>byPhone.get(phone)!);
     if(outcome.status==='submitted'){
       sent+=chunk.length;
-      await markRows(affected,'sent',{sentAt:now,providerCode:outcome.code||'',providerMessage:smsCodeMessage(outcome.code)});
+      await markRows(affected,'sent',{sentAt:now,attempts,providerCode:outcome.code||'',providerMessage:smsCodeMessage(outcome.code)});
     }else{
       failed+=chunk.length;
-      await markRows(affected,'failed',{providerCode:outcome.code||'',providerMessage:smsCodeMessage(outcome.code),reason:outcome.status==='unknown'?'unknown':(outcome.code||'rejected')});
+      // A `timeout` is stored as itself, not as a bland "unknown": the problems card reads this word
+      // and has to be able to say "the network", and the operator has to be able to see that the
+      // message may already have gone out, so retrying it by hand is a decision and not a reflex.
+      const reason=outcome.status==='unknown'?(outcome.reason||'unknown'):(outcome.code||'rejected');
+      await markRows(affected,'failed',{attempts,providerCode:outcome.code||'',providerMessage:smsCodeMessage(outcome.code),reason});
     }
   }
   return {sent,failed};

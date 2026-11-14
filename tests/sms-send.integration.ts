@@ -247,7 +247,8 @@ async function run(){
     assert.equal(openNow.quiet,false,'outside the window the plan is not quiet');
 
     // 9. Failures: a permanent rejection is logged with its Bangla reason and never auto-retried,
-    //    while 1005 (internal error) is retried exactly once.
+    //    while 1005 (internal error) is retried — at most twice, and only because the provider's own
+    //    answer proves it did not take the message.
     const poor=fakeProvider({status:'rejected',code:'1007'});
     const poorStudent=await makeStudent(930);
     const poorPlan=await buildSmsPlan({requestId:randomUUID(),students:[candidate(poorStudent)],customText:'ডিকশন কোচিং: নোটিশ',audience:'guardian'});
@@ -261,10 +262,34 @@ async function run(){
     assert.ok(poorLog.providerMessage.includes('অপর্যাপ্ত'));
     const transient=fakeProvider(call=>call===1?{status:'rejected',code:'1005'}:{status:'submitted',code:'202'});
     const transientPlan=await buildSmsPlan({requestId:randomUUID(),students:[candidate(await makeStudent(931))],customText:'ডিকশন কোচিং: নোটিশ',audience:'guardian'});
-    const transientResult=await executeSmsPlan(transientPlan,{actor:actorId,provider:transient.provider});
-    assert.equal(transient.calls.length,2,'a 1005 internal error is retried exactly once');
+    const transientResult=await executeSmsPlan(transientPlan,{actor:actorId,provider:transient.provider,retryWaitsMs:[0,0]});
+    assert.equal(transient.calls.length,2,'a 1005 internal error is retried');
     assert.equal(transientResult.sent,1,'and the retry succeeded');
     assert.equal(transientResult.status,'done');
+    assert.equal((await CenterSmsLog.findOne({batch:transientResult.batchId}).lean()).attempts,2,'the row says it took two attempts');
+
+    //    A provider that stays broken gets its two retries and no more, and the failure then stands.
+    const dead=fakeProvider({status:'rejected',code:'1005'});
+    const deadPlan=await buildSmsPlan({requestId:randomUUID(),students:[candidate(await makeStudent(932))],customText:'ডিকশন কোচিং: নোটিশ',audience:'guardian'});
+    const deadResult=await executeSmsPlan(deadPlan,{actor:actorId,provider:dead.provider,retryWaitsMs:[0,0]});
+    assert.equal(dead.calls.length,3,'two retries on top of the first attempt, never a fourth');
+    assert.equal(deadResult.status,'failed','0 sent of 1 is failed, not partial');
+    assert.equal((await CenterSmsLog.findOne({batch:deadResult.batchId}).lean()).attempts,3,'and all three attempts are on the row');
+
+    //    The line the retry may not cross. A request that never reached BulkSMSBD is safe to attempt
+    //    again; a timeout on the wire is not, because the provider may already have taken it.
+    const dark=fakeProvider(call=>call===1?{status:'unknown',reason:'network'}:{status:'submitted',code:'202'});
+    const darkPlan=await buildSmsPlan({requestId:randomUUID(),students:[candidate(await makeStudent(933))],customText:'ডিকশন কোচিং: নোটিশ',audience:'guardian'});
+    const darkResult=await executeSmsPlan(darkPlan,{actor:actorId,provider:dark.provider,retryWaitsMs:[0,0]});
+    assert.equal(dark.calls.length,2,'no route to the provider is attempted again');
+    assert.equal(darkResult.sent,1,'and it went out the second time');
+
+    const lost=fakeProvider({status:'unknown',reason:'timeout'});
+    const lostPlan=await buildSmsPlan({requestId:randomUUID(),students:[candidate(await makeStudent(934))],customText:'ডিকশন কোচিং: নোটিশ',audience:'guardian'});
+    const lostResult=await executeSmsPlan(lostPlan,{actor:actorId,provider:lost.provider,retryWaitsMs:[0,0]});
+    assert.equal(lost.calls.length,1,'a timeout is never auto-retried: the message may already have gone out');
+    assert.equal(lostResult.status,'failed');
+    assert.equal((await CenterSmsLog.findOne({batch:lostResult.batchId}).lean()).reason,'timeout','and the row says the wire went quiet, not that the send cleanly failed');
 
     // 10. Retry failed: the operator's explicit path re-sends only the failed rows of that batch.
     const retry=fakeProvider();

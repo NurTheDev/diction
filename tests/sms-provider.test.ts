@@ -87,7 +87,7 @@ async function run(){
   const rejected=recorder('{"response_code":1007}');
   assert.deepEqual(await submitBulkSmsBd({phone:'01711111111',message:'ডিকশন',fetcher:rejected.fetcher}),{status:'rejected',code:'1007'});
   const garbage=recorder('<html>gateway error</html>');
-  assert.deepEqual(await submitBulkSmsBd({phone:'01711111111',message:'ডিকশন',fetcher:garbage.fetcher}),{status:'unknown'},'an unparsable body is unknown, not submitted');
+  assert.deepEqual(await submitBulkSmsBd({phone:'01711111111',message:'ডিকশন',fetcher:garbage.fetcher}),{status:'unknown',reason:'unreadable'},'an unparsable body is unknown, not submitted — and says why, because the retry policy reads that word');
   const noCode=recorder('{"something":"else"}');
   assert.equal((await submitBulkSmsBd({phone:'01711111111',message:'ডিকশন',fetcher:noCode.fetcher})).status,'unknown');
 

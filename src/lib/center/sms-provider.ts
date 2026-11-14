@@ -8,9 +8,15 @@
  *   Balance      POST/GET https://bulksmsbd.net/api/getBalanceApi  api_key
  *   number format 8801XXXXXXXXX; every documented response code is mapped to a plain Bangla sentence.
  *
- * No automatic retry inside `submitBulkSmsBd`: an HTTP timeout may occur after provider submission,
- * and provider acceptance is not delivery. Callers (src/lib/center/sms-send.ts) own authorization,
- * opt-outs, quiet hours, batching, retries, idempotency and durable audit.
+ * No automatic retry inside `submitBulkSmsBd`, and no retry can be blind: this API takes no
+ * idempotency key, so a second call for the same message is a second message — and a second charge.
+ * What this layer does instead is say WHY it could not answer, because the two kinds of failure are
+ * not the same fact. `network` means the request never reached BulkSMSBD (no route, no socket, the
+ * connection was refused), so nothing can have been submitted and another attempt is safe. `timeout`
+ * means the request left and the wire went quiet, so the provider may already have taken it: the
+ * outcome is unknown and only the operator's explicit "Retry failed" may send it again.
+ * Callers (src/lib/center/sms-send.ts) own authorization, opt-outs, quiet hours, batching, the retry
+ * policy built on that distinction, idempotency and durable audit.
  *
  * Credentials live only in BULKSMSBD_API_KEY / BULKSMSBD_SENDER_ID, are read here and nowhere else,
  * and are redacted from every string this module can return or throw.
@@ -71,7 +77,19 @@ export function smsCodeMessage(code:string|undefined,language:'bn'|'en'='bn'):st
 /** True when the body needs the provider's Unicode type — Bangla always does. */
 export function smsNeedsUnicode(message:string):boolean{return estimateSms(message).encoding==='Unicode'}
 
-export type SmsOutcome={status:'submitted'|'rejected'|'unknown';code?:string};
+/** Why an answer could not be read. `network` never reached the provider; `timeout` may have. */
+export type SmsFailureReason='network'|'timeout'|'http'|'unreadable'|'code';
+export type SmsOutcome={status:'submitted'|'rejected'|'unknown';code?:string;reason?:SmsFailureReason};
+
+/** Error codes that mean the request never got to BulkSMSBD, so a second attempt cannot double-send. */
+const NEVER_REACHED=new Set(['ENOTFOUND','EAI_AGAIN','ECONNREFUSED','EHOSTUNREACH','ENETUNREACH','ENETDOWN','UND_ERR_CONNECT_TIMEOUT']);
+/** Anything else — including a read timeout after the body was sent — is treated as the risky case. */
+export function smsFailureReason(error:unknown):'network'|'timeout'{
+  const shaped=error as {name?:string;code?:string;cause?:{code?:string;name?:string}};
+  const code=String(shaped?.code||shaped?.cause?.code||'');
+  if(shaped?.name==='TimeoutError'||code==='ABORT_ERR')return 'timeout';
+  return NEVER_REACHED.has(code)?'network':'timeout';
+}
 
 export function smsCredentials():{apiKey:string;senderId:string}|null{
   const apiKey=process.env.BULKSMSBD_API_KEY,senderId=process.env.BULKSMSBD_SENDER_ID;
@@ -111,13 +129,13 @@ export async function submitBulkSmsBd({phone,message,fetcher=fetch}:{phone:strin
     const body=new URLSearchParams({api_key:credentials.apiKey,type:smsNeedsUnicode(message)?'unicode':'text',senderid:credentials.senderId,number:'88'+phone,message});
     const response=await fetcher(SMS_SINGLE_URL,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body,signal:AbortSignal.timeout(15000),cache:'no-store',redirect:'error'});
     const text=redactSmsSecrets((await response.text()).slice(0,20000));
-    let data:unknown;try{data=JSON.parse(text)}catch{return {status:'unknown'}}
+    let data:unknown;try{data=JSON.parse(text)}catch{return {status:'unknown',reason:'unreadable'}}
     const code=parseCode(data);
-    if(!code)return {status:'unknown'};
+    if(!code)return {status:'unknown',reason:'unreadable'};
     if(response.ok&&code==='202')return {status:'submitted',code};
     if(/^10\d{2}$/.test(code))return {status:'rejected',code};
-    return {status:'unknown',code};
-  }catch{return {status:'unknown'}}
+    return {status:'unknown',code,reason:'code'};
+  }catch(error){return {status:'unknown',reason:smsFailureReason(error)}}
 }
 
 export type SmsManyItem={phone:string;message:string};
@@ -138,13 +156,13 @@ export async function submitManyBulkSmsBd({items,fetcher=fetch}:{items:SmsManyIt
     const body=new URLSearchParams({api_key:credentials.apiKey,senderid:credentials.senderId,messages:serializeSmsMany(items)});
     const response=await fetcher(SMS_MANY_URL,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body,signal:AbortSignal.timeout(30000),cache:'no-store',redirect:'error'});
     const text=redactSmsSecrets((await response.text()).slice(0,20000));
-    let data:unknown;try{data=JSON.parse(text)}catch{return {status:'unknown'}}
+    let data:unknown;try{data=JSON.parse(text)}catch{return {status:'unknown',reason:'unreadable'}}
     const code=parseCode(data);
-    if(!code)return {status:'unknown'};
+    if(!code)return {status:'unknown',reason:'unreadable'};
     if(response.ok&&code==='202')return {status:'submitted',code};
     if(/^10\d{2}$/.test(code))return {status:'rejected',code};
-    return {status:'unknown',code};
-  }catch{return {status:'unknown'}}
+    return {status:'unknown',code,reason:'code'};
+  }catch(error){return {status:'unknown',reason:smsFailureReason(error)}}
 }
 
 export type SmsBalance={ok:true;balance:number}|{ok:false;code?:string};

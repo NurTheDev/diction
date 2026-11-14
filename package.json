@@ -32,7 +32,7 @@
     "test:recycle:coverage": "tsx tests/recycle-coverage.test.ts",
     "test:cron": "tsx --conditions=react-server tests/cron.test.ts",
     "test:sms": "npm run test:sms:provider && npm run test:sms:templates && npm run test:sms:recipients && npm run test:sms:quiet",
-    "test:sms:provider": "tsx --conditions=react-server tests/sms-provider.test.ts",
+    "test:sms:provider": "tsx --conditions=react-server tests/sms-provider.test.ts && tsx --conditions=react-server tests/sms-retry.test.ts",
     "test:sms:templates": "tsx tests/sms-templates.test.ts",
     "test:sms:recipients": "tsx tests/sms-recipients.test.ts",
     "test:sms:quiet": "tsx tests/sms-quiet.test.ts",

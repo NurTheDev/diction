@@ -30,7 +30,10 @@ smsBatchSchema.index({status:1,scheduledFor:1});
 // batch and student are CONTEXT, not required refs: a connection test to the operator's own number
 // and a visitor/teacher message have neither, and the durable facts are the phone, the text, the
 // segments and the cost. Real sends always set both (src/lib/center/sms-send.ts).
-const smsLogSchema=new Schema({batch:{type:Schema.Types.ObjectId,ref:'CenterSmsBatch'},student:{type:Schema.Types.ObjectId,ref:'CenterStudent'},lead:{type:Schema.Types.ObjectId,ref:'Lead'},phone:{type:String,required:true},message:{type:String,required:true,maxlength:2000},segments:{type:Number,required:true,min:1},cost:{type:Number,min:0,default:0},templateKey:String,month:String,providerCode:String,providerMessage:String,status:{type:String,enum:['sent','failed','skipped','queued'],required:true},reason:String,sentAt:Date},{timestamps:true});smsLogSchema.index({student:1,createdAt:-1});smsLogSchema.index({batch:1,status:1});smsLogSchema.index({createdAt:1});
+const smsLogSchema=new Schema({batch:{type:Schema.Types.ObjectId,ref:'CenterSmsBatch'},student:{type:Schema.Types.ObjectId,ref:'CenterStudent'},lead:{type:Schema.Types.ObjectId,ref:'Lead'},phone:{type:String,required:true},message:{type:String,required:true,maxlength:2000},segments:{type:Number,required:true,min:1},cost:{type:Number,min:0,default:0},templateKey:String,month:String,providerCode:String,providerMessage:String,status:{type:String,enum:['sent','failed','skipped','queued'],required:true},reason:String,
+  /** How many provider calls this row took. More than one means an automatic retry, which is only
+      ever allowed for a failure that proved the first attempt was not submitted. */
+  attempts:{type:Number,min:1,default:1},sentAt:Date},{timestamps:true});smsLogSchema.index({student:1,createdAt:-1});smsLogSchema.index({batch:1,status:1});smsLogSchema.index({createdAt:1});
 // R2: the 24-hour "same template/student/month was already sent" warning reads this index.
 smsLogSchema.index({templateKey:1,student:1,month:1,createdAt:-1});
 // R3.9: the same warning for a visitor send, which points at the lead and never at a student. One row
