@@ -611,7 +611,14 @@
     "editSlot": "সময়সূচি সম্পাদনা",
     "editSlotHelp": "শুধু যে স্লটে কখনো বুকিং হয়নি তা সম্পাদনা করা যায়। বুকিং থাকলে পুরোনো তথ্য রেখে নতুন স্লট তৈরি করুন। বাংলাদেশ সময় ব্যবহার করুন।",
     "slotHistory": "এই স্লটে বুকিংয়ের ইতিহাস আছে, তাই সময়সূচি পরিবর্তন করা যাবে না। পরিবর্তে নতুন স্লট তৈরি করুন।",
-    "cancel": "ফিরে যান"
+    "cancel": "ফিরে যান",
+    "testModeBanner": "টেস্ট মোড — আলাদা dictioncoaching_test ডাটাবেস",
+    "aiPage": {
+      "publicAi": "লগইন ছাড়া পাবলিক AI",
+      "enabledByFlag": "চালু করার অনুমতি দেওয়া হয়েছে",
+      "needsSetting": "বন্ধ — PUBLIC_AI_ENABLED সেটিং প্রয়োজন",
+      "notACheck": "এটি সেবা বা নিরাপত্তা পরীক্ষায় সফল হওয়ার নিশ্চয়তা নয়।"
+    }
   },
   "academic": {
     "academic": "শিক্ষা ব্যবস্থাপনা",
@@ -774,7 +781,8 @@
     "aiSession": "শিক্ষার্থী সেশন যাচাই করা যায়নি। আবার লগ ইন করো।",
     "aiStopped": "উত্তর বন্ধ করা হয়েছে।",
     "aiStop": "উত্তর থামাও",
-    "aiClear": "কথোপকথন মুছুন"
+    "aiClear": "কথোপকথন মুছুন",
+    "goToStudyBuddy": "AI স্টাডি বাডিতে যান"
   },
   "cms": {
     "contentTitle": "কনটেন্ট ম্যানেজার",
@@ -2006,7 +2014,41 @@
       "sheetPreview": "স্প্রেডশিট প্রিভিউ"
     },
     "selectAll": "সব বাছুন",
-    "smsSelected": "নির্বাচিত {count} জনকে এসএমএস"
+    "smsSelected": "নির্বাচিত {count} জনকে এসএমএস",
+    "cashFees": "নগদ ফি",
+    "profileTab": "প্রোফাইল",
+    "yearWord": "বছর",
+    "viewButton": "দেখুন",
+    "removedPage": {
+      "crumbStudents": "শিক্ষার্থী",
+      "title": "সরানো শিক্ষার্থী",
+      "note": "ফেরানোর সময় নতুন ফি শুরুর মাস দিন; মাঝের সময়ে ফি ধরা হবে না।",
+      "lastDay": "শেষ দিন",
+      "none": "কোনো সরানো শিক্ষার্থী নেই।",
+      "page": "পৃষ্ঠা",
+      "previous": "আগের",
+      "next": "পরের"
+    },
+    "picker": {
+      "chooseFromList": "তালিকা থেকে শিক্ষার্থী বাছুন",
+      "searchAria": "শিক্ষার্থীর নাম বা আইডি খুঁজুন",
+      "placeholder": "নাম বা আইডি লিখুন"
+    },
+    "grid": {
+      "loadError": "শিট লোড করা যায়নি।",
+      "title": "শিট ভিউ",
+      "scopeNote": "একবারে একটি ক্লাস ও বছর; সরানো শিক্ষার্থী দেখানো হয় না।",
+      "classLabel": "ক্লাস",
+      "chooseClass": "ক্লাস বাছুন",
+      "yearLabel": "বছর",
+      "viewButton": "শিট দেখুন",
+      "downloadExcel": "Excel ডাউনলোড",
+      "namePhoneColumn": "নাম / ফোন",
+      "admissionColumn": "ভর্তি",
+      "paidColumn": "জমা",
+      "dueColumn": "বকেয়া",
+      "monthlyTotals": "মাসভিত্তিক জমা"
+    }
   },
   "recycleBin": {
     "title": "রিসাইকেল বিন",
@@ -2717,7 +2759,14 @@
       "images": "পাঠের ছবি",
       "imageAlt": "ছবি",
       "sheet": "লেকচার শিট",
-      "sheetCta": "PDF প্রিভিউ ও ডাউনলোড"
+      "sheetCta": "PDF প্রিভিউ ও ডাউনলোড",
+      "video": {
+        "heading": "শিক্ষামূলক ভিডিও",
+        "note": "ভিডিও চালু করলে YouTube তথ্য গ্রহণ করতে পারে।",
+        "frameTitle": "শিক্ষামূলক YouTube ভিডিও",
+        "load": "YouTube ভিডিও চালু করুন",
+        "openOn": "YouTube-এ খুলুন"
+      }
     },
     "site": {
       "achievementsCta": "প্রকাশিত অর্জনের কার্ড দেখুন"

@@ -216,6 +216,7 @@ const SECRETS=['BULKSMSBD_API_KEY','GEMINI_API_KEY','AI_API_KEY','NEXTAUTH_SECRE
 const NAMED_SETTINGS:Record<string,string>={
   'sms.problems.disabled':'CENTER_SMS_WRITE_ENABLED is the gate the operator opens, and the problem message is where they learn which knob is off',
   'aiTest.forbidden':'NEXTAUTH_URL is the address of the site itself, which the operator sets — not a secret',
+  'admin.aiPage.needsSetting':'PUBLIC_AI_ENABLED is the switch the operator turns on, and this line is where the admin learns it is off',
 };
 const ENV_NAME=/\b[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+\b/g;
 const leakedSecrets:string[]=[],unnamedSettings:string[]=[],rotten:string[]=[];

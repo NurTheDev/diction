@@ -611,7 +611,14 @@
     "editSlot": "Edit schedule",
     "editSlotHelp": "Only slots with no booking history can be edited. Once anyone has booked, keep the original record and create a new slot instead. Dates and times use Bangladesh time.",
     "slotHistory": "This slot has booking history, so its schedule cannot be changed. Create a new slot instead.",
-    "cancel": "Go back"
+    "cancel": "Go back",
+    "testModeBanner": "TEST MODE — separate dictioncoaching_test database",
+    "aiPage": {
+      "publicAi": "Public AI without login",
+      "enabledByFlag": "enabled by flag",
+      "needsSetting": "off — PUBLIC_AI_ENABLED setting is required",
+      "notACheck": "This does not confirm service connectivity or safety."
+    }
   },
   "academic": {
     "academic": "Academic setup",
@@ -774,7 +781,8 @@
     "aiSession": "Your student session could not be verified. Sign in again.",
     "aiStopped": "Response stopped.",
     "aiStop": "Stop response",
-    "aiClear": "Clear conversation"
+    "aiClear": "Clear conversation",
+    "goToStudyBuddy": "Go to AI Study Buddy"
   },
   "cms": {
     "contentTitle": "Content manager",
@@ -2006,7 +2014,41 @@
       "sheetPreview": "Spreadsheet preview"
     },
     "selectAll": "Select all",
-    "smsSelected": "SMS {count} selected"
+    "smsSelected": "SMS {count} selected",
+    "cashFees": "Cash fees",
+    "profileTab": "Profile",
+    "yearWord": "Year",
+    "viewButton": "View",
+    "removedPage": {
+      "crumbStudents": "Students",
+      "title": "Removed students",
+      "note": "When restoring, give the new fee start month; the months in between are not billed.",
+      "lastDay": "Last day",
+      "none": "No removed students.",
+      "page": "Page",
+      "previous": "Previous",
+      "next": "Next"
+    },
+    "picker": {
+      "chooseFromList": "Select a student from the suggestions",
+      "searchAria": "Search student name or ID",
+      "placeholder": "Search name or ID"
+    },
+    "grid": {
+      "loadError": "Could not load the sheet.",
+      "title": "Sheet view",
+      "scopeNote": "One class and year at a time; removed students are not shown.",
+      "classLabel": "Class",
+      "chooseClass": "Choose a class",
+      "yearLabel": "Year",
+      "viewButton": "View sheet",
+      "downloadExcel": "Download Excel",
+      "namePhoneColumn": "Name / phone",
+      "admissionColumn": "Admission",
+      "paidColumn": "Paid",
+      "dueColumn": "Due",
+      "monthlyTotals": "Totals by month"
+    }
   },
   "recycleBin": {
     "title": "Recycle Bin",
@@ -2717,7 +2759,14 @@
       "images": "Learning images",
       "imageAlt": "image",
       "sheet": "Lecture sheet",
-      "sheetCta": "Preview and download PDF"
+      "sheetCta": "Preview and download PDF",
+      "video": {
+        "heading": "Learning video",
+        "note": "Playing the video may send information to YouTube.",
+        "frameTitle": "Educational YouTube video",
+        "load": "Load YouTube video",
+        "openOn": "Open on YouTube"
+      }
     },
     "site": {
       "achievementsCta": "View published achievement cards"
