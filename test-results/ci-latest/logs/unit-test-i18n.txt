@@ -9,7 +9,7 @@ A.7 · the catalogs are whole: parity both ways, no mis-nested keys, no leftover
 --- tests/i18n-routes.test.ts (exit 0) ---
 Language ternaries: 0 in 0 files (baseline 0).
   most: 
-  allowed: layout.tsx — og:locale is a metadata code (bn_BD), not a painted word; route.ts — the language is named to the model as an instruction, in English; route.ts — the language is named to the model as an instruction, in English; top-header.tsx — a switcher names the language it switches to; header-nav.tsx — the ternary picks a class name, not a word; recovery.ts — the reset email is message content, sent in the reader’s language, like an SMS body
+  allowed: layout.tsx — og:locale is a metadata code (bn_BD), not a painted word; route.ts — the language is named to the model as an instruction, in English; route.ts — the language is named to the model as an instruction, in English; top-header.tsx — a switcher names the language it switches to; header-nav.tsx — the ternary picks a class name, not a word
 Bangla in route files: 0 lines in 0 files (baseline 0).
   most: 
 A.6 · the route sweep holds: no page reached for a new hardcoded pair, and every count moved only down.

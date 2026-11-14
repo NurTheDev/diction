@@ -1,27 +1,3 @@
---- tests/recycle-bin.integration.ts (exit 1) ---
+--- tests/recycle-bin.integration.ts (exit 0) ---
 Daily job: purged 1 expired social-proof milestone(s): d (2023)
-Error: Student validation failed: grade: Path `grade` is required.
-    at ValidationError.inspect (/home/runner/work/diction/diction/node_modules/mongoose/lib/error/validation.js:52:26)
-    at formatValue (node:internal/util/inspect:897:19)
-    at inspect (node:internal/util/inspect:409:10)
-    at formatWithOptionsInternal (node:internal/util/inspect:2643:40)
-    at formatWithOptions (node:internal/util/inspect:2505:10)
-    at console.value (node:internal/console/constructor:366:14)
-    at console.error (node:internal/console/constructor:433:61)
-    at <anonymous> (/home/runner/work/diction/diction/tests/recycle-bin.integration.ts:195:51) {
-  errors: {
-    grade: ValidatorError: Path `grade` is required.
-        at validate (/home/runner/work/diction/diction/node_modules/mongoose/lib/schemaType.js:1440:13)
-        at SchemaType.doValidate (/home/runner/work/diction/diction/node_modules/mongoose/lib/schemaType.js:1424:7)
-        at /home/runner/work/diction/diction/node_modules/mongoose/lib/document.js:3151:18
-        at process.processTicksAndRejections (node:internal/process/task_queues:84:11) {
-      properties: [Object],
-      kind: 'required',
-      path: 'grade',
-      value: undefined,
-      reason: undefined,
-      [Symbol(mongoose#validatorError)]: true
-    }
-  },
-  _message: 'Student validation failed'
-}
+Recycle Bin engine: reference-blocked delete with exact counts, 30-day bin, restore, purge, audit rows, every query shape hidden, and the daily job (401 without the secret; purges only expired rows and trims old logs) passed.
