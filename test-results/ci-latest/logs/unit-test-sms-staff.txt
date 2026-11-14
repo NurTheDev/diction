@@ -3,23 +3,16 @@ Staff SMS policy: admin and super admin keep every source, every template, free 
 
 
 --- tests/sms-staff.integration.ts (exit 1) ---
-AssertionError [ERR_ASSERTION]: the desk spent its allowance, not the owner’s
-+ actual - expected
+AssertionError [ERR_ASSERTION]: no raw visitor number in a dialog answer or a kit (01712817090)
 
-  {
-    limit: 1,
-+   remaining: 0,
-+   sent: 9
--   remaining: 1,
--   sent: 0
-  }
+true !== false
 
-    at run (/home/runner/work/diction/diction/tests/sms-staff.integration.ts:183:12)
+    at run (/home/runner/work/diction/diction/tests/sms-staff.integration.ts:193:16)
     at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {
   generatedMessage: false,
   code: 'ERR_ASSERTION',
-  actual: [Object],
-  expected: [Object],
-  operator: 'deepStrictEqual',
+  actual: true,
+  expected: false,
+  operator: 'strictEqual',
   diff: 'simple'
 }
