@@ -403,8 +403,15 @@ async function run(){
     const dialog=boss.page.locator('[data-sms-dialog]');
     await dialog.waitFor({state:'visible',timeout:60000});
     assert.equal((await dialog.getAttribute('aria-label')),t.sms.title,'the app’s one SMS dialog opens, with the CV bank’s own title');
-    const summary=await dialog.locator('[data-sms-summary]').innerText();
-    assert.ok(/[১1]/.test(summary),'and it counts the one CV that was picked, not the page and not the bank');
+    /* The dialog counts its recipients after it opens, so the summary is waited for rather than snapped
+       at, and the claim is the count itself, read out of the sentence the dialog writes. */
+    const summaryBox=dialog.locator('[data-sms-summary]');
+    await until(async()=>!(await summaryBox.innerText().catch(()=>bn.sms.dialog.countingRecipients)).includes(bn.sms.dialog.countingRecipients),
+      'the dialog to finish counting who it is about to text');
+    const summary=(await summaryBox.innerText()).trim();
+    const counted=new RegExp(`^${bn.sms.dialog.total}\\s+([0-9\\u09e6-\\u09ef]+)\\s+${bn.sms.dialog.numbers}`).exec(summary);
+    assert.ok(counted,`the dialog says how many numbers it is about to text, and this said: ${summary.slice(0,80)}`);
+    assert.equal(counted![1],'১','and it counts the one CV that was picked, not the page and not the bank');
     const recipients=dialog.locator('[data-sms-recipients]');
     if(!await recipients.isVisible().catch(()=>false))await dialog.locator('[data-sms-recipients-toggle]').click();
     await recipients.waitFor({state:'visible',timeout:30000});
@@ -427,8 +434,13 @@ async function run(){
     assert.ok(counts.includes('২'),'…and the two that cannot be written');
     const question=boss.page.locator('[data-cv-import-questions]');
     await question.waitFor({state:'visible',timeout:60000});
-    assert.ok((await question.innerText()).includes('Column 1'),'the column nobody named is asked about…');
-    assert.ok(await boss.page.locator('select[data-cv-import-map]').count()>0,'…with a select beside it, never a default');
+    assert.ok((await question.innerText()).includes(t.import.questions.unnamed),
+      'the column nobody named is asked about, in the words the catalog gives for asking');
+    const mapSelects=boss.page.locator('select[data-cv-import-map]');
+    assert.ok(await mapSelects.count()>0,'…with a select beside it, never a default');
+    assert.equal(await mapSelects.first().inputValue(),'','and the select sits on its blank choice: nothing was mapped behind the owner’s back');
+    assert.equal(((await mapSelects.first().locator('option').first().textContent())||'').trim(),'Column 1',
+      'whose blank choice names the column exactly as the sheet wrote it');
     assert.ok(await boss.page.locator('[data-cv-import-commit]').isDisabled(),'Save stays off while a date is undecided');
     const radioNames=await boss.page.locator('input[type="radio"][name^="accept-"]')
       .evaluateAll(nodes=>[...new Set(nodes.map(node=>(node as HTMLInputElement).name))]);
