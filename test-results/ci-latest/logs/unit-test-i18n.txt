@@ -2,8 +2,8 @@
 No mis-nested keys, no empty values, no leftover template literals.
 Used keys: 1733 distinct across 2536 call sites, all present in both catalogs.
   (16 computed keys are not checked statically: r(`fieldNames.${key}`), r(`fieldNames.${key}`), c(`dayPeriod.${k}`), t(`fieldNames.${k}`), c(`dayPeriod.${k}`), ts(`statuses.${value}`), c(`dayPeriod.${k}`), c(`dayPeriod.${k}`), t(`items.${key}`), t(`groups.${g.key}`), t(`items.${key}`), t(`items.${key}`), t(`examDesc.${key}`), roleNames(`role.${r}`), t(`items.${key}`), t(`role.${role}`))
-Browser exposure: 38 groups are read by client components, 11 stay on the server, and no shipped value names a variable.
-A.7 · the catalogs are whole: parity both ways, no mis-nested keys, no leftover templates, every key src/ asks for resolves in both languages, and Bangla inside an English value only where a language names itself.
+Browser exposure: 38 groups are read by client components, 11 stay on the server, 2 shipped values name an operator setting and none names a secret.
+A.7 · the catalogs are whole: parity both ways, no mis-nested keys, no leftover templates, every key src/ asks for resolves in both languages, and Bangla inside an English value only where a language names itself, and the browser receives no secret and no group only a server reads.
 
 
 --- tests/i18n-routes.test.ts (exit 0) ---
