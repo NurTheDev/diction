@@ -1,27 +1,3 @@
-    "screenshots/all/daily-collection-en-1440.png",
-    "screenshots/all/due-list-en-360.png",
-    "screenshots/all/due-list-en-1440.png",
-    "screenshots/all/visitors-list-en-360.png",
-    "screenshots/all/visitors-list-en-1440.png",
-    "screenshots/all/sms-centre-en-360.png",
-    "screenshots/all/sms-centre-en-1440.png",
-    "screenshots/all/class-sheet-en-360.png",
-    "screenshots/all/class-sheet-en-1440.png",
-    "screenshots/all/center-exams-en-360.png",
-    "screenshots/all/center-exams-en-1440.png",
-    "screenshots/all/classes-en-360.png",
-    "screenshots/all/classes-en-1440.png",
-    "screenshots/all/legacy-review-en-360.png",
-    "screenshots/all/legacy-review-en-1440.png",
-    "screenshots/all/public-sheets-en-360.png",
-    "screenshots/all/public-sheets-en-1440.png",
-    "screenshots/all/practice-tests-en-360.png",
-    "screenshots/all/practice-tests-en-1440.png",
-    "screenshots/all/removed-students-en-360.png",
-    "screenshots/all/removed-students-en-1440.png",
-    "screenshots/all/workbook-import-en-360.png",
-    "screenshots/all/workbook-import-en-1440.png"
-  ],
   "failures": [],
   "overflow": [
     {
@@ -392,6 +368,30 @@
     },
     {
       "path": "/en/admin/students/import",
+      "width": 1440,
+      "clientWidth": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "path": "/bn/admin/leads/import",
+      "width": 360,
+      "clientWidth": 360,
+      "scrollWidth": 360
+    },
+    {
+      "path": "/bn/admin/leads/import",
+      "width": 1440,
+      "clientWidth": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "path": "/en/admin/leads/import",
+      "width": 360,
+      "clientWidth": 360,
+      "scrollWidth": 360
+    },
+    {
+      "path": "/en/admin/leads/import",
       "width": 1440,
       "clientWidth": 1440,
       "scrollWidth": 1440

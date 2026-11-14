@@ -1,6 +1,6 @@
 --- tests/i18n-catalog.test.ts (exit 0) ---
 No mis-nested keys, no empty values, no leftover template literals.
-Used keys: 2388 distinct across 3243 call sites, all present in both catalogs.
+Used keys: 2427 distinct across 3282 call sites, all present in both catalogs.
   (25 computed keys are not checked statically: r(`fieldNames.${key}`), r(`fieldNames.${key}`), c(`dayPeriod.${k}`), t(`fieldNames.${k}`), c(`dayPeriod.${k}`), ts(`statuses.${value}`), t(`override.${key}`), t(`codes.${e.code}`), t(`issueNames.${issue}`), t(`errors.${state.error}`), t(`warnings.${w}`), t(`issues.${i}`), t(`options.${type}.${value}`), t(`labels.${type}`), t(`labels.${type}`), c(`dayPeriod.${k}`), c(`dayPeriod.${k}`), t(`items.${key}`), t(`groups.${g.key}`), t(`items.${key}`), t(`items.${key}`), t(`examDesc.${key}`), roleNames(`role.${r}`), t(`items.${key}`), t(`role.${role}`))
 Browser exposure: 53 groups are read by client components, 12 stay on the server, 4 shipped values name an operator setting and none names a secret.
 A.7 · the catalogs are whole: parity both ways, no mis-nested keys, no leftover templates, every key src/ asks for resolves in both languages, and Bangla inside an English value only where a language names itself, and the browser receives no secret and no group only a server reads.
