@@ -35,7 +35,17 @@
     "screenshots/all/recycle-bin-360.png",
     "screenshots/all/recycle-bin-1440.png",
     "screenshots/all/recycle-bin-en-360.png",
-    "screenshots/all/recycle-bin-en-1440.png"
+    "screenshots/all/recycle-bin-en-1440.png",
+    "screenshots/all/students-list-en-360.png",
+    "screenshots/all/students-list-en-1440.png",
+    "screenshots/all/daily-collection-en-360.png",
+    "screenshots/all/daily-collection-en-1440.png",
+    "screenshots/all/due-list-en-360.png",
+    "screenshots/all/due-list-en-1440.png",
+    "screenshots/all/visitors-list-en-360.png",
+    "screenshots/all/visitors-list-en-1440.png",
+    "screenshots/all/sms-centre-en-360.png",
+    "screenshots/all/sms-centre-en-1440.png"
   ],
   "failures": [],
   "overflow": [
@@ -251,6 +261,66 @@
     },
     {
       "path": "/en/admin/recycle-bin",
+      "width": 1440,
+      "clientWidth": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "path": "/en/admin/students",
+      "width": 360,
+      "clientWidth": 360,
+      "scrollWidth": 360
+    },
+    {
+      "path": "/en/admin/students",
+      "width": 1440,
+      "clientWidth": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "path": "/en/admin/students/collect",
+      "width": 360,
+      "clientWidth": 360,
+      "scrollWidth": 360
+    },
+    {
+      "path": "/en/admin/students/collect",
+      "width": 1440,
+      "clientWidth": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "path": "/en/admin/students/dues",
+      "width": 360,
+      "clientWidth": 360,
+      "scrollWidth": 360
+    },
+    {
+      "path": "/en/admin/students/dues",
+      "width": 1440,
+      "clientWidth": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "path": "/en/admin/leads",
+      "width": 360,
+      "clientWidth": 360,
+      "scrollWidth": 360
+    },
+    {
+      "path": "/en/admin/leads",
+      "width": 1440,
+      "clientWidth": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "path": "/en/admin/sms",
+      "width": 360,
+      "clientWidth": 360,
+      "scrollWidth": 360
+    },
+    {
+      "path": "/en/admin/sms",
       "width": 1440,
       "clientWidth": 1440,
       "scrollWidth": 1440
