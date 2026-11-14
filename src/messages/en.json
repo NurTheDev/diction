@@ -2773,5 +2773,51 @@
       "content_editor": "Create, publish and delete blogs, public PDFs and public image uploads; no other editorial drafts, student records or fees.",
       "exam_manager": "Create and publish public practice and model tests; no student records or fees."
     }
+  },
+  "dues": {
+    "list": {
+      "crumb": {
+        "students": "Students"
+      },
+      "title": "Current overdue list",
+      "legacyNote": "Based on new center records only; legacy fees are not included.",
+      "classLabel": "Class",
+      "chooseClass": "Choose class",
+      "show": "Show",
+      "windowNote": "Overdue through today only; pending, currently held and removed students are excluded. This is a live view, not a permanent snapshot.",
+      "overdueHeading": "Overdue",
+      "studentsUnit": "students",
+      "takaUnit": "Taka",
+      "downloadCsv": "Download CSV",
+      "partialNote": "Unable to calculate all records safely; no partial totals are displayed.",
+      "studentColumn": "Student",
+      "monthsColumn": "Overdue months",
+      "totalColumn": "Total",
+      "none": "No overdue records.",
+      "snapshotsHeading": "Recent snapshots",
+      "timezoneNote": "Calculated using Asia/Dhaka time. Recalculate after concurrent changes."
+    },
+    "snapshot": {
+      "crumb": {
+        "dues": "Overdue list"
+      },
+      "title": "Saved overdue snapshot",
+      "scopeNote": "New Center records only",
+      "recordedHeading": "Recorded view",
+      "takaUnit": "Taka",
+      "studentColumn": "Student",
+      "monthsColumn": "Months",
+      "overdueColumn": "Overdue",
+      "none": "No overdue records."
+    },
+    "save": {
+      "title": "Save overdue snapshot",
+      "confirmNote": "The current calculation is saved permanently; legacy fees are not included.",
+      "disabledNote": "Snapshot writes are disabled for safety.",
+      "confirmLabel": "I reviewed the calculation and confirm the permanent snapshot",
+      "saveButton": "Save snapshot",
+      "saved": "Saved. Reload to create a new snapshot.",
+      "failedPrefix": "Not saved:"
+    }
   }
 }
