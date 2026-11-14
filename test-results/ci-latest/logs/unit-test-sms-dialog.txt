@@ -1,9 +1,11 @@
---- tests/sms-dialog.integration.ts (exit 0) ---
-Sent (mock) to 01711000001: ডিকশন কোচিং: শিক্ষার্থী 1 এর মার্চ মাসের ১২০০ টাকা পেয়েছি। রসিদ নং SYNTH-AUTO। 
-Sent (mock) to 01711000001: ডিকশন কোচিং: প্রিয় অভিভাবক, শিক্ষার্থী 1 এর জানুয়ারি–মার্চ মাসের ৩০০০ টাকা বকে
-Sent (mock) to 01711000002: ডিকশন কোচিং: প্রিয় অভিভাবক, শিক্ষার্থী 2 ও শিক্ষার্থী 3 এর জানুয়ারি–মার্চ মাসে
-Sent (mock) to 01711000001: ডিকশন কোচিং: শিক্ষার্থী 1 এর ফলাফল প্রকাশ হয়েছে। বিস্তারিত দেখতে পোর্টেলে লগইন 
-Sent (mock) to 01711000002: ডিকশন কোচিং: শিক্ষার্থী 2 ও শিক্ষার্থী 3 এর ফলাফল প্রকাশ হয়েছে। বিস্তারিত দেখতে
-Sent (mock) to 01711000007: ডিকশন কোচিং: শিক্ষার্থী 7 এর ফলাফল প্রকাশ হয়েছে। বিস্তারিত দেখতে পোর্টেলে লগইন 
-Sent (mock) to 01711000009: ডিকশন কোচিং: শিক্ষার্থী 9 এর ফলাফল প্রকাশ হয়েছে। বিস্তারিত দেখতে পোর্টেলে লগইন 
-SMS dialog contract: one guarded endpoint for preview, send and retry — a preview is read-only and reports recipients, skipped numbers with a reason from the closed vocabulary, the first three messages, segments and cost against the balance plus a low-balance warning; sibling grouping, guardian/student/both and the DUE-only list change exactly who is counted; an empty body or an unrendered chip is refused instead of sent; one requestId is one batch so a double-click sends nothing twice; "skip those" drops students messaged within 24 hours; retry re-sends only failed rows and refuses when there are none; quiet hours queue and the flush job sends; the three auto-send toggles are OFF by default, idempotent when on, and stored with their trigger and no creator because a job is not a person; malformed requests are refused before anything is read; and no credential appears in a response or a stored row.
+--- tests/sms-dialog.integration.ts (exit 1) ---
+AssertionError [ERR_ASSERTION]: each reason carries both labels, so the dialog can show the operator's language
+    at run (/home/runner/work/diction/diction/tests/sms-dialog.integration.ts:113:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}
