@@ -57,6 +57,12 @@ for(const file of files){
     offenders.push(`${file}:${index+1}: ${[...new Set(runs)].slice(0,3).join(' / ').slice(0,90)}`);
   });
 }
+/* This suite is a scoreboard, not a gate: it stays red until the last sentence has moved, so it has
+   to say how far down the count is. Node truncates a long array inside an assertion error, which
+   hides the one number that shows progress, so print it before failing. */
+const worst=[...offenders.reduce((map,line)=>{const file=line.split(':')[0];map.set(file,(map.get(file)||0)+1);return map},new Map<string,number>())].sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]));
+console.log(`Bangla scan: ${offenders.length} lines in ${worst.length} files (${files.length} walked).`);
+console.log(`  most: ${worst.slice(0,12).map(entry=>`${entry[1]} ${entry[0]}`).join('; ')}`);
 assert.deepEqual(offenders,[],'no Bangla interface text is left in src/ outside an i18n-scan-allow block');
 
 console.log(`Bangla scan: ${files.length} files walked, nothing left outside the allow blocks.`);

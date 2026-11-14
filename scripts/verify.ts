@@ -310,6 +310,7 @@ async function main():Promise<void>{
   const installed=await stepInstall(ctx);
   if(installed){
     await stepUnitSuites(ctx,'test:unit:core','R0.7','Core unit suites');
+    await stepUnitSuites(ctx,'test:i18n','R0.12','Both languages hold the same interface');
     await stepUnitSuites(ctx,'test:center','R0.8','Center unit suites');
     await stepUnitSuites(ctx,'test:staff-role','R1.2','Staff role: schema, guards and nav visibility');
     await stepUnitSuites(ctx,'test:recycle:coverage','R1.3','Auto-hide coverage: query shapes, protected types, revalidation map');

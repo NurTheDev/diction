@@ -1574,6 +1574,7 @@
     "role": {
       "superadmin": "Superadmin",
       "admin": "Admin",
+      "staff": "Staff",
       "content_editor": "Content editor",
       "exam_manager": "Exam manager"
     },
@@ -2715,6 +2716,42 @@
       "loading": "Loading preview…",
       "pageImage": "PDF page image",
       "imageNote": "This is an image of the page. Open the PDF to search or copy text."
+    }
+  },
+  "staffRoles": {
+    "title": "Admin roles & permissions",
+    "rolesNote": "Only super admins can manage roles. Super-admin accounts cannot be modified here.",
+    "accountsTitle": "Staff accounts",
+    "formTitle": "Create staff account",
+    "name": "Name",
+    "email": "Email",
+    "role": "Role",
+    "initialPassword": "Initial password",
+    "confirmPassword": "Confirm password",
+    "passwordHelp": "At least 12 characters and at most 72 UTF-8 bytes. Share securely; ask the person to change it after first login.",
+    "createAccount": "Create account",
+    "listLoadFailed": "Could not load the staff list.",
+    "accountCreated": "Account created. Share the password securely and ask the staff member to change it.",
+    "emailTaken": "That email already has an account.",
+    "createFailed": "Could not create account. Check the details and password.",
+    "passwordsMismatch": "Passwords do not match.",
+    "confirmPermissions": "Changing permissions signs out existing sessions. Continue?",
+    "changeSaved": "Change saved.",
+    "changeFailed": "Change failed.",
+    "disableRoleTitle": "Disable a role",
+    "disableRoleNote": "Disabling a role signs every account holding it out of the admin at once; no account is deleted. Super admins cannot switch off their own role.",
+    "active": "Active",
+    "disabled": "Disabled",
+    "enable": "Enable",
+    "disable": "Disable",
+    "failed": "Failed.",
+    "saveChanges": "Save changes",
+    "help": {
+      "superadmin": "Everything, including staff roles.",
+      "admin": "Existing full admin access, but no staff role management.",
+      "staff": "Can see every list and archive or hide records; no deleting, no fees, no student records.",
+      "content_editor": "Create, publish and delete blogs, public PDFs and public image uploads; no other editorial drafts, student records or fees.",
+      "exam_manager": "Create and publish public practice and model tests; no student records or fees."
     }
   }
 }
