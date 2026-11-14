@@ -572,6 +572,12 @@ html:lang(bn) .public-motion-root:not(.private-motion-disabled) :is(h1,h2,h3,h4)
 .overview-drawer h3{font-size:17px;margin:20px 0 8px;color:#1a1d3a}
 /* R3.13 · the hand-off strip and its three dialogs. Their own block because a hand-off form is the one
    place in the drawer with many fields, and at 360px it has to stay one column with 44px targets. */
+/* R3.13 · the hand-off dialogs take the same explicit centering every other dialog in this
+   stylesheet takes: without it a nested modal lands in the corner of the viewport, not in front of the
+   operator. */
+.lead-handoff-dialog{position:fixed;inset:0;margin:auto;width:min(560px,calc(100% - 32px));max-width:560px;max-height:calc(100dvh - 32px);overflow:auto;overscroll-behavior:contain;border:1px solid #d9deee;border-radius:14px;padding:20px;background:#fff;color:#1a1d3a;box-shadow:0 24px 70px #14194340}
+.lead-handoff-dialog::backdrop{background:#10132980}
+@media(max-width:760px){.lead-handoff-dialog{width:calc(100% - 20px);padding:16px}}
 .lead-handoff{margin-top:18px;padding-top:14px;border-top:1px solid #d9deee}
 .lead-handoff h3{margin:0 0 4px}
 .lead-handoff .overview-drawer-actions{margin-top:8px}
