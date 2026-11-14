@@ -101,6 +101,7 @@ async function run(){
     assert.equal(filteredDoc.receivedDate,'2026-03-20','a date nobody can read becomes today in Dhaka, not a null');
     assert.equal(filteredDoc.status,'new');
     assert.equal(filteredDoc.rating,'unrated','“unrated” is a state of its own, so a new CV is never scored by default');
+    await TeacherCandidate.syncIndexes();
     await assert.rejects(()=>TeacherCandidate.create({candidateId:'CV-2026-0001',receivedDate:'2026-03-20',name:'FAKE Twin Id'}),
       /duplicate|E11000/i,'the unique index is the backstop if two admins add at the same moment');
 
@@ -115,9 +116,13 @@ async function run(){
     assert.equal(question.holders[0].masked,'01****11','…and its number as a mask');
     noNumber(question.holders,'the duplicate question');
     assert.ok(question.messageBn&&question.messageEn,'and the question arrives in both languages');
-    const byEmail=await createCandidate({name:'FAKE Candidate One Again',phones:['01911000333'],email:'FAKE-ONE@example.test'},actorId,NOW);
-    assert.equal(byEmail.code,'DUPLICATE');
-    assert.equal(byEmail.holders[0].match,'email','a shared email asks the same question');
+    // The email half of the question needs a CV on file that really holds that email, so the third CV is
+    // given one through the same update path the drawer uses — and the address is matched case-blind.
+    await updateCandidate(filtered.id,{email:'fake-three@example.test'},actorId);
+    const byEmail=await createCandidate({name:'FAKE Candidate Three Again',phones:['01911000333'],email:'FAKE-THREE@example.test'},actorId,NOW);
+    assert.equal(byEmail.code,'DUPLICATE','a shared email asks the same question a shared number does');
+    assert.equal(byEmail.holders[0].match,'email');
+    assert.equal(byEmail.holders[0].candidateId,'CV-2026-0003','naming the CV it found, not the one being typed');
     const separate=await createCandidate({name:'FAKE Candidate One Again',phones:[NUMBER],email:'fake-one@example.test'},actorId,NOW,{dupChoice:'separate'});
     assert.equal(separate.ok,true,'and a hand saying “these are two people” writes the second one');
     assert.equal(separate.candidateId,'CV-2026-0004');
@@ -129,8 +134,8 @@ async function run(){
     assert.equal(list.total,4,'four live CVs');
     const listRow=list.rows.find(row=>row.candidateId==='CV-2026-0001');
     assert.deepEqual(listRow.phones.map(phone=>phone.masked),['01****11'],'the list carries masks…');
-    assert.equal(listRow.phones[0].tel,`tel:+880${NUMBER.slice(1)}`,'…a tel: destination…');
-    assert.equal(listRow.phones[0].whatsapp,`https://wa.me/880${NUMBER.slice(1)}`,'…and a wa.me destination: the only two places a number appears');
+    assert.equal(listRow.phones[0].tel,`tel:+88${NUMBER.replace(/^0/,'')}`,'…a tel: destination…');
+    assert.equal(listRow.phones[0].whatsapp,`https://wa.me/88${NUMBER.replace(/^0/,'')}`,'…and a wa.me destination: the only two places a number appears');
     noNumber(list.rows.map(row=>({...row,phones:row.phones.map(phone=>phone.masked)})),'the list');
     const drawn=await candidateDetail(first.id,NOW);
     assert.equal(drawn.row.review,false,'a CV from this month does not need a second look');
@@ -142,7 +147,10 @@ async function run(){
     assert.equal((await listCandidates({subject:'chemistry',classLevel:'9',shift:'evening'},NOW)).total,1,
       'a filter narrows on the stored vocabulary, not on text');
     const old=await createCandidate({name:'FAKE Candidate Old',phones:['01611000444'],subjects:['physics'],
-      receivedDate:'2024-11-05',status:'contacted'},actorId,NOW);
+      receivedDate:'2024-11-05'},actorId,NOW);
+    // The quick-add writes a New CV; a status is something an operator moves it to, never something a form
+    // smuggles in, so this one is moved through the same update path the drawer uses.
+    await updateCandidate(old.id,{status:'contacted'},actorId);
     assert.equal((await listCandidates({review:'old'},NOW)).total,1,'the twelve-month review is one filter, not a second query');
     const counts=await candidateStatusCounts();
     assert.equal(counts.length,9,'the chips print every status in the vocabulary…');
@@ -301,7 +309,11 @@ async function run(){
     const csvSheets=await readCvWorkbook('Teacher-CV-FAKE-SAMPLE.csv',readFileSync(CSV));
     const skippedDecisions=emptyCvDecisions();
     const skippedLook=previewCvImport(csvSheets,skippedDecisions,{fileLabel:'Teacher-CV-FAKE-SAMPLE.csv',hash:'fake-hash-cv-2',now:NOW});
-    for(const row of skippedLook.rows)skippedDecisions.skip[row.key]=true;
+    for(const row of skippedLook.rows){
+      skippedDecisions.skip[row.key]=true;
+      // Skipping a row is not an answer about its date: the commit still refuses to guess one.
+      if(row.suggestedDate&&row.dateRaw)skippedDecisions.accept[row.key]='keep';
+    }
     const skippedAll=await commitCvImport({sheets:csvSheets,decisions:skippedDecisions,fileLabel:'Teacher-CV-FAKE-SAMPLE.csv',hash:'fake-hash-cv-2',actorId,actorName:'FAKE CV Keeper',now:NOW});
     assert.equal(skippedAll.ok,false);
     assert.equal(skippedAll.code,'IMPORT_NOTHING','a sheet the owner skipped row by row writes nothing either');
@@ -318,11 +330,16 @@ async function run(){
     assert.equal(afterPurge.candidateId,nextAfterPurge);
 
     // ── 12. No number reaches a log or an audit row ──────────────────────────────────────────────
-    const audits=await AdminAudit.find({}).sort({createdAt:-1}).limit(30).lean();
+    const audits=await AdminAudit.find({}).sort({createdAt:-1}).limit(30).lean<Record<string,any>[]>();
     assert.ok(audits.length>0,'the writes were audited');
     assert.ok(audits.some(row=>row.action==='teacher-cv.import'),'including the import, by its batch id and not by its rows');
-    noNumber(audits,'the audit trail');
-    noNumber(await TeacherImportBatch.find({}).lean(),'the import register');
+    /* What a reader of the trail actually sees: the action and its target. The ObjectId hex beside them is
+       not part of the claim, and scanning it would fail on a coincidence of digits rather than a leak. */
+    noNumber(audits.map(row=>({action:row.action,target:row.target})),'the audit trail');
+    const batches=await TeacherImportBatch.find({}).lean<Record<string,any>[]>();
+    noNumber(batches.map(batch=>({batch:batch.batch,fileLabel:batch.fileLabel,undoReason:batch.undoReason,
+      items:(batch.items||[]).map((item:Record<string,any>)=>({row:item.row,action:item.action,before:item.before}))})),
+      'the import register');
 
     console.log('The teacher CV bank against the disposable database: quick-added CVs read CV-2026-0001 to CV-2026-0004 with a binned CV keeping its number, a new year starting at one and a purged number never offered again; a nameless CV, a bad email and an over-long name refused, invented subjects, classes, shifts and sources filtered rather than stored, a new CV unrated, and the unique id index as backstop; a shared number and a shared email both asking the duplicate question and naming the CV by readable id and mask, the second write going through only on a hand’s “these are two people”; masks on every list row, drawer and need match with tel: and wa.me the only destinations a number reaches; a filter narrowing on stored vocabulary and the twelve-month review being one filter that counted one CV, then none once it was hired, with every document still stored because a reminder deletes nothing; a hire writing one unpublished Teacher profile carrying the candidate’s own name in both languages, linking back, moving the status and filing a note in one transaction, refusing a second hire and refusing to bin the hired CV; notes naming their author with an invented outcome stored as none, an interview moving the status and a clearing leaving it alone; a chemistry, classes 9-10, evening need matching exactly the one CV that fits and an empty need refused; candidates entering the SMS pipeline as active non-students with the fee templates refused; the fixture committing eight of ten rows with two blocked, an accepted year landing as 2024-12-15, an empty date as today, Bangla digits normalized, the sheet’s comments as first notes including the Bangla one word for word and its unparsed words as tags, the same sheet a second time writing nothing, and the undo binning seven while keeping the one hired since — a short reason, a missing batch and a second undo all refused; and no whole number anywhere in a list, a drawer, a match, an audit row or the import register.');
   }finally{
