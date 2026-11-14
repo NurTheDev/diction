@@ -1,14 +1,14 @@
 --- tests/i18n-catalog.test.ts (exit 0) ---
 No mis-nested keys, no empty values, no leftover template literals.
-Used keys: 2077 distinct across 2896 call sites, all present in both catalogs.
-  (16 computed keys are not checked statically: r(`fieldNames.${key}`), r(`fieldNames.${key}`), c(`dayPeriod.${k}`), t(`fieldNames.${k}`), c(`dayPeriod.${k}`), ts(`statuses.${value}`), c(`dayPeriod.${k}`), c(`dayPeriod.${k}`), t(`items.${key}`), t(`groups.${g.key}`), t(`items.${key}`), t(`items.${key}`), t(`examDesc.${key}`), roleNames(`role.${r}`), t(`items.${key}`), t(`role.${role}`))
-Browser exposure: 46 groups are read by client components, 11 stay on the server, 3 shipped values name an operator setting and none names a secret.
+Used keys: 2201 distinct across 3038 call sites, all present in both catalogs.
+  (22 computed keys are not checked statically: r(`fieldNames.${key}`), r(`fieldNames.${key}`), c(`dayPeriod.${k}`), t(`fieldNames.${k}`), c(`dayPeriod.${k}`), ts(`statuses.${value}`), t(`override.${key}`), t(`codes.${e.code}`), t(`issueNames.${issue}`), t(`errors.${state.error}`), t(`warnings.${w}`), t(`issues.${i}`), c(`dayPeriod.${k}`), c(`dayPeriod.${k}`), t(`items.${key}`), t(`groups.${g.key}`), t(`items.${key}`), t(`items.${key}`), t(`examDesc.${key}`), roleNames(`role.${r}`), t(`items.${key}`), t(`role.${role}`))
+Browser exposure: 49 groups are read by client components, 11 stay on the server, 4 shipped values name an operator setting and none names a secret.
 A.7 · the catalogs are whole: parity both ways, no mis-nested keys, no leftover templates, every key src/ asks for resolves in both languages, and Bangla inside an English value only where a language names itself, and the browser receives no secret and no group only a server reads.
 
 
 --- tests/i18n-routes.test.ts (exit 0) ---
-Language ternaries: 32 in 3 files (baseline 32).
-  most: 26 src/components/admin/center-import-commit.tsx; 5 src/components/admin/center-import-preview.tsx; 1 src/components/admin/center-import-decisions.tsx
+Language ternaries: 0 in 0 files (baseline 0).
+  most: 
   allowed: layout.tsx — og:locale is a metadata code (bn_BD), not a painted word; route.ts — the language is named to the model as an instruction, in English; route.ts — the language is named to the model as an instruction, in English; top-header.tsx — a switcher names the language it switches to; header-nav.tsx — the ternary picks a class name, not a word; recovery.ts — the reset email is message content, sent in the reader’s language, like an SMS body
 Bangla in route files: 0 lines in 0 files (baseline 0).
   most: 
