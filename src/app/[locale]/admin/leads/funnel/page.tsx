@@ -127,13 +127,15 @@ export default async function LeadsFunnel({params,searchParams}:{params:Promise<
       </form>
     </details>
 
-    <div className="admin-kpis funnel-kpis">
+    {/* Two rows of three, and named: the stages are counts and the rates are percents, and a reader
+        (or a suite) should never have to guess which tile is which from its position. */}
+    <div className="admin-kpis funnel-kpis funnel-stages">
       {stages.map(({label,value,icon:Icon})=><div className="admin-kpi" key={label}>
         <div className="admin-kpi-top"><span>{label}</span><Icon size={20} aria-hidden="true"/></div>
         <strong>{value}</strong>
       </div>)}
     </div>
-    <div className="admin-kpis funnel-kpis">
+    <div className="admin-kpis funnel-kpis funnel-rates">
       {rates.map(({label,value})=><div className="admin-kpi funnel-rate" key={label}>
         <div className="admin-kpi-top"><span>{label}</span><TrendingUp size={20} aria-hidden="true"/></div>
         <strong>{value}</strong>

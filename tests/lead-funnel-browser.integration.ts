@@ -41,7 +41,7 @@ const BANGLA=/[\u0980-\u09ff]/;
 const BANGLA_DIGIT=/[\u09e6-\u09ef]/;
 const oid=()=>new mongoose.Types.ObjectId();
 
-/** Six synthetic leads: two months, four sources, three trials, three admissions, one of them both. */
+/** Six synthetic leads: two months, four sources, three trials, two admissions, one lead that did both. */
 const COHORT=[
   {leadId:'V-2026-0101',date:'2026-01-08',source:'walk_in',classGroup:9,status:'new'},
   {leadId:'V-2026-0102',date:'2026-01-18',source:'walk_in',classGroup:9,status:'trial_booked',trialBooking:oid()},
@@ -91,12 +91,32 @@ async function run(){
       const sidebar=await page.locator('.admin-sidebar').innerText();
       assert.ok(sidebar.includes(bn.adminRedesign.items.leadsFunnel),`the sidebar carries the funnel under ${bn.adminRedesign.groups.visitors}`);
       assert.ok(sidebar.includes(bn.adminRedesign.items.leads),'beside the Visitors list itself');
-      assert.ok(await page.getByRole('link',{name:bn.leads.title}).first().isVisible(),'and the report links back to the list');
+      // `exact`: the heading's other link is the import wizard, whose name begins with the same word.
+      const back=page.locator('.admin-heading').getByRole('link',{name:bn.leads.title,exact:true});
+      assert.equal(await back.count(),1,'the report links back to the Visitors list from its own heading');
 
-      // three stages and three rates, in Bangla digits
-      const tiles=await page.locator('.funnel-kpis').innerText();
-      for(const expected of [formatNumber(6,'bn'),formatNumber(3,'bn')])assert.ok(tiles.includes(expected),`the tiles count ${expected}`);
-      for(const rate of [50,33.3])assert.ok(tiles.includes(F.percent.replace('{value}',formatNumber(rate,'bn'))),`the tiles carry the rate ${formatNumber(rate,'bn')}%`);
+      // three stages and three rates, each tile read on its own: this cohort is six visitors, three
+      // trials, two admissions (one of them straight, with no trial) and one lead that did both.
+      const tile=async(row,index)=>(await page.locator(`${row} .admin-kpi`).nth(index).innerText()).replace(/\s+/g,' ').trim();
+      const percentOf=value=>F.percent.replace('{value}',formatNumber(value,'bn'));
+      const stageTiles=[
+        [F.stageVisitors,formatNumber(6,'bn')],
+        [F.stageTrial,formatNumber(3,'bn')],
+        [F.stageAdmitted,formatNumber(2,'bn')],
+      ];
+      for(const [index,[label,value]] of stageTiles.entries()){
+        const text=await tile('.funnel-stages',index);
+        assert.ok(text.includes(label)&&text.includes(value),`the stage tile reads ${label} ${value}: ${text}`);
+      }
+      const rateTiles=[
+        [F.rateVisitorTrial,percentOf(50)],
+        [F.rateTrialAdmitted,percentOf(33.3)],
+        [F.rateVisitorAdmitted,percentOf(33.3)],
+      ];
+      for(const [index,[label,value]] of rateTiles.entries()){
+        const text=await tile('.funnel-rates',index);
+        assert.ok(text.includes(label)&&text.includes(value),`the rate tile reads ${label} ${value}: ${text}`);
+      }
 
       // the month table, newest first, with the definitions under it
       const table=await page.locator('.funnel-table').innerText();
@@ -170,7 +190,7 @@ async function run(){
       await context.close();
     }
 
-    console.log('Visitor funnel in the browser: mounted under Visitors in the sidebar and linked back to the list; six synthetic leads read as visitors ৬ / trials ৩ / admitted ৩ with rates ৫০%, ৩৩.৩% and ৫০% in Bangla tiles; the month table newest-first with all four definitions under it; the CSV downloaded twice — BOM-marked, Latin-digit, formula-safe, named for its breakdown and day — and the source breakdown printing all five sources including the empty one; nothing overflowing at 360 px; and the whole English screen free of Bangla characters and Bangla digits. Photographed at 360 px and 1440 px in both languages into screenshots/r3.');
+    console.log('Visitor funnel in the browser: mounted under Visitors in the sidebar and linked back to the list; six synthetic leads read as visitors ৬ / trials ৩ / admitted ২ — one of them a direct admission — with rates ৫০%, ৩৩.৩% and ৩৩.৩% in Bangla tiles; the month table newest-first with all four definitions under it; the CSV downloaded twice — BOM-marked, Latin-digit, formula-safe, named for its breakdown and day — and the source breakdown printing all five sources including the empty one; nothing overflowing at 360 px; and the whole English screen free of Bangla characters and Bangla digits. Photographed at 360 px and 1440 px in both languages into screenshots/r3.');
   }finally{
     await browser.close();
     await mongoose.disconnect();
