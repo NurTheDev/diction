@@ -40,6 +40,11 @@ export function screenPlan(_milestone:string):ScreenTarget[]{
     {path:'/en/admin/students/dues',label:'due-list-en'},
     {path:'/en/admin/leads',label:'visitors-list-en'},
     {path:'/en/admin/sms',label:'sms-centre-en'},
+    {path:'/en/admin/students/fees-grid',label:'class-sheet-en'},
+    // The exam screens and the two student screens migrated with them, in English.
+    {path:'/en/admin/center-exams',label:'center-exams-en'},
+    {path:'/en/admin/students/classes',label:'classes-en'},
+    {path:'/en/admin/students/legacy-review',label:'legacy-review-en'},
   ];
 }
 
@@ -72,6 +77,12 @@ export async function captureScreens(opts:{origin:string;mongoUri:string;mongoDb
     await User.create({name:'Demo Admin',email:'demo-admin@example.test',passwordHash:await bcrypt.hash('DemoOnly-2026!',12),role:'admin',active:true});
   }
 
+  // The digit preference is a per-account cookie the operator sets in the header, and it defaults to
+  // Bangla digits. An English proof has to read as English all the way down, so every /en capture
+  // asks for English digits and every /bn capture keeps the Bangla ones the account defaults to.
+  const demoAdmin=await User.findOne({email:'demo-admin@example.test'}).lean();
+  const digitCookie=(locale:'bn'|'en')=>({name:`diction_digits_${String(demoAdmin?._id||'')}`,value:locale,path:'/',domain:new URL(opts.origin).hostname});
+
   const {chromium}=await import('playwright');
   const browser=await chromium.launch();
   try{
@@ -86,6 +97,8 @@ export async function captureScreens(opts:{origin:string;mongoUri:string;mongoDb
     const page=await context.newPage();
     for(const target of screenPlan(opts.milestone||'')){
       try{
+        const proofLocale=target.path.startsWith('/en')?'en':'bn';
+        if(demoAdmin)await context.addCookies([digitCookie(proofLocale)]);
         await page.goto(opts.origin+target.path,{waitUntil:'domcontentloaded',timeout});
         if(target.waitFor)await page.locator(target.waitFor).first().waitFor({timeout:20_000});
         else await page.waitForLoadState('networkidle',{timeout:15_000}).catch(()=>{});

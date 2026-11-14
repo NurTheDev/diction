@@ -25,8 +25,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 /** What is left today. Lower it in the commit that migrates the next file — never raise it. */
-const BASELINE_TERNARIES=242;
-const BASELINE_ROUTE_BANGLA=10;
+const BASELINE_TERNARIES=136;
+const BASELINE_ROUTE_BANGLA=6;
 
 const BN=/[\u0980-\u09ff]/;
 /** `bn?'বাংলা':'English'` — a sentence chosen by language, written into the component. */

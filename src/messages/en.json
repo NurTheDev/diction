@@ -2941,5 +2941,140 @@
       "receiptLineAlreadyUsed": "This receipt already has a line for the same month.",
       "requestIdConflict": "This request has changed. Start a new payment."
     }
+  },
+  "exams": {
+    "list": {
+      "title": "Center exams and results",
+      "desc": "Exams for new center students. Results are not automatically sent to the legacy portal or SMS.",
+      "createHeading": "Create exam",
+      "heading": "Exams",
+      "empty": "No exams."
+    },
+    "col": {
+      "exam": "Exam",
+      "class": "Class",
+      "date": "Date",
+      "status": "Status",
+      "delete": "Delete",
+      "student": "Student",
+      "total": "Total",
+      "grade": "Grade",
+      "rank": "Rank"
+    },
+    "status": {
+      "published": "Published",
+      "draft": "Draft"
+    },
+    "detail": {
+      "multiClassUnsupported": "Multi-class exams are not supported on this screen.",
+      "tooManyRecords": "Too many records; an incomplete list is not displayed.",
+      "crumbExams": "Exams",
+      "marksHelp": "Enter A for absent. Marks are whole numbers; complete every subject. Use Tab to move between fields.",
+      "subjectsHeading": "Subjects and grades",
+      "passLabel": "pass",
+      "enterMarksHeading": "Enter marks",
+      "entryDisabled": "Mark entry is disabled.",
+      "savedResultsHeading": "Saved results",
+      "rankHelp": "Equal totals share a competition rank; absent students are unranked.",
+      "outsideRoster": "Outside current roster",
+      "noResults": "No saved results."
+    },
+    "form": {
+      "notSavedPrefix": "Not saved: ",
+      "writeDisabled": "Exam writes are disabled for safety.",
+      "nameLabel": "Exam name",
+      "classLabel": "Class",
+      "choose": "Choose",
+      "dateLabel": "Date",
+      "typeLabel": "Type",
+      "typeMonthly": "Monthly",
+      "typeModelTest": "Model test",
+      "typeTerm": "Term",
+      "typeClassTest": "Class test",
+      "typeOther": "Other",
+      "subjectsLegend": "Subjects, full and pass marks",
+      "subjectLabel": "Subject",
+      "fullLabel": "Full",
+      "passLabel": "Pass mark",
+      "addSubject": "Add subject",
+      "removeLast": "Remove last",
+      "bandsLabel": "Grade bands—each line minimum percentage:grade",
+      "bandsHelp": "Review and edit the suggested bands. A 0% band is required; below a subject pass mark is FAIL.",
+      "confirmReview": "I reviewed subjects, pass marks and grades",
+      "createButton": "Create exam",
+      "created": "Created. Open the exam in the list."
+    },
+    "marks": {
+      "placeholder": "mark or A",
+      "save": "Save",
+      "saved": "Saved"
+    },
+    "publish": {
+      "note": "Publishing locks marks. Only saved results are published; unentered students are not automatically included.",
+      "confirmReview": "I reviewed marks and participants",
+      "button": "Publish results"
+    },
+    "classes": {
+      "crumbStudents": "Students",
+      "title": "Manage classes",
+      "allClasses": "All classes"
+    },
+    "classEdit": {
+      "active": "Active",
+      "archived": "Archived",
+      "nameLabel": "Class name",
+      "nameEnLabel": "English name",
+      "shiftLabel": "Shift",
+      "activeCheck": "Class active",
+      "help": "Past records are retained; academic year cannot be changed.",
+      "save": "Save",
+      "saved": "Saved",
+      "saveFailed": "Not saved; refresh and retry."
+    },
+    "page": "Page",
+    "previous": "Previous",
+    "next": "Next"
+  },
+  "legacy": {
+    "review": {
+      "crumbStudents": "Students",
+      "title": "Legacy records review",
+      "previewNote": "Preview only; no records are created, linked or changed.",
+      "matchNote": "Exact name or phone matches are suggestions, not confirmed identities. No match is not proof of a new person. A legacy account phone may belong to the student, not the guardian.",
+      "feeNote": "Legacy fees use poisha and may have non-cash methods. All amounts, methods, receipts and invoices require review before conversion to the new whole-taka cash ledger. Legacy records remain untouched.",
+      "heading": "Legacy students",
+      "loadError": "Could not safely load all records; please retry.",
+      "accountMissing": "Account missing",
+      "noExactMatch": "No exact match; search manually",
+      "viewLink": "View confirmed link",
+      "invoicesUnit": "invoices",
+      "paymentsUnit": "payments",
+      "fractional": "Fractional Taka present",
+      "nonCash": "Non-cash payment present",
+      "missingReference": "Missing reference",
+      "empty": "No records on this page."
+    },
+    "col": {
+      "legacyAccount": "Legacy account",
+      "possibleMatches": "Possible center matches",
+      "feeReview": "Fee review"
+    },
+    "pager": {
+      "page": "Page",
+      "previous": "Previous",
+      "next": "Next"
+    },
+    "link": {
+      "summary": "Review and link identity",
+      "note": "Only the identity link is recorded; payments and the legacy portal are not migrated.",
+      "writeDisabled": "Link writes are disabled for safety.",
+      "recordLabel": "Reviewed center record",
+      "choose": "Select",
+      "reasonLabel": "How identity was verified (at least 5 characters)",
+      "confirmReview": "I verified the identities and confirm the link",
+      "saveButton": "Save link",
+      "saved": "Identity link saved.",
+      "notSavedPrefix": "Link not saved: "
+    }
   }
 }
