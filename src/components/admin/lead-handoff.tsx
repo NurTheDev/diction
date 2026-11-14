@@ -154,8 +154,10 @@ function AdmissionBody({leadId,handoff,language,digits,subjectLabels,genders,med
   const done=state?.status==='ok';
   useEffect(()=>{if(done&&onDone)onDone()},[done,onDone]);
   return <form action={action} className="lead-handoff-form">
-    <header><h2>{t('handoffAdmission')}</h2>
-      <button type="button" className="admin-mini-button" onClick={onClose}>{t('close')}</button></header>
+    {/* A div, not a <header>: this dialog opens INSIDE the drawer, and the drawer's own header is how
+        a screen closes it — a second landmark inside it would make that ambiguous. */}
+    <div className="lead-handoff-head"><h2>{t('handoffAdmission')}</h2>
+      <button type="button" className="admin-mini-button" onClick={onClose}>{t('handoffClose')}</button></div>
     <input type="hidden" name="id" value={leadId}/>
     <p className="admin-help">{language==='bn'
       ?'লিডে যা আছে তা আগে থেকে বসানো; বাকি ঘর পূরণ করুন।'
@@ -235,8 +237,10 @@ function TrialBody({leadId,handoff,language,digits,subjectLabels,onClose,onDone}
 
   const chosen=(slots||[]).find(slot=>slot.id===slotId)||null;
   return <form action={action} className="lead-handoff-form">
-    <header><h2>{t('handoffTrial')}</h2>
-      <button type="button" className="admin-mini-button" onClick={onClose}>{t('close')}</button></header>
+    {/* A div, not a <header>: this dialog opens INSIDE the drawer, and the drawer's own header is how
+        a screen closes it — a second landmark inside it would make that ambiguous. */}
+    <div className="lead-handoff-head"><h2>{t('handoffTrial')}</h2>
+      <button type="button" className="admin-mini-button" onClick={onClose}>{t('handoffClose')}</button></div>
     <input type="hidden" name="id" value={leadId}/>
     <input type="hidden" name="grade" value={grade}/>
     <input type="hidden" name="subject" value={subject}/>
@@ -292,8 +296,10 @@ function NotInterestedBody({leadId,language,onClose,onDone}:{
   const trimmed=reason.trim();
   const short=trimmed.length>0&&trimmed.length<NOT_INTERESTED_REASON_MIN;
   return <form action={action} className="lead-handoff-form">
-    <header><h2>{t('handoffNotInterested')}</h2>
-      <button type="button" className="admin-mini-button" onClick={onClose}>{t('close')}</button></header>
+    {/* A div, not a <header>: this dialog opens INSIDE the drawer, and the drawer's own header is how
+        a screen closes it — a second landmark inside it would make that ambiguous. */}
+    <div className="lead-handoff-head"><h2>{t('handoffNotInterested')}</h2>
+      <button type="button" className="admin-mini-button" onClick={onClose}>{t('handoffClose')}</button></div>
     <input type="hidden" name="id" value={leadId}/>
     <p className="admin-help">{t('handoffReasonHint')}</p>
     <div className="lead-handoff-chips">

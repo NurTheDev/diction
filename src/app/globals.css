@@ -576,6 +576,8 @@ html:lang(bn) .public-motion-root:not(.private-motion-disabled) :is(h1,h2,h3,h4)
 .lead-handoff h3{margin:0 0 4px}
 .lead-handoff .overview-drawer-actions{margin-top:8px}
 .lead-handoff-form{display:grid;gap:12px}
+.lead-handoff-head{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.lead-handoff-head h2{margin:0;font-size:18px;color:#1a1d3a}
 .lead-handoff-form label{display:grid;gap:5px;font-size:14px;font-weight:600;color:#1a1d3a}
 .lead-handoff-form label.admin-check{display:flex;align-items:center;gap:8px;font-weight:500}
 .lead-handoff-form :is(.admin-input,.admin-select,textarea.admin-input){width:100%;min-width:0;min-height:44px;font-size:15px}

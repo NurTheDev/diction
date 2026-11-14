@@ -161,7 +161,7 @@ async function run(){
     },actorId,NOW);
     assert.equal(pastSlot.ok,false);
     assert.equal(pastSlot.code,'SLOT_GONE','a class that started is not a class to book');
-    assert.equal((await TrialBooking.countDocuments({})).length,2,'two bookings in all: the refusals wrote nothing');
+    assert.equal(await TrialBooking.countDocuments({}),2,'two bookings in all: the refusals wrote nothing');
 
     // ── 7. Not interested will not close a row without saying why.
     const fifth=await createQuickLead({studentName:'মেহেদী হাসান',phone:'01511778899',classLabel:'দশম'},actorId,NOW);
