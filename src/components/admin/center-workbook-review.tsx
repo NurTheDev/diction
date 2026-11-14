@@ -9,7 +9,7 @@ const types={row:[['normal','স্বাভাবিক'],['hold','স্থগ
 type Category=keyof typeof types;
 const labels:Record<Category,string>={row:'লাল সারি',red:'লাল ঘর',text:'লাল লেখা',done:'Admission Done',a:'মাসের A',incomplete:'রসিদ বা টাকা অসম্পূর্ণ',shared:'এক রসিদ একাধিক শিক্ষার্থীর'};
 const months=['ভর্তি','জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর'];
-const banglaToAscii=(s:string)=>s.toLowerCase().replace(/[০-৯]/g,x=>String('০১২৩৪৫৬৭৮৯'.indexOf(x))).replace(/[^a-z0-9]/g,'');
+const banglaToAscii=(s:string)=>s.toLowerCase().replace(/[\u09e6-\u09ef]/g,x=>String(x.charCodeAt(0)-0x09e6)).replace(/[^a-z0-9]/g,'');
 function suggest(sheet:string,groups:Group[]){const text=banglaToAscii(sheet),nums=text.match(/\d+/)?.[0],suffix=text.replace('class','').replace(/\d+/g,'');const matches=groups.filter(g=>{const name=banglaToAscii(`${g.name} ${g.nameEn}`);return !!nums&&name.match(/\d+/)?.[0]===nums&&(!suffix||name.includes(suffix))});return matches.length===1?matches[0]:null}
 const key=(sheet:string,row:number,type:string,slot=-1)=>reviewKey(sheet,row,type,slot);
 const option=(type:Category,blank=true)=><>{blank&&<option value="">সিদ্ধান্ত বাছুন</option>}{types[type].map(([value,text])=><option key={value} value={value}>{text}</option>)}</>;

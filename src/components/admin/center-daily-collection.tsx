@@ -10,7 +10,7 @@ import {BanglaDate} from './bangla-date';
 type Student=Awaited<ReturnType<typeof loadCashStudent>>;type Today=Awaited<ReturnType<typeof todayCenterCash>>;
 const months=['জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর'];
 const labels:Record<string,string>={NOT_APPLICABLE:'প্রযোজ্য নয়',HELD:'স্থগিত',WAIVED:'মওকুফ',UPCOMING:'আসছে',PAID:'পরিশোধিত',PARTIAL:'আংশিক',PENDING:'চলতি মাস',DUE:'বকেয়া'};
-const num=(v:string)=>v.replace(/[০-৯]/g,c=>String('০১২৩৪৫৬৭৮৯'.indexOf(c))).trim();
+const num=(v:string)=>v.replace(/[\u09e6-\u09ef]/g,c=>String(c.charCodeAt(0)-0x09e6)).trim();
 const money=(n:number)=>new Intl.NumberFormat('bn-BD').format(n);
 const messages:Record<string,string>={INVALID_PAYMENT:'সঠিক টাকা, তারিখ ও প্রয়োজনীয় কারণ দিন।',INVALID_RECEIPT:'ক্যাশবুক পৃষ্ঠা নম্বরে শুধু বাংলা বা ইংরেজি অঙ্ক দিন।',FUTURE_PAYMENT_DATE:'ভবিষ্যতের তারিখ দেওয়া যাবে না।',STUDENT_UNAVAILABLE:'শিক্ষার্থী পাওয়া যায়নি।',ON_HOLD_ADVANCE_NOT_SUPPORTED:'স্থগিত শিক্ষার্থীর ফি গ্রহণ করা যাবে না।',MONTH_ALREADY_PAID:'এই মাস সম্পূর্ণ পরিশোধিত। অতিরিক্ত পেমেন্ট বেছে নোট দিন।',EXTRA_REQUIRES_NOTE:'অতিরিক্ত পেমেন্টের নোট দিন।',MONTH_UNAVAILABLE:'স্থগিত, মওকুফ বা অপ্রযোজ্য মাসে ফি নেওয়া যাবে না।',MONTH_BEFORE_START:'ফি শুরুর আগের মাস বাছা যাবে না।',RECEIPT_LINE_ALREADY_USED:'এই রসিদে একই মাসের লাইন আগেই আছে।',REQUEST_ID_CONFLICT:'এই অনুরোধ বদলে গেছে। নতুন পেমেন্ট শুরু করুন।'};
 export function DailyCollection({initial,initialMonth,initialExtra,initialToday,sms}:{initial:Student|null;initialMonth:number;initialExtra:string;initialToday:Today;sms:{templates:{key:string;name:string;body:string;active:boolean;edited:boolean}[];institutePhone:string}}){const ts=useTranslations('sms');

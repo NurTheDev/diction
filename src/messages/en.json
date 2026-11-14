@@ -112,7 +112,11 @@
       "evening": "Evening",
       "night": "Night"
     },
-    "currency": "Tk "
+    "currency": "Tk ",
+    "loading": "Loading…",
+    "errorTitle": "Sorry, something went wrong",
+    "tryAgain": "Try again",
+    "notFound": "Page not found"
   },
   "pages": {
     "eyebrow": "DICTION COACHING CENTER",

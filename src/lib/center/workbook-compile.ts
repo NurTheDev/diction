@@ -3,7 +3,7 @@ const date=z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(s=>{const d=new Date(`
 const fields=z.object({guardianName:z.string().trim().max(120),guardianPhone:z.string().max(30),admissionDate:z.union([date,z.literal('')]),startMonth:z.number().int().min(1).max(12),monthlyFee:z.number().int().min(0).max(100000000),feeHistory:z.string().trim().max(300).optional(),reviewed:z.literal(true),leaveDate:z.union([date,z.literal('')]).optional()}).strict();
 const draft=z.object({choices:z.record(z.string().max(200),z.string().max(500)),mapping:z.record(z.string().max(100),z.string().regex(/^[a-f0-9]{24}$/i)),details:z.record(z.string().max(200),fields)}).strict();
 export type WorkbookDraft=z.infer<typeof draft>;export type WorkbookFields=z.infer<typeof fields>;
-const ascii=(v:string)=>v.normalize('NFKC').replace(/[০-৯]/g,c=>String('০১২৩৪৫৬৭৮৯'.indexOf(c))).trim();const digits=(v:string)=>/^\d+$/.test(ascii(v));
+const ascii=(v:string)=>v.normalize('NFKC').replace(/[\u09e6-\u09ef]/g,c=>String(c.charCodeAt(0)-0x09e6)).trim();const digits=(v:string)=>/^\d+$/.test(ascii(v));
 const options:Record<string,string[]>={row:['normal','hold','removed','skip'],red:['due','waive','absent'],text:['none','note'],done:['paid','note'],a:['waive','absent','skip'],incomplete:['import','skip'],shared:['keep','skip'],db:['existing','flag','skip']};
 export type PlannedPayment={slot:number;amount:number;receiptNo:string;reason:string;flagged:boolean;note:string};
 export type PlannedStudent={sheet:string;row:number;name:string;status:'active'|'on_hold'|'removed';group:string;fields:WorkbookFields;feeHistory:{month:number;amount:number}[];hold?:{year:number;month:number;reason:string};payments:PlannedPayment[];waivers:{month:number;reason:string}[];notes:string[];evidence:unknown};

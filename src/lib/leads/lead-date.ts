@@ -19,8 +19,8 @@ export type SheetDateResult=
   |{ok:true;day:string;format:string;ambiguous:boolean;flags:DateFlag[]}
   |{ok:false;reason:'empty'|'unparseable'|'impossible';raw:string;messageBn:string;messageEn:string};
 
-const DIGITS=/[০-৯]/g;
-const banglaToAscii=(text:string)=>text.replace(DIGITS,c=>String('০১২৩৪৫৬৭৮৯'.indexOf(c)));
+const DIGITS=/[\u09e6-\u09ef]/g;
+const banglaToAscii=(text:string)=>text.replace(DIGITS,c=>String(c.charCodeAt(0)-0x09e6));
 /** A real calendar check, so 2024-02-31 is refused instead of rolling into March. */
 function realDay(year:number,month:number,day:number):string|null{
   if(month<1||month>12||day<1||day>31)return null;

@@ -13,7 +13,7 @@ const draftSchema=z.object({year:z.number().int().min(1900).max(2200),classGroup
 type RowDraft=z.infer<typeof reviewRow>;
 export type ReviewCompileError={row?:number;code:string;slot?:number};
 export type CompileResult={plans:ReviewedImportPlan[];errors:ReviewCompileError[];skipped:number;selected:number};
-const ascii=(v:string)=>v.replace(/[০-৯]/g,c=>String('০১২৩৪৫৬৭৮৯'.indexOf(c)));
+const ascii=(v:string)=>v.replace(/[\u09e6-\u09ef]/g,c=>String(c.charCodeAt(0)-0x09e6));
 const digits=(v:string)=>/^\d+$/.test(ascii(v.trim()));
 const exceptional=(c:ImportCell)=>c.formula||c.redFill||c.redText||c.uncertainColor||!![c.receipt,c.amount].find(x=>x&&!digits(x));
 function readyRow(raw:ImportRow,d:RowDraft,errors:ReviewCompileError[]){const bad=(code:string,slot?:number)=>errors.push({row:raw.row,code,slot});if(!d.reviewed)bad('ROW_NOT_CONFIRMED');if(!d.nameBn||!d.guardianName||!d.guardianPhone||!d.admissionDate||!d.feeHistory.length)bad('MISSING_REQUIRED_FIELDS');if(raw.redRow&&d.choices.row!=='none')bad('RED_ROW_UNRESOLVED');if(raw.redText&&d.choices.font!=='none')bad('RED_TEXT_UNRESOLVED');if(raw.issues.includes('uncertain_color')&&d.choices.uncertain!=='none')bad('COLOR_UNRESOLVED');if(raw.issues.includes('varying_amounts')&&d.choices.fee!=='review')bad('FEE_HISTORY_UNREVIEWED');if(raw.issues.includes('shared_receipt')&&d.choices.collision!=='shared')bad('SHARED_RECEIPT_UNREVIEWED');if(raw.issues.includes('formula'))bad('FORMULA_UNSUPPORTED');

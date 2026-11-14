@@ -1,7 +1,7 @@
 import type {ImportPreview} from './import-preview';
 export type Choices=Record<string,string>;
 export type ReviewCell={sheet:string;row:number;name:string;slot:number;month:string;receipt:string;rawAmount:number;classification:'proposed'|'excluded'|'pending';reasons:string[];conflicts:string[];shared:boolean};
-const ascii=(s:string)=>s.replace(/[০-৯]/g,c=>String('০১২৩৪৫৬৭৮৯'.indexOf(c))).normalize('NFKC').trim();
+const ascii=(s:string)=>s.replace(/[\u09e6-\u09ef]/g,c=>String(c.charCodeAt(0)-0x09e6)).normalize('NFKC').trim();
 const numeric=(s:string)=>/^\d+$/.test(ascii(s));
 export const reviewKey=(sheet:string,row:number,type:string,slot=-1)=>JSON.stringify([sheet,row,type,slot]);
 const key=(sheet:string,row:number,type:string,slot=-1)=>reviewKey(sheet,row,type,slot);
