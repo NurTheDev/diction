@@ -144,6 +144,17 @@ for(const file of sourceFiles('src')){
     }
   }
 
+  /* 3d. The importer's libraries: `throwImport('planInvalid')` refuses with a key out of
+     `importErrors`, and `importText('bn','importNotes','noteDoneAdmission')` renders one stored note.
+     Both are a library naming a sentence for somebody else to translate, which is the same contract
+     as `messageKey` — so the key has to exist, in both languages, like any other. */
+  for(const match of text.matchAll(/\bthrowImport\s*\(\s*'([\w.]+)'/g)){
+    used.push({key:match[1].startsWith('importErrors.')?match[1]:`importErrors.${match[1]}`,where:at(match.index!),how:'throwImport'});
+  }
+  for(const match of text.matchAll(/\bimportText\s*\(\s*(?:'bn'|'en'|locale|\w+)\s*,\s*'([\w.]+)'\s*,\s*'([\w.]+)'/g)){
+    used.push({key:`${match[1]}.${match[2]}`,where:at(match.index!),how:'importText'});
+  }
+
   // 3c. The vocabulary maps: `LEAD_STATUS_LABEL_KEYS` holds keys, not words. Only a declaration counts
   //     — a passing mention of the name in a comment must not be read as one — and the namespace is
   //     where the file lives, because a value like `statusLabels.new` is relative to it.

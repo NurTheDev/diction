@@ -13,7 +13,7 @@
    `'use client'` file anywhere in src/. `tests/i18n-catalog.test.ts` keeps that true — it walks src/
    and fails if a client component starts reading a group listed here, if a layout ships the catalog
    without this filter, or if a group that IS shipped names an environment variable. */
-export const SERVER_ONLY_NAMESPACES=['aiPublic','aiSetup','audit','classes','cta','features','footer','hero','history','seo','stats'] as const;
+export const SERVER_ONLY_NAMESPACES=['aiPublic','aiSetup','audit','classes','cta','features','footer','hero','history','importNotes','seo','stats'] as const;
 
 /** Drop the groups no client component can read, keeping every other group exactly as it is. */
 export function clientMessages<T extends Record<string,unknown>>(messages:T):T{

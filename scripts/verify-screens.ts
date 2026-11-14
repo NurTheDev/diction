@@ -48,6 +48,9 @@ export function screenPlan(_milestone:string):ScreenTarget[]{
     {path:'/en/admin/public-sheets',label:'public-sheets-en'},
     {path:'/en/admin/practice-tests',label:'practice-tests-en'},
     {path:'/en/admin/students/removed',label:'removed-students-en'},
+    /* The paysheet import screen in English: it was Bangla-only in both languages until the
+       workbook cluster moved into the catalogs, and no proof ever showed the English side. */
+    {path:'/en/admin/students/import',label:'workbook-import-en'},
   ];
 }
 
