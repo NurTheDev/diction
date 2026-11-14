@@ -7,6 +7,7 @@
  * hiding a button is presentation, never permission.
  */
 import {useActionState} from 'react';
+import {smsTemplateName} from '@/lib/center/sms-templates';
 import {useTranslations} from 'next-intl';
 import {formatNumber} from '@/lib/admin/format';
 import {retryAutoSms,retrySmsBatch,saveSmsSettings,saveSmsTemplate,sendTestSmsAction} from '@/actions/sms';
@@ -92,16 +93,18 @@ export function SmsRetryButton({locale,batchId,failed}:{locale:string;batchId:st
 export function SmsTemplateEditor({locale,template}:{locale:string;template:SmsTemplateRow}){
   const ts=useTranslations('sms');
   const bn=locale!=='en';
+  /* A default template's name is a catalog key; an operator's own name is a sentence. */
+  const templateName=(value:string):string=>smsTemplateName(ts.raw('templates') as Record<string,string>,value);
   const [state,action,pending]=useActionState(saveSmsTemplate,{status:'idle'} as ActionState);
   if(template.key==='custom'){
-    return <article className="admin-template"><h3>{template.name}</h3>
+    return <article className="admin-template"><h3>{templateName(template.name)}</h3>
       <p className="admin-help">{ts('panel.freeTextNote')}</p></article>;
   }
   return <article className="admin-template">
-    <h3>{template.name} {template.edited&&<span className="admin-badge">{ts('panel.templateEdited')}</span>}</h3>
+    <h3>{templateName(template.name)} {template.edited&&<span className="admin-badge">{ts('panel.templateEdited')}</span>}</h3>
     <form action={action}>
       <input type="hidden" name="key" value={template.key}/>
-      <label>{ts('panel.templateName')}<input name="name" maxLength={120} required defaultValue={template.name}/></label>
+      <label>{ts('panel.templateName')}<input name="name" maxLength={120} required defaultValue={templateName(template.name)}/></label>
       <label>{ts('panel.messageBangla')}<textarea name="body" maxLength={2000} rows={3} required defaultValue={template.body}/></label>
       <label className="admin-check"><input name="active" type="checkbox" defaultChecked={template.active}/>{ts('panel.templateActive')}</label>
       {template.variables.length>0&&<small>{ts('panel.templateChips')}: <code>{template.variables.map(v=>`{${v}}`).join(' ')}</code></small>}

@@ -22,7 +22,7 @@ import {useTranslations} from 'next-intl';
 import {formatDigits,formatNumber} from '@/lib/admin/format';
 import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import {AlertTriangle,CheckCircle2,Loader2,Send,X} from 'lucide-react';
-import {SMS_VARIABLES} from '@/lib/center/sms-templates';
+import {SMS_VARIABLES,smsTemplateName} from '@/lib/center/sms-templates';
 import {dailyLimitLine} from '@/lib/center/sms-staff';
 import type {SmsSkipReason} from '@/lib/center/sms-recipients';
 
@@ -95,6 +95,8 @@ export function segmentCount(text:string):number{
 
 export default function SendSmsDialog({open,onClose,request,templates,title,defaultTemplateKey='due_reminder',institutePhone='',en=false,onSent,lockedText=false}:Props){
   const ts=useTranslations('sms');const digits:'bn'|'en'=en?'en':'bn';const tc=useTranslations('common');
+  /* A default template's name is a catalog key; an operator's own name is a sentence. */
+  const TEMPLATE_NAMES=ts.raw('templates') as Record<string,string>;
   /** A visitor send (R3.9): one number per lead, no fee chips, and no guardian/student choice to make. */
   const isLead=request.source==='lead'||request.source==='leads';
   const [step,setStep]=useState(1);
@@ -351,7 +353,7 @@ export default function SendSmsDialog({open,onClose,request,templates,title,defa
                 <label className="admin-check" key={item.key}>
                   <input type="radio" name="smsTemplate" value={item.key} checked={templateKey===item.key}
                     onChange={()=>{setTemplateKey(item.key);if(item.key!=='custom')setText('')}} />
-                  {item.name}
+                  {smsTemplateName(TEMPLATE_NAMES,item.name)}
                   {item.edited?` · ${ts('dialog.edited')}`:''}
                   {!item.active?` · ${ts('dialog.inactive')}`:''}
                 </label>

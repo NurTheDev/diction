@@ -6,6 +6,7 @@ import {formatNumber,formatDate,formatTime,formatDigits} from '@/lib/admin/forma
 import {CenterClassGroup,CenterSmsBatch,CenterSmsLog} from '@/models/CenterRecords';
 import {User} from '@/models/User';
 import {loadSmsSettings,loadSmsTemplates,monthSmsTotals} from '@/lib/center/sms-send';
+import {smsTemplateName} from '@/lib/center/sms-templates';
 import {createSmsProvider,smsProviderName,validateSmsCredentials} from '@/lib/center/sms-provider';
 import {SMS_VARIABLES} from '@/lib/center/sms-templates';
 import {SmsSettingsForm,SmsTestForm,SmsRetryButton,SmsTemplateEditor} from '@/components/admin/sms-panel';
@@ -73,6 +74,13 @@ export default async function SmsPage({params,searchParams}:{params:Promise<{loc
   const LOG_STATUS_NAMES=ts.raw('statuses') as Record<string,string>;
   const purposeLabel=(value:string):string=>TEMPLATE_NAMES[value]||value;
   const statusLabel=(names:Record<string,string>,value:string):string=>names[value]||value;
+  /* A log row's `reason` is one of three things: why a recipient was skipped (the dialog's own
+     words), why the provider could not be answered (the retry policy's words), or a provider code —
+     and a code is left as itself because the line above it already quotes the provider's own
+     sentence for that code. Nothing else may reach the page in English. */
+  const REASON_NAMES=ts.raw('reasons') as Record<string,string>;
+  const SKIP_NAMES=ts.raw('skip') as Record<string,string>;
+  const reasonLabel=(value:string):string=>REASON_NAMES[value]||SKIP_NAMES[value]||value;
   const language:'bn'|'en'=bn?'bn':'en';
   const currency=await (await getTranslations('common'))('currency');
   const cost=(value:number)=>`${currency}${formatNumber(Math.round(value*100)/100,digits)}`;
@@ -151,20 +159,21 @@ export default async function SmsPage({params,searchParams}:{params:Promise<{loc
         </select></label>
         <label>{ts('page.template')} <select name="template" className="admin-select" defaultValue={template||''}>
           <option value="">{ts('page.all')}</option>
-          {templates.map(row=><option key={row.key} value={row.key}>{row.name}</option>)}
+          {templates.map(row=><option key={row.key} value={row.key}>{smsTemplateName(TEMPLATE_NAMES,row.name)}</option>)}
           <option value="test">{ts('page.test')}</option>
         </select></label>
         <label>{ts('page.search')} <input name="q" defaultValue={search} maxLength={80} placeholder={ts('page.searchPlaceholder')}/></label>
         <button className="button button-navy">{ts('page.filter')}</button>
       </form>
       {logs.length===0&&<p className="admin-empty">{ts('page.noRecords')}</p>}
+      {logs.length>0&&<p className="admin-help">{ts('page.costColumnNote')}</p>}
       {logs.length>0&&<div className="admin-table-wrap"><table className="admin-table">
         <thead><tr><th>{ts('page.when')}</th><th>{ts('page.student')}</th><th>{ts('page.number')}</th><th>{ts('page.message')}</th><th>{ts('page.status')}</th><th>{ts('page.segmentsShort')}</th><th>{ts('page.cost')}</th></tr></thead>
         <tbody>{logs.map(log=><tr key={String(log._id)}>
           <td>{formatDate(log.sentAt||log.createdAt,digits,language)}<br/><small>{formatTime(log.sentAt||log.createdAt,digits,language)}</small></td>
           <td>{log.student?`${log.student.name.bn} · ${log.student.studentId}`:'—'}</td>
           <td>{formatDigits(log.phone,digits)}</td>
-          <td className="admin-cell-message"><span title={log.message}>{log.message.slice(0,90)}{log.message.length>90?'…':''}</span>{log.providerMessage&&<><br/><small>{log.providerMessage}</small></>}{log.reason&&<><br/><small>{ts('page.reason')}: {log.reason}</small></>}</td>
+          <td className="admin-cell-message"><span title={log.message}>{log.message.slice(0,90)}{log.message.length>90?'…':''}</span>{log.providerMessage&&<><br/><small>{log.providerMessage}</small></>}{log.reason&&<><br/><small>{ts('page.reason')}: {reasonLabel(log.reason)}</small></>}</td>
           <td><span className={`admin-badge ${log.status==='sent'?'enabled':log.status==='failed'?'disabled':''}`}>{statusLabel(LOG_STATUS_NAMES,log.status)}</span></td>
           <td>{formatNumber(log.segments,digits)}</td>
           <td>{cost(log.cost)}</td>

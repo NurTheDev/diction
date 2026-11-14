@@ -2478,6 +2478,14 @@
       "1031": "Account not verified; contact the admin",
       "1032": "This IP is not whitelisted"
     },
+    "reasons": {
+      "network": "never reached the provider",
+      "timeout": "went quiet on the wire; it may already have been sent",
+      "unreadable": "the provider’s answer could not be read",
+      "code": "unrecognized response code",
+      "unknown": "cause unknown",
+      "rejected": "rejected by the provider"
+    },
     "codesUnknown": "Provider code {code} (unknown)",
     "codesNone": "The provider response could not be read",
     "policy": {
@@ -2580,7 +2588,8 @@
       "message": "Message",
       "segmentsShort": "Seg.",
       "reason": "reason",
-      "skippedUnit": "skipped"
+      "skippedUnit": "skipped",
+      "costColumnNote": "Every cost figure on this page is stored per row: segments × the unit cost in Settings at the time it was sent. Changing the unit cost never rewrites them — an old row keeps the old price."
     },
     "panel": {
       "saved": "Saved.",

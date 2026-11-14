@@ -6,6 +6,14 @@
  */
 
 /** The variable chips the dialog offers. Never hand-copy this list into a component. */
+/**
+ * A template's name travels as a catalog key (`templates.due_reminder`) until an operator writes
+ * their own in the database, so whoever paints a name resolves it against the `sms` namespace's
+ * `templates` group. A name that is not a key reads as itself: that is an operator's own wording,
+ * and it is the only case where the stored string is the sentence.
+ */
+export function smsTemplateName(names:Record<string,string>,value:string):string{return names[value]||value}
+
 export const SMS_VARIABLES=['student_name','class','month','due_amount','receipt_no','amount','due_date','institute_phone','subject'] as const;
 export type SmsVariable=typeof SMS_VARIABLES[number];
 
