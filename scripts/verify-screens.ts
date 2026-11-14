@@ -33,6 +33,13 @@ export function screenPlan(_milestone:string):ScreenTarget[]{
     {path:'/bn/admin/content?kind=blog',label:'blog'},
     {path:'/bn/admin/recycle-bin',label:'recycle-bin'},
     {path:'/en/admin/recycle-bin',label:'recycle-bin-en'},
+    /* The screens the owner reads day to day, in English: the point of the migration is that these
+       read as English because the catalogs say so, not because a component picked a language. */
+    {path:'/en/admin/students',label:'students-list-en'},
+    {path:'/en/admin/students/collect',label:'daily-collection-en'},
+    {path:'/en/admin/students/dues',label:'due-list-en'},
+    {path:'/en/admin/leads',label:'visitors-list-en'},
+    {path:'/en/admin/sms',label:'sms-centre-en'},
   ];
 }
 
