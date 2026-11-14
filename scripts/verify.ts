@@ -354,6 +354,8 @@ async function main():Promise<void>{
     await stepUnitSuites(ctx,'test:staff-role','R3.12','What each role\u2019s Overview shows: a staff session gets the visitor follow-up panel — today\u2019s count and the count already overdue — and none of the owner\u2019s panels, and a role the scope does not know gets nothing at all');
     await stepUnitSuites(ctx,'test:lead:handoff','R3.13','The three hand-offs a visitor row owes: convert to admission, book a trial and mark not interested with a reason — one transaction each, the number copied from the lead and never posted by a form, the vocabulary\u2019s own three statuses, a guarded seat, the refusals that stop a hand-off before it writes, and a prefill that is masks only — pure rules first, then against the disposable database',
       {needsDb:true,env:{TEST_ORIGIN:ctx.origin,TEST_MONGO_URI:ctx.mongoUri,TEST_MONGO_DB:ctx.mongoDb}});
+    await stepUnitSuites(ctx,'test:lead:import','R3.15','Visitor import: dry run, commit, idempotent re-import, undo',
+      {needsDb:true,env:{TEST_ORIGIN:ctx.origin,TEST_MONGO_URI:ctx.mongoUri,TEST_MONGO_DB:ctx.mongoDb}});
     await stepScreens(ctx);
     await stepBrowserTests(ctx);
     (ctx as Context&{stop?:()=>void}).stop?.();

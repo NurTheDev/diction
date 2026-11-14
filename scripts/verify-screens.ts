@@ -51,6 +51,10 @@ export function screenPlan(_milestone:string):ScreenTarget[]{
     /* The paysheet import screen in English: it was Bangla-only in both languages until the
        workbook cluster moved into the catalogs, and no proof ever showed the English side. */
     {path:'/en/admin/students/import',label:'workbook-import-en'},
+    /* The Visitor import wizard with nothing uploaded yet, in both languages: the sweep proves its
+       chrome, these prove the empty state an operator first meets, at both widths. */
+    {path:'/bn/admin/leads/import',label:'visitor-import-bn'},
+    {path:'/en/admin/leads/import',label:'visitor-import-en'},
   ];
 }
 

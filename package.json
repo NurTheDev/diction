@@ -51,6 +51,7 @@
     "test:lead:dup": "tsx tests/lead-dup.test.ts && tsx --conditions=react-server tests/lead-dup.integration.ts",
     "test:sms:staff": "tsx tests/sms-staff.test.ts && tsx --conditions=react-server tests/sms-staff.integration.ts",
     "test:lead:handoff": "tsx tests/lead-handoff.test.ts && tsx --conditions=react-server tests/lead-handoff.integration.ts",
+    "test:lead:import": "tsx tests/lead-import.test.ts && tsx --conditions=react-server tests/lead-import.integration.ts",
     "test:lead:handoff:browser": "tsx tests/lead-handoff-browser.integration.ts",
     "test:lead:screens": "tsx tests/lead-screens-browser.integration.ts"
   },
