@@ -286,7 +286,9 @@ async function run(){
     await rows(boss.page).first().waitFor({timeout:60000});
     const karimRow=boss.page.locator('tr[data-cv-row]',{hasText:KARIM});
     await karimRow.locator('[data-cv-detail]').click();
-    const drawer=boss.page.locator('[data-cv-drawer]');
+    /* A closed drawer stays mounted (React keeps the element and the browser keeps the `open`
+       attribute off it), so the drawer in hand is the open one, not the first one in the document. */
+    const drawer=boss.page.locator('[data-cv-drawer][open]');
     await drawer.waitFor({state:'visible',timeout:60000});
     const drawerText=await drawer.innerText();
     assert.ok(drawerText.includes(KARIM),'the drawer is about the CV whose row was tapped');
@@ -322,7 +324,9 @@ async function run(){
 
     // The hired CV refuses to bin, and says why where the operator can read it.
     await drawer.locator('.overview-drawer-actions button.admin-danger-text').first().click();
-    const confirm=boss.page.locator('dialog.admin-confirm');
+    /* Every row on the page carries its own confirm dialog, mounted and shut; the one a hand just
+       opened is the one with the `open` attribute. */
+    const confirm=boss.page.locator('dialog.admin-confirm[open]');
     await confirm.waitFor({state:'visible',timeout:30000});
     await confirm.locator('button.button.admin-danger').click();
     const refusal=bn.recycleBin.kinds.teacherCandidateHired;
@@ -336,10 +340,10 @@ async function run(){
     await boss.page.goto(`${origin}${LIST}`,{waitUntil:'domcontentloaded',timeout:180000});
     const jamalRow=boss.page.locator('tr[data-cv-row]',{hasText:JAMAL});
     await jamalRow.locator('[data-cv-detail]').click();
-    const jamalDrawer=boss.page.locator('[data-cv-drawer]');
+    const jamalDrawer=boss.page.locator('[data-cv-drawer][open]');
     await jamalDrawer.waitFor({state:'visible',timeout:60000});
     await jamalDrawer.locator('.overview-drawer-actions button.admin-danger-text').first().click();
-    await boss.page.locator('dialog.admin-confirm button.button.admin-danger').click();
+    await boss.page.locator('dialog.admin-confirm[open] button.button.admin-danger').click();
     await until(async()=>(await TeacherCandidate.countDocuments({name:JAMAL}))===0,'the binned CV to leave the list');
     assert.equal(await TeacherCandidate.countDocuments({name:JAMAL}).setOptions({recycleAny:true} as never),1,'while staying stored, in the bin');
     await boss.page.goto(`${origin}/bn/admin/recycle-bin`,{waitUntil:'domcontentloaded',timeout:180000});
@@ -481,8 +485,9 @@ async function run(){
       assert.ok(text.includes(heading),`${route}: the heading reads as English because the catalog says so`);
       /* The chrome is what has to be English. A candidate's own Bangla name is data, and an English screen
          that translated it would be lying about a person, so the rows are not part of this assertion. */
-      const chrome=await boss.page.locator('aside.admin-sidebar nav.admin-nav, .admin-heading, .admin-panel-head, thead, form.list-filter label').innerText();
-      assert.ok(!BANGLA.test(chrome),`${route}: no Bangla character and no Bangla digit in the screen's own chrome`);
+      const chromeParts=await boss.page.locator('aside.admin-sidebar nav.admin-nav, .admin-heading, .admin-panel-head, thead, form.list-filter label').allInnerTexts();
+      assert.ok(chromeParts.length>0,`${route}: the screen has chrome of its own to read`);
+      assert.ok(!BANGLA.test(chromeParts.join(' ')),`${route}: no Bangla character and no Bangla digit in the screen's own chrome`);
       await noOverflow(boss.page,`${route} at 1440`);
       await shot(boss.page,name);
     }

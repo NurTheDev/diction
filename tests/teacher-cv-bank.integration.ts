@@ -46,6 +46,7 @@ import {listNeeds,needMatches,removeNeed,saveNeed,setNeedFilled} from '../src/li
 import {commitCvImport,cvImportHistory,loadCvIndex,undoCvImport} from '../src/lib/teachers/import-commit';
 import {emptyCvDecisions,previewCvImport,readCvWorkbook} from '../src/lib/teachers/import-preview';
 import {teacherCandidates,teacherSmsTally} from '../src/lib/teachers/cv-sms';
+import {resolveSmsSource} from '../src/lib/center/sms-source';
 
 const FIXTURE=path.join('tests','fixtures','Teacher-CV-FAKE-SAMPLE.xlsx');
 const CSV=path.join('tests','fixtures','Teacher-CV-FAKE-SAMPLE.csv');
@@ -237,7 +238,13 @@ async function run(){
     assert.equal(smsRows.every(row=>row.hasPhone),true);
     const pipeline=teacherCandidates(smsRows);
     assert.equal(pipeline[0].status,'active','a candidate enters the pipeline as an active non-student');
-    assert.equal(pipeline[0].subjectKind,'lead','and is never described as a fee subject');
+    /* `subjectKind` is a word about the whole send, not about one row: the resolver says what kind of
+       subject the dialog is choosing templates for, and a CV bank is never a fee subject. */
+    const source=await resolveSmsSource({source:'teacherCandidates',ids:[first.id,old.id,String(new mongoose.Types.ObjectId())]},NOW);
+    assert.equal(source.subjectKind,'lead','and the dialog is told this is not a fee subject');
+    assert.equal(source.candidates.length,2,'it resolves the ids it was given, and no more');
+    assert.equal((await resolveSmsSource({source:'teacherCandidates'},NOW)).candidates.length,0,
+      'and an entry point that lost its ids resolves to nobody, never to every applicant we have ever met');
     assert.equal(pipeline[0].smsOptOut,false,'a CV has no do-not-contact mark to invent');
     assert.deepEqual(pipeline[0].values,{},'no per-candidate chips: the subject is typed and the institute number is global');
     assert.deepEqual(teacherSmsTally([{hasPhone:true},{hasPhone:false}]),{sendable:1,withoutPhone:1},'the tally says out loud who cannot be reached');
