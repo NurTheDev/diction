@@ -45,7 +45,15 @@
     "screenshots/all/visitors-list-en-360.png",
     "screenshots/all/visitors-list-en-1440.png",
     "screenshots/all/sms-centre-en-360.png",
-    "screenshots/all/sms-centre-en-1440.png"
+    "screenshots/all/sms-centre-en-1440.png",
+    "screenshots/all/class-sheet-en-360.png",
+    "screenshots/all/class-sheet-en-1440.png",
+    "screenshots/all/center-exams-en-360.png",
+    "screenshots/all/center-exams-en-1440.png",
+    "screenshots/all/classes-en-360.png",
+    "screenshots/all/classes-en-1440.png",
+    "screenshots/all/legacy-review-en-360.png",
+    "screenshots/all/legacy-review-en-1440.png"
   ],
   "failures": [],
   "overflow": [
@@ -321,6 +329,54 @@
     },
     {
       "path": "/en/admin/sms",
+      "width": 1440,
+      "clientWidth": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "path": "/en/admin/students/fees-grid",
+      "width": 360,
+      "clientWidth": 360,
+      "scrollWidth": 360
+    },
+    {
+      "path": "/en/admin/students/fees-grid",
+      "width": 1440,
+      "clientWidth": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "path": "/en/admin/center-exams",
+      "width": 360,
+      "clientWidth": 360,
+      "scrollWidth": 360
+    },
+    {
+      "path": "/en/admin/center-exams",
+      "width": 1440,
+      "clientWidth": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "path": "/en/admin/students/classes",
+      "width": 360,
+      "clientWidth": 360,
+      "scrollWidth": 360
+    },
+    {
+      "path": "/en/admin/students/classes",
+      "width": 1440,
+      "clientWidth": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "path": "/en/admin/students/legacy-review",
+      "width": 360,
+      "clientWidth": 360,
+      "scrollWidth": 360
+    },
+    {
+      "path": "/en/admin/students/legacy-review",
       "width": 1440,
       "clientWidth": 1440,
       "scrollWidth": 1440
