@@ -65,10 +65,9 @@ async function run(){
       await page.getByRole('button',{name:ti.previewButton}).click();
       await page.getByText(ti.unmappedHead).waitFor({timeout:120000});
       const body=await page.locator('.admin-panel').first().innerText();
-      assert.ok(body.includes('9'),`the counts line names the nine rows: ${body.slice(0,200)}`);
+      assert.ok(body.includes('9 '+ti.countsLine.split(':')[0].replace('{total}','').trim()),`the counts line names the nine rows: ${body.slice(0,200)}`);
       assert.ok(body.includes(ti.status.decide),`two dates wait for a hand: ${ti.status.decide}`);
       assert.ok(body.includes(ti.flags.siblingInFile.split('(')[0].trim()),'the sibling rows are flagged together');
-      assert.ok(body.includes('ভর্তি বিষয়ে জানতে চেয়েছিলেন')===false||true); // the comment is a stored note, not chrome
       // no normalized number is painted anywhere in the preview
       const table=await page.locator('.admin-table').first().innerText();
       for(const number of ['01711111111','01812345678','01911111111','01622222222'])assert.ok(!table.includes(number),`the preview paints a mask, never ${number}`);
@@ -94,7 +93,7 @@ async function run(){
       // undo the batch with a reason
       await page.locator('input[maxlength="300"]').fill('ব্রাউজার স্যুটের undo');
       await page.getByRole('button',{name:ti.undoButton}).click();
-      await page.getByText(ti.undoneLine.split(':')[0]).waitFor({timeout:180000});
+      await page.getByText('undo হয়েছে').waitFor({timeout:180000});
       assert.equal(await Lead.countDocuments({importSource:'wizard:Visitor-Import-FAKE-SAMPLE.xlsx',deletedAt:null}),0);
       await context.close();
     }

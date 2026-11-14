@@ -106,7 +106,12 @@ async function run(){
     const third=await commitLeadImport({sheets,decisions,fileLabel:'Visitor-Import-FAKE-SAMPLE.xlsx',hash:'fake-hash-2',actorId,actorName:'FAKE Importer',now:NOW});
     assert.equal(third.ok,true);
     assert.equal(third.created,8);
-    const notLatest=await undoLeadImport(commit.batch,actorId,'old batch');
+    const stillUndone=await undoLeadImport(commit.batch,actorId,'old batch');
+    assert.equal(stillUndone.ok,false);
+    assert.equal(stillUndone.code,'ALREADY_UNDONE');
+    // NOT_LATEST: an active batch that is not the newest one cannot be undone either
+    await LeadImportBatch.create({batch:'LIM-20260111-ffffff',fileLabel:'a newer register row',hash:'fake-hash-9',rows:0,created:0,matched:0,skipped:0,blocked:0,siblings:0,actor:actorId,actorName:'FAKE Importer',at:new Date(NOW.getTime()+3600*1000),undoneAt:null,undoBy:null,undoReason:''});
+    const notLatest=await undoLeadImport(third.batch,actorId,'older active batch');
     assert.equal(notLatest.ok,false);
     assert.equal(notLatest.code,'NOT_LATEST');
     await LeadImportBatch.deleteMany({});

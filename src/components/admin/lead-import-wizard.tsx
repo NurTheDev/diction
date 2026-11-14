@@ -48,7 +48,9 @@ export function LeadImportWizard({history}:{history:LeadImportBatchRow[]}){
   const setSkip=(key:string,skipped:boolean)=>setDecisions(old=>{const skip={...old.skip};if(skipped)skip[key]=true;else delete skip[key];return {...old,skip}});
 
   const preview=state.preview;
-  const undecided=preview?preview.counts.decide:0;
+  // The preview on screen was computed before the owner answered anything, so the decisions still
+  // open are counted here, off the rows and the answers beside them; the commit re-checks server-side.
+  const undecided=preview?preview.rows.filter(row=>row.dateSuggested&&!decisions.accept[row.key]).length:0;
   const latest=history.find(batch=>!batch.undoneAt);
 
   return <section className="admin-panel">
