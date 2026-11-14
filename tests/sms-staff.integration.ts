@@ -186,16 +186,26 @@ async function run(){
     answers.push(bossPreview.body);
     assert.deepEqual(bossPreview.body.daily,{limit:1,sent:9,remaining:0},'the owner is counted on their own nine, not on the desk’s one');
 
-    // ── 9. And none of it put a visitor's number, or a family key, into an answer a screen reads back.
-    for(const body of answers){
-      const text=JSON.stringify(body);
+    // ── 9. What may carry a number, and what may not. A kit is a catalog and a set of flags, so a
+    //       visitor's digits have no business in it, and no answer of any kind carries a family key —
+    //       that tie is internal and never travels. A PREVIEW does name the numbers it is about to text:
+    //       that is R2's dialog and the whole point of a last look before sending, so the claim there is
+    //       the positive one — it names exactly the number the operator picked, and nobody else's.
+    //       (The list screens are where a number is masked; R3.8 proves that, in the served HTML.)
+    for(const kit of [staffKit,adminKit,editorKit,studentKit]){
+      const text=JSON.stringify(kit);
       for(const number of EVERY_NUMBER){
-        assert.equal(text.includes(number),false,`no raw visitor number in a dialog answer or a kit (${number})`);
+        assert.equal(text.includes(number),false,`a catalog holds no visitor number (${number})`);
       }
-      assert.equal(/familyKey/i.test(text),false,'no family key either');
+      assert.equal(/familyKey/i.test(text),false,'and no family key');
     }
+    for(const body of answers){
+      assert.equal(/familyKey/i.test(JSON.stringify(body)),false,'no dialog answer carries a family key');
+    }
+    const named=(firstPreview.body.preview.recipients||[]).map(row=>row.phone);
+    assert.deepEqual(named,[P1],'a preview names the number of the visitor that was picked, and only that one');
 
-    console.log('Staff SMS against the database: the catalog handed to a Visitors screen is narrowed by the role that asked — staff get the thank-you alone with no page-pick and no textarea, a role that may not send at all gets the same narrow kit, and admin and super admin keep the catalog they had including custom text; the day’s count is read off the batches one operator owns on one Dhaka day and off messages actually sent, so yesterday and a failed chunk count as nothing and another operator’s allowance stays theirs; with the limit at one the first send goes and the second is refused 409 DAILY_LIMIT in a Bangla sentence carrying the number, before the provider is asked, leaving no log row and no batch to retry; a repeated request that already went out is answered by its recorded batch rather than by the ceiling; a limit of 0 turns the ceiling off on the next send and the dialog stops quoting it; an automatic send carries no operator so it is never counted; the allowance is per user; and no answer contains a raw visitor number or a family key.');
+    console.log('Staff SMS against the database: the catalog handed to a Visitors screen is narrowed by the role that asked — staff get the thank-you alone with no page-pick and no textarea, a role that may not send at all gets the same narrow kit, and admin and super admin keep the catalog they had including custom text; the day’s count is read off the batches one operator owns on one Dhaka day and off messages actually sent, so yesterday and a failed chunk count as nothing and another operator’s allowance stays theirs; with the limit at one the first send goes and the second is refused 409 DAILY_LIMIT in a Bangla sentence carrying the number, before the provider is asked, leaving no log row and no batch to retry; a repeated request that already went out is answered by its recorded batch rather than by the ceiling; a limit of 0 turns the ceiling off on the next send and the dialog stops quoting it; an automatic send carries no operator so it is never counted; the allowance is per user, quoted to each operator from their own batches; a catalog holds no visitor number and no answer carries a family key, while a preview names exactly the number the operator picked — the masking of a number belongs to the list screens, and R3.8 proves it there.');
   }finally{
     await mongoose.disconnect();
     await mongo.stop();
