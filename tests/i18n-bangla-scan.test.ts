@@ -15,7 +15,7 @@
  * Digit tables are not exempt: they are written as code points (`\u09e6`) so a digit, which is data
  * and not a word, needs no marker.
  *
- * Run: npx tsx tests/i18n-bangla-scan.test.ts
+ * Run: npm run test:i18n (this suite is the third of its three), or npx tsx tests/i18n-bangla-scan.test.ts
  */
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -57,8 +57,9 @@ for(const file of files){
     offenders.push(`${file}:${index+1}: ${[...new Set(runs)].slice(0,3).join(' / ').slice(0,90)}`);
   });
 }
-/* This suite is a scoreboard, not a gate: it stays red until the last sentence has moved, so it has
-   to say how far down the count is. Node truncates a long array inside an assertion error, which
+/* This started as a scoreboard — red on purpose, printing how far the count had come down — and the
+   count reached zero, so it is a gate now: any Bangla sentence written back into `src/` without a
+   marker fails `npm run test:i18n`. Node truncates a long array inside an assertion error, which
    hides the one number that shows progress, so print it before failing. */
 const worst=[...offenders.reduce((map,line)=>{const file=line.split(':')[0];map.set(file,(map.get(file)||0)+1);return map},new Map<string,number>())].sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]));
 console.log(`Bangla scan: ${offenders.length} lines in ${worst.length} files (${files.length} walked).`);

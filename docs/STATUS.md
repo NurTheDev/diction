@@ -624,17 +624,20 @@ and every private kind has none. `src/app/sitemap.ts` is `force-dynamic` and bui
 public readers, so a binned slug leaves the sitemap on the next request; there is no cached sitemap
 to go stale.
 
-**The language scan is at zero.** `tests/i18n-bangla-scan.test.ts` walked 451 files and found
+**The language scan is at zero, and it is a gate now.** `tests/i18n-bangla-scan.test.ts` — the third
+suite of `npm run test:i18n`, so R0.12 proves it — walked 451 files and found
 **0 lines** of Bangla interface text outside allow blocks (was 22 in 16 files). Forty-five sentences
 moved into the catalogs in both languages — a new `payHistory` group, `center.print` and
 `center.restore.*`, `achievement.sampleCard.*`, `recovery.mailSubject`/`recovery.mailBody` (the reset
 email now renders from the catalog in the locale it was asked for), `daily.dayRange`, and
 `leads.handoff.*` plus `leads.handoffReasons.*` for the not-interested chips — every Bangla value
-taken verbatim from the line it left. Eight lines stay, each with its reason in writing on an
-`i18n-scan-allow` marker: the exam band parser's Bangla digit folding, the header switcher naming
+taken verbatim from the line it left. Six lines stay under markers written for them, each naming its
+reason — the exam band parser's Bangla digit folding, the header switcher naming
 the language it switches to, the podium glyphs inside aria-hidden artwork, the digit-conversion
-table, the PWA manifest's brand block (one file serves every locale), and the two stored-default
-taglines a new document starts with. No SMS template body was touched, and the language-ternary
+table, and the two stored-default taglines a new document starts with — beside the allowances that
+were already in place (SMS bodies, sheet-synonym tables, the channel's own titles, the PWA manifest's
+brand block, whose end marker moved onto the line it closes). No SMS template body was touched, and
+the language-ternary
 allowance `tests/i18n-routes.test.ts` carried for `src/actions/recovery.ts` is gone with it: the only
 ternary left there picks a catalog locale (`bn`/`en`), which the gate already treats as a code rather
 than a painted word. The gate counts stand at 0 hardcoded language pairs and 0 Bangla lines in route
