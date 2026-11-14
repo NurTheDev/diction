@@ -290,6 +290,10 @@ async function run(){
        attribute off it), so the drawer in hand is the open one, not the first one in the document. */
     const drawer=boss.page.locator('[data-cv-drawer][open]');
     await drawer.waitFor({state:'visible',timeout:60000});
+    /* The dialog opens on the row it was handed and then reads the record: the timeline, the duplicate
+       list and the status form arrive a beat later, so the drawer is read once its body has landed —
+       otherwise the note is "missing" only because nothing had been fetched yet. */
+    await drawer.locator('[data-cv-status]').waitFor({state:'visible',timeout:60000});
     const drawerText=await drawer.innerText();
     assert.ok(drawerText.includes(KARIM),'the drawer is about the CV whose row was tapped');
     assert.ok(drawerText.includes('নমুনা টীকা: আগ্রহী, সাক্ষাৎকার দরকার'),'and its timeline note is there, word for word');
@@ -342,6 +346,7 @@ async function run(){
     await jamalRow.locator('[data-cv-detail]').click();
     const jamalDrawer=boss.page.locator('[data-cv-drawer][open]');
     await jamalDrawer.waitFor({state:'visible',timeout:60000});
+    await jamalDrawer.locator('[data-cv-status]').waitFor({state:'visible',timeout:60000});
     await jamalDrawer.locator('.overview-drawer-actions button.admin-danger-text').first().click();
     await boss.page.locator('dialog.admin-confirm[open] button.button.admin-danger').click();
     await until(async()=>(await TeacherCandidate.countDocuments({name:JAMAL}))===0,'the binned CV to leave the list');
@@ -364,7 +369,7 @@ async function run(){
     await boss.page.locator('[data-cv-need-form] input[name="note"]').fill('নমুনা দ্বিতীয় চাহিদা');
     await boss.page.locator('[data-cv-need-save]').click();
     await until(async()=>(await TeacherNeed.countDocuments({subject:'math'}))===1,'the second need to be saved');
-    assert.equal((await boss.page.locator('[data-cv-need]').count()),2,'and it joins the list of needs');
+    await until(async()=>(await boss.page.locator('[data-cv-need]').count())===2,'and it to join the list of needs on screen');
     // Open the first need's matches: the same full rows, the same masks, the same dial links.
     await boss.page.goto(`${origin}${FIND}?need=${need.id}`,{waitUntil:'domcontentloaded',timeout:180000});
     await rows(boss.page).first().waitFor({timeout:60000});
@@ -483,9 +488,11 @@ async function run(){
       await boss.page.locator('h1,h2',{hasText:heading}).first().waitFor({timeout:60000});
       const text=await boss.page.locator('h1,h2',{hasText:heading}).first().innerText();
       assert.ok(text.includes(heading),`${route}: the heading reads as English because the catalog says so`);
-      /* The chrome is what has to be English. A candidate's own Bangla name is data, and an English screen
-         that translated it would be lying about a person, so the rows are not part of this assertion. */
-      const chromeParts=await boss.page.locator('aside.admin-sidebar nav.admin-nav, .admin-heading, .admin-panel-head, thead, form.list-filter label').allInnerTexts();
+      /* The chrome is what has to be English, and these are the same boxes the two-language sweep reads
+         on every operator screen, with the table's own column headers added: a column header is chrome
+         and never data. A candidate's own Bangla name is data, and an English screen that translated it
+         would be lying about a person, so the rows are not part of this assertion. */
+      const chromeParts=await boss.page.locator('.admin-top, .admin-nav, .admin-panel-head, .admin-heading, .admin-pagination, .admin-test-banner, thead').allInnerTexts();
       assert.ok(chromeParts.length>0,`${route}: the screen has chrome of its own to read`);
       assert.ok(!BANGLA.test(chromeParts.join(' ')),`${route}: no Bangla character and no Bangla digit in the screen's own chrome`);
       await noOverflow(boss.page,`${route} at 1440`);
