@@ -3163,5 +3163,34 @@
       "draft": "Draft"
     },
     "loadError": "Could not load tests."
+  },
+  "practicePublic": {
+    "exam": {
+      "resultError": "Could not get the result. Please try again.",
+      "notice": "This is a practice test. You can submit unanswered questions.",
+      "saveConsent": "Save my result (requires student login and linked profile; obtain guardian permission where applicable).",
+      "saveConsentNote": "If not selected, this result will not be stored in an account.",
+      "pleaseWait": "Please wait…",
+      "submit": "Submit answers",
+      "resultHeading": "Your result",
+      "savedToProfile": "Result saved to your student profile.",
+      "saveFailedRequirements": "Result was not saved. A student login, linked profile and enabled data setting are required.",
+      "notSaved": "This result was not saved to an account.",
+      "yourAnswer": "Your answer",
+      "notAnswered": "Not answered",
+      "correctAnswer": "Correct answer",
+      "explanation": "Explanation",
+      "snapshotNote": "This is a snapshot of performance on this test; ask a teacher for a fuller assessment.",
+      "viewSaved": "View saved results",
+      "tryAgain": "Try again"
+    },
+    "history": {
+      "confirmDelete": "Delete this saved result?",
+      "deleteFailed": "Could not delete. Try again.",
+      "title": "Saved practice results",
+      "notLinked": "No student profile is linked to this account. Contact the institution.",
+      "none": "No saved results.",
+      "deleteButton": "Delete result"
+    }
   }
 }

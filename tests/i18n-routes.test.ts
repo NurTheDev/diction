@@ -25,7 +25,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 /** What is left today. Lower it in the commit that migrates the next file — never raise it. */
-const BASELINE_TERNARIES=70;
+const BASELINE_TERNARIES=47;
 const BASELINE_ROUTE_BANGLA=6;
 
 const BN=/[\u0980-\u09ff]/;
