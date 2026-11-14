@@ -17,8 +17,11 @@
  * What this module deliberately does NOT do is guess: no date of birth, no gender, no guardian where
  * the lead has none, no subject a visitor never mentioned. Those stay empty on the form and are the
  * operator's to fill.
+ *
+ * And it imports nothing from `node:` — the standing rule for `src/lib/leads`, because client
+ * components import these modules and a `node:` scheme in a browser bundle fails the production build.
+ * The reference generator below uses Web Crypto for exactly that reason.
  */
-import {randomBytes} from 'node:crypto';
 import {maskPhone} from './vocab';
 
 /** The statuses the three hand-offs land on — the vocabulary's own words, not new ones. */
@@ -101,7 +104,12 @@ export function bookableSlot(slot:{enabled?:boolean|null;startAt:Date|number|str
  * hand-off row and a public form row are indistinguishable in the list, in tracking and in export.
  */
 export function handoffReference(prefix:'ADM'|'TRI',now:Date=new Date()):string{
-  return `${prefix}-${now.getUTCFullYear()}-${randomBytes(6).toString('hex').toUpperCase()}`;
+  // Web crypto on purpose, not `node:crypto`: this module is imported by a client component for its
+  // constants, and a `node:` scheme in a browser bundle fails the production build outright.
+  const bytes=new Uint8Array(6);
+  crypto.getRandomValues(bytes);
+  const hex=[...bytes].map(byte=>byte.toString(16).padStart(2,'0')).join('').toUpperCase();
+  return `${prefix}-${now.getUTCFullYear()}-${hex}`;
 }
 
 /** What stops a hand-off, read off the lead alone — the checks a screen can show before any write. */
