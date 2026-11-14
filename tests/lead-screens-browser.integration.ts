@@ -25,6 +25,8 @@ import {MongoMemoryReplSet} from 'mongodb-memory-server';
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import assert from 'node:assert/strict';
+/** Bangla digits read as ASCII ones, so an assertion can count either. */
+const ascii=(text:string):string=>text.replace(/[\u09e6-\u09ef]/g,c=>String(c.charCodeAt(0)-0x09e6));
 import {randomBytes} from 'node:crypto';
 import {mkdir} from 'node:fs/promises';
 import path from 'node:path';
@@ -584,7 +586,8 @@ async function run(){
         return summary.includes('মোট')&&!summary.includes('প্রাপক গণনা হচ্ছে');
       },`${label}: the dialog counted the picked visitors`,60000);
       const summary=await overlay.locator('[data-sms-summary]').innerText();
-      assert.ok(summary.includes('2'),`${label}: two picked visitors are two numbers, and the dialog says so (${summary.replace(/\s+/g,' ')})`);
+      // The page is Bangla, so the count is written ২; fold the digits before counting them.
+      assert.ok(ascii(summary).includes('2'),`${label}: two picked visitors are two numbers, and the dialog says so (${summary.replace(/\s+/g,' ')})`);
     };
 
     for(const width of [360,1440]){

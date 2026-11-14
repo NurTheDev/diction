@@ -47,12 +47,12 @@ function refreshLeadPage(id:string):void{
 
 async function refused(error:unknown):Promise<LeadFormState>{
   if(String((error as Error)?.message||'')==='UNAUTHORIZED'){
-    return {status:'error',message:await leadMsg({messageKey:'actionErrors.m1',messageParams:{}})};
+    return {status:'error',message:await leadMsg({messageKey:'actionErrors.NO_WRITE_ACCESS',messageParams:{}})};
   }
   // Not the error text: a driver error can quote the value it choked on, and on this screen that value
   // can be a parent's number. The name is enough to tell a timeout from a validation error.
   console.error('lead action failed',{name:(error as Error)?.name||'unknown'});
-  return {status:'error',message:await leadMsg({messageKey:'actionErrors.m2',messageParams:{}})};
+  return {status:'error',message:await leadMsg({messageKey:'actionErrors.DID_NOT_GO_THROUGH',messageParams:{}})};
 }
 
 
@@ -86,10 +86,10 @@ export async function searchLeadsByNumber(_:LeadSearchActionState|null,form:Form
     return {status:result.status,hits:searchHitViews(result.hits),total:result.total,masked:result.masked,message:await leadMsg(result,digits)};
   }catch(error){
     if(String((error as Error)?.message||'')==='UNAUTHORIZED'){
-      return {...IDLE,status:'unauthorized',message:await leadMsg({messageKey:'actionErrors.m4',messageParams:{}})};
+      return {...IDLE,status:'unauthorized',message:await leadMsg({messageKey:'actionErrors.NO_READ_ACCESS',messageParams:{}})};
     }
     console.error('lead number search failed',{name:(error as Error)?.name||'unknown'});
-    return {...IDLE,status:'error',message:await leadMsg({messageKey:'actionErrors.m5',messageParams:{}})};
+    return {...IDLE,status:'error',message:await leadMsg({messageKey:'actionErrors.SEARCH_FAILED',messageParams:{}})};
   }
 }
 
@@ -123,7 +123,7 @@ export async function quickAddLead(_:LeadFormState|null,form:FormData):Promise<L
     if(result.ok===false)return {status:'error',message:await leadMsg(result,digits),field:result.code};
     refreshLeads();
     if(result.mergedInto){
-      return {status:'ok',leadId:result.leadId,message:await leadMsg({messageKey:'success.m1',messageParams:{leadId:result.leadId}},digits)};
+      return {status:'ok',leadId:result.leadId,message:await leadMsg({messageKey:'success.MERGED_INTO_EXISTING',messageParams:{leadId:result.leadId}},digits)};
     }
     return {status:'ok',leadId:result.leadId,message:await leadMsg({messageKey:'success.SAVED',messageParams:{leadId:result.leadId,family:result.inheritedFrom?await leadMsg({messageKey:'success.SAVED_FAMILY',messageParams:{from:result.inheritedFrom||''}},digits):''}},digits)};
   }catch(error){return await refused(error)}
@@ -142,7 +142,7 @@ export async function mergeTwoLeads(_:LeadFormState|null,form:FormData):Promise<
     if(result.ok===false)return {status:'error',message:await leadMsg(result,digits),field:result.code};
     refreshLeads();refreshLeadPage(result.id);
     return {status:'ok',leadId:result.leadId,
-      message:await leadMsg({messageKey:'success.m2',messageParams:{leadId:result.leadId,source:result.sourceLeadId||'',notes:result.movedNotes||0,phones:result.movedPhones||0}},digits)};
+      message:await leadMsg({messageKey:'success.MERGED_WITH_DETAIL',messageParams:{leadId:result.leadId,source:result.sourceLeadId||'',notes:result.movedNotes||0,phones:result.movedPhones||0}},digits)};
   }catch(error){return await refused(error)}
 }
 
@@ -154,7 +154,7 @@ export async function tieLeadFamilies(_:LeadFormState|null,form:FormData):Promis
     const result=await tieLeadFamily(text(form,'id'),text(form,'otherId'),String(staff.id));
     if(result.ok===false)return {status:'error',message:await leadMsg(result,digits),field:result.code};
     refreshLeads();refreshLeadPage(text(form,'id'));refreshLeadPage(text(form,'otherId'));
-    return {status:'ok',message:await leadMsg({messageKey:'success.m3',messageParams:{}},digits)};
+    return {status:'ok',message:await leadMsg({messageKey:'success.FAMILY_TIED',messageParams:{}},digits)};
   }catch(error){return await refused(error)}
 }
 
@@ -191,7 +191,7 @@ export async function writeLeadNote(_:LeadFormState|null,form:FormData):Promise<
     const result=await addLeadNote(text(form,'id'),text(form,'text'),text(form,'outcome'),String(staff.id));
     if(result.ok===false)return {status:'error',message:await leadMsg(result,digits),field:result.code};
     refreshLeads();
-    return {status:'ok',message:await leadMsg({messageKey:'success.m4',messageParams:{}},digits)};
+    return {status:'ok',message:await leadMsg({messageKey:'success.NOTE_SAVED',messageParams:{noteCount:result.noteCount||0}},digits)};
   }catch(error){return await refused(error)}
 }
 
@@ -249,7 +249,7 @@ export async function submitLeadAdmission(_:LeadFormState|null,form:FormData):Pr
     },String(staff.id),new Date(),await leadLanguage());
     if(result.ok===false)return {status:'error',message:await leadMsg(result,digits),field:result.code};
     refreshLeads();refreshLeadPage(text(form,'id'));refreshIntake();
-    return {status:'ok',message:await leadMsg({messageKey:'success.m5',messageParams:{}},digits)};
+    return {status:'ok',message:await leadMsg({messageKey:'success.ADMISSION_OPENED',messageParams:{reference:result.reference||''}},digits)};
   }catch(error){return await refused(error)}
 }
 
@@ -264,7 +264,7 @@ export async function submitLeadTrial(_:LeadFormState|null,form:FormData):Promis
     },String(staff.id),new Date(),await leadLanguage());
     if(result.ok===false)return {status:'error',message:await leadMsg(result,digits),field:result.code};
     refreshLeads();refreshLeadPage(text(form,'id'));refreshIntake();
-    return {status:'ok',message:await leadMsg({messageKey:'success.m6',messageParams:{}},digits)};
+    return {status:'ok',message:await leadMsg({messageKey:'success.TRIAL_BOOKED',messageParams:{reference:result.reference||''}},digits)};
   }catch(error){return await refused(error)}
 }
 
@@ -275,7 +275,7 @@ export async function submitLeadNotInterested(_:LeadFormState|null,form:FormData
     const result=await markLeadNotInterested(text(form,'id'),text(form,'reason'),String(staff.id));
     if(result.ok===false)return {status:'error',message:await leadMsg(result,digits),field:result.code};
     refreshLeads();refreshLeadPage(text(form,'id'));
-    return {status:'ok',message:await leadMsg({messageKey:'success.m7',messageParams:{}},digits)};
+    return {status:'ok',message:await leadMsg({messageKey:'success.NOT_INTERESTED_FILED',messageParams:{}},digits)};
   }catch(error){return await refused(error)}
 }
 

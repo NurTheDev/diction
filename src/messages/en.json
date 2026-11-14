@@ -2232,22 +2232,23 @@
       "UNMAPPED_SHIFT": "That shift was not recognised, so it was left as any.",
       "UNMAPPED_SOURCE": "That source was not recognised, so it was left as other.",
       "SAME_LEAD_MERGE": "A lead cannot be merged into itself.",
-      "SOURCE_CONVERTED": "{student} was already converted to an admission or a trial, so it cannot be merged away."
+      "SOURCE_CONVERTED": "{student} was already converted to an admission or a trial, so it cannot be merged away.",
+      "BAD_PHONE": "That number could not be read — check how it is written."
     },
     "actionErrors": {
-      "actionErrors.m1": "You do not have access to the visitor list.",
-      "actionErrors.m2": "That did not go through. Please try again.",
-      "actionErrors.m4": "You do not have access to the visitor list.",
-      "actionErrors.m5": "The number search did not run. Please try again."
+      "NO_WRITE_ACCESS": "You do not have access to the visitor list.",
+      "DID_NOT_GO_THROUGH": "That did not go through. Please try again.",
+      "NO_READ_ACCESS": "You do not have access to the visitor list.",
+      "SEARCH_FAILED": "The number search did not run. Please try again."
     },
     "success": {
-      "success.m1": "Merged into {leadId} — no new lead was written.",
-      "success.m2": "{source} was merged into {leadId} with {notes} notes and {phones} numbers; the old lead is in the bin.",
-      "success.m3": "Both leads now tie to the same family.",
-      "success.m4": "Note saved (${result.noteCount} in all).",
-      "success.m5": "Admission opened: ${result.reference}",
-      "success.m6": "Trial booked: ${result.reference}",
-      "success.m7": "Marked not interested, with the reason filed as a note.",
+      "MERGED_INTO_EXISTING": "Merged into {leadId} — no new lead was written.",
+      "MERGED_WITH_DETAIL": "{source} was merged into {leadId} with {notes} notes and {phones} numbers; the old lead is in the bin.",
+      "FAMILY_TIED": "Both leads now tie to the same family.",
+      "NOTE_SAVED": "Note saved ({noteCount} in all).",
+      "ADMISSION_OPENED": "Admission opened: {reference}",
+      "TRIAL_BOOKED": "Trial booked: {reference}",
+      "NOT_INTERESTED_FILED": "Marked not interested, with the reason filed as a note.",
       "STATUS_DNC": "Status changed — this lead will not be contacted.",
       "STATUS_CHANGED": "Status changed.",
       "CONTACT_STOPPED": "This lead stays off the contact list.",
@@ -2447,7 +2448,7 @@
     },
     "problems": {
       "prefix": "The {trigger} did not go out. ",
-      "notConfigured": "The provider is not configured — check SMS_PROVIDER, BULKSMSBD_API_KEY and BULKSMSBD_SENDER_ID.",
+      "notConfigured": "The provider is not configured — messages cannot be sent right now. The connection panel shows what is missing.",
       "disabled": "The sending gate is closed — CENTER_SMS_WRITE_ENABLED is not \"true\".",
       "invalid": "The number or the message was not acceptable.",
       "emptyMessage": "The message body is empty.",
