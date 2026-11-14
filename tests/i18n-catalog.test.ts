@@ -77,6 +77,25 @@ for(const key of bnKeys){
 }
 console.log('No mis-nested keys, no empty values, no leftover template literals.');
 
+// ── 2b. No key is a numbered twin of another ───────────────────────────────────────────────────
+/* An extraction script that meets the same sentence twice must not invent `sent2`: two names for one
+   word is how 22 dead keys landed in the SMS namespace, and a suffix says nothing about which of the
+   two a component means. Either the sentences are the same — then there is one key — or they are
+   different, and the names say how. `hero.title1`/`title2` are fine: nothing called `hero.title`. */
+const twins:string[]=[];
+const byGroup=new Map<string,string[]>();
+for(const key of bnKeys){
+  const group=key.slice(0,key.lastIndexOf('.')),leaf=key.slice(key.lastIndexOf('.')+1);
+  byGroup.set(group,[...(byGroup.get(group)||[]),leaf]);
+}
+for(const [group,leaves] of byGroup){
+  for(const leaf of leaves){
+    const base=leaf.replace(/\d+$/,'');
+    if(base!==leaf&&leaves.includes(base))twins.push(`${group}.${leaf}`);
+  }
+}
+assert.deepEqual(twins.sort(),[],'no key is a numbered twin of a key that already exists');
+
 // ── 3. Every key `src/` asks for exists in both catalogs ───────────────────────────────────────
 type Used={key:string;where:string;how:string;raw?:boolean};
 const used:Used[]=[];
@@ -150,7 +169,7 @@ assert.deepEqual([...missingBn].sort(),[],'every key src/ asks for exists in the
 assert.deepEqual([...missingEn].sort(),[],'every key src/ asks for exists in the English catalog');
 assert.deepEqual([...notSentence].sort(),[],'every key src/ translates is a sentence in both catalogs, not a group');
 console.log(`Used keys: ${new Set(used.map(entry=>entry.key)).size} distinct across ${used.length} call sites, all present in both catalogs.`);
-if(dynamic.length)console.log(`  (${dynamic.length} computed keys are not checked statically: ${dynamic.slice(0,3).map(entry=>entry.text).join(', ')} …)`);
+if(dynamic.length)console.log(`  (${dynamic.length} computed keys are not checked statically: ${dynamic.map(entry=>entry.text).join(', ')})`);
 
 
 const bnRange=(catalog:Catalog):string[]=>leaves(catalog).filter(key=>BN.test(String(walk(catalog,key)))).sort();

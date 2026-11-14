@@ -130,13 +130,13 @@ export default async function SmsPage({params,searchParams}:{params:Promise<{loc
     <section className="admin-panel"><div className="admin-panel-head"><h2>{ts('page.batches')}</h2></div><div className="admin-panel-body">
       {batches.length===0&&<p className="admin-empty">{ts('page.batchesYet')}</p>}
       {batches.length>0&&<div className="admin-table-wrap"><table className="admin-table">
-        <thead><tr><th>{ts('page.when')}</th><th>{ts('page.purpose')}</th><th>{ts('page.status')}</th><th>{ts('page.recipients')}</th><th>{ts('page.sentFailed')}</th><th>{ts('page.cost2')}</th><th/></tr></thead>
+        <thead><tr><th>{ts('page.when')}</th><th>{ts('page.purpose')}</th><th>{ts('page.status')}</th><th>{ts('page.recipients')}</th><th>{ts('page.sentFailed')}</th><th>{ts('page.cost')}</th><th/></tr></thead>
         <tbody>{batches.map(batch=><tr key={String(batch._id)}>
           <td>{formatDate(batch.createdAt,digits,language)}<br/><small>{formatTime(batch.createdAt,digits,language)}</small>{batch.quiet&&<><br/><small>{ts('page.queuedQuietHours')}</small></>}{batch.scheduledFor&&<><br/><small>{ts('page.scheduled')}: {formatTime(batch.scheduledFor,digits,language)}</small></>}</td>
           <td>{purposeLabel(batch.templateKey||batch.purpose)}</td>
           <td><span className={`admin-badge ${batch.status==='done'?'enabled':batch.status==='failed'?'disabled':''}`}>{statusLabel(BATCH_STATUS_NAMES,batch.status)}</span></td>
           <td>{formatNumber(batch.recipientCount,digits)}</td>
-          <td>{formatNumber(batch.sentCount,digits)} / {formatNumber(batch.failedCount,digits)}{batch.skippedCount>0&&<small> · {formatNumber(batch.skippedCount,digits)} {ts('page.skipped2')}</small>}</td>
+          <td>{formatNumber(batch.sentCount,digits)} / {formatNumber(batch.failedCount,digits)}{batch.skippedCount>0&&<small> · {formatNumber(batch.skippedCount,digits)} {ts('page.skippedUnit')}</small>}</td>
           <td>{cost(batch.estimatedCost)}</td>
           <td>{batch.failedCount>0&&<SmsRetryButton locale={locale} batchId={String(batch._id)} failed={batch.failedCount}/>}</td>
         </tr>)}</tbody>
@@ -145,12 +145,12 @@ export default async function SmsPage({params,searchParams}:{params:Promise<{loc
 
     <section className="admin-panel"><div className="admin-panel-head"><h2>{ts('page.history')}</h2></div><div className="admin-panel-body">
       <form method="get" className="admin-filter">
-        <label>{ts('page.status2')} <select name="status" className="admin-select" defaultValue={status||''}>
+        <label>{ts('page.status')} <select name="status" className="admin-select" defaultValue={status||''}>
           <option value="">{ts('page.all')}</option>
           {STATUSES.map(value=><option key={value} value={value}>{ts(`statuses.${value}`)}</option>)}
         </select></label>
         <label>{ts('page.template')} <select name="template" className="admin-select" defaultValue={template||''}>
-          <option value="">{ts('page.all2')}</option>
+          <option value="">{ts('page.all')}</option>
           {templates.map(row=><option key={row.key} value={row.key}>{row.name}</option>)}
           <option value="test">{ts('page.test')}</option>
         </select></label>
@@ -159,7 +159,7 @@ export default async function SmsPage({params,searchParams}:{params:Promise<{loc
       </form>
       {logs.length===0&&<p className="admin-empty">{ts('page.records')}</p>}
       {logs.length>0&&<div className="admin-table-wrap"><table className="admin-table">
-        <thead><tr><th>{ts('page.when2')}</th><th>{ts('page.student')}</th><th>{ts('page.number')}</th><th>{ts('page.message')}</th><th>{ts('page.status3')}</th><th>{ts('page.seg')}</th><th>{ts('page.cost3')}</th></tr></thead>
+        <thead><tr><th>{ts('page.when')}</th><th>{ts('page.student')}</th><th>{ts('page.number')}</th><th>{ts('page.message')}</th><th>{ts('page.status')}</th><th>{ts('page.seg')}</th><th>{ts('page.cost')}</th></tr></thead>
         <tbody>{logs.map(log=><tr key={String(log._id)}>
           <td>{formatDate(log.sentAt||log.createdAt,digits,language)}<br/><small>{formatTime(log.sentAt||log.createdAt,digits,language)}</small></td>
           <td>{log.student?`${log.student.name.bn} · ${log.student.studentId}`:'—'}</td>

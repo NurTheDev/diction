@@ -83,7 +83,7 @@ export function SmsRetryButton({locale,batchId,failed}:{locale:string;batchId:st
   return <form action={action} className="admin-inline">
     <input type="hidden" name="batchId" value={batchId}/>
     <button className="admin-mini-button" disabled={pending} title={ts('panel.previousOutcomeUnknown')}>
-      {pending?(ts('panel.sending2')):ts('panel.retryCount',{count:formatNumber(failed,bn?'bn':'en')})}
+      {pending?(ts('panel.sending')):ts('panel.retryCount',{count:formatNumber(failed,bn?'bn':'en')})}
     </button>
     {state.status!=='idle'&&<span className={`admin-feedback ${state.status==='ok'?'ok':'error'}`}>{state.message||(state.status==='ok'?'✓':'✗')}</span>}
   </form>;
@@ -106,7 +106,7 @@ export function SmsTemplateEditor({locale,template}:{locale:string;template:SmsT
       <label className="admin-check"><input name="active" type="checkbox" defaultChecked={template.active}/>{ts('panel.active')}</label>
       {template.variables.length>0&&<small>{ts('panel.chips')}: <code>{template.variables.map(v=>`{${v}}`).join(' ')}</code></small>}
       {template.feeRelated&&<small>{ts('panel.feeRelatedHeld')}</small>}
-      <button className="admin-mini-button" disabled={pending}>{pending?(ts('panel.saving2')):(ts('panel.saveTemplate'))}</button>
+      <button className="admin-mini-button" disabled={pending}>{pending?(ts('panel.saving')):(ts('panel.saveTemplate'))}</button>
       <Feedback state={state} bn={bn}/>
     </form>
   </article>;
@@ -126,7 +126,7 @@ export function SmsProblemRetry({locale,problemId,attempts}:{locale:string;probl
     <input type="hidden" name="problemId" value={problemId}/>
     <button className="admin-mini-button" disabled={pending}
       title={ts('panel.retryingSendsAgain')}>
-      {pending?(ts('panel.sending3')):(attempts>1?(ts('panel.tryAgain')):(ts('panel.retry')))}
+      {pending?(ts('panel.sending')):(attempts>1?(ts('panel.tryAgain')):(ts('panel.retry')))}
     </button>
     {state.status!=='idle'&&<span className={`admin-feedback ${state.status==='ok'?'ok':'error'}`}>{state.message||(state.status==='ok'?'✓':'✗')}</span>}
   </form>;

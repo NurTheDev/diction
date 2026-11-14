@@ -262,7 +262,7 @@ export default function SendSmsDialog({open,onClose,request,templates,title,defa
                 ?ts('dialog.countingRecipients')
                 :preview
                   ?`${ts('dialog.total')} ${formatNumber(preview.phones,digits)} ${ts('dialog.numbers')} · ${formatNumber(preview.messages,digits)} ${ts('dialog.messages')} · ${formatNumber(preview.segments,digits)} ${ts('dialog.segments')}`
-                  :ts('dialog.countingRecipients2')}
+                  :ts('dialog.countingRecipients')}
             </p>
             {daily&&<p className="admin-help" data-sms-daily="">{dailyLimitLine(daily.limit,daily.remaining,en?'en':'bn')}</p>}
             {hardError&&<p className="admin-feedback error" role="status">{hardError}</p>}
@@ -284,7 +284,7 @@ export default function SendSmsDialog({open,onClose,request,templates,title,defa
                 <input type="checkbox" name="smsGroupSiblings" checked={groupSiblings} onChange={event=>setGroupSiblings(event.target.checked)} />
                 {isLead
                   ?ts('dialog.oneMessagePer')
-                  :ts('dialog.oneMessagePer2')}
+                  :ts('dialog.oneMessagePerPhone')}
               </label>
             </fieldset>
 
@@ -324,9 +324,9 @@ export default function SendSmsDialog({open,onClose,request,templates,title,defa
                 <table className="admin-table" data-sms-recipients="">
                   <thead>
                     <tr>
-                      <th scope="col">{ts('dialog.student2')}</th>
+                      <th scope="col">{ts('dialog.student')}</th>
                       <th scope="col">{ts('dialog.phone')}</th>
-                      <th scope="col">{ts('dialog.segments2')}</th>
+                      <th scope="col">{ts('dialog.segmentsHeader')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -395,7 +395,7 @@ export default function SendSmsDialog({open,onClose,request,templates,title,defa
                 <article className="sms-preview" key={item.phone} data-sms-preview="">
                   <header><strong>{item.studentName||item.phone}</strong><span dir="ltr">{item.phone}</span></header>
                   <p className="admin-cell-message" dir="auto">{item.preview}</p>
-                  <footer className="admin-help">{item.segments} {ts('dialog.segments3')} · {tc('currency')}{item.cost.toFixed(2)}</footer>
+                  <footer className="admin-help">{item.segments} {ts('dialog.segments')} · {tc('currency')}{item.cost.toFixed(2)}</footer>
                 </article>
               ))}
               {!(preview?.recipients||[]).length&&<p className="admin-empty">{ts('dialog.thereNothingSend')}</p>}
@@ -403,8 +403,8 @@ export default function SendSmsDialog({open,onClose,request,templates,title,defa
 
             <dl className="admin-defs" data-sms-figures="">
               <div><dt>{ts('dialog.characters')}</dt><dd data-sms-characters="">{formatNumber(characters,digits)}</dd></div>
-              <div><dt>{ts('dialog.messages2')}</dt><dd data-sms-messages="">{formatNumber(preview?.messages??0,digits)}</dd></div>
-              <div><dt>{ts('dialog.segments4')}</dt><dd data-sms-segments="">{formatNumber(preview?.segments??0,digits)}</dd></div>
+              <div><dt>{ts('dialog.messagesLabel')}</dt><dd data-sms-messages="">{formatNumber(preview?.messages??0,digits)}</dd></div>
+              <div><dt>{ts('dialog.segmentsLabel')}</dt><dd data-sms-segments="">{formatNumber(preview?.segments??0,digits)}</dd></div>
               <div><dt>{ts('dialog.estimatedCost')}</dt><dd data-sms-cost="">{tc('currency')}{formatDigits((preview?.cost??0).toFixed(2),digits)}</dd></div>
               <div><dt>{ts('dialog.balance')}</dt><dd data-sms-balance="">
                 {preview?.balanceOk?`${tc('currency')}${formatDigits((preview?.balance??0).toFixed(2),digits)}`:ts('dialog.unavailable')}
@@ -454,24 +454,24 @@ export default function SendSmsDialog({open,onClose,request,templates,title,defa
                   <strong data-sms-result-title="">
                     {result.ok
                       ?result.status==='queued'
-                        ?ts('dialog.queued2')
+                        ?ts('dialog.resultQueued')
                         :result.status==='existing'
                           ?ts('dialog.countedFromEarlier')
                           :ts('dialog.sent')
-                      :ts('dialog.sent2')}
+                      :ts('dialog.notSent')}
                   </strong>
                   <p className="admin-help" data-sms-result-text="">
                     {result.ok
                       ?result.status==='queued'
                         ?`${ts('dialog.goOutWhen')} (${result.quietUntil||''}). ${ts('dialog.skipped')}: ${result.skipped??0}`
-                        :`${ts('dialog.sent3')}: ${result.sent??0} · ${ts('dialog.failed')}: ${result.failed??0} · ${ts('dialog.skipped2')}: ${result.skipped??0}`
+                        :`${ts('dialog.resultSent')}: ${result.sent??0} · ${ts('dialog.failed')}: ${result.failed??0} · ${ts('dialog.skipped')}: ${result.skipped??0}`
                       // A sentence the server wrote for the operator outranks the code it filed the
                       // refusal under (R3.11): "DAILY_LIMIT" is a fact for a log, not an answer for a
                       // person who just pressed send and needs to know when they may press it again.
                       :String((en?result.messageEn:result.messageBn)||result.message||result.blocked||result.error||'UNAVAILABLE')}
                   </p>
                   {result.ok&&result.monthTotals&&(
-                    <p className="admin-help" data-sms-month="">{ts('dialog.month')}: {result.monthTotals.sent} {ts('dialog.sent4')} · {tc('currency')}{result.monthTotals.cost.toFixed(2)}</p>
+                    <p className="admin-help" data-sms-month="">{ts('dialog.month')}: {result.monthTotals.sent} {ts('dialog.monthSentUnit')} · {tc('currency')}{result.monthTotals.cost.toFixed(2)}</p>
                   )}
                 </div>
                 {result.ok&&(result.failed??0)>0&&(
