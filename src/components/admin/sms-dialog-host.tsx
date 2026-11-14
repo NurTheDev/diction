@@ -17,20 +17,18 @@ import type {SmsSendRequest} from './send-sms-dialog';
  */
 export default async function SmsDialogHost(props:{
   request:SmsSendRequest;
-  titleBn:string;
-  titleEn:string;
-  labelBn:string;
-  labelEn:string;
+  title:string;
+  label:string;
   defaultTemplateKey?:string;
   variant?:'mini'|'navy';
   disabled?:boolean;
   icon?:boolean;
 }){
-  const {request,titleBn,titleEn,labelBn,labelEn,defaultTemplateKey,variant,disabled,icon}=props;
+  const {request,title,label,defaultTemplateKey,variant,disabled,icon}=props;
   const [data,locale]=await Promise.all([smsDialogData(),getLocale().catch(()=>'bn')]);
   return (
     <SmsDialogTrigger request={request} templates={data.templates} institutePhone={data.institutePhone}
-      titleBn={titleBn} titleEn={titleEn} labelBn={labelBn} labelEn={labelEn}
+      title={title} label={label}
       defaultTemplateKey={defaultTemplateKey} en={locale==='en'} variant={variant} disabled={disabled} icon={icon} />
   );
 }

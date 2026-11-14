@@ -7,8 +7,9 @@
  * never echoes a value, and that the API key cannot escape into an outcome, an error or a log line.
  */
 import assert from 'node:assert/strict';
+import bnMessages from '../src/messages/bn.json';
 import {
-  SMS_BALANCE_URL,SMS_BATCH_SIZE,SMS_CODE_MESSAGES,SMS_MANY_URL,SMS_SINGLE_URL,
+  SMS_BALANCE_URL,SMS_BATCH_SIZE,SMS_CODE_KEYS,SMS_MANY_URL,SMS_SINGLE_URL,
   createMockProvider,createSmsProvider,getBulkSmsBdBalance,redactSmsSecrets,
   serializeSmsMany,smsCodeMessage,smsCredentials,smsNeedsUnicode,smsProviderName,
   submitBulkSmsBd,submitManyBulkSmsBd,validateSmsCredentials,
@@ -44,17 +45,19 @@ async function run(){
   // 2. Every code in the provider's published table has a Bangla sentence, including the four the
   //    spec names explicitly. Nothing may fall through to the generic "unknown" wording.
   for(const code of ['202','1002','1003','1005','1006','1007','1011','1012','1013','1014','1015','1016','1017','1018','1019','1020','1021','1031','1032']){
-    assert.ok(SMS_CODE_MESSAGES[code],`code ${code} must be mapped`);
-    assert.equal(smsCodeMessage(code),SMS_CODE_MESSAGES[code]);
-    assert.ok(!/[A-Za-z]{4,}/.test(SMS_CODE_MESSAGES[code]),`code ${code} must read as Bangla, not English`);
+    assert.ok(SMS_CODE_KEYS[code],`code ${code} must be mapped`);
+    assert.equal(smsCodeMessage(code),(bnMessages.sms.codes as Record<string,string>)[code],'the Bangla sentence comes from the catalog');
+    assert.ok(!/[A-Za-z]{4,}/.test(smsCodeMessage(code,'bn')),`code ${code} must read as Bangla, not English`);
+    assert.ok(!/[\u0980-\u09ff]/.test(smsCodeMessage(code,'en')),`code ${code} must have a real English sentence`);
   }
-  assert.match(smsCodeMessage('202'),/জমা/,'202 says submitted, not delivered');
-  assert.match(smsCodeMessage('1007'),/ব্যালেন্স অপর্যাপ্ত/);
-  assert.match(smsCodeMessage('1012'),/বাংলায়/,'1012 explains masking SMS must be Bengali');
-  assert.match(smsCodeMessage('1032'),/হোয়াইটলিস্টে নেই/,'1032 explains the IP is not whitelisted');
-  assert.match(smsCodeMessage('1001'),/নম্বর/,'1001 (invalid number) is mapped too');
-  assert.match(smsCodeMessage('9999'),/9999/,'an unmapped code is shown as a code, never as success');
-  assert.match(smsCodeMessage(undefined),/বোঝা যায়নি/);
+  assert.match(smsCodeMessage('202','bn'),/জমা/,'202 says submitted, not delivered');
+  assert.match(smsCodeMessage('1007','bn'),/ব্যালেন্স অপর্যাপ্ত/);
+  assert.match(smsCodeMessage('1012','bn'),/বাংলায়/,'1012 explains masking SMS must be Bengali');
+  assert.match(smsCodeMessage('1032','bn'),/হোয়াইটলিস্টে নেই/,'1032 explains the IP is not whitelisted');
+  assert.match(smsCodeMessage('1001','bn'),/নম্বর/,'1001 (invalid number) is mapped too');
+  assert.match(smsCodeMessage('9999','bn'),/9999/,'an unmapped code is shown as a code, never as success');
+  assert.match(smsCodeMessage(undefined,'bn'),/বোঝা যায়নি/);
+  assert.match(smsCodeMessage(undefined,'en'),/could not be read/);
 
   // 3. Bangla needs the provider's unicode type; ASCII does not.
   assert.equal(smsNeedsUnicode('ডিকশন কোচিং'),true);

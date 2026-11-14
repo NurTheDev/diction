@@ -3,8 +3,11 @@
  * receives a message, and every reason shown for a number that was dropped.
  */
 import assert from 'node:assert/strict';
-import {SMS_SKIP_LABELS,SMS_SKIP_REASONS,chunkRecipients,isHeldNow,resolveRecipients,type SmsCandidateStudent} from '../src/lib/center/sms-recipients';
+import bnMessages from '../src/messages/bn.json';
+import enMessages from '../src/messages/en.json';
+import {SMS_SKIP_LABEL_KEYS,SMS_SKIP_REASONS,chunkRecipients,isHeldNow,resolveRecipients,type SmsCandidateStudent} from '../src/lib/center/sms-recipients';
 
+const resolve=(catalog:Record<string,unknown>,dotted:string):string=>dotted.split('.').reduce<unknown>((node,part)=>((node||{}) as Record<string,unknown>)[part],catalog) as string;
 const NOW=new Date('2026-11-12T12:00:00+06:00');
 
 function student(over:Partial<SmsCandidateStudent>={}):SmsCandidateStudent{
@@ -21,8 +24,8 @@ function run(){
   assert.equal(optedOut.skipped[0].reason,'opted_out');
   // Every reason in the closed vocabulary carries both labels, so the dialog can never show a hole.
   for(const reason of SMS_SKIP_REASONS){
-    assert.ok(SMS_SKIP_LABELS[reason].bn.trim(),`${reason} needs a Bangla label`);
-    assert.ok(SMS_SKIP_LABELS[reason].en.trim(),`${reason} needs an English label`);
+    assert.ok(resolve(bnMessages,`sms.${SMS_SKIP_LABEL_KEYS[reason]}`).trim(),`${reason} needs a Bangla label`);
+    assert.ok(resolve(enMessages,`sms.${SMS_SKIP_LABEL_KEYS[reason]}`).trim(),`${reason} needs an English label`);
   }
 
   // 2. Held students: excluded from FEE messages, still reachable for non-fee ones.

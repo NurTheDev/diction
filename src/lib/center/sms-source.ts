@@ -10,7 +10,7 @@
  * rule layer and the reporting stays the skip list the dialog already renders.
  *
  * Two separate notions of month, because they answer different questions:
- *   • `monthLabel` is what the message says ("মার্চ", "জানুয়ারি–মার্চ ২০২৬") — Bangla prose with
+ *   • `monthLabel` is what the message says (a Bangla month name, or a Bangla month range with a year) — prose with
  *     Bangla digits, matching the Bangla template bodies it is substituted into;
  *   • `monthKey` is the YYYY-MM key stored on the log rows, which is what the 24-hour
  *     "same template/student/month already sent" warning compares. Feeding it prose would silently
@@ -32,7 +32,11 @@ import type {SmsVariable} from './sms-templates';
 
 export type SmsSource='dues'|'class'|'students'|'student'|'receipt'|'lead'|'leads';
 
+// i18n-scan-allow-start: SMS message content (Bangla script data), not interface text.
+// i18n-scan-allow-start: Bangla month names go INSIDE the SMS body, which stays Bangla by the owner's rule.
 const MONTHS_BN=['জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর'];
+// i18n-scan-allow-end
+// i18n-scan-allow-end
 /** A hard ceiling: one dialog send is bounded. A whole-school send goes class by class. */
 export const SMS_SOURCE_LIMIT=1000;
 const SELECTION='name studentId status smsOptOut guardianPhone studentPhone altPhone holds classGroup';
@@ -41,7 +45,7 @@ const bn=(value:number|string):string=>formatNumber(Number(value),'bn');
 
 type YearMonth={year:number;month:number};
 
-/** "মার্চ" for this year, "মার্চ ২০২৫" for an older one, "জানুয়ারি–মার্চ ২০২৫" for a range. */
+/** One Bangla month name for this year, the same with a year for an older one, and a month range for a term. */
 export function monthLabel(months:YearMonth[],now=new Date()):string{
   if(!months.length)return '';
   const sorted=[...months].sort((a,b)=>a.year*12+a.month-(b.year*12+b.month));

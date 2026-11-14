@@ -19,10 +19,8 @@ export default function SmsDialogTrigger(props:{
   request:SmsSendRequest;
   templates:{key:string;name:string;body:string;active:boolean;edited:boolean}[];
   institutePhone?:string;
-  titleBn:string;
-  titleEn:string;
-  labelBn:string;
-  labelEn:string;
+  title:string;
+  label:string;
   defaultTemplateKey?:string;
   en?:boolean;
   variant?:'mini'|'navy';
@@ -31,7 +29,7 @@ export default function SmsDialogTrigger(props:{
   /** R3.11: the message is shown, not editable — a staff send is the thank-you, word for word. */
   lockedText?:boolean;
 }){
-  const {request,templates,institutePhone='',titleBn,titleEn,labelBn,labelEn,defaultTemplateKey,en=false,variant='mini',disabled=false,icon=true,lockedText=false}=props;
+  const {request,templates,institutePhone='',title,label,defaultTemplateKey,en=false,variant='mini',disabled=false,icon=true,lockedText=false}=props;
   const [open,setOpen]=useState(false);
   const router=useRouter();
   const close=useCallback(()=>setOpen(false),[]);
@@ -41,10 +39,10 @@ export default function SmsDialogTrigger(props:{
     <>
       <button type="button" className={variant==='navy'?'button button-navy':'admin-mini-button'} onClick={()=>setOpen(true)} disabled={disabled} data-sms-open="">
         {icon&&<MessageSquare aria-hidden="true" size={14} />}
-        {en?labelEn:labelBn}
+        {label}
       </button>
       <SendSmsDialog open={open} onClose={close} request={request} templates={templates} institutePhone={institutePhone}
-        titleBn={titleBn} titleEn={titleEn} defaultTemplateKey={defaultTemplateKey} en={en} onSent={sent} lockedText={lockedText} />
+        title={title} defaultTemplateKey={defaultTemplateKey} en={en} onSent={sent} lockedText={lockedText} />
     </>
   );
 }

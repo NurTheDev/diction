@@ -89,8 +89,7 @@ export function LeadSmsPicker({rows,kit,digits='bn',language='bn',children}:{
       request={{source:'leads',ids:dialogIds}}
       templates={kit.templates}
       institutePhone={kit.institutePhone}
-      titleBn={t('smsBulkTitle')}
-      titleEn="SMS the selected visitors"
+      title={t('smsBulkTitle')}
       defaultTemplateKey="visitor_thanks"
       en={language==='en'}
       lockedText={kit.allowTextEdit===false}

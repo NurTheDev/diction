@@ -8,7 +8,7 @@
  * anything: sending SMS spends real money, so this is admin and super admin only.
  */
 import {revalidatePath} from 'next/cache';
-import {getLocale} from 'next-intl/server';
+import {getLocale,getTranslations} from 'next-intl/server';
 import {z} from 'zod';
 import {requireAdmin} from '@/lib/admin/guard';
 import {audit} from '@/lib/admin/helpers';
@@ -65,10 +65,10 @@ export async function saveSmsSettings(_:ActionState,form:FormData):Promise<Actio
     if(!parsed.success)return {status:'error',reason:'invalid'};
     // An unparsable clock would silently disable quiet hours, so refuse it instead of saving it.
     if(parseClock(parsed.data.quietStart)===null||parseClock(parsed.data.quietEnd)===null){
-      return {status:'error',reason:'invalid',message:(await localeIsEn())?'Enter the time as HH:MM':'সময় HH:MM ফরম্যাটে দিন'};
+      return {status:'error',reason:'invalid',message:(await getTranslations('sms'))('actionErrors.enterTimeHh')};
     }
     const phone=parsed.data.institutePhone.trim();
-    if(phone&&!normalizePhone(phone))return {status:'error',reason:'invalid',message:(await localeIsEn())?'The institute number is not valid':'প্রতিষ্ঠানের নম্বর সঠিক নয়'};
+    if(phone&&!normalizePhone(phone))return {status:'error',reason:'invalid',message:(await getTranslations('sms'))('actionErrors.instituteNumberValid')};
     await CenterSettings.updateOne(
       {key:'main'},
       {$set:{
@@ -99,12 +99,12 @@ export async function sendTestSmsAction(_:ActionState,form:FormData):Promise<Act
     const admin=await requireAdmin();
     const raw=String(form.get('phone')||'').trim();
     const phone=normalizePhone(raw);
-    if(!phone)return {status:'error',reason:'invalid',message:(await localeIsEn())?'That number is not valid (01XXXXXXXXX)':'নম্বরটি সঠিক নয় (০১XXXXXXXXX)'};
+    if(!phone)return {status:'error',reason:'invalid',message:(await getTranslations('sms'))('actionErrors.numberValidXxxxxxxxx')};
     const result=await sendTestSms(phone,admin.id);
     refreshSms();
     const en=await localeIsEn();
-    if(result.status!=='sent')return {status:'error',reason:'unavailable',message:en?`Not sent: ${result.message}`:`পাঠানো যায়নি: ${result.message}`};
-    return {status:'ok',message:en?'Test message submitted.':'পরীক্ষামূলক এসএমএস জমা হয়েছে।'};
+    if(result.status!=='sent')return {status:'error',reason:'unavailable',message:(await getTranslations('sms'))('actionErrors.notSent',{message:result.message})};
+    return {status:'ok',message:(await getTranslations('sms'))('actionErrors.testSubmitted')};
   }catch{return {status:'error',reason:'unavailable'}}
 }
 
@@ -118,7 +118,7 @@ export async function retrySmsBatch(_:ActionState,form:FormData):Promise<ActionS
     if(!parsed.success)return {status:'error',reason:'invalid'};
     const result=await retryFailedSms(parsed.data,admin.id);
     refreshSms();
-    if(!result.retried)return {status:'error',reason:'invalid',message:(await localeIsEn())?'No failed messages to retry':'রিট্রাই করার মতো ব্যর্থ বার্তা নেই'};
+    if(!result.retried)return {status:'error',reason:'invalid',message:(await getTranslations('sms'))('actionErrors.failedMessagesRetry')};
     return {status:'ok',message:`${result.sent}/${result.retried}`};
   }catch{return {status:'error',reason:'unavailable'}}
 }
@@ -138,8 +138,8 @@ export async function saveSmsTemplate(_:ActionState,form:FormData):Promise<Actio
     const admin=await requireAdmin();
     const parsed=templateSchema.safeParse({key:form.get('key'),name:form.get('name'),body:form.get('body')});
     if(!parsed.success)return {status:'error',reason:'invalid'};
-    if(parsed.data.key==='custom')return {status:'error',reason:'invalid',message:(await localeIsEn())?'Free text is not stored as a template':'নিজের লেখা বার্তা সংরক্ষণ করা হয় না'};
-    if(!parsed.data.body)return {status:'error',reason:'invalid',message:(await localeIsEn())?'The message body cannot be empty':'বার্তার লেখা খালি রাখা যাবে না'};
+    if(parsed.data.key==='custom')return {status:'error',reason:'invalid',message:(await getTranslations('sms'))('actionErrors.freeTextStored')};
+    if(!parsed.data.body)return {status:'error',reason:'invalid',message:(await getTranslations('sms'))('actionErrors.messageBodyCannot')};
     const variables=[...new Set([...parsed.data.body.matchAll(/\{(\w+)\}/g)].map(match=>match[1]))];
     await CenterSmsTemplate.updateOne(
       {key:parsed.data.key},

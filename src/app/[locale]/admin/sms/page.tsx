@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import {getTranslations} from 'next-intl/server';
 import {requireAdmin} from '@/lib/admin/guard';
 import {dashboardDigits} from '@/lib/admin/digits';
 import {formatNumber,formatDate,formatTime,formatDigits} from '@/lib/admin/format';
@@ -63,97 +64,99 @@ export default async function SmsPage({params,searchParams}:{params:Promise<{loc
     CenterSmsBatch.find({}).sort({createdAt:-1}).limit(30).lean<BatchRow[]>(),
   ]);
 
-  const t=(b:string,e:string)=>bn?b:e;
-  const cost=(value:number)=>`${bn?'৳':'৳ '}${formatNumber(Math.round(value*100)/100,digits)}`;
+  const ts=await getTranslations('sms');
+  const language:'bn'|'en'=bn?'bn':'en';
+  const currency=await (await getTranslations('common'))('currency');
+  const cost=(value:number)=>`${currency}${formatNumber(Math.round(value*100)/100,digits)}`;
 
   return <>
     <div className="admin-heading"><div>
-      <h1>{t('এসএমএস','SMS')}</h1>
-      <p>{t('প্রদানকারী, ব্যালেন্স, খরচ, টেমপ্লেট ও পাঠানোর ইতিহাস — এক জায়গায়।','Provider, balance, cost, templates and sending history in one place.')}</p>
+      <h1>{ts('page.sms')}</h1>
+      <p>{ts('page.providerBalanceCost')}</p>
     </div></div>
 
     {/* Above the connection panel on purpose: an automatic send that did not go out is the one thing
         on this page the operator must act on, and it is invisible everywhere else. */}
     <SmsAutoProblems digits={digits}/>
 
-    <section className="admin-panel"><div className="admin-panel-head"><h2>{t('সংযোগ','Connection')}</h2></div><div className="admin-panel-body">
+    <section className="admin-panel"><div className="admin-panel-head"><h2>{ts('page.connection')}</h2></div><div className="admin-panel-body">
       <dl className="admin-defs">
-        <div><dt>{t('প্রদানকারী','Provider')}</dt><dd><code>{providerName}</code> {providerName==='mock'&&<span className="admin-badge">{t('কিছু পাঠানো হয় না','nothing is sent')}</span>}</dd></div>
-        <div><dt>{t('ক্রেডেনশিয়াল','Credentials')}</dt><dd>{credentials.ok
-          ? <span className="admin-badge enabled">{t('সেট করা আছে','configured')}</span>
-          : <span className="admin-badge disabled">{t('অনুপস্থিত','missing')}: {credentials.missing.join(', ')}</span>}</dd></div>
-        <div><dt>{t('পাঠানোর গেট','Sending gate')}</dt><dd>{writeGate
+        <div><dt>{ts('page.provider')}</dt><dd><code>{providerName}</code> {providerName==='mock'&&<span className="admin-badge">{ts('page.nothingSent')}</span>}</dd></div>
+        <div><dt>{ts('page.credentials')}</dt><dd>{credentials.ok
+          ? <span className="admin-badge enabled">{ts('page.configured')}</span>
+          : <span className="admin-badge disabled">{ts('page.missing')}: {credentials.missing.join(', ')}</span>}</dd></div>
+        <div><dt>{ts('page.sendingGate')}</dt><dd>{writeGate
           ? <span className="admin-badge enabled">CENTER_SMS_WRITE_ENABLED=true</span>
-          : <span className="admin-badge disabled">{t('বন্ধ — আসল এসএমএস যাবে না','off — no real SMS will leave')}</span>}</dd></div>
-        <div><dt>{t('ব্যালেন্স','Balance')}</dt><dd>{balance.ok?formatNumber(balance.balance,digits):t('পড়া যায়নি','could not be read')}{balance.ok===false&&'code' in balance&&balance.code?` (${balance.code})`:''}</dd></div>
+          : <span className="admin-badge disabled">{ts('page.offRealSms')}</span>}</dd></div>
+        <div><dt>{ts('page.balance')}</dt><dd>{balance.ok?formatNumber(balance.balance,digits):ts('page.couldRead')}{balance.ok===false&&'code' in balance&&balance.code?` (${balance.code})`:''}</dd></div>
       </dl>
-      <p className="admin-help">{t('এপিআই কী ও সেন্ডার আইডি শুধু সার্ভারে থাকে; এই পেজে কখনো দেখানো হয় না।','The API key and sender id stay on the server; they are never rendered on this page.')}</p>
+      <p className="admin-help">{ts('page.apiKeySender')}</p>
     </div></section>
 
-    <section className="admin-panel"><div className="admin-panel-head"><h2>{t('এই মাসের হিসাব','This month')}</h2></div><div className="admin-panel-body">
+    <section className="admin-panel"><div className="admin-panel-head"><h2>{ts('page.month')}</h2></div><div className="admin-panel-body">
       <dl className="admin-defs">
-        <div><dt>{t('পাঠানো','Sent')}</dt><dd>{formatNumber(totals.sent,digits)}</dd></div>
-        <div><dt>{t('ব্যর্থ','Failed')}</dt><dd>{formatNumber(totals.failed,digits)}</dd></div>
-        <div><dt>{t('কিউতে','Queued')}</dt><dd>{formatNumber(totals.queued,digits)}</dd></div>
-        <div><dt>{t('বাদ পড়া','Skipped')}</dt><dd>{formatNumber(totals.skipped,digits)}</dd></div>
-        <div><dt>{t('সেগমেন্ট','Segments')}</dt><dd>{formatNumber(totals.segments,digits)}</dd></div>
-        <div><dt>{t('খরচ','Cost')}</dt><dd>{cost(totals.cost)}</dd></div>
+        <div><dt>{ts('page.sent')}</dt><dd>{formatNumber(totals.sent,digits)}</dd></div>
+        <div><dt>{ts('page.failed')}</dt><dd>{formatNumber(totals.failed,digits)}</dd></div>
+        <div><dt>{ts('page.queued')}</dt><dd>{formatNumber(totals.queued,digits)}</dd></div>
+        <div><dt>{ts('page.skipped')}</dt><dd>{formatNumber(totals.skipped,digits)}</dd></div>
+        <div><dt>{ts('page.segments')}</dt><dd>{formatNumber(totals.segments,digits)}</dd></div>
+        <div><dt>{ts('page.cost')}</dt><dd>{cost(totals.cost)}</dd></div>
       </dl>
-      <p className="admin-help">{t('খরচ প্রতিটি লগ রো-তে জমা থাকে, তাই আজকের ইউনিট খরচ বদলালেও পুরনো হিসাব বদলায় না।','Cost is stored on every log row, so changing today’s unit cost never rewrites history.')}</p>
+      <p className="admin-help">{ts('page.costStoredEvery')}</p>
     </div></section>
 
     <SmsSettingsForm locale={locale} settings={settings} providerName={providerName} balanceOk={balance.ok} balance={balance.ok?balance.balance:null}/>
     <SmsTestForm locale={locale} ownPhone={me?.phone||''}/>
 
-    <section className="admin-panel"><div className="admin-panel-head"><h2>{t('নতুন বার্তা','New message')}</h2></div><div className="admin-panel-body">
+    <section className="admin-panel"><div className="admin-panel-head"><h2>{ts('page.newMessage')}</h2></div><div className="admin-panel-body">
       <SmsNewMessage en={!bn} institutePhone={settings.institutePhone}
         classes={groups.map(group=>({id:String(group._id),name:(bn?group.name.bn:group.name.en)||group.name.bn}))}
         templates={templates.filter(row=>row.active||row.key==='custom')} />
     </div></section>
 
-    <section className="admin-panel"><div className="admin-panel-head"><h2>{t('টেমপ্লেট','Templates')}</h2></div><div className="admin-panel-body">
-      <p className="admin-help">{t('বার্তার লেখা বাংলায় থাকে। বন্ধনীতে থাকা ঘরগুলো বসানো যায়:','Message content stays Bangla. These chips can be inserted:')} <code>{[...SMS_VARIABLES].map(v=>`{${v}}`).join(' ')}</code></p>
+    <section className="admin-panel"><div className="admin-panel-head"><h2>{ts('page.templates')}</h2></div><div className="admin-panel-body">
+      <p className="admin-help">{ts('page.messageContentStays')} <code>{[...SMS_VARIABLES].map(v=>`{${v}}`).join(' ')}</code></p>
       {templates.map(template=><SmsTemplateEditor key={template.key} locale={locale} template={template}/>)}
     </div></section>
 
-    <section className="admin-panel"><div className="admin-panel-head"><h2>{t('ব্যাজ','Batches')}</h2></div><div className="admin-panel-body">
-      {batches.length===0&&<p className="admin-empty">{t('এখনো কোনো ব্যাজ নেই।','No batches yet.')}</p>}
+    <section className="admin-panel"><div className="admin-panel-head"><h2>{ts('page.batches')}</h2></div><div className="admin-panel-body">
+      {batches.length===0&&<p className="admin-empty">{ts('page.batchesYet')}</p>}
       {batches.length>0&&<div className="admin-table-wrap"><table className="admin-table">
-        <thead><tr><th>{t('সময়','When')}</th><th>{t('উদ্দেশ্য','Purpose')}</th><th>{t('অবস্থা','Status')}</th><th>{t('প্রাপক','Recipients')}</th><th>{t('পাঠানো/ব্যর্থ','Sent/failed')}</th><th>{t('খরচ','Cost')}</th><th/></tr></thead>
+        <thead><tr><th>{ts('page.when')}</th><th>{ts('page.purpose')}</th><th>{ts('page.status')}</th><th>{ts('page.recipients')}</th><th>{ts('page.sentFailed')}</th><th>{ts('page.cost2')}</th><th/></tr></thead>
         <tbody>{batches.map(batch=><tr key={String(batch._id)}>
-          <td>{formatDate(batch.createdAt,digits,bn?'bn':'en')}<br/><small>{formatTime(batch.createdAt,digits,bn?'bn':'en')}</small>{batch.quiet&&<><br/><small>{t('কুয়ায়েট আওয়ার্সে কিউ','queued by quiet hours')}</small></>}{batch.scheduledFor&&<><br/><small>{t('পাঠানোর সময়','scheduled')}: {formatTime(batch.scheduledFor,digits,bn?'bn':'en')}</small></>}</td>
+          <td>{formatDate(batch.createdAt,digits,language)}<br/><small>{formatTime(batch.createdAt,digits,language)}</small>{batch.quiet&&<><br/><small>{ts('page.queuedQuietHours')}</small></>}{batch.scheduledFor&&<><br/><small>{ts('page.scheduled')}: {formatTime(batch.scheduledFor,digits,language)}</small></>}</td>
           <td>{batch.templateKey||batch.purpose}</td>
           <td><span className={`admin-badge ${batch.status==='done'?'enabled':batch.status==='failed'?'disabled':''}`}>{batch.status}</span></td>
           <td>{formatNumber(batch.recipientCount,digits)}</td>
-          <td>{formatNumber(batch.sentCount,digits)} / {formatNumber(batch.failedCount,digits)}{batch.skippedCount>0&&<small> · {formatNumber(batch.skippedCount,digits)} {t('বাদ','skipped')}</small>}</td>
+          <td>{formatNumber(batch.sentCount,digits)} / {formatNumber(batch.failedCount,digits)}{batch.skippedCount>0&&<small> · {formatNumber(batch.skippedCount,digits)} {ts('page.skipped2')}</small>}</td>
           <td>{cost(batch.estimatedCost)}</td>
           <td>{batch.failedCount>0&&<SmsRetryButton locale={locale} batchId={String(batch._id)} failed={batch.failedCount}/>}</td>
         </tr>)}</tbody>
       </table></div>}
     </div></section>
 
-    <section className="admin-panel"><div className="admin-panel-head"><h2>{t('ইতিহাস','History')}</h2></div><div className="admin-panel-body">
+    <section className="admin-panel"><div className="admin-panel-head"><h2>{ts('page.history')}</h2></div><div className="admin-panel-body">
       <form method="get" className="admin-filter">
-        <label>{t('অবস্থা','Status')} <select name="status" className="admin-select" defaultValue={status||''}>
-          <option value="">{t('সব','All')}</option>
-          {STATUSES.map(value=><option key={value} value={value}>{t({sent:'পাঠানো',failed:'ব্যর্থ',skipped:'বাদ পড়া',queued:'কিউতে'}[value],value)}</option>)}
+        <label>{ts('page.status2')} <select name="status" className="admin-select" defaultValue={status||''}>
+          <option value="">{ts('page.all')}</option>
+          {STATUSES.map(value=><option key={value} value={value}>{ts(`statuses.${value}`)}</option>)}
         </select></label>
-        <label>{t('টেমপ্লেট','Template')} <select name="template" className="admin-select" defaultValue={template||''}>
-          <option value="">{t('সব','All')}</option>
+        <label>{ts('page.template')} <select name="template" className="admin-select" defaultValue={template||''}>
+          <option value="">{ts('page.all2')}</option>
           {templates.map(row=><option key={row.key} value={row.key}>{row.name}</option>)}
-          <option value="test">{t('পরীক্ষা','Test')}</option>
+          <option value="test">{ts('page.test')}</option>
         </select></label>
-        <label>{t('খোঁজ','Search')} <input name="q" defaultValue={search} maxLength={80} placeholder={t('নম্বর বা নাম','number or name')}/></label>
-        <button className="button button-navy">{t('ছাঁকুন','Filter')}</button>
+        <label>{ts('page.search')} <input name="q" defaultValue={search} maxLength={80} placeholder={ts('page.numberName')}/></label>
+        <button className="button button-navy">{ts('page.filter')}</button>
       </form>
-      {logs.length===0&&<p className="admin-empty">{t('কোনো রেকর্ড নেই।','No records.')}</p>}
+      {logs.length===0&&<p className="admin-empty">{ts('page.records')}</p>}
       {logs.length>0&&<div className="admin-table-wrap"><table className="admin-table">
-        <thead><tr><th>{t('সময়','When')}</th><th>{t('শিক্ষার্থী','Student')}</th><th>{t('নম্বর','Number')}</th><th>{t('বার্তা','Message')}</th><th>{t('অবস্থা','Status')}</th><th>{t('সেগমেন্ট','Seg.')}</th><th>{t('খরচ','Cost')}</th></tr></thead>
+        <thead><tr><th>{ts('page.when2')}</th><th>{ts('page.student')}</th><th>{ts('page.number')}</th><th>{ts('page.message')}</th><th>{ts('page.status3')}</th><th>{ts('page.seg')}</th><th>{ts('page.cost3')}</th></tr></thead>
         <tbody>{logs.map(log=><tr key={String(log._id)}>
-          <td>{formatDate(log.sentAt||log.createdAt,digits,bn?'bn':'en')}<br/><small>{formatTime(log.sentAt||log.createdAt,digits,bn?'bn':'en')}</small></td>
+          <td>{formatDate(log.sentAt||log.createdAt,digits,language)}<br/><small>{formatTime(log.sentAt||log.createdAt,digits,language)}</small></td>
           <td>{log.student?`${log.student.name.bn} · ${log.student.studentId}`:'—'}</td>
           <td>{formatDigits(log.phone,digits)}</td>
-          <td className="admin-cell-message"><span title={log.message}>{log.message.slice(0,90)}{log.message.length>90?'…':''}</span>{log.providerMessage&&<><br/><small>{log.providerMessage}</small></>}{log.reason&&<><br/><small>{t('কারণ','reason')}: {log.reason}</small></>}</td>
+          <td className="admin-cell-message"><span title={log.message}>{log.message.slice(0,90)}{log.message.length>90?'…':''}</span>{log.providerMessage&&<><br/><small>{log.providerMessage}</small></>}{log.reason&&<><br/><small>{ts('page.reason')}: {log.reason}</small></>}</td>
           <td><span className={`admin-badge ${log.status==='sent'?'enabled':log.status==='failed'?'disabled':''}`}>{log.status}</span></td>
           <td>{formatNumber(log.segments,digits)}</td>
           <td>{cost(log.cost)}</td>

@@ -18,6 +18,8 @@
  * same requestId travels with every call, which the batch's unique index enforces server-side.
  */
 
+import {useTranslations} from 'next-intl';
+import {formatNumber} from '@/lib/admin/format';
 import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import {AlertTriangle,CheckCircle2,Loader2,Send,X} from 'lucide-react';
 import {SMS_VARIABLES} from '@/lib/center/sms-templates';
@@ -39,7 +41,7 @@ export type SmsPreview={
   balance:number|null;balanceOk:boolean;lowBalance:boolean;
   quiet:boolean;quietUntil:string;blocked:string|null;month:string;body:string;
   recipients:{phone:string;studentName:string;preview:string;segments:number;cost:number}[];
-  skipped:{reason:SmsSkipReason;labelBn:string;labelEn:string;studentName:string;phone:string}[];
+  skipped:{reason:SmsSkipReason;labelKey:string;studentName:string;phone:string}[];
   skippedCount:number;
   groupingRefused:{phone:string;reason:string}[];
   duplicates:{id:string;name:string}[];
@@ -62,8 +64,7 @@ type Props={
   onClose:()=>void;
   request:SmsSendRequest;
   templates:SmsTemplateOption[];
-  titleBn:string;
-  titleEn:string;
+  title:string;
   defaultTemplateKey?:string;
   institutePhone?:string;
   en?:boolean;
@@ -77,8 +78,8 @@ type Props={
   lockedText?:boolean;
 };
 
-const STEPS_BN=['প্রাপক','বার্তা','প্রিভিউ','পাঠানো'];
-const STEPS_EN=['Recipients','Message','Preview','Send'];
+
+
 
 function newRequestId():string{
   if(typeof crypto!=='undefined'&&typeof crypto.randomUUID==='function')return crypto.randomUUID();
@@ -92,8 +93,8 @@ export function segmentCount(text:string):number{
   return length<=70?1:Math.ceil(length/67);
 }
 
-export default function SendSmsDialog({open,onClose,request,templates,titleBn,titleEn,defaultTemplateKey='due_reminder',institutePhone='',en=false,onSent,lockedText=false}:Props){
-  const t=useCallback((bn:string,label:string)=>(en?label:bn),[en]);
+export default function SendSmsDialog({open,onClose,request,templates,title,defaultTemplateKey='due_reminder',institutePhone='',en=false,onSent,lockedText=false}:Props){
+  const ts=useTranslations('sms');const tc=useTranslations('common');
   /** A visitor send (R3.9): one number per lead, no fee chips, and no guardian/student choice to make. */
   const isLead=request.source==='lead'||request.source==='leads';
   const [step,setStep]=useState(1);
@@ -178,11 +179,11 @@ export default function SendSmsDialog({open,onClose,request,templates,titleBn,ti
 
   const skippedGroups=useMemo(()=>{
     const items=preview?.skipped||[];
-    const counts=new Map<SmsSkipReason,{labelBn:string;labelEn:string;count:number}>();
+    const counts=new Map<SmsSkipReason,{labelKey:string;count:number}>();
     for(const item of items){
       const found=counts.get(item.reason);
       if(found)found.count+=1;
-      else counts.set(item.reason,{labelBn:item.labelBn,labelEn:item.labelEn,count:1});
+      else counts.set(item.reason,{labelKey:item.labelKey,count:1});
     }
     return [...counts.entries()].map(([reason,value])=>({reason,...value}));
   },[preview]);
@@ -200,7 +201,7 @@ export default function SendSmsDialog({open,onClose,request,templates,titleBn,ti
   const hardError=previewError&&!emptyMessage&&previewError!=='EMPTY_MESSAGE'
     ?previewError
     :planBlocked.startsWith('UNRENDERED_VARIABLE')
-      ?t(`${planBlocked.slice(planBlocked.indexOf(':')+1)} এর মান নেই — নিচে পূরণ করুন।`,`${planBlocked.slice(planBlocked.indexOf(':')+1)} has no value — fill it in below.`)
+      ?ts('dialog.missingValue',{name:planBlocked.slice(planBlocked.indexOf(':')+1)})
       :planBlocked;
   const quietBlocked=!!preview?.quiet&&!force;
   const canSend=!!preview&&preview.phones>0&&!hardError&&!emptyMessage&&!preview.blocked;
@@ -220,7 +221,7 @@ export default function SendSmsDialog({open,onClose,request,templates,titleBn,ti
     setSending(true);setResult(null);
     const {status,data}=await call({mode:'send',requestId,templateKey,text,subject,target:sendTarget,groupSiblings,force,skipDuplicates});
     if(data&&(data.ok||data.blocked))setResult(data);
-    else setResult({ok:false,error:String(data?.detail||data?.error||(status?'UNAVAILABLE':'NETWORK')),message:String((en?data?.messageEn:data?.messageBn)||'')||t('পাঠানো যায়নি','Could not send')});
+    else setResult({ok:false,error:String(data?.detail||data?.error||(status?'UNAVAILABLE':'NETWORK')),message:String((en?data?.messageEn:data?.messageBn)||'')||ts('dialog.couldSend')});
     setSending(false);
     if(data?.ok&&data.batchId&&data.status!=='queued')onSent?.();
     sendRef.current?.focus();
@@ -239,13 +240,13 @@ export default function SendSmsDialog({open,onClose,request,templates,titleBn,ti
 
   return (
     <div className="sms-overlay" onClick={()=>{if(!sending)onClose()}}>
-      <div className="sms-dialog" role="dialog" aria-modal="true" aria-label={en?titleEn:titleBn} data-sms-dialog="" onClick={event=>event.stopPropagation()}>
+      <div className="sms-dialog" role="dialog" aria-modal="true" aria-label={title} data-sms-dialog="" onClick={event=>event.stopPropagation()}>
         <header className="sms-head">
           <div>
-            <h2>{en?titleEn:titleBn}</h2>
-            <p className="admin-help">{t('ধাপ','Step')} {step} / 4 — {(en?STEPS_EN:STEPS_BN)[step-1]}</p>
+            <h2>{title}</h2>
+            <p className="admin-help">{ts('dialog.step')} {step} / 4 — {(ts.raw('steps') as string[])[step-1]}</p>
           </div>
-          <button type="button" className="admin-mini-button" onClick={onClose} disabled={sending} aria-label={t('বন্ধ করুন','Close')}>
+          <button type="button" className="admin-mini-button" onClick={onClose} disabled={sending} aria-label={ts('dialog.close')}>
             <X aria-hidden="true" size={14} />
           </button>
         </header>
@@ -258,22 +259,22 @@ export default function SendSmsDialog({open,onClose,request,templates,titleBn,ti
           <section className="sms-step" data-sms-step="1">
             <p className="admin-help" data-sms-summary="">
               {loadingPreview&&!preview
-                ?t('প্রাপক গণনা হচ্ছে…','Counting recipients…')
+                ?ts('dialog.countingRecipients')
                 :preview
-                  ?`${t('মোট','Total')} ${preview.phones} ${t('নম্বর','numbers')} · ${preview.messages} ${t('বার্তা','messages')} · ${preview.segments} ${t('সেগমেন্ট','segments')}`
-                  :t('প্রাপক গণনা হচ্ছে…','Counting recipients…')}
+                  ?`${ts('dialog.total')} ${preview.phones} ${ts('dialog.numbers')} · ${preview.messages} ${ts('dialog.messages')} · ${preview.segments} ${ts('dialog.segments')}`
+                  :ts('dialog.countingRecipients2')}
             </p>
             {daily&&<p className="admin-help" data-sms-daily="">{dailyLimitLine(daily.limit,daily.remaining,en?'en':'bn')}</p>}
             {hardError&&<p className="admin-feedback error" role="status">{hardError}</p>}
 
             <fieldset className="admin-fieldset">
-              <legend>{isLead?t('ভিজিটরের নম্বর','The visitor number'):t('কাকে পাঠাবেন','Who receives it')}</legend>
+              <legend>{isLead?ts('dialog.visitorNumber'):ts('dialog.whoReceives')}</legend>
               {/* A lead has one number, the first one written on the sheet — not a guardian's and a
                   student's. Offering the choice would offer two ways to reach nobody, so it is not
                   offered, and the send goes to that one number as a guardian message. */}
               {isLead
-                ?<p className="admin-help">{t('লিডের প্রথম নম্বরটিতেই পাঠানো হয়।','It goes to the first number on the lead.')}</p>
-                :([['guardian',t('অভিভাবক','Guardian')],['student',t('শিক্ষার্থী','Student')],['both',t('উভয়','Both')]] as const).map(([value,label])=>(
+                ?<p className="admin-help">{ts('dialog.goesFirstNumber')}</p>
+                :([['guardian',ts('dialog.guardian')],['student',ts('dialog.student')],['both',ts('dialog.both')]] as const).map(([value,label])=>(
                   <label className="admin-check" key={value}>
                     <input type="radio" name="smsTarget" value={value} checked={target===value} onChange={()=>setTarget(value)} />
                     {label}
@@ -282,28 +283,28 @@ export default function SendSmsDialog({open,onClose,request,templates,titleBn,ti
               <label className="admin-check">
                 <input type="checkbox" name="smsGroupSiblings" checked={groupSiblings} onChange={event=>setGroupSiblings(event.target.checked)} />
                 {isLead
-                  ?t('একই নম্বরে একটিই বার্তা (একই পরিবারের ভিজিটর একসাথে)','One message per number (one family, one message)')
-                  :t('একই নম্বরে একটিই বার্তা (ভাইবোন একসাথে, মোট টাকা)','One message per phone (siblings combined, with the total)')}
+                  ?ts('dialog.oneMessagePer')
+                  :ts('dialog.oneMessagePer2')}
               </label>
             </fieldset>
 
             {!!preview?.duplicates.length&&(
               <fieldset className="admin-fieldset" data-sms-duplicates="">
-                <legend>{t('গত ২৪ ঘণ্টায় একই টেমপ্লেট পাঠানো হয়েছে','Same template already sent in the last 24 hours')}</legend>
+                <legend>{ts('dialog.sameTemplateAlready')}</legend>
                 <p className="admin-help">{preview.duplicates.map(item=>item.name||item.id).join(', ')}</p>
                 <label className="admin-check">
                   <input type="checkbox" name="smsSkipDuplicates" checked={skipDuplicates} onChange={event=>setSkipDuplicates(event.target.checked)} />
-                  {t('এদের বাদ দিন','Skip those')}
+                  {ts('dialog.skipThose')}
                 </label>
               </fieldset>
             )}
 
             {!!skippedGroups.length&&(
               <div className="sms-skipped" data-sms-skipped="">
-                <strong>{t(`${preview?.skippedCount||0}টি নম্বর বাদ পড়েছে`,`${preview?.skippedCount||0} numbers skipped`)}</strong>
+                <strong>{ts('dialog.skippedCount',{count:formatNumber(preview?.skippedCount||0,en?'en':'bn')})}</strong>
                 <ul>
                   {skippedGroups.map(item=>(
-                    <li key={item.reason}>{en?item.labelEn:item.labelBn} — <span className="admin-help">{item.count}</span></li>
+                    <li key={item.reason}>{ts(item.labelKey)} — <span className="admin-help">{item.count}</span></li>
                   ))}
                 </ul>
               </div>
@@ -311,22 +312,21 @@ export default function SendSmsDialog({open,onClose,request,templates,titleBn,ti
 
             {!!preview?.groupingRefused.length&&(
               <p className="admin-feedback" data-sms-grouping-refused="">
-                {t('কয়েকটি নম্বরে ভাইবোন একসাথে করা যায়নি — যোগ করা টাকা সঠিক হতো না, তাই আলাদা বার্তা যাবে।',
-                  'A few phones could not be combined: the merged total would not have been accurate, so they are sent separately.')}
+                {ts('dialog.siblings')}
               </p>
             )}
 
             <button type="button" className="admin-mini-button" onClick={()=>setShowRecipients(value=>!value)} data-sms-recipients-toggle="" aria-expanded={showRecipients}>
-              {showRecipients?t('তালিকা লুকান','Hide the list'):t('প্রাপকের তালিকা দেখুন','Show the recipient list')}
+              {showRecipients?ts('dialog.hideList'):ts('dialog.showRecipientList')}
             </button>
             {showRecipients&&(
               <div className="admin-table-wrap">
                 <table className="admin-table" data-sms-recipients="">
                   <thead>
                     <tr>
-                      <th scope="col">{t('শিক্ষার্থী','Student')}</th>
-                      <th scope="col">{t('নম্বর','Phone')}</th>
-                      <th scope="col">{t('সেগমেন্ট','Segments')}</th>
+                      <th scope="col">{ts('dialog.student2')}</th>
+                      <th scope="col">{ts('dialog.phone')}</th>
+                      <th scope="col">{ts('dialog.segments2')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -334,7 +334,7 @@ export default function SendSmsDialog({open,onClose,request,templates,titleBn,ti
                       <tr key={item.phone}><td>{item.studentName||'—'}</td><td dir="ltr">{item.phone}</td><td>{item.segments}</td></tr>
                     ))}
                     {!(preview?.recipients||[]).length&&(
-                      <tr><td colSpan={3} className="admin-empty">{t('পাঠানোর মতো কেউ নেই','Nobody to message')}</td></tr>
+                      <tr><td colSpan={3} className="admin-empty">{ts('dialog.nobodyMessage')}</td></tr>
                     )}
                   </tbody>
                 </table>
@@ -346,14 +346,14 @@ export default function SendSmsDialog({open,onClose,request,templates,titleBn,ti
         {step===2&&(
           <section className="sms-step" data-sms-step="2">
             <fieldset className="admin-fieldset">
-              <legend>{t('টেমপ্লেট','Template')}</legend>
+              <legend>{ts('dialog.template')}</legend>
               {templates.map(item=>(
                 <label className="admin-check" key={item.key}>
                   <input type="radio" name="smsTemplate" value={item.key} checked={templateKey===item.key}
                     onChange={()=>{setTemplateKey(item.key);if(item.key!=='custom')setText('')}} />
                   {item.name}
-                  {item.edited?` · ${t('সম্পাদিত','edited')}`:''}
-                  {!item.active?` · ${t('নিষ্ক্রিয়','inactive')}`:''}
+                  {item.edited?` · ${ts('dialog.edited')}`:''}
+                  {!item.active?` · ${ts('dialog.inactive')}`:''}
                 </label>
               ))}
             </fieldset>
@@ -363,11 +363,11 @@ export default function SendSmsDialog({open,onClose,request,templates,titleBn,ti
             {lockedText
               ?<p className="admin-help" data-sms-locked="">{activeTemplate?.body||''}</p>
               :<label className="admin-check sms-text-label" htmlFor="sms-custom-text">
-                <span>{t('বার্তা','Message')}</span>
+                <span>{ts('dialog.message')}</span>
                 <textarea id="sms-custom-text" className="admin-textarea" name="smsText" ref={textRef} rows={templateKey==='custom'?6:3}
                   value={templateKey==='custom'?text:(activeTemplate?.body||'')}
                   onChange={event=>{setTemplateKey('custom');setText(event.target.value)}}
-                  placeholder={t('এখানে লিখুন…','Write here…')} />
+                  placeholder={ts('dialog.writeHere')} />
               </label>}
             {!lockedText&&<div className="sms-chips" data-sms-chips="">
               {SMS_VARIABLES.map(chip=>(
@@ -378,13 +378,13 @@ export default function SendSmsDialog({open,onClose,request,templates,titleBn,ti
             </div>}
             {needsSubject&&(
               <label className="admin-check sms-text-label" htmlFor="sms-subject">
-                <span>{t('বিষয় ({subject} এর মান)','Subject (the value of {subject})')}</span>
+                <span>{ts('dialog.subjectValueSubject')}</span>
                 <input id="sms-subject" className="admin-input" name="smsSubject" value={subject} maxLength={120}
                   onChange={event=>setSubject(event.target.value)}
-                  placeholder={t('যেমন: নোটিশ / গণিত শিক্ষক প্রয়োজন','e.g. a notice topic, or the subject a teacher is needed for')} />
+                  placeholder={ts('dialog.eGNotice')} />
               </label>
             )}
-            {institutePhone&&<p className="admin-help">{t('প্রতিষ্ঠানের নম্বর','Institute phone')}: <span dir="ltr">{institutePhone}</span></p>}
+            {institutePhone&&<p className="admin-help">{ts('dialog.institutePhone')}: <span dir="ltr">{institutePhone}</span></p>}
           </section>
         )}
 
@@ -395,33 +395,33 @@ export default function SendSmsDialog({open,onClose,request,templates,titleBn,ti
                 <article className="sms-preview" key={item.phone} data-sms-preview="">
                   <header><strong>{item.studentName||item.phone}</strong><span dir="ltr">{item.phone}</span></header>
                   <p className="admin-cell-message" dir="auto">{item.preview}</p>
-                  <footer className="admin-help">{item.segments} {t('সেগমেন্ট','segments')} · ৳{item.cost.toFixed(2)}</footer>
+                  <footer className="admin-help">{item.segments} {ts('dialog.segments3')} · {tc('currency')}{item.cost.toFixed(2)}</footer>
                 </article>
               ))}
-              {!(preview?.recipients||[]).length&&<p className="admin-empty">{t('পাঠানোর মতো বার্তা নেই।','There is nothing to send.')}</p>}
+              {!(preview?.recipients||[]).length&&<p className="admin-empty">{ts('dialog.thereNothingSend')}</p>}
             </div>
 
             <dl className="admin-defs" data-sms-figures="">
-              <div><dt>{t('অক্ষর','Characters')}</dt><dd data-sms-characters="">{characters}</dd></div>
-              <div><dt>{t('বার্তা','Messages')}</dt><dd data-sms-messages="">{preview?.messages??0}</dd></div>
-              <div><dt>{t('সেগমেন্ট','Segments')}</dt><dd data-sms-segments="">{preview?.segments??0}</dd></div>
-              <div><dt>{t('আনুমানিক খরচ','Estimated cost')}</dt><dd data-sms-cost="">৳{(preview?.cost??0).toFixed(2)}</dd></div>
-              <div><dt>{t('ব্যালান্স','Balance')}</dt><dd data-sms-balance="">
-                {preview?.balanceOk?`৳${(preview?.balance??0).toFixed(2)}`:t('পাওয়া যায়নি','Unavailable')}
+              <div><dt>{ts('dialog.characters')}</dt><dd data-sms-characters="">{characters}</dd></div>
+              <div><dt>{ts('dialog.messages2')}</dt><dd data-sms-messages="">{preview?.messages??0}</dd></div>
+              <div><dt>{ts('dialog.segments4')}</dt><dd data-sms-segments="">{preview?.segments??0}</dd></div>
+              <div><dt>{ts('dialog.estimatedCost')}</dt><dd data-sms-cost="">{tc('currency')}{(preview?.cost??0).toFixed(2)}</dd></div>
+              <div><dt>{ts('dialog.balance')}</dt><dd data-sms-balance="">
+                {preview?.balanceOk?`${tc('currency')}${(preview?.balance??0).toFixed(2)}`:ts('dialog.unavailable')}
               </dd></div>
             </dl>
 
             {preview?.lowBalance&&(
               <p className="admin-feedback error" role="status" data-sms-low-balance="">
-                <AlertTriangle aria-hidden="true" size={14} /> {t('ব্যালান্স যথেষ্ট নয় — কিছু বার্তা জমা হবে না।','Not enough balance: some messages will not be submitted.')}
+                <AlertTriangle aria-hidden="true" size={14} /> {ts('dialog.enoughBalanceSome')}
               </p>
             )}
             {preview?.quiet&&(
               <p className="admin-feedback" role="status" data-sms-quiet="">
-                {t('এখন নিঃশব্দ সময়','Quiet hours now')} ({preview.quietUntil}) — {t('পাঠালে কিউতে জমা হবে।','sending now queues the batch.')}
+                {ts('dialog.quietHoursNow')} ({preview.quietUntil}) — {ts('dialog.sendingNowQueues')}
                 <label className="admin-check">
                   <input type="checkbox" name="smsForce" checked={force} onChange={event=>setForce(event.target.checked)} data-sms-force="" />
-                  {t('তবুও এখন পাঠান','Send anyway')}
+                  {ts('dialog.sendAnyway')}
                 </label>
               </p>
             )}
@@ -433,15 +433,14 @@ export default function SendSmsDialog({open,onClose,request,templates,titleBn,ti
             {!result&&(
               <>
                 <p className="admin-help" data-sms-confirm="">
-                  {t(`${preview?.messages??0}টি বার্তা, আনুমানিক খরচ ৳${(preview?.cost??0).toFixed(2)}।`,
-                    `${preview?.messages??0} messages, about ৳${(preview?.cost??0).toFixed(2)}.`)}
-                  {quietBlocked?` ${t('কিউতে জমা হবে।','They will be queued.')}`:''}
-                  {preview?.skippedCount?` ${t(`${preview.skippedCount}টি নম্বর বাদ।`,`${preview.skippedCount} numbers skipped.`)}`:''}
+                  {ts('dialog.costLine',{count:formatNumber(preview?.messages??0,en?'en':'bn'),cost:(preview?.cost??0).toFixed(2)})}
+                  {quietBlocked?` ${ts('dialog.queued')}`:''}
+                  {preview?.skippedCount?` ${ts('dialog.skippedDot',{count:formatNumber(preview.skippedCount,en?'en':'bn')})}`:''}
                 </p>
                 {sending&&(
                   <div className="sms-progress" data-sms-progress="" role="status" aria-live="polite">
                     <Loader2 aria-hidden="true" size={15} className="sms-spin" />
-                    <span>{t('পাঠানো হচ্ছে…','Sending…')}</span>
+                    <span>{ts('dialog.sending')}</span>
                     <div className="sms-bar"><span /></div>
                   </div>
                 )}
@@ -455,33 +454,33 @@ export default function SendSmsDialog({open,onClose,request,templates,titleBn,ti
                   <strong data-sms-result-title="">
                     {result.ok
                       ?result.status==='queued'
-                        ?t('কিউতে জমা হয়েছে','Queued')
+                        ?ts('dialog.queued2')
                         :result.status==='existing'
-                          ?t('আগের বার্তাই গণনা হয়েছে','Counted from the earlier send')
-                          :t('পাঠানো হয়েছে','Sent')
-                      :t('পাঠানো যায়নি','Not sent')}
+                          ?ts('dialog.countedFromEarlier')
+                          :ts('dialog.sent')
+                      :ts('dialog.sent2')}
                   </strong>
                   <p className="admin-help" data-sms-result-text="">
                     {result.ok
                       ?result.status==='queued'
-                        ?`${t('নিঃশব্দ সময় শেষে যাবে','It will go out when quiet hours end')} (${result.quietUntil||''}). ${t('বাদ','Skipped')}: ${result.skipped??0}`
-                        :`${t('সফল','Sent')}: ${result.sent??0} · ${t('ব্যর্থ','Failed')}: ${result.failed??0} · ${t('বাদ','Skipped')}: ${result.skipped??0}`
+                        ?`${ts('dialog.goOutWhen')} (${result.quietUntil||''}). ${ts('dialog.skipped')}: ${result.skipped??0}`
+                        :`${ts('dialog.sent3')}: ${result.sent??0} · ${ts('dialog.failed')}: ${result.failed??0} · ${ts('dialog.skipped2')}: ${result.skipped??0}`
                       // A sentence the server wrote for the operator outranks the code it filed the
                       // refusal under (R3.11): "DAILY_LIMIT" is a fact for a log, not an answer for a
                       // person who just pressed send and needs to know when they may press it again.
                       :String((en?result.messageEn:result.messageBn)||result.message||result.blocked||result.error||'UNAVAILABLE')}
                   </p>
                   {result.ok&&result.monthTotals&&(
-                    <p className="admin-help" data-sms-month="">{t('এই মাসে','This month')}: {result.monthTotals.sent} {t('সফল','sent')} · ৳{result.monthTotals.cost.toFixed(2)}</p>
+                    <p className="admin-help" data-sms-month="">{ts('dialog.month')}: {result.monthTotals.sent} {ts('dialog.sent4')} · {tc('currency')}{result.monthTotals.cost.toFixed(2)}</p>
                   )}
                 </div>
                 {result.ok&&(result.failed??0)>0&&(
                   <button type="button" className="admin-mini-button" onClick={()=>void retry()} disabled={retrying} data-sms-retry="">
-                    {retrying?t('আবার পাঠানো হচ্ছে…','Retrying…'):t('ব্যর্থগুলো আবার পাঠান','Retry failed')}
+                    {retrying?ts('dialog.retrying'):ts('dialog.retryFailed')}
                   </button>
                 )}
                 {result.ok&&result.status==='existing'&&(
-                  <p className="admin-help">{t('একই অনুরোধ দুবার পাঠানো হয়নি।','The same request was not sent twice.')}</p>
+                  <p className="admin-help">{ts('dialog.sameRequestSent')}</p>
                 )}
               </div>
             )}
@@ -490,19 +489,19 @@ export default function SendSmsDialog({open,onClose,request,templates,titleBn,ti
 
         <footer className="sms-foot">
           <button type="button" className="admin-mini-button" onClick={()=>setStep(value=>Math.max(1,value-1))} disabled={step===1||sending} data-sms-back="">
-            {t('পেছনে','Back')}
+            {ts('dialog.back')}
           </button>
           {step<4?(
             <button type="button" className="button button-navy" onClick={()=>setStep(value=>Math.min(4,value+1))} disabled={!!hardError} data-sms-next="">
-              {t('পরবর্তী','Next')}
+              {ts('dialog.next')}
             </button>
           ):!result?(
             <button type="button" ref={sendRef} className="button sms-send" onClick={()=>void send()} disabled={!canSend||sending} data-sms-send="">
               {sending?<Loader2 aria-hidden="true" size={15} className="sms-spin" />:<Send aria-hidden="true" size={15} />}
-              {t(`পাঠান (${preview?.messages??0})`,`Send (${preview?.messages??0})`)}
+              {ts('dialog.sendCount',{count:formatNumber(preview?.messages??0,en?'en':'bn')})}
             </button>
           ):(
-            <button type="button" className="button button-navy" onClick={onClose} data-sms-done="">{t('শেষ','Done')}</button>
+            <button type="button" className="button button-navy" onClick={onClose} data-sms-done="">{ts('dialog.done')}</button>
           )}
         </footer>
       </div>

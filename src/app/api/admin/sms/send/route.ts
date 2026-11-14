@@ -8,7 +8,7 @@
  */
 import {NextResponse} from 'next/server';
 import {getStaff} from '@/lib/admin/guard';
-import {smsSendPolicyRefusal,type SmsPolicyInput} from '@/lib/center/sms-staff';
+import {smsSendPolicyRefusal,type SmsPolicyInput,smsPolicyMessage} from '@/lib/center/sms-staff';
 import {sameOrigin,noStore} from '@/lib/practice-security';
 import {boundedJson} from '@/lib/achievement-workflow';
 import {checkRateLimit} from '@/lib/rate-limit';
@@ -29,7 +29,7 @@ export async function POST(request:Request){
     if(!input||typeof input!=='object')return NextResponse.json({ok:false,error:'invalid',detail:'body'},{status:400,headers:noStore});
     const refusal=smsSendPolicyRefusal(admin.role,input as SmsPolicyInput);
     if(refusal){
-      return NextResponse.json({ok:false,error:'policy',detail:refusal.code,messageBn:refusal.messageBn,messageEn:refusal.messageEn},{status:403,headers:noStore});
+      return NextResponse.json({ok:false,error:'policy',detail:refusal.code,messageBn:smsPolicyMessage(refusal,'bn'),messageEn:smsPolicyMessage(refusal,'en')},{status:403,headers:noStore});
     }
     const mode=String(input.mode||'preview');
     // Sending and retrying spend money, so they are rate limited per operator; previewing is not.

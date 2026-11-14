@@ -8,7 +8,10 @@
  * asked not to be, or a send that quietly covers fewer people than the operator picked.
  */
 import assert from 'node:assert/strict';
-import {SMS_SKIP_LABELS,resolveRecipients} from '../src/lib/center/sms-recipients';
+import {SMS_SKIP_LABEL_KEYS,resolveRecipients} from '../src/lib/center/sms-recipients';
+import bn from '../src/messages/bn.json';
+const catalogValue=(catalog:Record<string,unknown>,dotted:string):string=>dotted.split('.').reduce<unknown>((node,part)=>((node||{}) as Record<string,unknown>)[part],catalog) as string;
+const skipLabel=(reason:keyof typeof SMS_SKIP_LABEL_KEYS):string=>catalogValue(bn,`sms.${SMS_SKIP_LABEL_KEYS[reason]}`);
 import {SMS_TEMPLATE_DEFAULTS,SMS_VARIABLES,defaultTemplate,hasUnknownChip,renderSmsTemplate} from '../src/lib/center/sms-templates';
 import {VISITOR_SMS_CHIPS,leadCandidates,leadSmsTally,visitorTemplateFits} from '../src/lib/leads/lead-sms';
 import type {LeadSmsRow} from '../src/lib/leads/leads';
@@ -48,8 +51,8 @@ function run(){
   assert.equal(mixed.recipients[0].phone,PHONE);
   const reasons=mixed.skipped.map(skip=>[skip.studentName,skip.reason]);
   assert.deepEqual(reasons,[['বাদ পড়া','opted_out'],['নাম্বারহীন','missing_phone']],'each exclusion names the visitor and the reason');
-  assert.ok(SMS_SKIP_LABELS.opted_out.bn.includes('যোগাযোগ করবেন না'),`the operator reads the lead's own rule in the skip label, got ${SMS_SKIP_LABELS.opted_out.bn}`);
-  assert.ok(SMS_SKIP_LABELS.missing_phone.bn.trim()&&SMS_SKIP_LABELS.missing_phone.en.trim());
+  assert.ok(skipLabel('opted_out').includes('যোগাযোগ করবেন না'),`the operator reads the lead's own rule in the skip label, got ${skipLabel('opted_out')}`);
+  assert.ok(skipLabel('missing_phone').trim()&&catalogValue(bn,'sms.skip.missing_phone').trim());
 
   // 3. A fee rule cannot reach a visitor. `visitor_thanks` is not fee-related, but even if a caller
   //    claimed it was, a lead has no holds and no `removed` state to be dropped by.

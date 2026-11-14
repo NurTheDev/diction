@@ -9,6 +9,7 @@
  * single send button as every other screen.
  */
 
+import {useTranslations} from 'next-intl';
 import {useCallback,useState} from 'react';
 import {useRouter} from 'next/navigation';
 import {MessageSquare} from 'lucide-react';
@@ -20,7 +21,7 @@ export default function SmsNewMessage({classes,templates,institutePhone,en}:{
   templates:SmsTemplateOption[];
   institutePhone:string;
   en:boolean;
-}){
+}){const ts=useTranslations('sms');
   const [classGroup,setClassGroup]=useState(classes[0]?.id||'');
   const [open,setOpen]=useState(false);
   const router=useRouter();
@@ -28,30 +29,28 @@ export default function SmsNewMessage({classes,templates,institutePhone,en}:{
   const sent=useCallback(()=>{router.refresh()},[router]);
 
   if(!classes.length){
-    return <p className="admin-empty">{en?'Add a class first.':'আগে একটি ক্লাস যোগ করুন।'}</p>;
+    return <p className="admin-empty">{ts('newMessage.needClass')}</p>;
   }
 
   return (
     <>
       <div className="admin-inline">
         <label className="admin-check" htmlFor="sms-new-class">
-          <span>{en?'Class':'ক্লাস'}</span>
+          <span>{ts('newMessage.class')}</span>
           <select id="sms-new-class" className="admin-select" name="smsClass" value={classGroup} onChange={event=>setClassGroup(event.target.value)}>
             {classes.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}
           </select>
         </label>
         <button type="button" className="button button-navy" onClick={()=>setOpen(true)} disabled={!classGroup} data-sms-open="">
           <MessageSquare aria-hidden="true" size={15} />
-          {en?'New message':'নতুন বার্তা'}
+          {ts('newMessage.title')}
         </button>
       </div>
       <p className="admin-help">
-        {en
-          ?'Every current student of that class is counted, with skipped numbers and their reasons shown before anything is sent.'
-          :'ওই ক্লাসের সব বর্তমান শিক্ষার্থী গণনা হবে; কিছু বাদ পড়লে পাঠানোর আগেই কারণসহ দেখানো হবে।'}
+        {ts('newMessage.audienceNote')}
       </p>
       <SendSmsDialog open={open} onClose={close} request={{source:'class',classGroup}} templates={templates}
-        institutePhone={institutePhone} titleBn="নতুন বার্তা" titleEn="New message" defaultTemplateKey="notice" en={en} onSent={sent} />
+        institutePhone={institutePhone} title={ts('titles.newMessage')} defaultTemplateKey="notice" en={en} onSent={sent} />
     </>
   );
 }

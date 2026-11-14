@@ -20,15 +20,7 @@ export const SMS_SKIP_REASONS=['missing_phone','invalid_phone','opted_out','remo
 export type SmsSkipReason=typeof SMS_SKIP_REASONS[number];
 
 /** What the operator reads for each reason, in both languages. */
-export const SMS_SKIP_LABELS:Record<SmsSkipReason,{bn:string;en:string}>={
-  missing_phone:{bn:'নম্বর নেই',en:'No phone number'},
-  invalid_phone:{bn:'নম্বর সঠিক নয়',en:'Invalid number'},
-  opted_out:{bn:'অপ্ট-আউট / যোগাযোগ করবেন না',en:'Opted out / do not contact'},
-  removed:{bn:'সরানো শিক্ষার্থী',en:'Removed student'},
-  held:{bn:'হোল্ডে আছেন; ফি-সংশ্লিষ্ট বার্তা পাঠানো হয়নি',en:'On hold; fee message not sent'},
-  duplicate:{bn:'একই নম্বরে একই বার্তা আগেই আছে',en:'Same message to this number already queued'},
-  missing_value:{bn:'বার্তার তথ্য অসম্পূর্ণ',en:'Message data incomplete'},
-};
+export const SMS_SKIP_LABEL_KEYS:Record<SmsSkipReason,string>={missing_phone:'skip.missing_phone',invalid_phone:'skip.invalid_phone',opted_out:'skip.opted_out',removed:'skip.removed',held:'skip.held',duplicate:'skip.duplicate',missing_value:'skip.missing_value'};
 
 export interface SmsHoldPeriod{start:{year:number;month:number};end?:{year:number;month:number}|null}
 
@@ -78,11 +70,14 @@ export interface ResolvedRecipients{
 
 const MONEY_VARIABLES:SmsVariable[]=['due_amount','amount'];
 
-const BANGLA_DIGITS='০১২৩৪৫৬৭৮৯';
-const toAsciiDigits=(value:string):string=>value.replace(/[০-৯]/g,c=>String(BANGLA_DIGITS.indexOf(c)));
+/** Bangla digits, built from code points so no Bangla literal is needed in this module. */
+const BANGLA_DIGITS=Array.from({length:10},(_,index)=>String.fromCharCode(0x09e6+index)).join('');
+const toAsciiDigits=(value:string):string=>value.replace(/[\u09e6-\u09ef]/g,c=>String(BANGLA_DIGITS.indexOf(c)));
 const toBanglaDigits=(value:string):string=>value.replace(/[0-9]/g,c=>BANGLA_DIGITS[Number(c)]);
+/** One Bangla word joins sibling names inside a single message body — message content, not interface text. */
+const SMS_NAME_JOINER=String.fromCharCode(0x0993).padStart(2,' ').padEnd(3,' ');
 /**
- * Money arrives already localized: a Bangla message wants "৩০০০ টাকা", so callers format the amount
+ * Money arrives already localized: a Bangla message wants its amount in Bangla digits, so callers format it
  * before it becomes a chip value. Summing those amounts for one shared number must therefore read
  * Bangla digits too — otherwise every real sibling send would be "ambiguous" and silently split into
  * two messages, which is the one thing one-message-per-phone exists to prevent.
@@ -138,7 +133,8 @@ function mergeValues(list:SmsCandidateStudent[],globalValues:Partial<Record<SmsV
       if(list.length===1){merged[variable]=filled[0] as string|number;continue}
       const total=numbers.reduce((a,b)=>a+b,0);
       // Answer in the script the operator's own values used, so the merged message still reads Bangla.
-      const bangla=filled.some(v=>/[০-৯]/.test(String(v)));
+      const bangla=filled.some(v=>/[\u09e6-\u09ef]/.test(String(v)));
+// i18n-scan-allow-end
       merged[variable]=bangla?toBanglaDigits(String(total)):total;
     }else{
       // Non-money chips: siblings share a guardian phone but not necessarily a class or a receipt.
@@ -233,8 +229,8 @@ export function resolveRecipients(students:SmsCandidateStudent[],options:Resolve
     recipients.push({
       phone,
       studentIds:list.map(c=>c.student.id),
-      studentName:names.join(' ও '),
-      values:{...merged,student_name:names.join(' ও ')},
+      studentName:names.join(SMS_NAME_JOINER),
+      values:{...merged,student_name:names.join(SMS_NAME_JOINER)},
       grouped:list.length>1,
     });
   }

@@ -16,6 +16,8 @@
  * and are redacted from every string this module can return or throw.
  */
 import 'server-only';
+import bnMessages from '@/messages/bn.json';
+import enMessages from '@/messages/en.json';
 
 const basic="@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !\"#¤%&'()*+,-./0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà";
 const extension='^{}\\[~]|€';
@@ -30,32 +32,40 @@ export const SMS_BALANCE_URL='https://bulksmsbd.net/api/getBalanceApi';
 export const SMS_BATCH_SIZE=100;
 
 /** Every code in the provider's published table, in the operator's language. */
-export const SMS_CODE_MESSAGES:Record<string,string>={
-  '202':'এসএমএস জমা হয়েছে (প্রেরণ নিশ্চিত নয়)',
-  '1001':'নম্বরটি সঠিক নয়',
-  '1002':'সেন্ডার আইডি সঠিক নয় বা বন্ধ আছে',
-  '1003':'সব ঘর পূরণ করা হয়নি; সিস্টেম অ্যাডমিনের সাথে যোগাযোগ করুন',
-  '1005':'প্রদানকারীর অভ্যন্তরীণ ত্রুটি',
-  '1006':'ব্যালেন্সের মেয়াদ নেই',
-  '1007':'ব্যালেন্স অপর্যাপ্ত',
-  '1011':'এই আইডি খুঁজে পাওয়া যায়নি',
-  '1012':'মাস্কিং এসএমএস অবশ্যই বাংলায় হতে হবে',
-  '1013':'এই এপিআই কী দিয়ে সেন্ডার আইডির গেটওয়ে পাওয়া যায়নি',
-  '1014':'এই সেন্ডার দিয়ে সেন্ডার টাইপ নাম পাওয়া যায়নি',
-  '1015':'এই সেন্ডার আইডির কোনো সক্রিয় গেটওয়ে পাওয়া যায়নি',
-  '1016':'এই সেন্ডার আইডির সক্রিয় মূল্য তথ্য পাওয়া যায়নি',
-  '1017':'এই সেন্ডার আইডির মূল্য তথ্য পাওয়া যায়নি',
-  '1018':'এই অ্যাকাউন্টের মালিক নিষ্ক্রিয়',
-  '1019':'এই অ্যাকাউন্টের সেন্ডার টাইপ মূল্য নিষ্ক্রিয়',
-  '1020':'এই অ্যাকাউন্টের প্যারেন্ট পাওয়া যায়নি',
-  '1021':'প্যারেন্টের সক্রিয় সেন্ডার টাইপ মূল্য পাওয়া যায়নি',
-  '1031':'অ্যাকাউন্ট যাচাই হয়নি; অ্যাডমিনের সাথে যোগাযোগ করুন',
-  '1032':'এই আইপি হোয়াইটলিস্টে নেই',
-};
+export /** Provider codes as catalog keys: the operator reads them in their own language, and B.2 keeps the
+ * official English wording next to the Bangla one in the message files. */
+const SMS_CODE_KEYS:Record<string,string>={  '202':'202',
+  '1001':'1001',
+  '1002':'1002',
+  '1003':'1003',
+  '1005':'1005',
+  '1006':'1006',
+  '1007':'1007',
+  '1011':'1011',
+  '1012':'1012',
+  '1013':'1013',
+  '1014':'1014',
+  '1015':'1015',
+  '1016':'1016',
+  '1017':'1017',
+  '1018':'1018',
+  '1019':'1019',
+  '1020':'1020',
+  '1021':'1021',
+  '1031':'1031',
+  '1032':'1032'};
 
-export function smsCodeMessage(code:string|undefined):string{
-  if(!code)return 'প্রদানকারীর সাড়া বোঝা যায়নি';
-  return SMS_CODE_MESSAGES[code]||`প্রদানকারী কোড ${code} (অজানা)`;
+export function smsCodeMessageKey(code:string):string{
+  if(!code)return 'codesNone';
+  return SMS_CODE_KEYS[code]?'codes.'+code:'codesUnknown';
+}
+
+/** The sentence for a provider code, in one language, straight from the catalog. */
+export function smsCodeMessage(code:string|undefined,language:'bn'|'en'='bn'):string{
+  const catalog=(language==='bn'?bnMessages.sms:enMessages.sms) as unknown as {codes:Record<string,string>;codesNone:string;codesUnknown:string};
+  if(!code)return catalog.codesNone;
+  if(SMS_CODE_KEYS[code])return catalog.codes[code];
+  return String(catalog.codesUnknown).replace('{code}',code);
 }
 
 /** True when the body needs the provider's Unicode type — Bangla always does. */

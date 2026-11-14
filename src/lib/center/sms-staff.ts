@@ -15,6 +15,14 @@
  * route, the dialog and the tests from one place.
  */
 import {formatNumber} from '@/lib/admin/format';
+import bnMessages from '@/messages/bn.json';
+import enMessages from '@/messages/en.json';
+
+/** One catalog sentence with its numbers already in the reader's digits. */
+function smsLine(language:'bn'|'en',key:'dailyLimitLine'|'dailyLimitReached',params:Record<string,string>):string{
+  const template=(language==='bn'?bnMessages.sms:enMessages.sms)[key] as string;
+  return template.replace(/\{(\w+)\}/g,(whole,name)=>params[name]??whole);
+}
 
 /** The only sources a staff send may name: one visitor, or the visitors a screen listed. */
 export const STAFF_SMS_SOURCES=['lead','leads'] as const;
@@ -30,7 +38,13 @@ export const DEFAULT_DAILY_SMS_LIMIT=30;
 export const DAILY_LIMIT_ROLES=['staff','admin','superadmin'] as const;
 export function dailyLimitApplies(role:string):boolean{return (DAILY_LIMIT_ROLES as readonly string[]).includes(role)}
 
-export interface SmsPolicyRefusal{code:'ROLE'|'STAFF_SOURCE'|'STAFF_TEMPLATE'|'STAFF_RETRY';messageBn:string;messageEn:string}
+export interface SmsPolicyRefusal{code:'ROLE'|'STAFF_SOURCE'|'STAFF_TEMPLATE'|'STAFF_RETRY';messageKey:string}
+
+/** The refusal sentence in one language, from the catalog — the route and the action both use it. */
+export function smsPolicyMessage(refusal:SmsPolicyRefusal,language:'bn'|'en'):string{
+  const policy=(language==='bn'?bnMessages.sms:enMessages.sms).policy as Record<string,string>;
+  return policy[refusal.messageKey.slice('policy.'.length)]||refusal.messageKey;
+}
 
 /** The request the route already parsed: read loosely, because the policy is the first thing to see it. */
 export type SmsPolicyInput={mode?:unknown;source?:unknown;templateKey?:unknown;text?:unknown;[key:string]:unknown};
@@ -38,20 +52,14 @@ export type SmsPolicyInput={mode?:unknown;source?:unknown;templateKey?:unknown;t
 export function smsSendPolicyRefusal(role:string,input:SmsPolicyInput):SmsPolicyRefusal|null{
   if(role==='admin'||role==='superadmin')return null;
   if(role!=='staff'){
-    return {code:'ROLE',
-      messageBn:'এই ভূমিকা থেকে এসএমএস পাঠানোর অনুমতি নেই।',
-      messageEn:'This role may not send SMS at all.'};
+    return {code:'ROLE',messageKey:'policy.ROLE'};
   }
   if(String(input.mode||'preview')==='retry'){
-    return {code:'STAFF_RETRY',
-      messageBn:'পুনরায় পাঠানোর অনুমতি স্টাফের নেই — ব্যর্থ ব্যাচ আবার পাঠানো অ্যাডমিনের কাজ।',
-      messageEn:'Staff may not retry a failed batch — retrying is an admin action.'};
+    return {code:'STAFF_RETRY',messageKey:'policy.STAFF_RETRY'};
   }
   const source=String(input.source||'');
   if(source&&!(STAFF_SMS_SOURCES as readonly string[]).includes(source)){
-    return {code:'STAFF_SOURCE',
-      messageBn:'স্টাফ শুধু ভিজিটরদের এসএমএস পাঠাতে পারেন — বকেয়া বা রসিদের বার্তা নয়।',
-      messageEn:'Staff may send to visitors only — not to dues, receipts or classes.'};
+    return {code:'STAFF_SOURCE',messageKey:'policy.STAFF_SOURCE'};
   }
   // The template has to be NAMED, and no text may ride along with it: `buildSmsPlan()` treats any
   // non-empty customText as the message and ignores the template, so "visitor_thanks plus my own words"
@@ -59,9 +67,7 @@ export function smsSendPolicyRefusal(role:string,input:SmsPolicyInput):SmsPolicy
   const templateKey=String(input.templateKey||'');
   const freeText=String(input.text||'').trim();
   if(templateKey!==STAFF_SMS_TEMPLATE||freeText){
-    return {code:'STAFF_TEMPLATE',
-      messageBn:'স্টাফ শুধু ভিজিটর ধন্যবাদ টেমপ্লেটটি পাঠাতে পারেন, নিজের লেখা বার্তা নয়।',
-      messageEn:'Staff may send only the visitor thank-you template, never custom text.'};
+    return {code:'STAFF_TEMPLATE',messageKey:'policy.STAFF_TEMPLATE'};
   }
   return null;
 }
@@ -76,15 +82,10 @@ export function dailySmsLimitOf(settings:{dailySmsLimitPerUser?:number|null|unde
 /** The dialog's own line about the ceiling, in the digits the operator reads. */
 export function dailyLimitLine(limit:number,remaining:number,language:'bn'|'en'):string{
   const digits=language==='bn'?'bn':'en';
-  return language==='bn'
-    ?`আজকের এসএমএস সীমা: ${formatNumber(limit,digits)}টির মধ্যে ${formatNumber(remaining,digits)}টি বাকি`
-    :`Today's SMS limit: ${formatNumber(remaining,digits)} of ${formatNumber(limit,digits)} left`;
+  return smsLine(language,'dailyLimitLine',{limit:formatNumber(limit,digits),remaining:formatNumber(remaining,digits)});
 }
 
 /** The sentence the operator reads when the ceiling stops a send. */
 export function dailyLimitReachedMessage(limit:number,language:'bn'|'en'):string{
-  const digits=language==='bn'?'bn':'en';
-  return language==='bn'
-    ?`আজকের জন্য আপনার এসএমএস পাঠানোর সীমা (${formatNumber(limit,digits)}টি) শেষ। আগামীকাল আবার চেষ্টা করুন।`
-    :`You have reached today's SMS limit (${formatNumber(limit,digits)} messages). Please try again tomorrow.`;
+  return smsLine(language,'dailyLimitReached',{limit:formatNumber(limit,language==='bn'?'bn':'en')});
 }

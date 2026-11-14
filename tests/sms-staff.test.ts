@@ -12,7 +12,7 @@
 import assert from 'node:assert/strict';
 import {
   DAILY_LIMIT_ROLES,DEFAULT_DAILY_SMS_LIMIT,STAFF_SMS_SOURCES,STAFF_SMS_TEMPLATE,
-  dailyLimitApplies,dailyLimitLine,dailyLimitReachedMessage,dailySmsLimitOf,smsSendPolicyRefusal,
+  dailyLimitApplies,dailyLimitLine,dailyLimitReachedMessage,dailySmsLimitOf,smsPolicyMessage,smsSendPolicyRefusal,
 } from '../src/lib/center/sms-staff';
 import {SMS_TEMPLATE_DEFAULTS} from '../src/lib/center/sms-templates';
 import {visitorTemplateFits} from '../src/lib/leads/lead-sms';
@@ -22,9 +22,9 @@ function refusalOf(role:string,input:Record<string,unknown>,code:string){
   const refusal=smsSendPolicyRefusal(role,input);
   assert.ok(refusal,`${role} ${JSON.stringify(input)} must be refused`);
   assert.equal(refusal!.code,code);
-  assert.ok(refusal!.messageBn.trim().length>10,'the Bangla sentence says what is not allowed');
-  assert.ok(refusal!.messageEn.trim().length>10,'and the English one agrees');
-  assert.ok(!/[{}]/.test(refusal!.messageBn),'no unrendered chip reaches an operator');
+  assert.ok(smsPolicyMessage(refusal!,'bn').trim().length>10,'the Bangla sentence says what is not allowed');
+  assert.ok(smsPolicyMessage(refusal!,'en').trim().length>10,'and the English one agrees');
+  assert.ok(!/[{}]/.test(smsPolicyMessage(refusal!,'bn')),'no unrendered chip reaches an operator');
   return refusal!;
 }
 
@@ -59,7 +59,7 @@ function run(){
   // And the thank-you's NAME cannot smuggle free text in: buildSmsPlan() honours any non-empty
   // customText and ignores the template, so a request that carries both is custom text in disguise.
   const smuggled=refusalOf('staff',{mode:'send',source:'lead',id:'64b0000000000000000000a1',templateKey:STAFF_SMS_TEMPLATE,text:'আপনার ছেলেকে টাকা পাঠান'},'STAFF_TEMPLATE');
-  assert.ok(smuggled.messageBn.includes('ধন্যবাদ'),'the refusal names the one template they do have');
+  assert.ok(smsPolicyMessage(smuggled,'bn').includes('ধন্যবাদ'),'the refusal names the one template they do have');
 
   // 5. Retrying a failed batch is an admin's job: it re-sends money somebody else already spent, and
   //    the row it reads was not ticked by the person pressing the button.

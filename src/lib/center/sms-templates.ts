@@ -25,16 +25,20 @@ export interface SmsTemplateDefault{
   autoSendKey?:'autoReceipt'|'autoResult'|'autoDue';
 }
 
+/* Template BODIES are SMS message content and stay Bangla on purpose (the owner's allow-list);
+   only their NAMES are catalog keys, resolved against the sms namespace by whoever paints them. */
+// i18n-scan-allow-start: SMS message bodies — content, not interface.
 export const SMS_TEMPLATE_DEFAULTS:SmsTemplateDefault[]=[
-  {key:'payment_receipt',name:'পেমেন্ট রসিদ',body:'ডিকশন কোচিং: {student_name} এর {month} মাসের {amount} টাকা পেয়েছি। রসিদ নং {receipt_no}। ধন্যবাদ।',variables:['student_name','month','amount','receipt_no'],purpose:'payment_receipt',feeRelated:true,autoSendKey:'autoReceipt'},
-  {key:'due_reminder',name:'বকেয়া স্মারক',body:'ডিকশন কোচিং: প্রিয় অভিভাবক, {student_name} এর {month} মাসের {due_amount} টাকা বকেয়া আছে। অনুগ্রহ করে দ্রুত পরিশোধ করুন। যোগাযোগ: {institute_phone}',variables:['student_name','month','due_amount','institute_phone'],purpose:'due_reminder',feeRelated:true,autoSendKey:'autoDue'},
-  {key:'pending_reminder',name:'আগাম বকেয়া স্মরণ (ঐচ্ছিক, বন্ধ)',body:'ডিকশন কোচিং: {student_name} এর {month} মাসের {amount} টাকা আগামী {due_date} তারিখের মধ্যে দিলে ভালো হয়। ধন্যবাদ।',variables:['student_name','month','amount','due_date'],purpose:'due_reminder',feeRelated:true},
-  {key:'visitor_thanks',name:'ভিজিটর ধন্যবাদ',body:'ডিকশন কোচিং-এ আসার জন্য ধন্যবাদ। ভর্তি সংক্রান্ত তথ্যের জন্য যোগাযোগ করুন: {institute_phone}',variables:['institute_phone'],purpose:'visitor_thanks',feeRelated:false},
-  {key:'teacher_opening',name:'শিক্ষক প্রয়োজন',body:'ডিকশন কোচিং: আমাদের {subject} বিষয়ে শিক্ষক প্রয়োজন। আগ্রহী হলে যোগাযোগ করুন: {institute_phone}',variables:['subject','institute_phone'],purpose:'teacher_opening',feeRelated:false},
-  {key:'exam_result',name:'পরীক্ষার ফলাফল',body:'ডিকশন কোচিং: {student_name} এর ফলাফল প্রকাশ হয়েছে। বিস্তারিত দেখতে পোর্টেলে লগইন করুন। যোগাযোগ: {institute_phone}',variables:['student_name','institute_phone'],purpose:'exam_result',feeRelated:false,autoSendKey:'autoResult'},
-  {key:'custom',name:'নিজের লেখা',body:'',variables:[],purpose:'custom',feeRelated:false},
-  {key:'notice',name:'নোটিশ',body:'ডিকশন কোচিং: {subject}',variables:['subject'],purpose:'notice',feeRelated:false},
+  {key:'payment_receipt',name:'templates.payment_receipt',body:'ডিকশন কোচিং: {student_name} এর {month} মাসের {amount} টাকা পেয়েছি। রসিদ নং {receipt_no}। ধন্যবাদ।',variables:['student_name','month','amount','receipt_no'],purpose:'payment_receipt',feeRelated:true,autoSendKey:'autoReceipt'},
+  {key:'due_reminder',name:'templates.due_reminder',body:'ডিকশন কোচিং: প্রিয় অভিভাবক, {student_name} এর {month} মাসের {due_amount} টাকা বকেয়া আছে। অনুগ্রহ করে দ্রুত পরিশোধ করুন। যোগাযোগ: {institute_phone}',variables:['student_name','month','due_amount','institute_phone'],purpose:'due_reminder',feeRelated:true,autoSendKey:'autoDue'},
+  {key:'pending_reminder',name:'templates.pending_reminder',body:'ডিকশন কোচিং: {student_name} এর {month} মাসের {amount} টাকা আগামী {due_date} তারিখের মধ্যে দিলে ভালো হয়। ধন্যবাদ।',variables:['student_name','month','amount','due_date'],purpose:'due_reminder',feeRelated:true},
+  {key:'visitor_thanks',name:'templates.visitor_thanks',body:'ডিকশন কোচিং-এ আসার জন্য ধন্যবাদ। ভর্তি সংক্রান্ত তথ্যের জন্য যোগাযোগ করুন: {institute_phone}',variables:['institute_phone'],purpose:'visitor_thanks',feeRelated:false},
+  {key:'teacher_opening',name:'templates.teacher_opening',body:'ডিকশন কোচিং: আমাদের {subject} বিষয়ে শিক্ষক প্রয়োজন। আগ্রহী হলে যোগাযোগ করুন: {institute_phone}',variables:['subject','institute_phone'],purpose:'teacher_opening',feeRelated:false},
+  {key:'exam_result',name:'templates.exam_result',body:'ডিকশন কোচিং: {student_name} এর ফলাফল প্রকাশ হয়েছে। বিস্তারিত দেখতে পোর্টেলে লগইন করুন। যোগাযোগ: {institute_phone}',variables:['student_name','institute_phone'],purpose:'exam_result',feeRelated:false,autoSendKey:'autoResult'},
+  {key:'custom',name:'templates.custom',body:'',variables:[],purpose:'custom',feeRelated:false},
+  {key:'notice',name:'templates.notice',body:'ডিকশন কোচিং: {subject}',variables:['subject'],purpose:'notice',feeRelated:false},
 ];
+// i18n-scan-allow-end
 
 export const SMS_TEMPLATE_KEYS=SMS_TEMPLATE_DEFAULTS.map(t=>t.key);
 

@@ -19,6 +19,16 @@ import {createHash} from 'node:crypto';
 import mongoose from 'mongoose';
 import {CenterSmsAutoProblem} from '@/models/CenterRecords';
 import {redactSmsSecrets,smsCodeMessage} from './sms-provider';
+import bnMessages from '@/messages/bn.json';
+import enMessages from '@/messages/en.json';
+
+/** One catalog sentence rendered in both languages: a stored problem row keeps the pair. */
+function smsPair(key:string,params:Record<string,string|number>={}):{messageBn:string;messageEn:string}{
+  const fill=(template:string):string=>String(template).replace(/\{(\w+)\}/g,(whole,name)=>(name in params?String(params[name]):whole));
+  const at=(catalog:unknown):string=>fill(String(key.split('.').reduce<unknown>((node,part)=>((node||{}) as Record<string,unknown>)[part],catalog)??key));
+  return {messageBn:at(bnMessages.sms),messageEn:at(enMessages.sms)};
+}
+
 
 /** Which automatic send failed. The same three names the batch's `trigger` field uses. */
 export type AutoSmsTrigger='auto_receipt'|'auto_due'|'auto_result';
@@ -33,14 +43,13 @@ export type AutoSmsContext=
   |{trigger:'auto_result';exam:string;classGroup:string};
 
 /** The trigger names an operator reads, in one place so no screen can drift from another. */
-export const AUTO_SMS_TRIGGER_LABELS:Record<AutoSmsTrigger,{bn:string;en:string}>={
-  auto_receipt:{bn:'স্বয়ংক্রিয় পেমেন্ট রসিদ',en:'Automatic payment receipt'},
-  auto_due:{bn:'স্বয়ংক্রিয় বকেয়া স্মারক',en:'Automatic due reminder'},
-  auto_result:{bn:'স্বয়ংক্রিয় পরীক্ষার ফলাফল',en:'Automatic exam result'},
+/** Trigger names as catalog keys, so every screen reads them in the operator's language. */
+export const AUTO_SMS_TRIGGER_LABEL_KEYS:Record<AutoSmsTrigger,string>={
+  auto_receipt:'triggers.auto_receipt',auto_due:'triggers.auto_due',auto_result:'triggers.auto_result',
 };
 
-export function autoSmsTriggerLabel(trigger:string):{bn:string;en:string}{
-  return AUTO_SMS_TRIGGER_LABELS[trigger as AutoSmsTrigger]||{bn:'স্বয়ংক্রিয় এসএমএস',en:'Automatic SMS'};
+export function autoSmsTriggerLabelKey(trigger:string):string{
+  return AUTO_SMS_TRIGGER_LABEL_KEYS[trigger as AutoSmsTrigger]||'triggers.auto_any';
 }
 
 /** Anything the auto-sends can hand us: an Error, a reason string, or a provider code. */
@@ -66,72 +75,36 @@ export interface AutoSmsProblemText{messageBn:string;messageEn:string;code:strin
  * and never a credential.
  */
 export function autoProblemText(trigger:AutoSmsTrigger,cause:AutoSmsCause):AutoSmsProblemText{
-  const what=AUTO_SMS_TRIGGER_LABELS[trigger];
+  const triggerKey=autoSmsTriggerLabelKey(trigger);
+  const triggerWord=(catalog:unknown):string=>String(triggerKey.split('.').reduce<unknown>((node,part)=>((node||{}) as Record<string,unknown>)[part],catalog)??triggerKey);
   const raw=redactSmsSecrets(causeText(cause)).slice(0,200);
-  const prefix={bn:`${what.bn} পাঠানো যায়নি। `,en:`The ${what.en.toLowerCase()} did not go out. `};
-  const out=(messageBn:string,messageEn:string,code=''):AutoSmsProblemText=>({
-    messageBn:`${prefix.bn}${messageBn}`,messageEn:`${prefix.en}${messageEn}`,code,
-  });
+  const out=(key:string,params:Record<string,string|number>={},code=''):AutoSmsProblemText=>{
+    const prefixBn=smsPair('problems.prefix',{trigger:triggerWord(bnMessages.sms)}).messageBn;
+    const prefixEn=smsPair('problems.prefix',{trigger:triggerWord(enMessages.sms).toLowerCase()}).messageEn;
+    const body=smsPair(key,params);
+    return {messageBn:`${prefixBn}${body.messageBn}`,messageEn:`${prefixEn}${body.messageEn}`,code};
+  };
 
-  if(/SMS_NOT_CONFIGURED/i.test(raw))return out(
-    'প্রদানকারীর তথ্য সেট করা হয়নি — SMS_PROVIDER, BULKSMSBD_API_KEY ও BULKSMSBD_SENDER_ID দেখুন।',
-    'The provider is not configured — check SMS_PROVIDER, BULKSMSBD_API_KEY and BULKSMSBD_SENDER_ID.',
-    'SMS_NOT_CONFIGURED');
-  if(/SMS_DISABLED/i.test(raw))return out(
-    'পাঠানোর গেট বন্ধ — CENTER_SMS_WRITE_ENABLED=true নয়।',
-    'The sending gate is closed — CENTER_SMS_WRITE_ENABLED is not "true".',
-    'SMS_DISABLED');
-  if(/SMS_INVALID/i.test(raw))return out(
-    'নম্বর বা বার্তাটি গ্রহণযোগ্য নয়।',
-    'The number or the message was not acceptable.',
-    'SMS_INVALID');
-  if(/EMPTY_MESSAGE/i.test(raw))return out(
-    'বার্তার লেখা খালি।',
-    'The message body is empty.',
-    'EMPTY_MESSAGE');
+  if(/SMS_NOT_CONFIGURED/i.test(raw))return out('problems.notConfigured',{},'SMS_NOT_CONFIGURED');
+  if(/SMS_DISABLED/i.test(raw))return out('problems.disabled',{},'SMS_DISABLED');
+  if(/SMS_INVALID/i.test(raw))return out('problems.invalid',{},'SMS_INVALID');
+  if(/EMPTY_MESSAGE/i.test(raw))return out('problems.emptyMessage',{},'EMPTY_MESSAGE');
   const chip=raw.match(/UNRENDERED_VARIABLE:(\{?\w+\}?)/i);
-  if(chip)return out(
-    `বার্তায় ${chip[1]} এর কোনো মান নেই — পাঠানো হলে লেখাটি ফাঁকা থেকে যেত।`,
-    `${chip[1]} has no value, so the message would have gone out with a hole in it.`,
-    'UNRENDERED_VARIABLE');
-  if(/TEMPLATE_NOT_FOUND/i.test(raw))return out(
-    'টেমপ্লেটটি পাওয়া যায়নি।',
-    'The template could not be found.',
-    'TEMPLATE_NOT_FOUND');
-  if(/NO_RECIPIENTS|no recipient/i.test(raw))return out(
-    'পাঠানোর মতো কোনো নম্বর নেই — অভিভাবকের নম্বরটি যোগ করুন।',
-    'There is no number to send to — add the guardian’s number.',
-    'NO_RECIPIENTS');
-  if(/TOO_MANY_STUDENTS/i.test(raw))return out(
-    'ক্লাসটি একসাথে হিসাব করার মতো অবস্থায় নেই।',
-    'The class could not be priced live.',
-    'TOO_MANY_STUDENTS');
-  if(/INVALID_STUDENT/i.test(raw))return out('শিক্ষার্থীটি পাওয়া যায়নি।','The student could not be found.','INVALID_STUDENT');
-  if(/INVALID_CLASS/i.test(raw))return out('ক্লাসটি পাওয়া যায়নি।','The class could not be found.','INVALID_CLASS');
-  if(/validation failed|ValidationError/i.test(raw))return out(
-    `ডাটাবেসে সংরক্ষণ করা যায়নি (${raw.split(':').pop()?.trim().slice(0,60)||'তথ্য অসম্পূর্ণ'})।`,
-    `It could not be stored (${raw.slice(0,120)}).`,
-    'VALIDATION');
+  if(chip)return out('problems.unrenderedVariable',{chip:chip[1]},'UNRENDERED_VARIABLE');
+  if(/TEMPLATE_NOT_FOUND/i.test(raw))return out('problems.templateNotFound',{},'TEMPLATE_NOT_FOUND');
+  if(/NO_RECIPIENTS|no recipient/i.test(raw))return out('problems.noRecipients',{},'NO_RECIPIENTS');
+  if(/TOO_MANY_STUDENTS/i.test(raw))return out('problems.tooManyStudents',{},'TOO_MANY_STUDENTS');
+  if(/INVALID_STUDENT/i.test(raw))return out('problems.invalidStudent',{},'INVALID_STUDENT');
+  if(/INVALID_CLASS/i.test(raw))return out('problems.invalidClass',{},'INVALID_CLASS');
+  if(/validation failed|ValidationError/i.test(raw))return out('problems.validation',{detail:(raw.split(':').pop()?.trim()||raw).slice(0,60)},'VALIDATION');
   const code=raw.match(/\b(1\d{3}|202)\b/);
   // The provider publishes one official meaning per code, already in Bangla, so that table is reused
   // rather than paraphrased; the English line names the code and quotes it.
-  if(code)return out(
-    `${smsCodeMessage(code[1])} (কোড ${code[1]})।`,
-    `The provider answered ${code[1]}: ${smsCodeMessage(code[1])}`,
-    code[1]);
-  if(/fetch failed|network|timeout|ETIMEDOUT|ECONNREFUSED|ENOTFOUND|EAI_AGAIN|socket hang up|abort/i.test(raw))return out(
-    'নেটওয়ার্ক সমস্যায় পাঠানো যায়নি। আবার চেষ্টা করুন।',
-    'A network problem stopped it. Try again.',
-    'NETWORK');
-  if(/balance/i.test(raw))return out(
-    'ব্যালান্স জানা যায়নি, তাই পাঠানো হয়নি।',
-    'The balance could not be read, so nothing was sent.',
-    'BALANCE');
-  if(!raw)return out('কারণ জানা যায়নি।','The cause is unknown.','');
-  return out(
-    `অপ্রত্যাশিত সমস্যা: ${raw.slice(0,120)}`,
-    `Unexpected problem: ${raw.slice(0,120)}`,
-    'UNEXPECTED');
+  if(code)return out('problems.providerCode',{message:smsCodeMessage(code[1],'bn'),code:code[1]},code[1]);
+  if(/fetch failed|network|timeout|ETIMEDOUT|ECONNREFUSED|ENOTFOUND|EAI_AGAIN|socket hang up|abort/i.test(raw))return out('problems.network',{},'NETWORK');
+  if(/balance/i.test(raw))return out('problems.balance',{},'BALANCE');
+  if(!raw)return out('problems.unknownCause',{},'');
+  return out('problems.unexpected',{detail:raw.slice(0,120)},'UNEXPECTED');
 }
 
 /** One stable key per problem, so a repeating failure is one row with a count, not a pile of rows. */

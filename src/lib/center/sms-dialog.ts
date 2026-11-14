@@ -18,6 +18,16 @@
  * Credentials are never part of a response: only the provider's balance number is.
  */
 import 'server-only';
+import bnMessages from '@/messages/bn.json';
+import enMessages from '@/messages/en.json';
+/** One catalog sentence in both languages: a resolved problem row stores the pair it was closed with. */
+function smsPair(key:string,params:Record<string,string|number>={}):{bn:string;en:string}{
+  const fill=(template:string):string=>String(template).replace(/\{(\w+)\}/g,(whole,name)=>(name in params?String(params[name]):whole));
+  const at=(catalog:unknown):string=>fill(String(key.split('.').reduce<unknown>((node,part)=>((node||{}) as Record<string,unknown>)[part],catalog)??key));
+  return {bn:at(bnMessages.sms),en:at(enMessages.sms)};
+}
+
+
 import {createHash} from 'node:crypto';
 import mongoose from 'mongoose';
 import {CenterClassGroup,CenterSmsBatch,CenterSmsLog} from '@/models/CenterRecords';
@@ -126,7 +136,7 @@ export function previewOf(plan:Plan,names:Map<string,string>){
     month:plan.month,
     body:plan.body,
     recipients:plan.items.slice(0,3).map(item=>({phone:item.phone,studentName:item.studentName,preview:item.message,segments:item.segments,cost:item.cost})),
-    skipped:plan.skipped.map(item=>({reason:item.reason,labelBn:item.labelBn,labelEn:item.labelEn,studentName:item.studentName,phone:item.phone})),
+    skipped:plan.skipped.map(item=>({reason:item.reason,labelKey:item.labelKey,studentName:item.studentName,phone:item.phone})),
     skippedCount:plan.skipped.length,
     groupingRefused:plan.groupingRefused.map(item=>({phone:item.phone,reason:item.reason})),
     duplicates:plan.duplicates.map(id=>({id,name:names.get(id)||''})),
@@ -292,7 +302,7 @@ export interface AutoSendOutcome{attempted:boolean;batchId?:string;reason?:strin
 export async function autoSendReceipt(input:{student:string;amount:number;month:{year:number;month:number};receiptNo:string},options:SmsDialogOptions={}):Promise<AutoSendOutcome>{
   const context:AutoSmsContext={trigger:'auto_receipt',student:input.student,amount:input.amount,year:input.month.year,month:input.month.month,receiptNo:input.receiptNo};
   const now=options.now||new Date();
-  let on=false,who=`রসিদ ${input.receiptNo}`;
+  let on=false,who=smsPair('who.receipt',{no:input.receiptNo}).bn;
   try{
     const settings=await loadSmsSettings();
     if(!settings.autoReceipt&&!options.ignoreToggle)return {attempted:false,reason:'autoReceipt off'};
@@ -346,7 +356,7 @@ export async function autoSendClassDues(classGroup:string,options:SmsDialogOptio
     on=true;
     const provider=options.provider||createSmsProvider();
     const resolved=await resolveSmsSource({source:'dues',classGroup},now);
-    who=`${resolved.className||'ক্লাস'} · ${day}`;
+    who=`${resolved.className||smsPair('who.classFallback').bn} · ${day}`;
     // Nobody overdue is not a failure; it is the class having paid.
     if(!resolved.candidates.length)return {sent:0,skipped:0,reason:'no overdue students'};
     const plan=await buildSmsPlan({
@@ -395,7 +405,7 @@ export async function autoSendClassResults(input:{exam:string;classGroup:string}
     on=true;
     const provider=options.provider||createSmsProvider();
     const resolved=await resolveSmsSource({source:'class',classGroup:input.classGroup},now);
-    who=resolved.className||'ক্লাস';
+    who=resolved.className||smsPair('who.classFallback').bn;
     if(!resolved.candidates.length)return {attempted:true,reason:'no students'};
     const plan=await buildSmsPlan({
       requestId:autoKey(['result',input.exam,input.classGroup],options),
@@ -469,11 +479,12 @@ export interface AutoSmsRetryResult{ok:boolean;messageBn:string;messageEn:string
  */
 export async function retryAutoSmsProblem(id:string,actor:string,options:SmsDialogOptions={}):Promise<AutoSmsRetryResult>{
   const row=await findAutoSmsProblem(id);
-  if(!row||!row.context)return {ok:false,messageBn:'এই সমস্যাটি আর খোলা নেই।',messageEn:'That problem is no longer open.',sent:0,batchId:''};
+  if(!row||!row.context){const text=smsPair('results.notOpen');return {ok:false,messageBn:text.bn,messageEn:text.en,sent:0,batchId:''};}
   const provider=options.provider||createSmsProvider();
   const now=options.now||new Date();
   await audit(actor,'sms.autoretry',id);
-  const done=async(messageBn:string,messageEn:string,sent:number,batchId:string):Promise<AutoSmsRetryResult>=>{
+  const done=async(key:string,params:Record<string,string|number>,sent:number,batchId:string):Promise<AutoSmsRetryResult>=>{
+    const text=smsPair(key,params);const messageBn=text.bn,messageEn=text.en;
     await resolveAutoSmsProblem(id,actor,{bn:messageBn,en:messageEn});
     return {ok:true,messageBn,messageEn,sent,batchId};
   };
@@ -485,12 +496,12 @@ export async function retryAutoSmsProblem(id:string,actor:string,options:SmsDial
   try{
     if(row.batchId){
       const counts=await batchCounts(row.batchId);
-      if(counts?.status==='done')return await done('আগের ব্যাজটিই পাঠানো হয়ে গেছে।','The earlier batch already went out.',counts.sent,row.batchId);
-      if(counts?.status==='queued')return await done('কিউতে আছে — নিঃশব্দ সময় শেষে নিজেই চলে যাবে।','It is queued, and goes out on its own when quiet hours end.',0,row.batchId);
+      if(counts?.status==='done')return await done('results.alreadySent',{},counts.sent,row.batchId);
+      if(counts?.status==='queued')return await done('results.queued',{},0,row.batchId);
       if(counts?.failed){
         const result=await retryFailedSms(row.batchId,actor,provider);
         if(result.retried&&result.failed===0){
-          return await done(`${result.sent}টি বার্তা পাঠানো হয়েছে।`,`${result.sent} message(s) sent.`,result.sent,row.batchId);
+          return await done('results.sentCount',{count:result.sent},result.sent,row.batchId);
         }
         const cause=await failedBatchCause(row.batchId);
         return await stillBroken({code:cause||'failed'},row.batchId);
@@ -508,13 +519,13 @@ export async function retryAutoSmsProblem(id:string,actor:string,options:SmsDial
     const reason=outcome.reason||'';
     // Nothing left to send is not a failure to retry: the class paid, or the student list emptied.
     if(reason==='no overdue students'||reason==='no students'){
-      return await done('পাঠানোর মতো কিছু নেই — সমস্যাটি আর খোলা নেই।','There is nothing left to send.',0,batchId);
+      return await done('results.nothingLeft',{},0,batchId);
     }
     if(reason)return await stillBroken(reason,batchId);
     const cause=await failedBatchCause(batchId);
     if(cause)return await stillBroken({code:cause},batchId);
     const counts=await batchCounts(batchId);
-    return await done('রিট্রাই সফল — বার্তাটি পাঠানো হয়েছে।','The retry worked — the message went out.',counts?.sent||0,batchId);
+    return await done('results.retryWorked',{},counts?.sent||0,batchId);
   }catch(error){
     return await stillBroken(error as Error,'');
   }

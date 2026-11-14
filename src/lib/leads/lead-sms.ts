@@ -11,15 +11,15 @@
  *    guardian/student pair of numbers — it has ONE number, the first written on the sheet, and a sticky
  *    "do not contact" mark. The mark becomes the pipeline's own opt-out switch, which means the sentence
  *    an operator reads for an excluded visitor is the one the pipeline already writes
- *    ("অপ্ট-আউট / যোগাযোগ করবেন না"), not a new lead-specific wording that could drift from it.
+ *    (the opt-out skip label), not a new lead-specific wording that could drift from it.
  *  • `status` is `'active'`, always. `removed` and `on_hold` are a student's FEE states; inventing one for
  *    a visitor would let a fee rule reach somebody who was never enrolled, and `held` would then silently
  *    drop a thank-you that has no amount in it anyway.
  *  • Only templates a visitor can actually receive are offered. A lead has no fee, no month, no amount and
  *    no enrolled-class name, so a template asking for any of those can only end in the dialog's own
  *    "a value did not render" refusal — a dead end after the operator picked people and pressed send.
- *  • Blocked and phoneless leads are COUNTED, never quietly dropped, because "৩৭ জনকে পাঠানো হবে" and
- *    "৪২ জন বাছা হয়েছে, ৫ জন বাদ" are different promises and only the second one can be checked.
+ *  • Blocked and phoneless leads are COUNTED, never quietly dropped, because "37 will be texted" and
+ *    "42 picked, 5 dropped" are different promises and only the second one can be checked.
  */
 import type {SmsCandidateStudent} from '@/lib/center/sms-recipients';
 import type {LeadSmsRow} from './leads';

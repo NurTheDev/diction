@@ -322,10 +322,8 @@ function LeadDetailBody({seed,detail,loading,noteState,noteAction,notePending,re
         request={{source:'lead',id:seed.id}}
         templates={sms.templates}
         institutePhone={sms.institutePhone}
-        titleBn={t('smsOneTitle')}
-        titleEn="SMS this visitor"
-        labelBn={t('smsLabel')}
-        labelEn="Send SMS"
+        title={t('smsOneTitle')}
+        label={t('smsLabel')}
         defaultTemplateKey="visitor_thanks"
         en={language==='en'}
         lockedText={sms.allowTextEdit===false}

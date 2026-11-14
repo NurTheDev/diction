@@ -16,11 +16,12 @@
  * Authorization is the caller's job: server actions gate with requireAdmin()/getListAccess().
  */
 import 'server-only';
+import {getTranslations} from 'next-intl/server';
 import {CenterSmsBatch,CenterSmsLog,CenterSmsTemplate,CenterSettings} from '@/models/CenterRecords';
 import {dhakaDay} from '@/lib/admin/today';
 import {audit} from '@/lib/admin/helpers';
 import {SMS_BATCH_SIZE,createSmsProvider,estimateSms,smsCodeMessage,type SmsProvider} from './sms-provider';
-import {chunkRecipients,resolveRecipients,SMS_SKIP_LABELS,type SmsAudience,type SmsCandidateStudent,type SmsSkipReason} from './sms-recipients';
+import {chunkRecipients,resolveRecipients,SMS_SKIP_LABEL_KEYS,type SmsAudience,type SmsCandidateStudent,type SmsSkipReason} from './sms-recipients';
 import {defaultTemplate,renderSmsTemplate,templateVariablesOf,type SmsVariable} from './sms-templates';
 import {inQuietHours,msUntilQuietEnds,quietUntilLabel} from './sms-quiet';
 import {normalizePhone} from './phone';
@@ -28,6 +29,7 @@ import {normalizePhone} from './phone';
 /** Provider codes worth one automatic retry: the message provably was not submitted. */
 const TRANSIENT_CODES=new Set(['1005']);
 
+const TEST_SMS_BODY='ডিকশন কোচিং: এসএমএস সংযোগ পরীক্ষা। যোগাযোগ: {institute_phone}'; // i18n-scan-allow: SMS message body
 export interface SmsSettingsRow{
   unitCost:number;quietStart:string;quietEnd:string;institutePhone:string;
   autoReceipt:boolean;autoResult:boolean;autoDue:boolean;autoDueDay:number;
@@ -133,7 +135,7 @@ export interface SmsPlanInput{
 }
 
 export interface SmsPlanItem{phone:string;studentIds:string[];studentName:string;message:string;segments:number;cost:number}
-export interface SmsPlanSkipped{studentId:string;studentName:string;phone:string;reason:SmsSkipReason;labelBn:string;labelEn:string}
+export interface SmsPlanSkipped{studentId:string;studentName:string;phone:string;reason:SmsSkipReason;labelKey:string}
 
 export interface SmsPlan{
   requestId:string;
@@ -191,7 +193,7 @@ export async function buildSmsPlan(input:SmsPlanInput,provider:SmsProvider=creat
     audience:input.audience,feeMessage:feeRelated,onePerPhone:input.onePerPhone,globalValues,now,
   });
 
-  // A chip with no value would render as a hole — "… এর  টাকা বকেয়া আছে" — so that recipient is
+  // A chip with no value would render as a hole in the sentence — so that recipient is
   // reported incomplete instead of being sent a broken message. Unknown chips (a typo) still block
   // the whole plan below, because they affect every recipient identically.
   const requiredChips=templateVariablesOf(body);
@@ -204,7 +206,7 @@ export async function buildSmsPlan(input:SmsPlanInput,provider:SmsProvider=creat
     });
     if(missing.length){
       for(const studentId of recipient.studentIds){
-        incomplete.push({studentId,studentName:recipient.studentName,phone:recipient.phone,reason:'missing_value',labelBn:SMS_SKIP_LABELS.missing_value.bn,labelEn:SMS_SKIP_LABELS.missing_value.en});
+        incomplete.push({studentId,studentName:recipient.studentName,phone:recipient.phone,reason:'missing_value',labelKey:SMS_SKIP_LABEL_KEYS.missing_value});
       }
       continue;
     }
@@ -214,7 +216,7 @@ export async function buildSmsPlan(input:SmsPlanInput,provider:SmsProvider=creat
   }
 
   const skipped:SmsPlanSkipped[]=[
-    ...resolved.skipped.map(entry=>({...entry,labelBn:SMS_SKIP_LABELS[entry.reason].bn,labelEn:SMS_SKIP_LABELS[entry.reason].en})),
+    ...resolved.skipped.map(entry=>({...entry,labelKey:SMS_SKIP_LABEL_KEYS[entry.reason]})),
     ...incomplete,
   ];
 
@@ -472,14 +474,14 @@ export async function flushQueuedSms(now:Date=new Date(),provider:SmsProvider=cr
 /** A single test message to the operator's own number — never to a student. */
 export async function sendTestSms(phone:string,actor:string,provider:SmsProvider=createSmsProvider()):Promise<{status:'sent'|'failed'|'invalid';message:string}>{
   const normalized=normalizePhone(phone);
-  if(!normalized)return {status:'invalid',message:'নম্বরটি সঠিক নয় (০১XXXXXXXXX)'};
+  if(!normalized)return {status:'invalid',message:(await getTranslations('sms'))('invalidTestNumber')};
   const settings=await loadSmsSettings();
-  const body=renderSmsTemplate('ডিকশন কোচিং: এসএমএস সংযোগ পরীক্ষা। যোগাযোগ: {institute_phone}',{institute_phone:settings.institutePhone});
+  const body=renderSmsTemplate(TEST_SMS_BODY,{institute_phone:settings.institutePhone});
   const outcome=await provider.send(normalized,body);
   if(outcome.status!=='submitted')return {status:'failed',message:smsCodeMessage(outcome.code)};
   await CenterSmsLog.insertMany([{phone:normalized,message:body,segments:estimateSms(body).segments,cost:estimatedSmsCost(estimateSms(body).segments,settings.unitCost),templateKey:'test',status:'sent',sentAt:new Date(),providerCode:outcome.code||'',providerMessage:smsCodeMessage(outcome.code)}]);
   await audit(actor,'sms.test',normalized);
-  return {status:'sent',message:'পরীক্ষামূলক এসএমএস জমা হয়েছে'};
+  return {status:'sent',message:(await getTranslations('sms'))('testQueued')};
 }
 
 export interface SmsMonthTotals{sent:number;failed:number;skipped:number;queued:number;segments:number;cost:number}
