@@ -1,0 +1,21 @@
+AssertionError [ERR_ASSERTION]: the two-language sweep found interface text in the wrong language:
+  /bn/admin/students/collect .admin-heading lost its Bangla: 
+  /bn/admin/public-sheets .admin-heading lost its Bangla: 
+  /bn/admin/practice-tests .admin-heading lost its Bangla: 
++ actual - expected
+
++ [
++   '/bn/admin/students/collect .admin-heading lost its Bangla: ',
++   '/bn/admin/public-sheets .admin-heading lost its Bangla: ',
++   '/bn/admin/practice-tests .admin-heading lost its Bangla: '
++ ]
+- []
+
+    at run (/home/runner/work/diction/diction/tests/language-sweep-browser.integration.ts:75:12) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: [Array],
+  expected: [],
+  operator: 'deepStrictEqual',
+  diff: 'simple'
+}
