@@ -358,6 +358,10 @@ async function main():Promise<void>{
       {needsDb:true,env:{TEST_ORIGIN:ctx.origin,TEST_MONGO_URI:ctx.mongoUri,TEST_MONGO_DB:ctx.mongoDb}});
     await stepUnitSuites(ctx,'test:lead:funnel','R3.17','The visitor funnel counted for real: cohort stages, both kinds of evidence, a binned lead invisible, every bucket printed',
       {needsDb:true,env:{TEST_ORIGIN:ctx.origin,TEST_MONGO_URI:ctx.mongoUri,TEST_MONGO_DB:ctx.mongoDb}});
+    await stepUnitSuites(ctx,'test:teacher:rules','R4.1','The teacher CV vocabulary and the rules that read a CV: statuses, ratings, sources, shifts, classes, subjects and note outcomes in both languages, the twelve-month review as a computation, availability folding digits across scripts, a filter value that is not in the vocabulary dropped, the subject and free-time readers keeping every word and reporting every inference, a salary written as a word left empty, an unnamed column asked about, and a candidate reaching the SMS pipeline as an active non-student');
+    await stepUnitSuites(ctx,'test:teacher:sheet','R4.2','The teacher CV sheet read whole on the labelled fake fixture: XLSX and CSV giving one preview, day-first dates, a suggested year that never moves on its own, an empty date offered today, normalized and flagged numbers, the brief’s own messy subject cells, two rows blocked in the preview, the owner’s mapping, accept and skip answers changing exactly their rows, and a CV already on file filling only its gaps');
+    await stepUnitSuites(ctx,'test:teacher:db','R4.3','The CV bank against the disposable database: readable ids that are never reused, validation and the duplicate question, the bin with a hired CV refusing to leave, the hire transaction, the twelve-month review deleting nothing, teaching needs, the import commit and undo, and no whole number in a list, a drawer, a match or an audit row',
+      {needsDb:true,env:{TEST_ORIGIN:ctx.origin,TEST_MONGO_URI:ctx.mongoUri,TEST_MONGO_DB:ctx.mongoDb}});
     await stepScreens(ctx);
     await stepBrowserTests(ctx);
     (ctx as Context&{stop?:()=>void}).stop?.();

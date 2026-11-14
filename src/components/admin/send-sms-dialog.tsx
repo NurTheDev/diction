@@ -27,7 +27,7 @@ import {dailyLimitLine} from '@/lib/center/sms-staff';
 import type {SmsSkipReason} from '@/lib/center/sms-recipients';
 
 export type SmsSendRequest={
-  source:'dues'|'class'|'students'|'student'|'receipt'|'lead'|'leads';
+  source:'dues'|'class'|'students'|'student'|'receipt'|'lead'|'leads'|'teacherCandidates';
   classGroup?:string;
   ids?:string[];
   id?:string;

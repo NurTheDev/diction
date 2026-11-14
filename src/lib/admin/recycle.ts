@@ -31,6 +31,7 @@ import {Admission,ContactMessage,Slot,TrialBooking} from '@/models/Intake';
 import {User} from '@/models/User';
 import {Exam,Result,Student as AcademicStudent} from '@/models/Academic';
 import {ModelTest,TestAttempt} from '@/models/ModelTest';
+import {TeacherCandidate} from '@/models/TeacherCandidate';
 import {managedStaffRoles} from '@/schemas/admin-staff';
 import {binFilter,liveFilter,purgeAtFor,RECYCLE_RETENTION_DAYS} from '@/models/recycle';
 import {audit} from '@/lib/admin/helpers';
@@ -162,6 +163,20 @@ export const recycleRegistry:RecycleKindDef[]=[
        ? [{count:1,messageKey:'recycleBin.kinds.leadConverted'}]
        : [];
    }},
+  /* R4 · A CV is a private record with no public route to revalidate and no archive state, so this
+     entry carries only a name, the reference block (a CV that already made a Teacher profile is a
+     hiring record, and binning it would leave the profile claiming an origin the bin is hiding) and
+     the Cloudinary assets the purge job has to destroy: the CV file is a `raw` upload, the photo an
+     image, and neither is stored as bytes in Mongo. */
+  {kind:'teacherCandidate',labelKey:'kindNames.teacherCandidate',model:()=>TeacherCandidate,nameOf:d=>d.name||d.candidateId,
+   references:async id=>{
+     const doc=await TeacherCandidate.findById(id).select('hiredAsTeacherId').lean<AnyDoc>();
+     return doc?.hiredAsTeacherId?[{count:1,messageKey:'recycleBin.kinds.teacherCandidateHired'}]:[];
+   },
+   assets:d=>[
+     ...(d.cvPublicId?[{publicId:String(d.cvPublicId),resource:'raw' as const}]:[]),
+     ...(d.photoPublicId?[{publicId:String(d.photoPublicId),resource:'image' as const}]:[]),
+   ]},
 ];
 
 /**

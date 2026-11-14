@@ -55,7 +55,12 @@
     "test:lead:funnel": "tsx tests/lead-funnel.test.ts && tsx --conditions=react-server tests/lead-funnel.integration.ts",
     "test:lead:funnel:browser": "tsx tests/lead-funnel-browser.integration.ts",
     "test:lead:handoff:browser": "tsx tests/lead-handoff-browser.integration.ts",
-    "test:lead:screens": "tsx tests/lead-screens-browser.integration.ts"
+    "test:lead:screens": "tsx tests/lead-screens-browser.integration.ts",
+    "test:teacher": "npm run test:teacher:rules && npm run test:teacher:sheet",
+    "test:teacher:rules": "tsx tests/teacher-cv-rules.test.ts",
+    "test:teacher:sheet": "tsx tests/teacher-cv-sheet.test.ts",
+    "test:teacher:db": "tsx --conditions=react-server tests/teacher-cv-bank.integration.ts",
+    "test:teacher:screens": "tsx tests/teacher-cv-screens-browser.integration.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

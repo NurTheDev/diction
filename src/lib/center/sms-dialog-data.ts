@@ -9,6 +9,7 @@ import 'server-only';
 import {loadSmsSettings,loadSmsTemplates} from './sms-send';
 import {STAFF_SMS_TEMPLATE} from './sms-staff';
 import {visitorTemplateFits} from '@/lib/leads/lead-sms';
+import {teacherTemplateFits} from '@/lib/teachers/cv-sms';
 
 export interface SmsDialogTemplate{key:string;name:string;body:string;active:boolean;edited:boolean}
 
@@ -64,5 +65,26 @@ export async function visitorSmsDialogData(role='admin'):Promise<SmsDialogData>{
     staffRestricted,
     allowPagePick:!staffRestricted,
     allowTextEdit:!staffRestricted,
+  };
+}
+
+/**
+ * The same catalog, narrowed for a TEACHER-CV send (R4).
+ *
+ * A candidate has no fee, no month, no amount and no enrolled class, so the only chips a send can fill
+ * are the subject the operator names and the centre's own number — which is exactly what
+ * `teacher_opening` asks for, and why it is the default at every CV entry point. This kit is loaded only
+ * behind `requireAdmin()`: the CV bank is admin-only, so there is no staff-restricted variant of it and
+ * no role check to fail closed on. A kit that offered more than the server allows would be a button that
+ * lies, and here the server's own door is the page.
+ */
+export async function teacherSmsDialogData():Promise<SmsDialogData>{
+  const [rows,settings]=await Promise.all([loadSmsTemplates(),loadSmsSettings()]);
+  return {
+    templates:rows
+      .filter(row=>(row.active||row.key==='custom')&&teacherTemplateFits(row.variables))
+      .map(row=>({key:row.key,name:row.name,body:row.body,active:row.active,edited:row.edited})),
+    institutePhone:settings.institutePhone,
+    staffRestricted:false,allowPagePick:true,allowTextEdit:true,
   };
 }

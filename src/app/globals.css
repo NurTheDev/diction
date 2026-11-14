@@ -635,3 +635,50 @@ html:lang(bn) .public-motion-root:not(.private-motion-disabled) :is(h1,h2,h3,h4)
   .funnel-table tfoot{display:block;padding:0 12px 12px}
 }
 @media(max-width:420px){.funnel-kpis{grid-template-columns:1fr}}
+
+/* R4 · the teacher CV bank. Everything here reuses the surfaces the admin already has — .admin-panel,
+   .list-filter, .admin-table, .admin-badge, .overview-drawer — and adds only what a CV screen needs on
+   top: the reading printed beside the words as written, the timeline, the chips a filter or a subject
+   picker wraps through at 360px, and the picker bar that says out loud how many CVs a send will cover.
+   Light theme only, 44px targets, one column below 760px. */
+.cv-form-hint{margin:0 0 4px}
+.cv-form-foot{display:flex;align-items:center;gap:10px;flex-wrap:wrap;flex:1 1 100%}
+.cv-read{display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex:1 1 100%}
+.cv-file{display:grid;gap:6px;flex:1 1 100%;color:#1a1d3a;font-size:15px;font-weight:600}
+.cv-file input[type=file]{min-height:44px;padding:8px;border:1px solid #c5cce0;border-radius:8px;background:#fff}
+.cv-chips{display:flex;gap:8px;flex-wrap:wrap;flex:1 1 100%}
+.cv-chips .admin-check{gap:6px;min-height:44px;padding:6px 10px;border:1px solid #dfe3ee;border-radius:30px;background:#fff}
+.cv-class-picker{display:grid;gap:6px;flex:1 1 100%}
+.cv-search{flex:1 1 320px}
+.cv-review{margin-bottom:12px}
+.cv-dup{display:grid;gap:10px;padding:12px;border:1px solid #e7c9c9;border-radius:12px;background:#fff8f8;flex:1 1 100%}
+.cv-notes{display:grid;gap:10px;margin:0;padding:0;list-style:none}
+.cv-notes li{border-bottom:1px solid #e8eaf2;padding-bottom:8px;overflow-wrap:anywhere}
+.cv-drawer-badges{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.cv-drawer-form{margin-bottom:12px}
+.cv-fields{margin:0 0 12px}
+.cv-fields>div{border-bottom:1px solid #e8eaf2;padding:8px 0}
+.cv-fields dt{font-weight:700}
+.cv-fields dd{margin:0;overflow-wrap:anywhere}
+.cv-photo{max-width:160px;border-radius:12px;border:1px solid #d9deee}
+.cv-hired{display:grid;gap:6px;padding:12px;border:1px solid #cfe6d8;border-radius:12px;background:#f6fbf8}
+.cv-sms-bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;flex:1 1 100%}
+.cv-sms-bar .admin-check{gap:8px;font-weight:600}
+.cv-sms-check{width:22px;height:22px;min-width:22px;accent-color:#2e3192}
+.cv-sms-excluded{color:#865000}
+.cv-sms-host{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.cv-needs{display:grid;gap:10px;margin:0;padding:0;list-style:none}
+.cv-need{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;border-bottom:1px solid #e8eaf2;padding-bottom:10px}
+.cv-subpanel{border:1px solid #e8eaf2;border-radius:12px;padding:12px;margin:12px 0;display:grid;gap:8px}
+.cv-field{display:grid;gap:6px;color:#1a1d3a;font-size:15px;font-weight:600}
+.cv-columns{display:flex;gap:10px;flex-wrap:wrap;margin:0;padding:0;list-style:none}
+.cv-columns li{border:1px solid #dfe3ee;border-radius:8px;padding:4px 8px;background:#fff}
+.cv-flag-list{margin:4px 0 0;padding-left:18px;color:#865000}
+.cv-decide{display:grid;gap:4px;margin-top:6px}
+.cv-decide label{display:flex;align-items:center;gap:6px;font-weight:500}
+@media(max-width:760px){
+  .cv-search{flex:1 1 100%}
+  .cv-need{flex-direction:column}
+  .cv-chips .admin-check{flex:1 1 auto;justify-content:center}
+  .cv-photo{max-width:120px}
+}

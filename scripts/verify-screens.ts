@@ -59,6 +59,16 @@ export function screenPlan(_milestone:string):ScreenTarget[]{
     // runs before the browser suites, so what it photographs is the honest empty report.
     {path:'/bn/admin/leads/funnel',label:'leads-funnel-bn'},
     {path:'/en/admin/leads/funnel',label:'leads-funnel-en'},
+    /* R4: the teacher CV bank — the list, "find a teacher" and the import wizard, in both languages.
+       The screens pass runs before the browser suites, so what it photographs is the honest empty bank;
+       the R4 browser suite photographs the same three screens with CVs in them into screenshots/r4. */
+    {path:'/bn/admin/teacher-cvs',label:'teacher-cvs-bn'},
+    {path:'/bn/admin/teacher-cvs?new=1',label:'teacher-cvs-quick-add-bn'},
+    {path:'/bn/admin/teacher-cvs/find',label:'teacher-cvs-find-bn'},
+    {path:'/bn/admin/teacher-cvs/import',label:'teacher-cvs-import-bn'},
+    {path:'/en/admin/teacher-cvs',label:'teacher-cvs-en'},
+    {path:'/en/admin/teacher-cvs/find',label:'teacher-cvs-find-en'},
+    {path:'/en/admin/teacher-cvs/import',label:'teacher-cvs-import-en'},
   ];
 }
 

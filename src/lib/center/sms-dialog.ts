@@ -163,7 +163,7 @@ export async function runSmsDialog(input:SmsDialogInput,actor:string,options:Sms
   }
 
   const source=String(input.source||'');
-  if(source!=='dues'&&source!=='class'&&source!=='students'&&source!=='student'&&source!=='receipt'&&source!=='lead'&&source!=='leads')return bad('source');
+  if(source!=='dues'&&source!=='class'&&source!=='students'&&source!=='student'&&source!=='receipt'&&source!=='lead'&&source!=='leads'&&source!=='teacherCandidates')return bad('source');
   const templateKey=String(input.templateKey||'');
   if(!isSmsTemplateKey(templateKey))return bad('templateKey');
   const target=String(input.target||'guardian');
@@ -182,7 +182,7 @@ export async function runSmsDialog(input:SmsDialogInput,actor:string,options:Sms
   // One student or one visitor is an id; a selection of either is a list of ids. A visitor send with no
   // ids is refused rather than read as "everybody in the book" (R3.9).
   if((source==='student'||source==='lead')&&!mongoose.isValidObjectId(String(input.id||'')))return bad('id');
-  if((source==='students'||source==='leads')&&!idList(input.ids).length)return bad('ids');
+  if((source==='students'||source==='leads'||source==='teacherCandidates')&&!idList(input.ids).length)return bad('ids');
   const raw=input.receipt&&typeof input.receipt==='object'?input.receipt:undefined;
   const [receiptYear,receiptMonth]=String(raw?.month||'').split('-').map(Number);
   const receipt=raw?{
