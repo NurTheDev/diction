@@ -1,9 +1,12 @@
 AssertionError [ERR_ASSERTION]: and it counts the one CV that was picked, not the page and not the bank
-    at run (/home/runner/work/diction/diction/tests/teacher-cv-screens-browser.integration.ts:407:12) {
+
+'০' !== '১'
+
+    at run (/home/runner/work/diction/diction/tests/teacher-cv-screens-browser.integration.ts:414:12) {
   generatedMessage: false,
   code: 'ERR_ASSERTION',
-  actual: false,
-  expected: true,
-  operator: '==',
+  actual: '০',
+  expected: '১',
+  operator: 'strictEqual',
   diff: 'simple'
 }
