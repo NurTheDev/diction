@@ -10,13 +10,13 @@ const resolve=(catalog:unknown,key:string):string=>key.split('.').reduce((node:u
 const fill=(template:string,params:Record<string,unknown>):string=>template.replace(/\{(\w+)\}/g,(_,name)=>String(params[name]??''));
 const tbn=(key:string,params?:Record<string,unknown>)=>fill(resolve(bnMessages.recycleBin,key),params||{});
 const ten=(key:string,params?:Record<string,unknown>)=>fill(resolve(enMessages.recycleBin,key),params||{});
-const students:ReferenceCount[]=[{count:14,messageKey:'recycleBin.kinds.k2'}];
-assert.equal(blockedMessage(students,'bn'),`১৪ ${resolve(bnMessages.recycleBin,'kinds.k2')} — মুছে ফেলা যাবে না। আর্কাইভ করুন।`);
-assert.equal(blockedMessage(students,'en'),'14 '+resolve(enMessages.recycleBin,'kinds.k2')+' — cannot be deleted. Archive it instead.');
+const students:ReferenceCount[]=[{count:14,messageKey:'recycleBin.kinds.classStudents'}];
+assert.equal(blockedMessage(students,'bn'),`১৪ ${resolve(bnMessages.recycleBin,'kinds.classStudents')} — মুছে ফেলা যাবে না। আর্কাইভ করুন।`);
+assert.equal(blockedMessage(students,'en'),'14 '+resolve(enMessages.recycleBin,'kinds.classStudents')+' — cannot be deleted. Archive it instead.');
 
 // Several reasons are joined, and Bangla digits are used for Bangla.
-const two:ReferenceCount[]=[students[0],{count:3,messageKey:'recycleBin.kinds.k3'}];
-assert.equal(blockedMessage(two,'bn'),`১৪ ${resolve(bnMessages.recycleBin,'kinds.k2')}; ৩ ${resolve(bnMessages.recycleBin,'kinds.k3')} — মুছে ফেলা যাবে না। আর্কাইভ করুন।`);
+const two:ReferenceCount[]=[students[0],{count:3,messageKey:'recycleBin.kinds.classExams'}];
+assert.equal(blockedMessage(two,'bn'),`১৪ ${resolve(bnMessages.recycleBin,'kinds.classStudents')}; ৩ ${resolve(bnMessages.recycleBin,'kinds.classExams')} — মুছে ফেলা যাবে না। আর্কাইভ করুন।`);
 
 // Retention is 30 days, computed from the moment of deletion.
 assert.equal(RECYCLE_RETENTION_DAYS,30);
@@ -31,7 +31,11 @@ assert.deepEqual(binFilter,{deletedAt:{$type:'date'}});
 const kinds=recycleRegistry.map(entry=>entry.kind);
 assert.equal(new Set(kinds).size,kinds.length,'every recycle kind is unique');
 for(const entry of recycleRegistry){
-  assert.ok(entry.labelBn.trim()&&entry.labelEn.trim(),`${entry.kind} needs labels in both languages`);
+  // the registry carries a catalog key, so the name has to exist in BOTH catalogs: a hole in either one
+  // is a bin row that paints `recycleBin.kindNames.lead` instead of a kind
+  assert.equal(entry.labelKey,`kindNames.${entry.kind}`,`${entry.kind} points at its own name`);
+  assert.ok(resolve(bnMessages.recycleBin,entry.labelKey).trim(),`${entry.kind} is named in Bangla`);
+  assert.ok(resolve(enMessages.recycleBin,entry.labelKey).trim(),`${entry.kind} is named in English`);
   assert.equal(typeof entry.nameOf,'function');
 }
 for(const blocking of ['classGroup','centerExam','media'] as const){

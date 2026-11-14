@@ -1978,20 +1978,44 @@
     "nameMismatch": "The name did not match, so nothing was deleted.",
     "daysLeftHeader": "Days left",
     "noResults": "Nothing matched that search.",
+    "blocked": "{parts} — cannot be deleted. Archive it instead.",
     "kinds": {
-      "k1": "place(s) still use this image",
-      "k2": "student(s) use this class",
-      "k3": "exam(s) use this class",
-      "k4": "saved result(s) belong to this exam",
-      "k5": "booking(s) are scheduled in this slot",
-      "k6": "admission(s) already converted to a student",
-      "k7": "account(s) hold a staff role — disable instead of deleting",
-      "k8": "student profile(s) use this account",
-      "k9": "saved result(s) belong to this exam",
-      "k10": "saved attempt(s) belong to this test",
-      "k11": "lead has already been converted to an admission, a student or a trial booking — deleting it loses that link"
+      "imageInUse": "place(s) still use this image",
+      "classStudents": "student(s) use this class",
+      "classExams": "exam(s) use this class",
+      "examResults": "saved result(s) belong to this exam",
+      "slotBookings": "booking(s) are scheduled in this slot",
+      "admissionConverted": "admission(s) already converted to a student",
+      "accountStaffRole": "account(s) hold a staff role — disable instead of deleting",
+      "accountStudentProfiles": "student profile(s) use this account",
+      "legacyExamResults": "saved result(s) belong to this exam",
+      "modelTestAttempts": "saved attempt(s) belong to this test",
+      "leadConverted": "lead has already been converted to an admission, a student or a trial booking — deleting it loses that link"
     },
-    "blocked": "{parts} — cannot be deleted. Archive it instead."
+    "kindNames": {
+      "editorial": "Blog / notice / video",
+      "course": "Course or package",
+      "material": "Study material",
+      "media": "Media library",
+      "portalNotice": "Portal notice",
+      "faq": "FAQ",
+      "facility": "Facility or feature",
+      "achievementRecord": "Achievement",
+      "practiceTest": "Practice test",
+      "publicSheet": "Lecture sheet",
+      "classGroup": "Class group",
+      "centerExam": "Center exam",
+      "slot": "Trial class slot",
+      "trialBooking": "Trial booking",
+      "admission": "Admission application",
+      "contactMessage": "Contact message",
+      "heroBanner": "Hero banner",
+      "teacher": "Teacher profile",
+      "portalAccount": "Portal account",
+      "exam": "Legacy academic exam",
+      "modelTest": "Model test",
+      "lead": "Visitor lead"
+    }
   },
   "leads": {
     "title": "Visitors",
@@ -2248,6 +2272,27 @@
     "noteTemplates": {
       "admissionOpened": "Admission application opened: {reference}",
       "trialBooked": "Trial class booked: {reference}"
+    },
+    "sheetFields": {
+      "date": "Date",
+      "studentName": "Student name",
+      "guardianName": "Guardian name",
+      "classLabel": "Class",
+      "school": "School / institute",
+      "phones": "Number",
+      "group": "Group",
+      "shift": "Shift",
+      "medium": "Medium",
+      "source": "Source",
+      "interestedIn": "Interested in",
+      "status": "Status",
+      "nextFollowUp": "Next follow-up",
+      "notes": "Comments"
+    },
+    "sheetQuestions": {
+      "unnamed": "This column has no name (\"{header}\") — what does it hold?",
+      "unnamedBlank": "This column has no name — what does it hold?",
+      "unknown": "The column \"{header}\" was not recognized — which field does it belong to?"
     }
   },
   "sms": {

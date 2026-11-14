@@ -46,8 +46,9 @@ type AnyDoc=Record<string,any>&{_id:Types.ObjectId};
 
 export interface RecycleKindDef{
   kind:RecycleKind;
-  labelBn:string;
-  labelEn:string;
+  /** The kind's name as a catalog key inside `recycleBin` (`kindNames.lead`): the bin page paints it in
+      the reader's language and the registry never stores a sentence of its own. */
+  labelKey:string;
   model:()=>Model<any>;
   nameOf:(doc:AnyDoc)=>string;
   references?:(id:string)=>Promise<ReferenceCount[]>;
@@ -66,11 +67,11 @@ const localized=(doc:AnyDoc,field:string):string=>{
 };
 
 export const recycleRegistry:RecycleKindDef[]=[
-  {kind:'editorial',labelBn:'ব্লগ/নোটিশ/ভিডিও',labelEn:'Blog / notice / video',model:()=>Editorial,nameOf:d=>localized(d,'title')||d.slug,
+  {kind:'editorial',labelKey:'kindNames.editorial',model:()=>Editorial,nameOf:d=>localized(d,'title')||d.slug,
    publicPaths:d=>{const root=d.kind==='notice'?'/notices':d.kind==='gallery'?'/gallery':'/blog';return d.slug?[root,`${root}/${d.slug}`]:[root]},archiveSet:{published:false}},
-  {kind:'course',labelBn:'কোর্স ও প্যাকেজ',labelEn:'Course or package',model:()=>Course,nameOf:d=>localized(d,'title')||d.slug,publicPaths:()=>['/courses'],archiveSet:{published:false}},
-  {kind:'material',labelBn:'স্টাডি ম্যাটেরিয়াল',labelEn:'Study material',model:()=>LearningMaterial,nameOf:d=>localized(d,'title'),archiveSet:{published:false}},
-  {kind:'media',labelBn:'মিডিয়া লাইব্রেরি',labelEn:'Media library',model:()=>MediaFile,nameOf:d=>String(d.publicId||d.url).split('/').pop()||'media',
+  {kind:'course',labelKey:'kindNames.course',model:()=>Course,nameOf:d=>localized(d,'title')||d.slug,publicPaths:()=>['/courses'],archiveSet:{published:false}},
+  {kind:'material',labelKey:'kindNames.material',model:()=>LearningMaterial,nameOf:d=>localized(d,'title'),archiveSet:{published:false}},
+  {kind:'media',labelKey:'kindNames.media',model:()=>MediaFile,nameOf:d=>String(d.publicId||d.url).split('/').pop()||'media',
    references:async id=>{
      const url=(await MediaFile.findById(id).select('url').lean<AnyDoc>())?.url;
      if(!url)return [];
@@ -81,18 +82,18 @@ export const recycleRegistry:RecycleKindDef[]=[
        HeroBanner.countDocuments({imageUrl:url}),
      ]);
      const total=editorial+teacher+settings+hero;
-     return total?[{count:total,messageKey:'recycleBin.kinds.k1'}]:[];
+     return total?[{count:total,messageKey:'recycleBin.kinds.imageInUse'}]:[];
    },
    assets:d=>d.storage==='mongo'||!d.publicId?[]:[{publicId:String(d.publicId),resource:'image'}]},
-  {kind:'portalNotice',labelBn:'পোর্টাল নোটিশ',labelEn:'Portal notice',model:()=>PortalNotice,nameOf:d=>localized(d,'title'),archiveSet:{published:false}},
-  {kind:'faq',labelBn:'সচরাচর জিজ্ঞাসা',labelEn:'FAQ',model:()=>FAQContent,nameOf:d=>localized(d,'question')||d.key,publicPaths:()=>['','/about'],archiveSet:{published:false}},
-  {kind:'facility',labelBn:'সুবিধা ও বৈশিষ্ট্য',labelEn:'Facility or feature',model:()=>FacilityContent,nameOf:d=>localized(d,'title')||d.key,publicPaths:()=>['','/facilities'],archiveSet:{published:false}},
-  {kind:'achievementRecord',labelBn:'অর্জন',labelEn:'Achievement',model:()=>AchievementRecord,nameOf:d=>d?.card?.name||d.slug,publicPaths:()=>[''],archiveSet:{status:'draft'}},
-  {kind:'practiceTest',labelBn:'অনুশীলনী পরীক্ষা',labelEn:'Practice test',model:()=>PracticeTest,nameOf:d=>d.title||d.slug,
+  {kind:'portalNotice',labelKey:'kindNames.portalNotice',model:()=>PortalNotice,nameOf:d=>localized(d,'title'),archiveSet:{published:false}},
+  {kind:'faq',labelKey:'kindNames.faq',model:()=>FAQContent,nameOf:d=>localized(d,'question')||d.key,publicPaths:()=>['','/about'],archiveSet:{published:false}},
+  {kind:'facility',labelKey:'kindNames.facility',model:()=>FacilityContent,nameOf:d=>localized(d,'title')||d.key,publicPaths:()=>['','/facilities'],archiveSet:{published:false}},
+  {kind:'achievementRecord',labelKey:'kindNames.achievementRecord',model:()=>AchievementRecord,nameOf:d=>d?.card?.name||d.slug,publicPaths:()=>[''],archiveSet:{status:'draft'}},
+  {kind:'practiceTest',labelKey:'kindNames.practiceTest',model:()=>PracticeTest,nameOf:d=>d.title||d.slug,
    publicPaths:d=>d.slug?['/practice-tests',`/practice-tests/${d.slug}`]:['/practice-tests'],archiveSet:{published:false}},
-  {kind:'publicSheet',labelBn:'লেকচার শিট',labelEn:'Lecture sheet',model:()=>PublicSheet,nameOf:d=>localized(d,'title')||d.slug,
+  {kind:'publicSheet',labelKey:'kindNames.publicSheet',model:()=>PublicSheet,nameOf:d=>localized(d,'title')||d.slug,
    publicPaths:d=>d.slug?['/lecture-sheets',`/lecture-sheets/${d.slug}`]:['/lecture-sheets'],archiveSet:{published:false}},
-  {kind:'classGroup',labelBn:'ক্লাস গ্রুপ',labelEn:'Class group',model:()=>CenterClassGroup,nameOf:d=>`${localized(d,'name')||'class'} ${d.academicYear||''}`.trim(),
+  {kind:'classGroup',labelKey:'kindNames.classGroup',model:()=>CenterClassGroup,nameOf:d=>`${localized(d,'name')||'class'} ${d.academicYear||''}`.trim(),
    archiveSet:{active:false},
    references:async id=>{
      const [students,exams]=await Promise.all([
@@ -100,65 +101,65 @@ export const recycleRegistry:RecycleKindDef[]=[
        CenterExam.countDocuments({classGroups:id,...liveFilter}),
      ]);
      const refs:ReferenceCount[]=[];
-     if(students)refs.push({count:students,messageKey:'recycleBin.kinds.k2'});
-     if(exams)refs.push({count:exams,messageKey:'recycleBin.kinds.k3'});
+     if(students)refs.push({count:students,messageKey:'recycleBin.kinds.classStudents'});
+     if(exams)refs.push({count:exams,messageKey:'recycleBin.kinds.classExams'});
      return refs;
    }},
-  {kind:'centerExam',labelBn:'কেন্দ্রের পরীক্ষা',labelEn:'Center exam',model:()=>CenterExam,nameOf:d=>localized(d,'name'),
+  {kind:'centerExam',labelKey:'kindNames.centerExam',model:()=>CenterExam,nameOf:d=>localized(d,'name'),
    references:async id=>{
      const results=await CenterExamResult.countDocuments({exam:id});
-     return results?[{count:results,messageKey:'recycleBin.kinds.k4'}]:[];
+     return results?[{count:results,messageKey:'recycleBin.kinds.examResults'}]:[];
    }},
   // ── second wave (§E6): the record types that had no destructive control at all ────────────
-  {kind:'slot',labelBn:'ট্রায়াল ক্লাস স্লট',labelEn:'Trial class slot',model:()=>Slot,
+  {kind:'slot',labelKey:'kindNames.slot',model:()=>Slot,
    nameOf:d=>[d.grade,d.subject,d.startAt?new Date(d.startAt).toISOString().slice(0,10):''].filter(Boolean).join(' · '),
    publicPaths:()=>['/trial-class'],archiveSet:{enabled:false},
    references:async id=>{
      const bookings=await TrialBooking.countDocuments({slot:id,status:'booked'});
-     return bookings?[{count:bookings,messageKey:'recycleBin.kinds.k5'}]:[];
+     return bookings?[{count:bookings,messageKey:'recycleBin.kinds.slotBookings'}]:[];
    }},
-  {kind:'trialBooking',labelBn:'ট্রায়াল বুকিং',labelEn:'Trial booking',model:()=>TrialBooking,nameOf:d=>d.studentName||d.reference},
-  {kind:'admission',labelBn:'ভর্তি আবেদন',labelEn:'Admission application',model:()=>Admission,nameOf:d=>d.studentName||d.reference,
+  {kind:'trialBooking',labelKey:'kindNames.trialBooking',model:()=>TrialBooking,nameOf:d=>d.studentName||d.reference},
+  {kind:'admission',labelKey:'kindNames.admission',model:()=>Admission,nameOf:d=>d.studentName||d.reference,
    references:async id=>{
      const doc=await Admission.findById(id).select('status').lean<AnyDoc>();
-     return doc&&doc.status==='enrolled'?[{count:1,messageKey:'recycleBin.kinds.k6'}]:[];
+     return doc&&doc.status==='enrolled'?[{count:1,messageKey:'recycleBin.kinds.admissionConverted'}]:[];
    }},
-  {kind:'contactMessage',labelBn:'যোগাযোগ বার্তা',labelEn:'Contact message',model:()=>ContactMessage,nameOf:d=>d.name||d.reference},
-  {kind:'heroBanner',labelBn:'হিরো ব্যানার',labelEn:'Hero banner',model:()=>HeroBanner,nameOf:d=>d.key||'home',
+  {kind:'contactMessage',labelKey:'kindNames.contactMessage',model:()=>ContactMessage,nameOf:d=>d.name||d.reference},
+  {kind:'heroBanner',labelKey:'kindNames.heroBanner',model:()=>HeroBanner,nameOf:d=>d.key||'home',
    publicPaths:()=>[''],archiveSet:{published:false}},
-  {kind:'teacher',labelBn:'শিক্ষক পরিচিতি',labelEn:'Teacher profile',model:()=>TeacherContent,nameOf:d=>localized(d,'name')||d.slug,
+  {kind:'teacher',labelKey:'kindNames.teacher',model:()=>TeacherContent,nameOf:d=>localized(d,'name')||d.slug,
    publicPaths:()=>['/teacher'],archiveSet:{published:false}},
-  {kind:'portalAccount',labelBn:'পোর্টাল অ্যাকাউন্ট',labelEn:'Portal account',model:()=>User,nameOf:d=>d.email||d.phone||d.name,
+  {kind:'portalAccount',labelKey:'kindNames.portalAccount',model:()=>User,nameOf:d=>d.email||d.phone||d.name,
    archiveSet:{active:false},
    references:async id=>{
      const doc=await User.findById(id).select('role').lean<AnyDoc>();
      if(!doc)return [];
      const refs:ReferenceCount[]=[];
-     if((managedStaffRoles as readonly string[]).includes(doc.role))refs.push({count:1,messageKey:'recycleBin.kinds.k7'});
+     if((managedStaffRoles as readonly string[]).includes(doc.role))refs.push({count:1,messageKey:'recycleBin.kinds.accountStaffRole'});
      const profiles=await AcademicStudent.countDocuments({user:id});
-     if(profiles)refs.push({count:profiles,messageKey:'recycleBin.kinds.k8'});
+     if(profiles)refs.push({count:profiles,messageKey:'recycleBin.kinds.accountStudentProfiles'});
      return refs;
    }},
-  {kind:'exam',labelBn:'পরীক্ষা (পুরোনো একাডেমিক)',labelEn:'Legacy academic exam',model:()=>Exam,nameOf:d=>d.titleBn||d.titleEn,
+  {kind:'exam',labelKey:'kindNames.exam',model:()=>Exam,nameOf:d=>d.titleBn||d.titleEn,
    archiveSet:{published:false},
    references:async id=>{
      const results=await Result.countDocuments({exam:id});
-     return results?[{count:results,messageKey:'recycleBin.kinds.k9'}]:[];
+     return results?[{count:results,messageKey:'recycleBin.kinds.legacyExamResults'}]:[];
    }},
-  {kind:'modelTest',labelBn:'মডেল টেস্ট',labelEn:'Model test',model:()=>ModelTest,nameOf:d=>d.titleBn||d.titleEn,
+  {kind:'modelTest',labelKey:'kindNames.modelTest',model:()=>ModelTest,nameOf:d=>d.titleBn||d.titleEn,
    archiveSet:{published:false},
    references:async id=>{
      const attempts=await TestAttempt.countDocuments({test:id});
-     return attempts?[{count:attempts,messageKey:'recycleBin.kinds.k10'}]:[];
+     return attempts?[{count:attempts,messageKey:'recycleBin.kinds.modelTestAttempts'}]:[];
    }},
   // ── R3: visitor leads. Archiving is deliberately NOT offered here — a lead has no "unpublished"
   // state, and the brief's 18-month rule is a suggestion on the list, not a field write.
-  {kind:'lead',labelBn:'ভিজিটর লিড',labelEn:'Visitor lead',model:()=>Lead,nameOf:d=>d.studentName||d.leadId,
+  {kind:'lead',labelKey:'kindNames.lead',model:()=>Lead,nameOf:d=>d.studentName||d.leadId,
    references:async id=>{
      const doc=await Lead.findById(id).select('admission trialBooking student').lean<AnyDoc>();
      if(!doc)return [];
      return doc.admission||doc.student||doc.trialBooking
-       ? [{count:1,messageKey:'recycleBin.kinds.k11'}]
+       ? [{count:1,messageKey:'recycleBin.kinds.leadConverted'}]
        : [];
    }},
 ];
@@ -236,13 +237,13 @@ export async function restoreRecord(kind:RecycleKind,id:string,actor:string):Pro
   return {status:'ok'};
 }
 
-export interface BinEntry{kind:RecycleKind;labelBn:string;labelEn:string;id:string;name:string;deletedAt:Date;purgeAt:Date|null}
+export interface BinEntry{kind:RecycleKind;labelKey:string;id:string;name:string;deletedAt:Date;purgeAt:Date|null}
 
 export async function binList(kind:RecycleKind|undefined,limit=200):Promise<BinEntry[]>{
   const defs=kind?[kindDef(kind)]:recycleRegistry;
   const perKind=await Promise.all(defs.map(async def=>{
     const docs=await def.model().find(binFilter).sort({purgeAt:1}).limit(limit).lean<AnyDoc[]>();
-    return docs.map(doc=>({kind:def.kind,labelBn:def.labelBn,labelEn:def.labelEn,id:String(doc._id),name:def.nameOf(doc),deletedAt:doc.deletedAt,purgeAt:doc.purgeAt??null}));
+    return docs.map(doc=>({kind:def.kind,labelKey:def.labelKey,id:String(doc._id),name:def.nameOf(doc),deletedAt:doc.deletedAt,purgeAt:doc.purgeAt??null}));
   }));
   return perKind.flat().sort((a,b)=>(a.purgeAt?.getTime()??0)-(b.purgeAt?.getTime()??0)).slice(0,limit);
 }

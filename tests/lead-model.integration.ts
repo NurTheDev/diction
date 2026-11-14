@@ -34,6 +34,8 @@ import {
 } from '../src/lib/leads/vocab';
 import {dhakaDay} from '../src/lib/admin/today';
 import {RECYCLE_RETENTION_DAYS} from '../src/models/recycle';
+import bnMessages from '../src/messages/bn.json';
+import enMessages from '../src/messages/en.json';
 
 const PHONE='01712817090';
 const SIBLING='01911223344';
@@ -167,8 +169,9 @@ async function run(){
     assert.ok((recycleKinds as readonly string[]).includes('lead'),'leads are a Recycle Bin kind');
     assert.equal(canArchiveKind('lead'),false,'and are not "archivable": a lead has no unpublished state, and the 18-month rule is a suggestion on the list');
     const def=kindDef('lead');
-    assert.equal(def.labelBn,'ভিজিটর লিড');
-    assert.equal(def.labelEn,'Visitor lead');
+    assert.equal(def.labelKey,'kindNames.lead','the bin names a lead from the catalog, not from a sentence in code');
+    assert.equal((bnMessages.recycleBin.kindNames as Record<string,string>).lead,'ভিজিটর লিড');
+    assert.equal((enMessages.recycleBin.kindNames as Record<string,string>).lead,'Visitor lead');
     assert.equal(def.nameOf({studentName:'রাহুল আহমেদ',leadId:'V-1'}),'রাহুল আহমেদ','a binned row is named by the student');
     assert.equal(def.nameOf({studentName:'',leadId:`V-${year}-0002`}),`V-${year}-0002`,'and by its id when no name was written');
 

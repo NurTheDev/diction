@@ -38,7 +38,7 @@ export default async function RecycleBin({params,searchParams}:{params:Promise<{
       <label><span>{t('kind')}</span>
         <select name="kind" className="admin-select" defaultValue={kind??''}>
           <option value="">{t('filterAll')}</option>
-          {recycleRegistry.map(def=><option key={def.kind} value={def.kind}>{language==='bn'?def.labelBn:def.labelEn}</option>)}
+          {recycleRegistry.map(def=><option key={def.kind} value={def.kind}>{t(def.labelKey)}</option>)}
         </select>
       </label>
       <label><span>{t('search')}</span><input name="q" className="admin-input" defaultValue={q} placeholder={t('search')}/></label>
@@ -52,7 +52,7 @@ export default async function RecycleBin({params,searchParams}:{params:Promise<{
           const days=entry.purgeAt?Math.max(0,Math.ceil((entry.purgeAt.getTime()-now)/DAY)):0;
           return <tr key={`${entry.kind}:${entry.id}`}>
             <td data-label={t('name')}><span className="admin-bin-name">{entry.name}</span></td>
-            <td data-label={t('kind')}>{language==='bn'?entry.labelBn:entry.labelEn}</td>
+            <td data-label={t('kind')}>{t(entry.labelKey)}</td>
             <td data-label={t('deleted')}>{entry.deletedAt?formatDate(entry.deletedAt,digits,language):'—'}</td>
             <td data-label={t('daysLeft')}>{t('daysLeft',{days:formatNumber(days,digits)})}</td>
             <td><BinRow kind={entry.kind} id={entry.id} name={entry.name} canPurge={canPurge}/></td>

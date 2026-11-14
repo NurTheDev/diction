@@ -16,9 +16,16 @@
  *     message.
  */
 import type {LeadGroup,LeadMedium,LeadShift,LeadSource} from './vocab';
+import {renderLeadPair} from './lead-message';
 
-const BANGLA_DIGITS=/[০-৯]/g;
-const clean=(raw:unknown):string=>String(raw==null?'':raw).replace(BANGLA_DIGITS,c=>String('০১২৩৪৫৬৭৮৯'.indexOf(c))).replace(/\s+/g,' ').trim().toLowerCase();
+/* Sheets arrive written in Bangla digits as often as ASCII ones, so reading a value always starts by
+   turning ৭ into 7. The table is code points because a digit is data, not a word anybody reads. */
+const BANGLA_DIGITS=/[\u09e6-\u09ef]/g;
+const clean=(raw:unknown):string=>String(raw==null?'':raw).replace(BANGLA_DIGITS,c=>String(c.charCodeAt(0)-0x09e6)).replace(/\s+/g,' ').trim().toLowerCase();
+
+/* i18n-scan-allow-start — every table below is a synonym list for what a SPREADSHEET writes, not
+   interface text: `বিজ্ঞান` has to be here for the reader to recognize it. What the owner reads is a
+   catalog key (LEAD_SHEET_FIELD_LABEL_KEYS, unmappedHeaderQuestion). */
 
 const GROUPS:Record<string,LeadGroup>={
   science:'science',sci:'science','বিজ্ঞান':'science',
@@ -41,6 +48,7 @@ const SOURCES:Record<string,LeadSource>={
   referral:'referral',referred:'referral','পরিচয়':'referral','মাধ্যমে':'referral',
   other:'other',অন্যান্য:'other',
 };
+// i18n-scan-allow-end
 
 /** null means "not mapped": the caller flags it and asks, it never defaults. */
 export function normalizeGroup(raw:unknown):LeadGroup|null{return GROUPS[clean(raw).replace(/\s+/g,'_')]||GROUPS[clean(raw)]||null}
@@ -52,23 +60,13 @@ export function normalizeSource(raw:unknown):LeadSource|null{return SOURCES[clea
 export const LEAD_SHEET_FIELDS=['date','studentName','guardianName','classLabel','school','phones','group','shift','medium','source','interestedIn','status','nextFollowUp','notes'] as const;
 export type LeadSheetField=typeof LEAD_SHEET_FIELDS[number];
 
-export const LEAD_SHEET_FIELD_LABELS:Record<LeadSheetField,{bn:string;en:string}>={
-  date:{bn:'তারিখ',en:'Date'},
-  studentName:{bn:'শিক্ষার্থীর নাম',en:'Student name'},
-  guardianName:{bn:'অভিভাবকের নাম',en:'Guardian name'},
-  classLabel:{bn:'শ্রেণি',en:'Class'},
-  school:{bn:'স্কুল / প্রতিষ্ঠান',en:'School / institute'},
-  phones:{bn:'নম্বর',en:'Number'},
-  group:{bn:'গ্রুপ',en:'Group'},
-  shift:{bn:'শিফট',en:'Shift'},
-  medium:{bn:'মাধ্যম',en:'Medium'},
-  source:{bn:'কীভাবে জানলেন',en:'Source'},
-  interestedIn:{bn:'আগ্রহের বিষয়',en:'Interested in'},
-  status:{bn:'অবস্থা',en:'Status'},
-  nextFollowUp:{bn:'পরের ফলো-আপ',en:'Next follow-up'},
-  notes:{bn:'মন্তব্য',en:'Comments'},
-};
+/** The word for each field, as a catalog key in the `leads` namespace (`leads.sheetFields.date`).
+    The import wizard paints it in the owner's language; nothing here chooses one. */
+export const LEAD_SHEET_FIELD_LABEL_KEYS:Record<LeadSheetField,string>=Object.fromEntries(
+  LEAD_SHEET_FIELDS.map(field=>[field,`sheetFields.${field}`]),
+) as Record<LeadSheetField,string>;
 
+// i18n-scan-allow-start — header synonyms written by the sheet's author, for the same reason.
 const HEADERS:Record<string,LeadSheetField>={
   date:'date',তারিখ:'date',দিন:'date',visit_date:'date',
   name:'studentName',student_name:'studentName',নাম:'studentName',শিক্ষার্থীর_নাম:'studentName','শিক্ষার্থীর নাম':'studentName',student:'studentName',
@@ -85,11 +83,14 @@ const HEADERS:Record<string,LeadSheetField>={
   follow_up:'nextFollowUp',followup:'nextFollowUp',next_follow_up:'nextFollowUp','ফলো আপ':'nextFollowUp','পরে কল':'nextFollowUp',
   comments:'notes',comment:'notes',note:'notes',notes:'notes',মন্তব্য:'notes',নোট:'notes',remark:'notes',remarks:'notes',
 };
+// i18n-scan-allow-end
 
 /** What a spreadsheet writes for a column nobody named. */
 export function isUnnamedColumnHeader(raw:unknown):boolean{
   const text=clean(raw);
+  // i18n-scan-allow-start — `অজানা 1` is what a Bangla sheet calls a column nobody named.
   return !text||/^(column|col|field|unnamed)\s*\d*$/.test(text)||/^অজানা\s*\d*$/.test(text);
+  // i18n-scan-allow-end
 }
 
 /** The header's field, or null — which means the import wizard has to ask, not decide. */
@@ -99,11 +100,11 @@ export function mapSheetHeader(raw:unknown):LeadSheetField|null{
   return HEADERS[text]||HEADERS[text.replace(/\s+/g,'_')]||HEADERS[text.replace(/[^\p{L}\p{N}]+/gu,'_')]||null;
 }
 
-/** The question the wizard asks for a column it could not read. */
-export function unmappedHeaderQuestion(header:string):{messageBn:string;messageEn:string}{
-  return isUnnamedColumnHeader(header)
-    ? {messageBn:`এই কলামটির কোনো নাম নেই ("${header||'নাম ছাড়া'}") — এতে কী লেখা আছে?`,
-       messageEn:`This column has no name ("${header||'unnamed'}") — what does it hold?`}
-    : {messageBn:`"${header}" কলামটি চেনা যায়নি — এটি কোন ঘরে যাবে?`,
-       messageEn:`The column "${header}" was not recognized — which field does it belong to?`};
+/** The question the wizard asks for a column it could not read.
+ *  The key is what a component translates; the pair is for a wizard that has to keep the question.
+ *  A header with no text at all gets its own key, so neither sentence ever quotes empty brackets. */
+export function unmappedHeaderQuestion(header:string):{messageKey:string;messageParams:Record<string,string>;messageBn:string;messageEn:string}{
+  const messageKey=header?(isUnnamedColumnHeader(header)?'sheetQuestions.unnamed':'sheetQuestions.unknown'):'sheetQuestions.unnamedBlank';
+  const messageParams:Record<string,string>=header?{header}:{};
+  return {messageKey,messageParams,...renderLeadPair(messageKey,messageParams)};
 }

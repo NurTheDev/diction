@@ -9,10 +9,12 @@
  * attached to the nearest field.
  */
 import assert from 'node:assert/strict';
+import bnMessages from '../src/messages/bn.json';
+import enMessages from '../src/messages/en.json';
 import {normalizeClassLabel} from '../src/lib/leads/lead-class';
 import {
   normalizeGroup,normalizeMedium,normalizeShift,normalizeSource,mapSheetHeader,isUnnamedColumnHeader,
-  unmappedHeaderQuestion,LEAD_SHEET_FIELDS,LEAD_SHEET_FIELD_LABELS,
+  unmappedHeaderQuestion,LEAD_SHEET_FIELDS,LEAD_SHEET_FIELD_LABEL_KEYS,
 } from '../src/lib/leads/lead-columns';
 
 const at=(day:string)=>new Date(`${day}T10:00:00+06:00`);
@@ -119,8 +121,17 @@ function run(){
   assert.match(unmappedHeaderQuestion('Some Weird Header').messageBn,/চেনা যায়নি/,'while an unknown name is asked about directly');
   assert.match(unmappedHeaderQuestion('Some Weird Header').messageEn,/not recognized/);
   for(const field of LEAD_SHEET_FIELDS){
-    assert.ok(LEAD_SHEET_FIELD_LABELS[field].bn&&LEAD_SHEET_FIELD_LABELS[field].en,`${field} has a question in both languages`);
+    // the word for a field lives in the catalogs now, so both of them must have it: a hole in either
+    // one is exactly how a Bangla page came to paint `leads.sheetFields.date`
+    const key=LEAD_SHEET_FIELD_LABEL_KEYS[field];
+    assert.equal(key,`sheetFields.${field}`,`${field} points at its own catalog key`);
+    const bn=(bnMessages.leads.sheetFields as Record<string,string>)[field];
+    const en=(enMessages.leads.sheetFields as Record<string,string>)[field];
+    assert.ok(bn&&en,`${field} has a question in both languages`);
   }
+  assert.match(unmappedHeaderQuestion('').messageBn,/কোনো নাম নেই/,'a header with nothing in it is still asked about');
+  assert.match(unmappedHeaderQuestion('').messageEn,/has no name/);
+  assert.ok(!unmappedHeaderQuestion('').messageBn.includes('""'),'and does not quote empty brackets');
 
   console.log('Visitor sheet class column: XI/xi/XII/IX, 7, ৭, নবম, দশম শ্রেণি, "New 9", "new 6", নতুন ৯, "9 (New)", "Class 9", শ্রেণি ৯ and grade 11 are each read by lookup or arithmetic with the raw label kept and "new" carried as its own session flag; SSC 25 becomes class 10, 9 or 11 depending on the year the visitor walked in and keeps its exam and year, while SSC 14 leaves the class empty with a flag rather than guessing; IIII, XIII, 13, ১৩, "Column 1", "-" and "N/A" derive no class, keep the label exactly as written and report why in both languages; group, medium, shift and source values map from a table where "Other" and "অজানা" become null instead of a default; and the sheet’s own headers map to fields while an unnamed or unknown column is handed back as a question — "this column has no name" for Column 1, "which field does it belong to" for anything else.');
 }
