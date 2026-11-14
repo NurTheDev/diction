@@ -1,9 +1,1 @@
-AssertionError [ERR_ASSERTION]: the served HTML never mentions BULKSMSBD_API_KEY
-    at run (/home/runner/work/diction/diction/tests/sms-dialog-browser.integration.ts:355:77) {
-  generatedMessage: false,
-  code: 'ERR_ASSERTION',
-  actual: false,
-  expected: true,
-  operator: '==',
-  diff: 'simple'
-}
+SendSmsDialog: one reusable four-step dialog opened from the due list, a student profile, the student list’s bulk action, the payment success screen and the SMS page — step one counts the real numbers and lists every skipped one with its reason (opted out, no number, held for a fee message; a removed student is never counted), guardian/student/both and one-message-per-phone change exactly who is included, step two offers the templates with all nine variable chips, step three previews the first messages verbatim with characters, segments and cost against the balance, step four has one green send button that made a single request for two clicks and reported sent 2 / failed 0 / skipped 3, with one stored row per (recipient, student) so the merged sibling message is traceable to both children, a receipt send carries its own number and student, a class notice counts nothing until the operator types the one subject the centre cannot know, nothing overflows at 360px, the labels follow the page language, staff get no control, and no credential reaches the browser.
