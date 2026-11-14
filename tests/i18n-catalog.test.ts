@@ -217,6 +217,7 @@ const NAMED_SETTINGS:Record<string,string>={
   'sms.problems.disabled':'CENTER_SMS_WRITE_ENABLED is the gate the operator opens, and the problem message is where they learn which knob is off',
   'aiTest.forbidden':'NEXTAUTH_URL is the address of the site itself, which the operator sets — not a secret',
   'admin.aiPage.needsSetting':'PUBLIC_AI_ENABLED is the switch the operator turns on, and this line is where the admin learns it is off',
+  'importCommit.writesDisabled':'CENTER_IMPORT_WRITE_ENABLED is the gate that keeps the paysheet import read-only, and this line is where the admin learns which knob to open',
 };
 const ENV_NAME=/\b[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+\b/g;
 const leakedSecrets:string[]=[],unnamedSettings:string[]=[],rotten:string[]=[];
