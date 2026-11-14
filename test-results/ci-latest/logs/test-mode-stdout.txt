@@ -3,7 +3,7 @@ STARTING TEST MODE: checking TypeScript — first startup may take several minut
 
 STARTING TEST MODE: building the test application — first startup may take several minutes. Please wait.
 ▲ Next.js 16.4.5 (webpack)
-✓ Running next.config.ts took 86ms
+✓ Running next.config.ts took 49ms
 ⚠ No build cache found. Please configure build caching for faster rebuilds. Read more: https://nextjs.org/docs/messages/no-cache
 Attention: Next.js now collects completely anonymous telemetry regarding usage.
 This information is used to shape Next.js' roadmap and prioritize features.
@@ -17,15 +17,15 @@ https://nextjs.org/telemetry
   ✓ webpackMemoryOptimizations
 
   Creating an optimized production build ...
-✓ Compiled successfully in 32.2s
+✓ Compiled successfully in 25.1s
   Skipping validation of types
-  Finished TypeScript config validation in 4ms ...
+  Finished TypeScript config validation in 17ms ...
   Collecting page data using 1 worker ...
   Generating static pages using 1 worker (0/179) ...
   Generating static pages using 1 worker (44/179) 
   Generating static pages using 1 worker (89/179) 
   Generating static pages using 1 worker (134/179) 
-✓ Generating static pages using 1 worker (179/179) in 1641ms
+✓ Generating static pages using 1 worker (179/179) in 1342ms
   Finalizing page optimization ...
   Collecting build traces ...
 
@@ -172,7 +172,7 @@ Route (app)                                      Revalidate  Expire
 
 Starting disposable test database… first startup may download MongoDB.
 TEST_ORIGIN=http://localhost:3111
-TEST_MONGO_URI=mongodb://127.0.0.1:33995/?replicaSet=testset
+TEST_MONGO_URI=mongodb://127.0.0.1:37405/?replicaSet=testset
 TEST_MONGO_DB=dictioncoaching_test
 
 DISPOSABLE TEST MODE — all data disappears when stopped.
@@ -185,5 +185,5 @@ Database is an in-memory replica set; real MONGODB_URI is ignored. Ctrl+C to sto
 ▲ Next.js 16.4.5
 - Local:         http://localhost:3111
 - Network:       http://0.0.0.0:3111
-✓ Ready in 149ms
-✓ Running next.config.ts took 80ms
+✓ Ready in 95ms
+✓ Running next.config.ts took 58ms
