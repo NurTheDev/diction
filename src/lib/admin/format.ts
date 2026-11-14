@@ -1,7 +1,7 @@
 export type Digits='bn'|'en';
 /* The Bangla digit table below is a script-conversion map, not a sentence: it is the one place outside
    the message files where Bangla characters may appear in src/ (see the i18n scan test's allow-list). */
-const BN_DIGITS='০১২৩৪৫৬৭৮৯';
+const BN_DIGITS='০১২৩৪৫৬৭৮৯'; // i18n-scan-allow: the script-conversion table itself; writing it as escapes would only hide what it is
 const BN_DIGIT_RANGE=new RegExp(`[${BN_DIGITS[0]}-${BN_DIGITS[9]}]`,'g');
 const loc=(digits:Digits)=>digits==='bn'?'bn-BD':'en-GB';
 export function formatNumber(value:number,digits:Digits='bn'){return new Intl.NumberFormat(loc(digits),{useGrouping:false}).format(value)}

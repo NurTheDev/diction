@@ -31,8 +31,6 @@ const GENDERS=['female','male','other','prefer-not'] as const;
 const MEDIUMS=['bangla','english','english-version'] as const;
 const COURSE_TYPES=['individual','package'] as const;
 /** Quick reasons: a tap for the four answers that actually shape the funnel, and a box for the rest. */
-const REASON_CHIPS_BN=['অন্য কোচিংয়ে ভর্তি','সময় মিলছে না','ফি বেশি','এখন প্রয়োজন নেই'];
-const REASON_CHIPS_EN=['Admitted elsewhere','Timing does not work','Fee is too high','Not needed right now'];
 
 /**
  * The hand-off strip. `handoff` arrives with the drawer's detail: prefills already masked, plus the
@@ -65,9 +63,9 @@ export function LeadHandoff({leadId,handoff,language,digits,onDone}:{
   if(!handoff)return null;
   const blocked=handoff.blockedAdmission||handoff.blockedTrial;
   const blockedTitle=(code:string)=>code==='ALREADY_CONVERTED'
-    ?(language==='bn'?'ভর্তি আগেই খোলা আছে':'An admission is already open')
-    :code==='ALREADY_BOOKED'?(language==='bn'?'ট্রায়াল আগেই বুক হয়েছে':'A trial is already booked')
-    :code==='NO_PHONE'?(language==='bn'?'লিডে নাম্বার নেই':'The lead has no number'):'';
+    ?t('handoff.alreadyAdmission')
+    :code==='ALREADY_BOOKED'?t('handoff.alreadyBooked')
+    :code==='NO_PHONE'?t('handoff.noPhone'):'';
 
   return <>
     <div className="lead-handoff" data-lead-handoff="true">
@@ -160,7 +158,7 @@ function AdmissionBody({leadId,handoff,language,digits,subjectLabels,genders,med
       <button type="button" className="admin-mini-button" onClick={onClose}>{t('handoffClose')}</button></div>
     <input type="hidden" name="id" value={leadId}/>
     <p className="admin-help">{language==='bn'
-      ?'লিডে যা আছে তা আগে থেকে বসানো; বাকি ঘর পূরণ করুন।'
+      ?t('handoff.prefillNote')
       :'What the lead already holds is filled in; complete the rest.'}</p>
     <label><span>{f('studentName')} *</span>
       <input className="admin-input" name="studentName" defaultValue={prefill.studentName} required minLength={2} maxLength={120}/></label>
@@ -183,7 +181,7 @@ function AdmissionBody({leadId,handoff,language,digits,subjectLabels,genders,med
         {GENDERS.map((value,index)=><option key={value} value={value}>{genders[index]||value}</option>)}
       </select></label>
     <label><span>{f('relation')} *</span>
-      <input className="admin-input" name="relation" defaultValue={language==='bn'?'অভিভাবক':'Guardian'} required minLength={2} maxLength={60}/></label>
+      <input className="admin-input" name="relation" defaultValue={t('handoff.relationDefault')} required minLength={2} maxLength={60}/></label>
     <label><span>{f('medium')} *</span>
       <select className="admin-select" name="medium" defaultValue="bangla">
         {MEDIUMS.map((value,index)=><option key={value} value={value}>{mediums[index]||value}</option>)}
@@ -287,7 +285,7 @@ function NotInterestedBody({leadId,language,onClose,onDone}:{
   leadId:string;language:'bn'|'en';onClose:()=>void;onDone?:()=>void;
 }){
   const t=useTranslations('leads');
-  const chips=language==='bn'?REASON_CHIPS_BN:REASON_CHIPS_EN;
+  const chips=[t('handoffReasons.elsewhere'),t('handoffReasons.timing'),t('handoffReasons.fee'),t('handoffReasons.notNeeded')];
   const [state,action,pending]=useActionState<LeadFormState|null,FormData>(submitLeadNotInterested,null);
   const [reason,setReason]=useState('');
   const boxRef=useRef<HTMLTextAreaElement>(null);

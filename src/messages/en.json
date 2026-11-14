@@ -1033,7 +1033,9 @@
     "changeDesc": "Enter your current password and choose a new one. All existing sessions, including this one, will be revoked.",
     "invalidChange": "The current password is incorrect or the new password does not meet the requirements.",
     "sessionExpired": "Your session has expired. Please sign in again.",
-    "security": "Account security"
+    "security": "Account security",
+    "mailSubject": "Diction Coaching Center: reset your password",
+    "mailBody": "Use this link to reset your password (valid for 30 minutes):\\n{link}\\n\\nIf you did not request this, ignore this message."
   },
   "accounts": {
     "section": "Account management",
@@ -1503,7 +1505,13 @@
     "first": "First",
     "second": "Second",
     "third": "Third",
-    "special": "Special"
+    "special": "Special",
+    "sampleCard": {
+      "name": "Sample name",
+      "className": "Class 8",
+      "title": "First place in the monthly exam",
+      "caption": "We are proud of this success!"
+    }
   },
   "aiTest": {
     "title": "Test provider connection",
@@ -2049,6 +2057,15 @@
       "paidColumn": "Paid",
       "dueColumn": "Due",
       "monthlyTotals": "Totals by month"
+    },
+    "print": "Print / PDF",
+    "restore": {
+      "resumeLabel": "Month the fee starts again (YYYY-MM)",
+      "reasonLabel": "Reason for restoring",
+      "submit": "Restore",
+      "ok": "Restored.",
+      "duplicate": "The same student is already active.",
+      "failed": "Could not restore; check the month and the details."
     }
   },
   "recycleBin": {
@@ -2467,6 +2484,19 @@
         "hashChanged": "The file changed after the preview; run the dry run again",
         "failed": "The import did not run"
       }
+    },
+    "handoff": {
+      "alreadyAdmission": "An admission is already open",
+      "alreadyBooked": "A trial is already booked",
+      "noPhone": "The lead has no number",
+      "prefillNote": "What the lead holds is prefilled; fill in the rest.",
+      "relationDefault": "Guardian"
+    },
+    "handoffReasons": {
+      "elsewhere": "Admitted elsewhere",
+      "timing": "Timing does not work",
+      "fee": "Fee is too high",
+      "notNeeded": "Not needed right now"
     }
   },
   "sms": {
@@ -3057,7 +3087,8 @@
       "monthBeforeStart": "A month before the fee start cannot be chosen.",
       "receiptLineAlreadyUsed": "This receipt already has a line for the same month.",
       "requestIdConflict": "This request has changed. Start a new payment."
-    }
+    },
+    "dayRange": "Give a day between 1 and 31."
   },
   "exams": {
     "list": {
@@ -3818,5 +3849,32 @@
     "statusUndone": "undone",
     "statusActive": "active",
     "help": "The latest 50 batches are shown. The history is kept in the database."
+  },
+  "payHistory": {
+    "status": {
+      "NOT_APPLICABLE": "Not applicable",
+      "HELD": "Held",
+      "WAIVED": "Waived",
+      "UPCOMING": "Upcoming",
+      "PAID": "Paid",
+      "PARTIAL": "Partial",
+      "PENDING": "This month",
+      "DUE": "Due"
+    },
+    "promptVoid": "Write the reason for voiding",
+    "promptEdit": "Write the reason for the change",
+    "promptAmount": "Corrected amount",
+    "promptNote": "Note",
+    "thFee": "Fee",
+    "thMonth": "Month",
+    "thReceipt": "Receipt",
+    "thAmount": "Amount",
+    "thDate": "Date",
+    "thStatus": "Status",
+    "thAction": "Actions",
+    "reviseInvalid": "Check the details and the reason.",
+    "reviseFailed": "The payment changed, or it could not be corrected.",
+    "notRevised": "The change did not go through",
+    "taka": "Tk "
   }
 }
