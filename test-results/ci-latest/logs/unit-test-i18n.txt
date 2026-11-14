@@ -13,3 +13,9 @@ Language ternaries: 0 in 0 files (baseline 0).
 Bangla in route files: 0 lines in 0 files (baseline 0).
   most: 
 A.6 · the route sweep holds: no page reached for a new hardcoded pair, and every count moved only down.
+
+
+--- tests/i18n-bangla-scan.test.ts (exit 0) ---
+Bangla scan: 0 lines in 0 files (451 walked).
+  most: 
+Bangla scan: 451 files walked, nothing left outside the allow blocks.
