@@ -16,11 +16,10 @@
  * Authorization is the caller's job: server actions gate with requireAdmin()/getListAccess().
  */
 import 'server-only';
-import {getTranslations} from 'next-intl/server';
 import {CenterSmsBatch,CenterSmsLog,CenterSmsTemplate,CenterSettings} from '@/models/CenterRecords';
 import {dhakaDay} from '@/lib/admin/today';
 import {audit} from '@/lib/admin/helpers';
-import {SMS_BATCH_SIZE,createSmsProvider,estimateSms,smsCodeMessage,type SmsProvider} from './sms-provider';
+import {SMS_BATCH_SIZE,createSmsProvider,estimateSms,smsCodeMessage,smsCodeMessageKey,type SmsProvider} from './sms-provider';
 import {chunkRecipients,resolveRecipients,SMS_SKIP_LABEL_KEYS,type SmsAudience,type SmsCandidateStudent,type SmsSkipReason} from './sms-recipients';
 import {defaultTemplate,renderSmsTemplate,templateVariablesOf,type SmsVariable} from './sms-templates';
 import {inQuietHours,msUntilQuietEnds,quietUntilLabel} from './sms-quiet';
@@ -450,7 +449,7 @@ export async function retryFailedSms(batchId:string,actor:string,provider:SmsPro
   await CenterSmsBatch.updateOne({_id:batchId},{$set:{
     sentCount:(batch?.sentCount||0)+outcome.sent,
     failedCount:Math.max(0,(batch?.failedCount||0)-rows.length+outcome.failed),
-    status:outcome.failed===0?'done':'partial',
+    status:outcome.failed===0?'done':outcome.sent===0?'failed':'partial',
   }});
   await audit(actor,'sms.retry',batchId);
   return {retried:rows.length,sent:outcome.sent,failed:outcome.failed};
@@ -472,16 +471,19 @@ export async function flushQueuedSms(now:Date=new Date(),provider:SmsProvider=cr
 }
 
 /** A single test message to the operator's own number — never to a student. */
-export async function sendTestSms(phone:string,actor:string,provider:SmsProvider=createSmsProvider()):Promise<{status:'sent'|'failed'|'invalid';message:string}>{
+export interface SmsTestResult{status:'sent'|'failed'|'invalid';messageKey:string;messageParams:Record<string,string|number>}
+
+/** The caller renders the sentence: this module has no request, and a test send must not need one. */
+export async function sendTestSms(phone:string,actor:string,provider:SmsProvider=createSmsProvider()):Promise<SmsTestResult>{
   const normalized=normalizePhone(phone);
-  if(!normalized)return {status:'invalid',message:(await getTranslations('sms'))('invalidTestNumber')};
+  if(!normalized)return {status:'invalid',messageKey:'invalidTestNumber',messageParams:{}};
   const settings=await loadSmsSettings();
   const body=renderSmsTemplate(TEST_SMS_BODY,{institute_phone:settings.institutePhone});
   const outcome=await provider.send(normalized,body);
-  if(outcome.status!=='submitted')return {status:'failed',message:smsCodeMessage(outcome.code)};
+  if(outcome.status!=='submitted')return {status:'failed',messageKey:smsCodeMessageKey(outcome.code||''),messageParams:outcome.code?{code:outcome.code}:{}};
   await CenterSmsLog.insertMany([{phone:normalized,message:body,segments:estimateSms(body).segments,cost:estimatedSmsCost(estimateSms(body).segments,settings.unitCost),templateKey:'test',status:'sent',sentAt:new Date(),providerCode:outcome.code||'',providerMessage:smsCodeMessage(outcome.code)}]);
   await audit(actor,'sms.test',normalized);
-  return {status:'sent',message:(await getTranslations('sms'))('testQueued')};
+  return {status:'sent',messageKey:'testQueued',messageParams:{}};
 }
 
 export interface SmsMonthTotals{sent:number;failed:number;skipped:number;queued:number;segments:number;cost:number}

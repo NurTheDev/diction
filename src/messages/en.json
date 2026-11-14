@@ -2555,6 +2555,13 @@
     "who": {
       "receipt": "Receipt {no}",
       "classFallback": "Class"
+    },
+    "batchStatuses": {
+      "queued": "Queued",
+      "sending": "Sending",
+      "done": "Done",
+      "partial": "Partial",
+      "failed": "Failed"
     }
   }
 }

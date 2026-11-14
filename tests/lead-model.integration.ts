@@ -199,7 +199,7 @@ async function run(){
     const refs=await def.references(String(lead._id));
     assert.equal(refs.length,1,'the link is reported as a real count');
     assert.equal(refs[0].count,1);
-    assert.equal(refs[0].messageKey,'recycleBin.kinds.k1','in words the owner can act on');
+    assert.match(blockedMessage(refs,'bn'),/রূপান্তরিত/,'in words the owner can act on');
     assert.match(blockedMessage(refs,'en'),/converted/);
     const blocked=await softDelete('lead',String(lead._id),actorId,now);
     assert.equal(blocked.status,'blocked','so a converted lead cannot be binned by accident');

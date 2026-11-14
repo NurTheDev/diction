@@ -2555,6 +2555,13 @@
     "who": {
       "receipt": "রসিদ {no}",
       "classFallback": "ক্লাস"
+    },
+    "batchStatuses": {
+      "queued": "কিউতে",
+      "sending": "পাঠানো হচ্ছে",
+      "done": "সম্পন্ন",
+      "partial": "আংশিক",
+      "failed": "ব্যর্থ"
     }
   }
 }

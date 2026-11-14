@@ -20,7 +20,7 @@
  * the mask plus the `tel:` and `wa.me` destinations, which is all a screen may hold.
  */
 import {cookies} from 'next/headers';
-import {getTranslations} from 'next-intl/server';
+import {getLocale,getTranslations} from 'next-intl/server';
 import {formatNumber} from '@/lib/admin/format';
 import {revalidatePath} from 'next/cache';
 import {requireArchiver} from '@/lib/admin/guard';
@@ -58,6 +58,9 @@ async function refused(error:unknown):Promise<LeadFormState>{
 
 /** The acting user's digit preference, so a server-side sentence counts in the digits they chose. */
 async function leadDigits(userId:string):Promise<'bn'|'en'>{return (await cookies()).get(`diction_digits_${userId}`)?.value==='en'?'en':'bn'}
+
+/** The language a STORED sentence (a hand-off note) is written in: the operator's own. */
+async function leadLanguage():Promise<'bn'|'en'>{try{return (await getLocale())==='en'?'en':'bn'}catch{return 'bn'}}
 /** Translate a rule-layer refusal into one sentence in the acting user's locale and digits. */
 async function leadMsg(r:{messageKey:string;messageParams?:Record<string,string|number>;messageText?:string},digits:'bn'|'en'='bn'):Promise<string>{
   if(r.messageText)return r.messageText;
@@ -243,7 +246,7 @@ export async function submitLeadAdmission(_:LeadFormState|null,form:FormData):Pr
       school:text(form,'school'),dob:text(form,'dob'),gender:text(form,'gender'),relation:text(form,'relation'),
       medium:text(form,'medium'),previousResult:text(form,'previousResult'),courseType:text(form,'courseType')||'individual',
       subjects:subjectList(form),packageName:text(form,'packageName'),consent:true,email:text(form,'email'),
-    },String(staff.id));
+    },String(staff.id),new Date(),await leadLanguage());
     if(result.ok===false)return {status:'error',message:await leadMsg(result,digits),field:result.code};
     refreshLeads();refreshLeadPage(text(form,'id'));refreshIntake();
     return {status:'ok',message:await leadMsg({messageKey:'success.m5',messageParams:{}},digits)};
@@ -258,7 +261,7 @@ export async function submitLeadTrial(_:LeadFormState|null,form:FormData):Promis
       slotId:text(form,'slotId'),slotStartAt:text(form,'slotStartAt'),slotEndAt:text(form,'slotEndAt'),
       grade:text(form,'grade'),subject:text(form,'subject'),studentName:text(form,'studentName'),
       consent:true,email:text(form,'email'),
-    },String(staff.id));
+    },String(staff.id),new Date(),await leadLanguage());
     if(result.ok===false)return {status:'error',message:await leadMsg(result,digits),field:result.code};
     refreshLeads();refreshLeadPage(text(form,'id'));refreshIntake();
     return {status:'ok',message:await leadMsg({messageKey:'success.m6',messageParams:{}},digits)};

@@ -103,7 +103,7 @@ export async function sendTestSmsAction(_:ActionState,form:FormData):Promise<Act
     const result=await sendTestSms(phone,admin.id);
     refreshSms();
     const en=await localeIsEn();
-    if(result.status!=='sent')return {status:'error',reason:'unavailable',message:(await getTranslations('sms'))('actionErrors.notSent',{message:result.message})};
+    if(result.status!=='sent'){const ts=await getTranslations('sms');return {status:'error',reason:'unavailable',message:ts('actionErrors.notSent',{message:ts(result.messageKey,result.messageParams)})};}
     return {status:'ok',message:(await getTranslations('sms'))('actionErrors.testSubmitted')};
   }catch{return {status:'error',reason:'unavailable'}}
 }

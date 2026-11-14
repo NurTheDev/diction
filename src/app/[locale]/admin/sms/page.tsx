@@ -65,6 +65,14 @@ export default async function SmsPage({params,searchParams}:{params:Promise<{loc
   ]);
 
   const ts=await getTranslations('sms');
+  /* A stored enum value is data, but the operator reads a word: every status and every template name
+     goes through the catalog, and a value this build does not know is shown as itself rather than as a
+     key path (B.3: no raw "partial" or "payment_receipt" on a Bangla page). */
+  const TEMPLATE_NAMES=ts.raw('templates') as Record<string,string>;
+  const BATCH_STATUS_NAMES=ts.raw('batchStatuses') as Record<string,string>;
+  const LOG_STATUS_NAMES=ts.raw('statuses') as Record<string,string>;
+  const purposeLabel=(value:string):string=>TEMPLATE_NAMES[value]||value;
+  const statusLabel=(names:Record<string,string>,value:string):string=>names[value]||value;
   const language:'bn'|'en'=bn?'bn':'en';
   const currency=await (await getTranslations('common'))('currency');
   const cost=(value:number)=>`${currency}${formatNumber(Math.round(value*100)/100,digits)}`;
@@ -125,8 +133,8 @@ export default async function SmsPage({params,searchParams}:{params:Promise<{loc
         <thead><tr><th>{ts('page.when')}</th><th>{ts('page.purpose')}</th><th>{ts('page.status')}</th><th>{ts('page.recipients')}</th><th>{ts('page.sentFailed')}</th><th>{ts('page.cost2')}</th><th/></tr></thead>
         <tbody>{batches.map(batch=><tr key={String(batch._id)}>
           <td>{formatDate(batch.createdAt,digits,language)}<br/><small>{formatTime(batch.createdAt,digits,language)}</small>{batch.quiet&&<><br/><small>{ts('page.queuedQuietHours')}</small></>}{batch.scheduledFor&&<><br/><small>{ts('page.scheduled')}: {formatTime(batch.scheduledFor,digits,language)}</small></>}</td>
-          <td>{batch.templateKey||batch.purpose}</td>
-          <td><span className={`admin-badge ${batch.status==='done'?'enabled':batch.status==='failed'?'disabled':''}`}>{batch.status}</span></td>
+          <td>{purposeLabel(batch.templateKey||batch.purpose)}</td>
+          <td><span className={`admin-badge ${batch.status==='done'?'enabled':batch.status==='failed'?'disabled':''}`}>{statusLabel(BATCH_STATUS_NAMES,batch.status)}</span></td>
           <td>{formatNumber(batch.recipientCount,digits)}</td>
           <td>{formatNumber(batch.sentCount,digits)} / {formatNumber(batch.failedCount,digits)}{batch.skippedCount>0&&<small> · {formatNumber(batch.skippedCount,digits)} {ts('page.skipped2')}</small>}</td>
           <td>{cost(batch.estimatedCost)}</td>
@@ -157,7 +165,7 @@ export default async function SmsPage({params,searchParams}:{params:Promise<{loc
           <td>{log.student?`${log.student.name.bn} · ${log.student.studentId}`:'—'}</td>
           <td>{formatDigits(log.phone,digits)}</td>
           <td className="admin-cell-message"><span title={log.message}>{log.message.slice(0,90)}{log.message.length>90?'…':''}</span>{log.providerMessage&&<><br/><small>{log.providerMessage}</small></>}{log.reason&&<><br/><small>{ts('page.reason')}: {log.reason}</small></>}</td>
-          <td><span className={`admin-badge ${log.status==='sent'?'enabled':log.status==='failed'?'disabled':''}`}>{log.status}</span></td>
+          <td><span className={`admin-badge ${log.status==='sent'?'enabled':log.status==='failed'?'disabled':''}`}>{statusLabel(LOG_STATUS_NAMES,log.status)}</span></td>
           <td>{formatNumber(log.segments,digits)}</td>
           <td>{cost(log.cost)}</td>
         </tr>)}</tbody>

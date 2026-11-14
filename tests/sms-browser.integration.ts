@@ -201,7 +201,7 @@ async function run(){
     await boss.page.locator('h2:has-text("Batches")').waitFor({timeout:60000});
     assert.equal(await boss.page.locator('section:has(h2:has-text("Batches")) form button').count(),0,'a batch with no failures offers no retry');
     const batchText=(await boss.page.locator('section:has(h2:has-text("Batches")) table.admin-table tbody').innerText()).replace(/[০-৯]/g,c=>String('০১২৩৪৫৬৭৮৯'.indexOf(c)));
-    assert.match(batchText,/done/,'the batch is marked done once nothing is left to retry');
+    assert.match(batchText,/Done/,'the batch is marked done once nothing is left to retry');
     assert.match(batchText,/2 \/ 0/,'and its counts read 2 sent / 0 failed');
     await boss.page.goto(`${origin}/en/admin/sms?status=failed`,{waitUntil:'domcontentloaded',timeout:180000});
     await boss.page.locator('section:has(h2:has-text("History")) p.admin-empty').first().waitFor({state:'visible',timeout:60000});

@@ -19,7 +19,7 @@
  */
 
 import {useTranslations} from 'next-intl';
-import {formatNumber} from '@/lib/admin/format';
+import {formatDigits,formatNumber} from '@/lib/admin/format';
 import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import {AlertTriangle,CheckCircle2,Loader2,Send,X} from 'lucide-react';
 import {SMS_VARIABLES} from '@/lib/center/sms-templates';
@@ -94,7 +94,7 @@ export function segmentCount(text:string):number{
 }
 
 export default function SendSmsDialog({open,onClose,request,templates,title,defaultTemplateKey='due_reminder',institutePhone='',en=false,onSent,lockedText=false}:Props){
-  const ts=useTranslations('sms');const tc=useTranslations('common');
+  const ts=useTranslations('sms');const digits:'bn'|'en'=en?'en':'bn';const tc=useTranslations('common');
   /** A visitor send (R3.9): one number per lead, no fee chips, and no guardian/student choice to make. */
   const isLead=request.source==='lead'||request.source==='leads';
   const [step,setStep]=useState(1);
@@ -261,7 +261,7 @@ export default function SendSmsDialog({open,onClose,request,templates,title,defa
               {loadingPreview&&!preview
                 ?ts('dialog.countingRecipients')
                 :preview
-                  ?`${ts('dialog.total')} ${preview.phones} ${ts('dialog.numbers')} · ${preview.messages} ${ts('dialog.messages')} · ${preview.segments} ${ts('dialog.segments')}`
+                  ?`${ts('dialog.total')} ${formatNumber(preview.phones,digits)} ${ts('dialog.numbers')} · ${formatNumber(preview.messages,digits)} ${ts('dialog.messages')} · ${formatNumber(preview.segments,digits)} ${ts('dialog.segments')}`
                   :ts('dialog.countingRecipients2')}
             </p>
             {daily&&<p className="admin-help" data-sms-daily="">{dailyLimitLine(daily.limit,daily.remaining,en?'en':'bn')}</p>}
@@ -301,10 +301,10 @@ export default function SendSmsDialog({open,onClose,request,templates,title,defa
 
             {!!skippedGroups.length&&(
               <div className="sms-skipped" data-sms-skipped="">
-                <strong>{ts('dialog.skippedCount',{count:formatNumber(preview?.skippedCount||0,en?'en':'bn')})}</strong>
+                <strong>{ts('dialog.skippedCount',{count:formatNumber(preview?.skippedCount||0,digits)})}</strong>
                 <ul>
                   {skippedGroups.map(item=>(
-                    <li key={item.reason}>{ts(item.labelKey)} — <span className="admin-help">{item.count}</span></li>
+                    <li key={item.reason}>{ts(item.labelKey)} — <span className="admin-help">{formatNumber(item.count,digits)}</span></li>
                   ))}
                 </ul>
               </div>
@@ -402,12 +402,12 @@ export default function SendSmsDialog({open,onClose,request,templates,title,defa
             </div>
 
             <dl className="admin-defs" data-sms-figures="">
-              <div><dt>{ts('dialog.characters')}</dt><dd data-sms-characters="">{characters}</dd></div>
-              <div><dt>{ts('dialog.messages2')}</dt><dd data-sms-messages="">{preview?.messages??0}</dd></div>
-              <div><dt>{ts('dialog.segments4')}</dt><dd data-sms-segments="">{preview?.segments??0}</dd></div>
-              <div><dt>{ts('dialog.estimatedCost')}</dt><dd data-sms-cost="">{tc('currency')}{(preview?.cost??0).toFixed(2)}</dd></div>
+              <div><dt>{ts('dialog.characters')}</dt><dd data-sms-characters="">{formatNumber(characters,digits)}</dd></div>
+              <div><dt>{ts('dialog.messages2')}</dt><dd data-sms-messages="">{formatNumber(preview?.messages??0,digits)}</dd></div>
+              <div><dt>{ts('dialog.segments4')}</dt><dd data-sms-segments="">{formatNumber(preview?.segments??0,digits)}</dd></div>
+              <div><dt>{ts('dialog.estimatedCost')}</dt><dd data-sms-cost="">{tc('currency')}{formatDigits((preview?.cost??0).toFixed(2),digits)}</dd></div>
               <div><dt>{ts('dialog.balance')}</dt><dd data-sms-balance="">
-                {preview?.balanceOk?`${tc('currency')}${(preview?.balance??0).toFixed(2)}`:ts('dialog.unavailable')}
+                {preview?.balanceOk?`${tc('currency')}${formatDigits((preview?.balance??0).toFixed(2),digits)}`:ts('dialog.unavailable')}
               </dd></div>
             </dl>
 
@@ -433,9 +433,9 @@ export default function SendSmsDialog({open,onClose,request,templates,title,defa
             {!result&&(
               <>
                 <p className="admin-help" data-sms-confirm="">
-                  {ts('dialog.costLine',{count:formatNumber(preview?.messages??0,en?'en':'bn'),cost:(preview?.cost??0).toFixed(2)})}
+                  {ts('dialog.costLine',{count:formatNumber(preview?.messages??0,digits),cost:(preview?.cost??0).toFixed(2)})}
                   {quietBlocked?` ${ts('dialog.queued')}`:''}
-                  {preview?.skippedCount?` ${ts('dialog.skippedDot',{count:formatNumber(preview.skippedCount,en?'en':'bn')})}`:''}
+                  {preview?.skippedCount?` ${ts('dialog.skippedDot',{count:formatNumber(preview.skippedCount,digits)})}`:''}
                 </p>
                 {sending&&(
                   <div className="sms-progress" data-sms-progress="" role="status" aria-live="polite">
@@ -498,7 +498,7 @@ export default function SendSmsDialog({open,onClose,request,templates,title,defa
           ):!result?(
             <button type="button" ref={sendRef} className="button sms-send" onClick={()=>void send()} disabled={!canSend||sending} data-sms-send="">
               {sending?<Loader2 aria-hidden="true" size={15} className="sms-spin" />:<Send aria-hidden="true" size={15} />}
-              {ts('dialog.sendCount',{count:formatNumber(preview?.messages??0,en?'en':'bn')})}
+              {ts('dialog.sendCount',{count:formatNumber(preview?.messages??0,digits)})}
             </button>
           ):(
             <button type="button" className="button button-navy" onClick={onClose} data-sms-done="">{ts('dialog.done')}</button>

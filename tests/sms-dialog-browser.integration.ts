@@ -143,7 +143,7 @@ async function run(){
     await openDialog(duesUrl,'স্মারক পাঠান');
     await expectSummary(/মোট 2 নম্বর · 2 বার্তা/,'the due list counts two numbers: the payer and the two siblings sharing one phone');
     const skippedText=await page.locator('[data-sms-skipped]').innerText();
-    assert.match(skippedText,/3টি নম্বর বাদ পড়েছে/,'three numbers are skipped and the operator is told');
+    assert.match(skippedText,/৩টি নম্বর বাদ পড়েছে/,'three numbers are skipped and the operator is told');
     assert.match(skippedText,/অপ্ট-আউট/,'one reason is opt-out');
     assert.match(skippedText,/নম্বর নেই/,'another is a missing number');
     assert.ok(!skippedText.includes('সরানো শিক্ষার্থী'),'a removed student is never even counted');
@@ -192,11 +192,11 @@ async function run(){
     assert.match(previewText,/প্রদানকারী শিক্ষার্থী/,'the student name was substituted');
     assert.match(previewText,/01733333332/,'and the shared number is previewed once, for both siblings');
     assert.ok(!previewText.includes('{'),'no chip survived into any message');
-    const characters=Number(await page.locator('[data-sms-characters]').innerText());
-    const messages=Number(await page.locator('[data-sms-messages]').innerText());
-    const segments=Number(await page.locator('[data-sms-segments]').innerText());
-    const cost=await page.locator('[data-sms-cost]').innerText();
-    const balance=await page.locator('[data-sms-balance]').innerText();
+    const characters=Number(ascii(await page.locator('[data-sms-characters]').innerText()));
+    const messages=Number(ascii(await page.locator('[data-sms-messages]').innerText()));
+    const segments=Number(ascii(await page.locator('[data-sms-segments]').innerText()));
+    const cost=ascii(await page.locator('[data-sms-cost]').innerText());
+    const balance=ascii(await page.locator('[data-sms-balance]').innerText());
     assert.ok(characters>50,'characters are counted');
     assert.equal(messages,2);
     assert.ok(segments>=messages,'a long Bangla body is split into 67-character segments');

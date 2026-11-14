@@ -26,7 +26,7 @@ export async function softDeleteItem(_:ActionState,form:FormData):Promise<Action
     const admin=await requireAdmin();
     const kind=kindSchema.safeParse(form.get('kind')),id=idSchema.safeParse(form.get('id'));
     if(!kind.success||!id.success)return {status:'error'};
-    const outcome=await softDelete(kind.data as RecycleKind,id.data,admin.id);
+    const outcome=await softDelete(kind.data as RecycleKind,id.data,admin.id,new Date(),await currentLocale());
     if(outcome.status==='blocked')return {status:'conflict',message:outcome.message};
     if(outcome.status==='missing')return {status:'error'};
     refreshBin();
@@ -58,7 +58,7 @@ export async function bulkDeleteItems(_:ActionState,form:FormData):Promise<Actio
     const language=await currentLocale();
     let done=0;const blocked:string[]=[];
     for(const id of ids){
-      const outcome=await softDelete(kind.data as RecycleKind,id,admin.id);
+      const outcome=await softDelete(kind.data as RecycleKind,id,admin.id,new Date(),language);
       if(outcome.status==='ok')done++;
       else if(outcome.status==='blocked')blocked.push(outcome.message);
     }

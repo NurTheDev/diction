@@ -18,7 +18,6 @@
  * error message, or a `console` line, and the duplicate-phone report hands out MASKED numbers only —
  * an aggregate result is the kind of thing that ends up pasted into a log.
  */
-import {getTranslations} from 'next-intl/server';
 import mongoose,{isValidObjectId,type FilterQuery} from 'mongoose';
 import {Lead,nextLeadId} from '@/models/Lead';
 import type {LeadPhoneRow,LeadFlagRow} from '@/models/Lead';
@@ -70,7 +69,7 @@ export type Refusal={ok:false;code:string;messageKey:string;messageParams:Record
 function refuse(code:string,messageKey:string,messageParams:Record<string,string|number>={}):Refusal{return {ok:false,code,messageKey,messageParams,...renderLeadPair(messageKey,messageParams)}}
 /* Stored flag rows keep both languages side by side so a lead written under one locale still explains
    itself under the other; the sentences themselves live in the catalogs. */
-import {renderLeadPair} from './lead-message';
+import {renderLeadPair,renderLeadText} from './lead-message';
 import bnMessages from '@/messages/bn.json';
 import enMessages from '@/messages/en.json';
 const resolveMessage=(catalog:unknown,key:string):string=>key.split('.').reduce((node:unknown,part:string)=>(node as Record<string,unknown>)?.[part],catalog) as string;
@@ -465,7 +464,7 @@ export interface LeadPhoneSearchResult{
   total:number;
   /** What the UI may echo back: a mask, never the digits that were typed. */
   masked:string;
-  code:string;messageKey:string;messageParams:Record<string,string|number>;
+  code:string;messageKey:string;messageParams:Record<string,string|number>;messageBn:string;messageEn:string;
 }
 
 /**
@@ -484,7 +483,7 @@ export interface LeadPhoneSearchResult{
  */
 export async function searchLeadsByPhone(raw:unknown,now:Date=new Date(),limit=25,actorId?:string):Promise<LeadPhoneSearchResult>{
   const read=phoneSearchDigits(raw);
-  if(read.ok===false)return {status:'refused',hits:[],total:0,masked:'—',code:read.code,messageKey:read.messageKey,messageParams:read.messageParams};
+  if(read.ok===false)return {status:'refused',hits:[],total:0,masked:'—',code:read.code,messageKey:read.messageKey,messageParams:read.messageParams,...renderLeadPair(read.messageKey,read.messageParams)};
   const filter={'phones.normalized':{$regex:new RegExp(regexEscape(read.digits))}};
   const [docs,total]=await Promise.all([
     Lead.find(filter).sort({date:-1,createdAt:-1}).limit(limit).lean<LeadDoc[]>(),
@@ -498,8 +497,9 @@ export async function searchLeadsByPhone(raw:unknown,now:Date=new Date(),limit=2
     followUp:followUpState(doc.nextFollowUp,now),date:doc.date,
     phones:(doc.phones||[]).map(phone=>({normalized:phone.normalized,original:phone.original,tel:telHref(phone.normalized),whatsapp:whatsappHref(phone.normalized),masked:maskPhone(phone.normalized)})),
   }));
+  const searchKey=hits.length?'':'errors.SEARCH_EMPTY';
   return {status:hits.length?'found':'empty',hits,total,masked:phoneSearchMask(read.digits),code:'',
-    messageKey:hits.length?'':'errors.SEARCH_EMPTY',messageParams:{}};
+    messageKey:searchKey,messageParams:{},...(searchKey?renderLeadPair(searchKey):{messageBn:'',messageEn:''})};
 }
 
 export interface LeadListParams{
@@ -834,7 +834,7 @@ async function handoffLead(id:string){
     .lean<{leadId:string;status:string;phones:{normalized:string;original:string}[];admission:unknown;trialBooking:unknown;deletedAt:Date|null}|null>();
 }
 
-export async function convertLeadToAdmission(leadId:string,input:HandoffAdmissionInput,actorId:string,now:Date=new Date()):Promise<HandoffWriteOk|Refusal|HandoffRefusal>{
+export async function convertLeadToAdmission(leadId:string,input:HandoffAdmissionInput,actorId:string,now:Date=new Date(),language:'bn'|'en'='bn'):Promise<HandoffWriteOk|Refusal|HandoffRefusal>{
   if(!input.consent)return refuse('NO_CONSENT','errors.NO_CONSENT');
   const lead=await handoffLead(leadId);
   if(!lead)return refuse('MISSING','errors.MISSING');
@@ -856,7 +856,7 @@ export async function convertLeadToAdmission(leadId:string,input:HandoffAdmissio
       admissionId=String(row[0]._id);
       await Lead.updateOne({_id:leadId},{
         $set:{admission:row[0]._id,status:HANDOFF_STATUS.admission,convertedAt:now},
-        $push:{notes:{at:now,by:actorId,text:(await getTranslations('leads'))('noteTemplates.admissionOpened',{reference}),outcome:'interested'}},
+        $push:{notes:{at:now,by:actorId,text:renderLeadText(language,'noteTemplates.admissionOpened',{reference}),outcome:'interested'}},
       },{runValidators:true,session});
     });
     await audit(actorId,'lead.admission',lead.leadId);
@@ -868,7 +868,7 @@ export interface HandoffTrialInput{
   slotId:string;slotStartAt:string;slotEndAt:string;grade:string;subject:string;consent:boolean;email?:string;
   studentName:string;
 }
-export async function bookLeadTrial(leadId:string,input:HandoffTrialInput,actorId:string,now:Date=new Date()):Promise<HandoffWriteOk|Refusal|HandoffRefusal>{
+export async function bookLeadTrial(leadId:string,input:HandoffTrialInput,actorId:string,now:Date=new Date(),language:'bn'|'en'='bn'):Promise<HandoffWriteOk|Refusal|HandoffRefusal>{
   if(!input.consent)return refuse('NO_CONSENT','errors.NO_CONSENT_TRIAL');
   const lead=await handoffLead(leadId);
   if(!lead)return refuse('MISSING','errors.MISSING');
@@ -899,7 +899,7 @@ export async function bookLeadTrial(leadId:string,input:HandoffTrialInput,actorI
       bookingId=String(row[0]._id);
       await Lead.updateOne({_id:leadId},{
         $set:{trialBooking:row[0]._id,status:HANDOFF_STATUS.trial},
-        $push:{notes:{at:now,by:actorId,text:(await getTranslations('leads'))('noteTemplates.trialBooked',{reference}),outcome:'interested'}},
+        $push:{notes:{at:now,by:actorId,text:renderLeadText(language,'noteTemplates.trialBooked',{reference}),outcome:'interested'}},
       },{runValidators:true,session});
     });
     await audit(actorId,'lead.trial',lead.leadId);
