@@ -3,16 +3,18 @@ Staff SMS policy: admin and super admin keep every source, every template, free 
 
 
 --- tests/sms-staff.integration.ts (exit 1) ---
-AssertionError [ERR_ASSERTION]: yesterday is another day, and a chunk that sent nothing counts as nothing
+AssertionError [ERR_ASSERTION]: and the dialog stops quoting a limit that is not in force
++ actual - expected
 
-7 !== 0
++ undefined
+- null
 
-    at run (/home/runner/work/diction/diction/tests/sms-staff.integration.ts:108:12)
+    at run (/home/runner/work/diction/diction/tests/sms-staff.integration.ts:164:12)
     at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {
   generatedMessage: false,
   code: 'ERR_ASSERTION',
-  actual: 7,
-  expected: 0,
+  actual: undefined,
+  expected: null,
   operator: 'strictEqual',
   diff: 'simple'
 }

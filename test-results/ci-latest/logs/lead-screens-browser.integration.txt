@@ -1,10 +1,10 @@
-locator.innerText: Timeout 60000ms exceeded.
+locator.waitFor: Timeout 60000ms exceeded.
 Call log:
-  - waiting for locator('.sms-overlay').locator('[data-sms-daily]')
+  - waiting for locator('.sms-overlay').locator('[data-sms-result]') to be visible
 
-    at run (/home/runner/work/diction/diction/tests/lead-screens-browser.integration.ts:859:68) {
+    at run (/home/runner/work/diction/diction/tests/lead-screens-browser.integration.ts:882:53) {
   log: [
-    "  - waiting for locator('.sms-overlay').locator('[data-sms-daily]')"
+    "  - waiting for locator('.sms-overlay').locator('[data-sms-result]') to be visible"
   ],
   name: 'TimeoutError'
 }
