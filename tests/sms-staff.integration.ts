@@ -177,10 +177,14 @@ async function run(){
     assert.equal(automatic.body.ok,true);
     assert.equal(automatic.body.daily,null,'no role, no allowance, nothing to report');
 
-    // ── 8. The allowance is per USER: the owner's own day is untouched by what the desk spent.
+    // ── 8. The allowance is per USER, and the proof is that each of them is quoted their OWN day: the
+    //       owner on the nine-message batch seeded in section 3, the desk on the three it actually sent.
+    //       Neither number appears in the other's answer, which is the whole claim.
+    assert.equal(await sentMessagesToday(bossId,now),9,'the owner’s day holds the owner’s batch');
+    assert.equal(await sentMessagesToday(deskId,now),3,'and the desk’s day holds the desk’s own three — the thanked one plus the pair sent after the ceiling was lifted');
     const bossPreview=await runSmsDialog({mode:'preview',source:'lead',id:three.id,requestId:randomUUID(),...base},bossId,{now,role:'admin',provider:fake.provider});
     answers.push(bossPreview.body);
-    assert.deepEqual(bossPreview.body.daily,{limit:1,sent:0,remaining:1},'the desk spent its allowance, not the owner’s');
+    assert.deepEqual(bossPreview.body.daily,{limit:1,sent:9,remaining:0},'the owner is counted on their own nine, not on the desk’s one');
 
     // ── 9. And none of it put a visitor's number, or a family key, into an answer a screen reads back.
     for(const body of answers){
