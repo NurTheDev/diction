@@ -757,3 +757,86 @@ thank-you that goes out and is logged against the visitor; a second one stopped 
 Bangla sentence on screen and nothing logged (`b2-visitor-staff-limit-360`); and the staff Overview at both
 widths, with the board's own two numbers and none of the owner's panels
 (`b2-staff-overview-{360,1440}`). Both sends go through `SMS_PROVIDER=mock`.
+
+## 13. The three hand-offs a visitor row owes (R3.13, R3.14)
+
+The owner's order for what is left of R3 starts here: **convert to admission**, **book a trial**, and
+**mark not interested — with a reason required**. All three now live in the Visitors drawer, under the
+row's own facts and above the notes timeline, because a hand-off is the next step and its answer (a
+status, a note) lands in the timeline underneath it.
+
+### What a hand-off is allowed to know before it is written
+
+A hand-off form is served HTML, so the privacy rule that governs the list governs it too: **no digits and
+no family key**. `admissionPrefill()` and `trialPrefill()` in `src/lib/leads/lead-handoff.ts` copy the
+name, the guardian, the school and the class a lead holds, and hand the browser the number as
+`maskPhone()` in a read-only box with the sentence **নাম্বার লিড থেকেই বসবে — এখানে লিখতে হবে না।**
+beside it. The number itself is read off the lead's own record by `convertLeadToAdmission()` and
+`bookLeadTrial()` at write time, so it never crosses the wire in either direction and a form left open on
+a desk shows the same `01****90` the list shows.
+
+Nothing is guessed. A lead with no guardian fills no guardian; a class of 3 offers no grade at all,
+because the intake schema starts at 4 and a pre-filled grade it would reject is a form that fails on
+submit; a lead with no number cannot be handed over either way (`NO_PHONE`) but can still be closed with
+a reason.
+
+### What stops a hand-off before it writes
+
+| Refusal | When |
+| --- | --- |
+| `ALREADY_CONVERTED` | the lead already points at an admission — the button is switched off with the reason as its title, and a second attempt is refused server-side too |
+| `ALREADY_BOOKED` | the same, for a trial |
+| `NO_PHONE` | the lead holds no number, so there is nothing to reach |
+| `BINNED` | the lead is in the Recycle Bin — the operator's next move is *restore*, not a form |
+| `NO_CONSENT` | consent is not a checkbox the server trusts: without it neither hand-off writes |
+| `SLOT_FULL` / `SLOT_GONE` | the class has no seat left, or it is switched off or already started |
+| `NO_REASON` / `REASON_TOO_SHORT` / `REASON_TOO_LONG` | "not interested" with nothing, with two characters, or with more than 200 |
+
+Each carries a sentence in both languages, and each is checked again at write time — the disabled button
+is a courtesy, never the gate.
+
+### The writes
+
+Both hand-offs are one transaction: the intake row and the lead that points at it are written together or
+not at all, because a lead marked *admitted* with no admission behind it is a promise the intake screen
+cannot open, and an admission with no lead behind it has lost every call that earned it.
+
+- **Admission** — `Admission` with the intake screen's own `ADM-YYYY-…` reference, `status:'pending'`
+  (a hand-off opens an application, it does not decide it), the lead's number, and the operator's
+  answers; the lead moves to `admitted` with `convertedAt` set and a note naming the reference.
+- **Trial** — the seat is taken with the same guarded increment the public booking uses
+  (`$expr: {$lt:['$booked','$capacity']}`), so two operators cannot sell the last seat twice and a
+  hand-off can never oversell a class the public form is also filling; `TrialBooking` gets a `TRI-YYYY-…`
+  reference and the lead moves to `trial_booked`. The slot list is asked for when the dialog opens and
+  again whenever the class or subject changes, because a seat is a fact of the moment.
+- **Not interested** — the lead moves to `not_interested` and the reason is filed as a note tagged
+  `not_interested`, trimmed and collapsed to one line, against the operator who wrote it.
+
+The three statuses are the vocabulary's own (`admitted`, `trial_booked`, `not_interested`); no fourth was
+invented for the occasion, and `HANDOFF_STATUS` in the rule layer is the one place that names them. Every
+hand-off audits with the readable id (`lead.admission`, `lead.trial`, `lead.not_interested`) and no digit.
+
+### Proof
+
+`tests/lead-handoff.test.ts` proves the rules with no database: the three statuses against the
+vocabulary, a prefill that carries the mask and no eleven digits and no family key, an empty lead filling
+nothing, the class-4 floor, every refusal with a sentence in both languages, the reason's three refusals
+and its trim, which seat is bookable (the last seat still a seat, an unreadable time never offered), and
+400 references without one repeat. `tests/lead-handoff.integration.ts` proves the writes: one admission
+and one lead in the same breath, `ALREADY_CONVERTED` writing no second row, a booking that takes its seat
+and a second one that refuses without taking one, the offered slot list excluding the full, the switched
+off and the past, `SLOT_FULL` and `SLOT_GONE` leaving the lead where it was, the empty and two-character
+reasons changing nothing, a real reason filed as one note against its writer, `BINNED` for all three,
+`NO_PHONE` for both hand-offs but not for the close, `NO_CONSENT` writing nothing, and the drawer's view
+carrying masks with no number and no family key. Registry rows **R3.13** (`test:lead:handoff`) and
+**R3.14** (the browser suite) — the registry is 41 rows now.
+
+`tests/lead-handoff-browser.integration.ts` drives all three at both widths and photographs them into
+`screenshots/r3/`: the admission form prefilled and masked at 360 px and 1440 px
+(`b3-handoff-admission-{360,1440}`), written into one pending admission and then switched off with the
+reason on screen (`b3-handoff-blocked-1440`); the trial dialog offering only the class with a seat left
+(`b3-handoff-trial-{1440,360}`); and the reason dialog with its save button off for two characters, a
+chip filling a real one, and the reason reading back in the timeline
+(`b3-handoff-reason-{1440,360}`). A staff account drives all three, nothing overflows at 360 px, and
+after every hand-off the visitor's number still exists in the served HTML only as its `tel:` and `wa.me`
+destinations.

@@ -15,7 +15,7 @@ Written confirmations, requirement by requirement, with the tests that prove the
 
 ```bash
 npm ci
-npm run verify          # everything, headless: 35 requirements, screenshots included
+npm run verify          # everything, headless: 41 requirements, screenshots included
 ```
 
 or by hand, against a disposable database that cannot touch real data:
@@ -138,9 +138,25 @@ into an artifact, dispatch the workflow with `publish_screenshots` (see
 - **A staff Overview is the queue (R3.12).** Signing in as staff opens **আজকের ফলো-আপ** and nothing else:
   today's count, the count already overdue, the next names and the link to the whole queue. The intake
   counters, the checklist and the automatic-SMS problems stay on the admin Overview.
+- **The three hand-offs (R3.13, R3.14).** Open a visitor and the drawer now carries **হ্যান্ড-অফ** with
+  three buttons: **ভর্তি আবেদন** (convert to admission), **ট্রায়াল বুক** (book a trial) and **আগ্রহী নন**
+  (not interested).
+  - *ভর্তি আবেদন* opens a form that already holds the name, the guardian, the school and the class the
+    lead carries. The number shows as **০১\*\*\*\*৯০** in a box you cannot type into, because it is copied
+    from the lead when you save — you never retype it and it is never printed. Fill the date of birth,
+    the relation, the subjects, save, and you get the application's own reference (**ADM-2026-…**) back;
+    the visitor's status becomes **ভর্তিকৃত** and the button switches off, because it is done.
+  - *ট্রায়াল বুক* asks for the class and the subject, then lists only the batches that are switched on,
+    still ahead and have a seat left, each with **১ আসন বাকি** beside it. Save and the seat is taken and
+    the status becomes **ট্রায়াল বুক**. If the class filled while you were looking, you are told so and
+    nothing is written.
+  - *আগ্রহী নন* will not close a visitor without a reason — the save button stays off until you write one
+    (a tap on **অন্য কোচিংয়ে ভর্তি**, **সময় মিলছে না**, **ফি বেশি** or **এখন প্রয়োজন নেই** fills it for
+    you). The reason is filed as a note in the timeline, tagged **আগ্রহী নন**, with your name on it.
 - **The import wizard** (xlsx/csv, dry run, preview, flagged rows, unknown-column questions, Bangla
   comments as the first note, undo, idempotent re-import) — wave C. The reading rules it needs are
   already written and proven (R3.2–R3.4); nothing reads a spreadsheet yet.
 - **Duplicate-phone "add as sibling / merge these two"** as a dialog — the detection and the family key
   are live, the two-record decision is wave C's.
-- **Convert to admission/student, book a trial, funnel reports, CSV export** — wave C.
+- **Convert to a student** (a hand-off that makes a Centre student rather than an application),
+  **funnel reports and CSV export** — still owed, in the owner's order after the import wizard.

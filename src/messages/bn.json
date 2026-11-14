@@ -2069,6 +2069,27 @@
     "dupMatesTitle": "এই নাম্বারটি আরও যেসব লিডে আছে",
     "dupTie": "একই পরিবারে যুক্ত করুন",
     "dupMerge": "এই লিডে মিলিয়ে নিন",
-    "dupMergeConfirm": "অন্য লিডটির নোট ও নাম্বারসহ সব এখানে চলে আসবে এবং লিডটি বিনে যাবে। নিশ্চিত?"
+    "dupMergeConfirm": "অন্য লিডটির নোট ও নাম্বারসহ সব এখানে চলে আসবে এবং লিডটি বিনে যাবে। নিশ্চিত?",
+    "handoffTitle": "হ্যান্ড-অফ",
+    "handoffHint": "ভিজিটরকে পরের ধাপে পাঠান — ভর্তি আবেদন, ট্রায়াল ক্লাস, অথবা আগ্রহী নন।",
+    "handoffAdmission": "ভর্তি আবেদন",
+    "handoffTrial": "ট্রায়াল বুক",
+    "handoffNotInterested": "আগ্রহী নন",
+    "handoffBlocked": "এই হ্যান্ড-অফ এখন খোলা যাবে না",
+    "handoffPhoneMask": "মোবাইল (লিড থেকে)",
+    "handoffPhoneNote": "নাম্বার লিড থেকেই বসবে — এখানে লিখতে হবে না।",
+    "handoffConsent": "অভিভাবকের সম্মতি নেওয়া হয়েছে",
+    "handoffReason": "কারণ (আবশ্যক)",
+    "handoffReasonHint": "কেন আগ্রহী নন — এই লেখা টীকা হিসেবে টাইমলাইনে থেকে যাবে।",
+    "handoffReasonPlaceholder": "যেমন: অন্য কোচিংয়ে ভর্তি হয়ে গেছে",
+    "handoffSlot": "ক্লাসের সময়",
+    "handoffSlotNone": "এই মুহূর্তে খোলা কোনো ক্লাস নেই — আগে ব্যাচ তালিকায় একটি সময় যোগ করুন।",
+    "handoffSlotLoading": "খোলা ক্লাস খোঁজা হচ্ছে…",
+    "handoffSeats": "আসন বাকি",
+    "handoffSubject": "বিষয়",
+    "handoffSave": "সংরক্ষণ",
+    "handoffCancel": "বাতিল",
+    "handoffDone": "হ্যান্ড-অফ সম্পন্ন",
+    "handoffClose": "বন্ধ"
   }
 }

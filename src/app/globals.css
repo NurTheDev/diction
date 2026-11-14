@@ -570,6 +570,24 @@ html:lang(bn) .public-motion-root:not(.private-motion-disabled) :is(h1,h2,h3,h4)
    .admin-badge for a status. New here are only the drawer's notes timeline, the
    status chips, the flag line under a name, and the quick-add footer. */
 .overview-drawer h3{font-size:17px;margin:20px 0 8px;color:#1a1d3a}
+/* R3.13 · the hand-off strip and its three dialogs. Their own block because a hand-off form is the one
+   place in the drawer with many fields, and at 360px it has to stay one column with 44px targets. */
+.lead-handoff{margin-top:18px;padding-top:14px;border-top:1px solid #d9deee}
+.lead-handoff h3{margin:0 0 4px}
+.lead-handoff .overview-drawer-actions{margin-top:8px}
+.lead-handoff-form{display:grid;gap:12px}
+.lead-handoff-form label{display:grid;gap:5px;font-size:14px;font-weight:600;color:#1a1d3a}
+.lead-handoff-form label.admin-check{display:flex;align-items:center;gap:8px;font-weight:500}
+.lead-handoff-form :is(.admin-input,.admin-select,textarea.admin-input){width:100%;min-width:0;min-height:44px;font-size:15px}
+.lead-handoff-form input[readonly]{background:#f4f5fb;color:#4a5072}
+.lead-handoff-form fieldset{border:1px solid #d9deee;border-radius:8px;padding:10px 12px;display:grid;gap:8px}
+.lead-handoff-form legend{font-size:14px;font-weight:700;color:#1a1d3a;padding:0 4px}
+.lead-handoff-slots label{display:flex;align-items:center;gap:8px;font-weight:500}
+.lead-handoff-slots small{display:block;color:#4a5072;font-weight:400}
+.lead-handoff-chips{display:flex;flex-wrap:wrap;gap:8px}
+.lead-handoff-chips .admin-badge{border:1px solid #dfe3ee;background:#fff;color:#2e3192;min-height:36px;display:inline-flex;align-items:center}
+.lead-handoff-error{color:#b3141a;font-size:14px;font-weight:600;margin:0}
+@media(max-width:760px){.lead-handoff-form{gap:14px}.lead-handoff-form .button{width:100%;justify-content:center}}
 .lead-notes{list-style:none;margin:0;padding:0;display:grid;gap:10px}
 .lead-notes li{border-top:1px solid #d9deee;padding-top:8px;overflow-wrap:anywhere}
 .lead-notes small{display:block;color:#4a5072;font-size:14px}

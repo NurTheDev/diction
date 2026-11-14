@@ -22,8 +22,9 @@
 import {revalidatePath} from 'next/cache';
 import {requireArchiver} from '@/lib/admin/guard';
 import {
-  addLeadNote,createQuickLead,leadDetailByKey,mergeLeads,searchLeadsByPhone,setContactPermission,
-  setLeadFollowUp,tieLeadFamily,updateLeadStatus,
+  addLeadNote,bookLeadTrial,convertLeadToAdmission,createQuickLead,leadDetailByKey,markLeadNotInterested,
+  mergeLeads,searchLeadsByPhone,setContactPermission,setLeadFollowUp,tieLeadFamily,trialSlotsForLead,
+  updateLeadStatus,
 } from '@/lib/leads/leads';
 import {
   detailView,FOLLOW_UP_CLEAR,searchHitViews,
@@ -201,4 +202,64 @@ export async function liftContactBlock(_:LeadFormState|null,form:FormData):Promi
     refreshLeads();
     return {status:'ok',messageBn:result.doNotContact?'এই লিডে যোগাযোগ বন্ধ রাখা হয়েছে।':'যোগাযোগের অনুমতি ফিরিয়ে দেওয়া হয়েছে।',messageEn:result.doNotContact?'This lead stays off the contact list.':'Contact allowed again.'};
   }catch(error){return refused(error)}
+}
+
+/**
+ * R3.13 · The three hand-offs. Each is a form the Visitors drawer opens, and each one carries the lead's
+ * Mongo id and nothing private: the phone is never posted from the browser, because the form never held
+ * it — the rule layer copies the number off the lead when the write happens. A refusal comes back with
+ * its code in `field`, so the dialog can point at the thing that stopped it.
+ */
+function subjectList(form:FormData):string[]{
+  return form.getAll('subjects').map(value=>String(value)).filter(Boolean).slice(0,5);
+}
+
+export async function submitLeadAdmission(_:LeadFormState|null,form:FormData):Promise<LeadFormState>{
+  try{
+    const staff=await requireArchiver();
+    const result=await convertLeadToAdmission(text(form,'id'),{
+      studentName:text(form,'studentName'),guardianName:text(form,'guardianName'),grade:text(form,'grade'),
+      school:text(form,'school'),dob:text(form,'dob'),gender:text(form,'gender'),relation:text(form,'relation'),
+      medium:text(form,'medium'),previousResult:text(form,'previousResult'),courseType:text(form,'courseType')||'individual',
+      subjects:subjectList(form),packageName:text(form,'packageName'),consent:true,email:text(form,'email'),
+    },String(staff.id));
+    if(result.ok===false)return {status:'error',messageBn:result.messageBn,messageEn:result.messageEn,field:result.code};
+    refreshLeads();refreshLeadPage(text(form,'id'));refreshIntake();
+    return {status:'ok',messageBn:`ভর্তি আবেদন খোলা হয়েছে: ${result.reference}`,messageEn:`Admission opened: ${result.reference}`};
+  }catch(error){return refused(error)}
+}
+
+export async function submitLeadTrial(_:LeadFormState|null,form:FormData):Promise<LeadFormState>{
+  try{
+    const staff=await requireArchiver();
+    const result=await bookLeadTrial(text(form,'id'),{
+      slotId:text(form,'slotId'),slotStartAt:text(form,'slotStartAt'),slotEndAt:text(form,'slotEndAt'),
+      grade:text(form,'grade'),subject:text(form,'subject'),studentName:text(form,'studentName'),
+      consent:true,email:text(form,'email'),
+    },String(staff.id));
+    if(result.ok===false)return {status:'error',messageBn:result.messageBn,messageEn:result.messageEn,field:result.code};
+    refreshLeads();refreshLeadPage(text(form,'id'));refreshIntake();
+    return {status:'ok',messageBn:`ট্রায়াল বুক হয়েছে: ${result.reference}`,messageEn:`Trial booked: ${result.reference}`};
+  }catch(error){return refused(error)}
+}
+
+export async function submitLeadNotInterested(_:LeadFormState|null,form:FormData):Promise<LeadFormState>{
+  try{
+    const staff=await requireArchiver();
+    const result=await markLeadNotInterested(text(form,'id'),text(form,'reason'),String(staff.id));
+    if(result.ok===false)return {status:'error',messageBn:result.messageBn,messageEn:result.messageEn,field:result.code};
+    refreshLeads();refreshLeadPage(text(form,'id'));
+    return {status:'ok',messageBn:'অবস্থা "আগ্রহী নন" হয়েছে এবং কারণটি টীকা হিসেবে জমা আছে।',messageEn:'Marked not interested, with the reason filed as a note.'};
+  }catch(error){return refused(error)}
+}
+
+/** The trial dialog asks for the slots it may offer when it opens: a seat is a fact of the moment. */
+export async function loadLeadTrialSlots(grade:string,subject:string):Promise<{id:string;startAt:string;endAt:string;grade:string;subject:string;seatsLeft:number}[]>{
+  await requireArchiver();
+  return trialSlotsForLead(grade,subject);
+}
+
+/** Admissions and trials both change when a lead is handed over, in either locale. */
+function refreshIntake():void{
+  for(const locale of ['bn','en']){revalidatePath(`/${locale}/admin/admissions`);revalidatePath(`/${locale}/admin/trials`)}
 }

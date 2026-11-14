@@ -2069,6 +2069,27 @@
     "dupMatesTitle": "Shares this number with",
     "dupTie": "Tie to one family",
     "dupMerge": "Merge into this lead",
-    "dupMergeConfirm": "Every note and number of the other lead moves here, and that lead goes to the bin. Are you sure?"
+    "dupMergeConfirm": "Every note and number of the other lead moves here, and that lead goes to the bin. Are you sure?",
+    "handoffTitle": "Hand-off",
+    "handoffHint": "Send this visitor to the next step — an admission, a trial class, or not interested.",
+    "handoffAdmission": "Convert to admission",
+    "handoffTrial": "Book a trial",
+    "handoffNotInterested": "Not interested",
+    "handoffBlocked": "This hand-off cannot be opened right now",
+    "handoffPhoneMask": "Phone (from the lead)",
+    "handoffPhoneNote": "The number is copied from the lead — nothing to type here.",
+    "handoffConsent": "Guardian consent was taken",
+    "handoffReason": "Reason (required)",
+    "handoffReasonHint": "Why — this text is filed as a note and stays in the timeline.",
+    "handoffReasonPlaceholder": "e.g. already admitted elsewhere",
+    "handoffSlot": "Class time",
+    "handoffSlotNone": "No open class right now — add a time in the batch list first.",
+    "handoffSlotLoading": "Looking for open classes…",
+    "handoffSeats": "seats left",
+    "handoffSubject": "Subject",
+    "handoffSave": "Save",
+    "handoffCancel": "Cancel",
+    "handoffDone": "Hand-off done",
+    "handoffClose": "Close"
   }
 }

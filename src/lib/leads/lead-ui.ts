@@ -8,6 +8,10 @@
  */
 // A type-only import: it is erased at compile time, so this file stays client-safe (see the header).
 import type {LeadSearchHit} from './leads';
+import {
+  admissionPrefill,handoffBlock,trialPrefill,
+  type AdmissionPrefill,type HandoffLead,type HandoffRefusal,type TrialPrefill,
+} from './lead-handoff';
 import {leadListQuery,maskPhone} from './vocab';
 import {telHref,whatsappHref} from './lead-phone';
 import {
@@ -127,6 +131,22 @@ export interface LeadDetailView{
   row:LeadRowView;notes:LeadNoteView[];family:LeadRowView[];
   /** Number-mates outside the family: the drawer's "shares this number with" block (R3.10). */
   dupMates:LeadDupHolderView[];
+  /**
+   * R3.13 · What the three hand-offs may open with. Built here, from the raw row, so the client that
+   * renders them can never be handed a number: the prefills carry names, a class, a school and a mask.
+   */
+  handoff:LeadHandoffView;
+}
+
+/** The hand-off strip's own view: prefills, and the refusal each hand-off would already meet. */
+export interface LeadHandoffView{
+  admission:AdmissionPrefill;
+  trial:TrialPrefill;
+  blockedAdmission:HandoffRefusal|null;
+  blockedTrial:HandoffRefusal|null;
+  /** `doNotContact` does not close a hand-off — a parent who said "stop calling" may still be admitted. */
+  doNotContact:boolean;
+  status:LeadStatus;
 }
 
 /** What `leads.ts` hands a screen: structurally the same row, with raw numbers still on it. */
@@ -163,8 +183,23 @@ export function rowView(row:LeadRowSource):LeadRowView{
   return {...shown,phones:phoneViews(row.phones),flags:(row.flags||[]).map(({original:_original,...flag})=>flag)};
 }
 
-export function detailView(detail:{row:LeadRowSource;notes:{at:Date;text:string;outcome:string;byName:string}[];family:LeadRowSource[];dupMates?:LeadDupHolderView[]}):LeadDetailView{
-  return {row:rowView(detail.row),notes:detail.notes||[],family:(detail.family||[]).map(rowView),dupMates:detail.dupMates||[]};
+export function detailView(detail:{row:LeadRowSource;notes:{at:Date;text:string;outcome:string;byName:string}[];family:LeadRowSource[];dupMates?:LeadDupHolderView[];handoffSource?:{admission:string|null;trialBooking:string|null}}):LeadDetailView{
+  const row=detail.row;
+  const handoffLead:HandoffLead={
+    id:String(row.id),leadId:row.leadId,studentName:row.studentName,guardianName:row.guardianName,
+    school:row.school,classGroup:row.classGroup,phones:row.phones||[],
+    admission:detail.handoffSource?.admission||null,trialBooking:detail.handoffSource?.trialBooking||null,
+  };
+  return {
+    row:rowView(row),notes:detail.notes||[],family:(detail.family||[]).map(rowView),dupMates:detail.dupMates||[],
+    handoff:{
+      admission:admissionPrefill(handoffLead),
+      trial:trialPrefill(handoffLead),
+      blockedAdmission:handoffBlock(handoffLead,'admission'),
+      blockedTrial:handoffBlock(handoffLead,'trial'),
+      doNotContact:row.doNotContact,status:row.status,
+    },
+  };
 }
 
 /**

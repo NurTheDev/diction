@@ -577,6 +577,16 @@ R0.11. Operator guide: `docs/R3-START-HERE.md`.
 send the visitor thank-you to a row or a selection, through the same dialog, with no custom text and no
 send-to-all, under a per-user daily ceiling written into SMS settings) and **R3.12** (a staff Overview is
 the follow-up panel — today's count and the overdue count — and none of the owner's other widgets). Both
-are described in `docs/R3-COVERAGE.md` §12 and photographed in `screenshots/r3/`. **Not in any wave yet,
-in the owner's order:** convert-to-admission / book-a-trial / mark-not-interested hand-offs, then the
-import wizard, then the funnel reports and CSV export.
+are described in `docs/R3-COVERAGE.md` §12 and photographed in `screenshots/r3/`.
+
+**Since that, the first of the three owed items landed (R3.13, R3.14):** the Visitors drawer now carries
+the three hand-offs — **convert to admission**, **book a trial** and **mark not interested**, the last
+only with a reason, because a status that closes a promise without saying why is a row nobody can work
+afterwards. Each writes its intake row and moves the lead in one transaction, takes the number off the
+lead's own record rather than off a form, mints the intake screen's own `ADM-`/`TRI-` reference, lands on
+a status the vocabulary already had, and takes a trial seat with the same guarded increment the public
+booking uses; a hand-off already done, a lead with no number, a binned lead, a missing consent, a full or
+past class and an empty reason each refuse with a sentence in both languages, and the prefills a form is
+allowed to carry are masks — no digits, no family key. Described in `docs/R3-COVERAGE.md` §13 and
+photographed at 360 px and 1440 px in `screenshots/r3/` (`b3-handoff-*`). **Still owed, in the owner's
+order:** the import wizard, then the funnel reports and CSV export.

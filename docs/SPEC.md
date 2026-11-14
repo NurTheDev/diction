@@ -249,6 +249,13 @@ timeline `[{at, by, text, outcome}]`, links to the converted admission/student/t
   Admin and Super Admin keep every source, every template, free text and the retry. Real sends carry a
   per-user daily limit, configurable in SMS settings, default 30, with a clear Bangla message when it is
   reached. Staff see "today's follow-ups" and the overdue count on the Overview.
+- **Owner decisions, 2026-11-12 (R3.13, R3.14)**: the remaining R3 work happens in this order — the
+  convert-to-admission / book-a-trial / mark-not-interested hand-offs first, **with a reason required for
+  not interested**, then the import wizard, then the funnel reports with CSV export. The hand-offs are
+  live: each writes its intake row and moves the lead in one transaction, takes the number off the lead's
+  own record rather than off a form, mints the intake screen's own `ADM-`/`TRI-` reference and lands on a
+  status the vocabulary already carried; a prefill may carry only what the lead holds, with the number as
+  a mask.
 - **Privacy**: store only what is needed; respect "Do not contact"; suggest (never auto-delete)
   archiving leads older than 18 months.
 
@@ -363,6 +370,7 @@ credentials, one real test SMS to the owner's own number.
 
 | Date | Change |
 | --- | --- |
+| 2026-11-12 | **R3 hand-offs implemented (R3.13, R3.14)**: convert-to-admission, book-a-trial and mark-not-interested in the Visitors drawer, the last with a reason required. One transaction per hand-off, the number copied from the lead and never posted by a form, the intake screen's own `ADM-`/`TRI-` references, the vocabulary's own three statuses, a trial seat taken with the public booking's guarded increment, and refusals in both languages for a hand-off already done, a lead with no number, a binned lead, a missing consent, a full or past class and an empty or over-long reason. Prefills are masks: no digits and no family key reach a hand-off form. Proven by `tests/lead-handoff.test.ts` + `tests/lead-handoff.integration.ts` (registry row R3.13) and `tests/lead-handoff-browser.integration.ts` (row R3.14, the registry now 41 rows), photographed at 360 px and 1440 px as `screenshots/r3/b3-handoff-*`. No requirement was weakened; the import wizard and the funnel reports with CSV export remain owed, in the owner's order. |
 | 2026-11-12 | Spec captured verbatim from the owner's brief (R0 item 3). R0 findings recorded in `docs/STATUS.md`; no requirement was weakened or removed. |
 | 2026-11-12 | Owner added §5.1 verification protocol (`npm run verify`, report, screenshots, `verify-output.zip`, status vocabulary). Owner decisions recorded in `docs/STATUS.md` §6: add a real `staff` role in R1; keep the five documented-but-missing features in their scheduled milestones. |
 | 2026-11-12 | **R2 wave A** implemented: BulkSMSBD provider exactly as its current official docs specify (three endpoints, Unicode for Bangla, one-to-many and different-messages, balance, all response codes in Bangla), credentials server-only and redacted, the six default template bodies byte for byte, the recipient rules (removed/opted-out never sent, held excluded from fee messages only, siblings merged, phones normalized and deduped), quiet hours in Asia/Dhaka, and the send engine (batches of 100, `insertMany` log rows with segments and cost, `requestId` idempotency, 1005-only auto-retry, explicit retry of failed rows, queueing). Proven as R2.1–R2.5 (run 43296844437). No requirement was weakened. |

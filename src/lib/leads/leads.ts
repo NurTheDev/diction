@@ -18,7 +18,7 @@
  * error message, or a `console` line, and the duplicate-phone report hands out MASKED numbers only —
  * an aggregate result is the kind of thing that ends up pasted into a log.
  */
-import {isValidObjectId,type FilterQuery} from 'mongoose';
+import mongoose,{isValidObjectId,type FilterQuery} from 'mongoose';
 import {Lead,nextLeadId} from '@/models/Lead';
 import type {LeadPhoneRow,LeadFlagRow} from '@/models/Lead';
 import {User} from '@/models/User';
@@ -32,6 +32,11 @@ import {
   type LeadDupDoc,type LeadDupNote,type LeadMergePlan,
 } from './lead-dup';
 import {restoreRecord,softDelete} from '@/lib/admin/recycle';
+import {Admission,Slot,TrialBooking} from '@/models/Intake';
+import {
+  HANDOFF_GRADES,HANDOFF_STATUS,handoffBlock,handoffReference,notInterestedReason,
+  type HandoffRefusal,
+} from './lead-handoff';
 import {
   CONTACTABLE_LEAD_FILTER,LEAD_STATUSES,LEAD_SOURCES,LEAD_GROUPS,LEAD_SHIFTS,LEAD_MEDIUMS,
   familyKeyFromPhones,followUpState,leadListQuery,maskPhone,nextFollowUpDay,statusToFlags,
@@ -560,7 +565,14 @@ export async function followUpBoard(now:Date=new Date(),limit=6):Promise<FollowU
 
 /** The drawer: one lead, its notes newest-first with the writer's name, and the rest of its family. */
 export interface LeadNoteView{at:Date;text:string;outcome:string;byName:string}
-export interface LeadDetail{row:LeadRow;notes:LeadNoteView[];family:LeadRow[];dupMates:LeadDupHolder[]}
+export interface LeadDetail{
+  row:LeadRow;notes:LeadNoteView[];family:LeadRow[];dupMates:LeadDupHolder[];
+  /**
+   * R3.13 · Which intake rows this lead already points at. Deliberately beside the row and not inside
+   * it: a Mongo id is neither a mask nor a label, and no list screen has any use for one.
+   */
+  handoffSource:{admission:string|null;trialBooking:string|null};
+}
 export async function leadDetail(id:string,now:Date=new Date()):Promise<LeadDetail|null>{
   const doc=await Lead.findById(id).lean<LeadDoc>();
   if(!doc)return null;
@@ -575,7 +587,10 @@ export async function leadDetail(id:string,now:Date=new Date()):Promise<LeadDeta
   // Number-mates outside the family (R3.10): the drawer's "shares a number with" block. Same-family
   // leads are already listed above it, so they are excluded here and never shown twice.
   const dupMates=await duplicateHolders((doc.phones||[]).map(phone=>phone.normalized),{excludeId:String(doc._id),excludeFamilyKey:doc.familyKey});
-  return {row:toRow(doc,now),notes,family,dupMates};
+  // R3.13 · The two pointers that decide whether a hand-off is still open. They ride beside the row
+  // rather than inside it, so no list screen has to carry an id it does not print.
+  return {row:toRow(doc,now),notes,family,dupMates,
+    handoffSource:{admission:doc.admission?String(doc.admission):null,trialBooking:doc.trialBooking?String(doc.trialBooking):null}};
 }
 
 /**
@@ -787,4 +802,137 @@ export function readSheetValues(cells:{group?:unknown;medium?:unknown;shift?:unk
   group:LeadGroup|null;medium:LeadMedium|null;shift:LeadShift|null;source:LeadSource|null;
 }{
   return {group:normalizeGroup(cells.group),medium:normalizeMedium(cells.medium),shift:normalizeShift(cells.shift),source:normalizeSource(cells.source)};
+}
+
+/**
+ * R3.13 · The three hand-offs. Each one is a single transaction: the intake row and the lead that
+ * points at it are written together or not at all, because a lead marked "admitted" with no admission
+ * behind it is a promise the intake screen cannot open, and an admission with no lead behind it has
+ * lost the history of every call that earned it. The phone is copied from the lead's own record here —
+ * the form that asked for this never held digits, only a mask.
+ */
+export interface HandoffAdmissionInput{
+  studentName:string;guardianName:string;grade:string;school:string;dob:string;gender:string;relation:string;
+  medium:string;previousResult:string;courseType:string;subjects:string[];packageName:string;
+  consent:boolean;email?:string;
+}
+export type HandoffWriteOk={ok:true;id:string;leadId:string;reference:string};
+
+async function handoffLead(id:string){
+  if(!id||!mongoose.isValidObjectId(id))return null;
+  // `recycleAny` on purpose: a binned lead must be refused AS binned, not vanish into "not found",
+  // because the operator's next move is the Recycle Bin, not a second click.
+  return Lead.findById(id).select('leadId status phones admission trialBooking deletedAt').setOptions({recycleAny:true})
+    .lean<{leadId:string;status:string;phones:{normalized:string;original:string}[];admission:unknown;trialBooking:unknown;deletedAt:Date|null}|null>();
+}
+
+export async function convertLeadToAdmission(leadId:string,input:HandoffAdmissionInput,actorId:string,now:Date=new Date()):Promise<HandoffWriteOk|Refusal|HandoffRefusal>{
+  if(!input.consent)return refuse('NO_CONSENT','সম্মতি ছাড়া ভর্তি আবেদন খোলা যায় না।','An admission cannot be opened without consent.');
+  const lead=await handoffLead(leadId);
+  if(!lead)return refuse('MISSING','লিডটি খুঁজে পাওয়া যায়নি।','That lead was not found.');
+  if(lead.deletedAt)return refuse('BINNED','বিনে থাকা লিড থেকে ভর্তি খোলা যায় না — আগে ফেরত আনুন।','A binned lead cannot be converted — restore it first.');
+  const block=handoffBlock({admission:lead.admission?String(lead.admission):null,trialBooking:lead.trialBooking?String(lead.trialBooking):null,phones:lead.phones||[]},'admission');
+  if(block)return block;
+  const reference=handoffReference('ADM',now);
+  const phone=(lead.phones||[])[0]?.normalized||'';
+  const session=await mongoose.startSession();
+  try{
+    let admissionId='';
+    await session.withTransaction(async()=>{
+      const row=await Admission.create([{
+        reference,studentName:input.studentName,guardianName:input.guardianName,grade:input.grade,school:input.school,
+        dob:input.dob,gender:input.gender,relation:input.relation,medium:input.medium,previousResult:input.previousResult,
+        courseType:input.courseType,subjects:input.subjects,packageName:input.packageName,consent:true,
+        phone,whatsapp:'',email:String(input.email||''),status:'pending',notes:'',
+      }],{session});
+      admissionId=String(row[0]._id);
+      await Lead.updateOne({_id:leadId},{
+        $set:{admission:row[0]._id,status:HANDOFF_STATUS.admission,convertedAt:now},
+        $push:{notes:{at:now,by:actorId,text:`ভর্তি আবেদন খোলা হয়েছে: ${reference}`,outcome:'interested'}},
+      },{runValidators:true,session});
+    });
+    await audit(actorId,'lead.admission',lead.leadId);
+    return {ok:true,id:admissionId,leadId:lead.leadId,reference};
+  }catch(error){return writeRefusal(error)}finally{await session.endSession()}
+}
+
+export interface HandoffTrialInput{
+  slotId:string;slotStartAt:string;slotEndAt:string;grade:string;subject:string;consent:boolean;email?:string;
+  studentName:string;
+}
+export async function bookLeadTrial(leadId:string,input:HandoffTrialInput,actorId:string,now:Date=new Date()):Promise<HandoffWriteOk|Refusal|HandoffRefusal>{
+  if(!input.consent)return refuse('NO_CONSENT','সম্মতি ছাড়া ট্রায়াল বুক করা যায় না।','A trial cannot be booked without consent.');
+  const lead=await handoffLead(leadId);
+  if(!lead)return refuse('MISSING','লিডটি খুঁজে পাওয়া যায়নি।','That lead was not found.');
+  if(lead.deletedAt)return refuse('BINNED','বিনে থাকা লিড থেকে ট্রায়াল বুক করা যায় না — আগে ফেরত আনুন।','A binned lead cannot book a trial — restore it first.');
+  const block=handoffBlock({admission:lead.admission?String(lead.admission):null,trialBooking:lead.trialBooking?String(lead.trialBooking):null,phones:lead.phones||[]},'trial');
+  if(block)return block;
+  const slot=await Slot.findById(input.slotId).select('enabled startAt endAt booked capacity grade subject').lean<{enabled:boolean;startAt:Date;endAt:Date;booked:number;capacity:number;grade:string;subject:string}|null>();
+  if(!slot||slot.enabled===false||new Date(slot.startAt).getTime()<=now.getTime())
+    return refuse('SLOT_GONE','ক্লাসটি আর বুক করার মতো নেই — তালিকা থেকে নতুন সময় বাছুন।','That class is no longer open for booking — pick another time from the list.');
+  if((slot.booked||0)>=(slot.capacity||0))
+    return refuse('SLOT_FULL','এই ক্লাসে আর আসন নেই।','That class has no seat left.');
+  const reference=handoffReference('TRI',now);
+  const phone=(lead.phones||[])[0]?.normalized||'';
+  const session=await mongoose.startSession();
+  try{
+    let bookingId='';
+    await session.withTransaction(async()=>{
+      // The seat is taken with the same guarded increment the public booking uses, so a hand-off can
+      // never oversell a class the public form is also filling.
+      const taken=await Slot.findOneAndUpdate(
+        {_id:input.slotId,enabled:true,startAt:{$gt:now},$expr:{$lt:['$booked','$capacity']}},
+        {$inc:{booked:1}},{new:true,session});
+      if(!taken)throw Object.assign(new Error('SLOT_FULL'),{code:'SLOT_FULL'});
+      const row=await TrialBooking.create([{
+        reference,slot:input.slotId,studentName:input.studentName,phone,grade:input.grade,subject:input.subject,
+        email:String(input.email||''),consent:true,status:'booked',
+      }],{session});
+      bookingId=String(row[0]._id);
+      await Lead.updateOne({_id:leadId},{
+        $set:{trialBooking:row[0]._id,status:HANDOFF_STATUS.trial},
+        $push:{notes:{at:now,by:actorId,text:`ট্রায়াল ক্লাস বুক হয়েছে: ${reference}`,outcome:'interested'}},
+      },{runValidators:true,session});
+    });
+    await audit(actorId,'lead.trial',lead.leadId);
+    return {ok:true,id:bookingId,leadId:lead.leadId,reference};
+  }catch(error){
+    if((error as {message?:string}).message==='SLOT_FULL')
+      return refuse('SLOT_FULL','এই ক্লাসে আর আসন নেই।','That class has no seat left.');
+    return writeRefusal(error);
+  }finally{await session.endSession()}
+}
+
+export async function markLeadNotInterested(leadId:string,rawReason:unknown,actorId:string,now:Date=new Date()):Promise<{ok:true;leadId:string;noteCount:number}|Refusal|HandoffRefusal>{
+  const reason=notInterestedReason(rawReason);
+  if(!reason.ok)return reason;
+  const lead=await handoffLead(leadId);
+  if(!lead)return refuse('MISSING','লিডটি খুঁজে পাওয়া যায়নি।','That lead was not found.');
+  if(lead.deletedAt)return refuse('BINNED','বিনে থাকা লিডের অবস্থা বদলানো যায় না — আগে ফেরত আনুন।','A binned lead cannot change status — restore it first.');
+  const updated=await Lead.findByIdAndUpdate(leadId,{
+    $set:{status:HANDOFF_STATUS.notInterested},
+    $push:{notes:{at:now,by:actorId,text:reason.reason,outcome:'not_interested'}},
+  },{new:true,runValidators:true}).select('notes leadId').lean<{notes:unknown[];leadId:string}|null>();
+  if(!updated)return refuse('MISSING','লিডটি খুঁজে পাওয়া যায়নি।','That lead was not found.');
+  await audit(actorId,'lead.not_interested',updated.leadId);
+  return {ok:true,leadId:updated.leadId,noteCount:(updated.notes||[]).length};
+}
+
+/**
+ * The trial slots a hand-off may offer. Filtered by the same seat test the rule layer applies to a
+ * booking, and graded by the lead's own class when the operator has not chosen otherwise — the list is
+ * what the dialog shows, so a slot that is full or already past never reaches the screen as an option.
+ */
+export async function trialSlotsForLead(grade:string,subject:string,now:Date=new Date(),limit=40):Promise<{id:string;startAt:string;endAt:string;grade:string;subject:string;seatsLeft:number}[]>{
+  const filter:Record<string,unknown>={enabled:true,startAt:{$gt:now},$expr:{$lt:['$booked','$capacity']}};
+  if(grade&&HANDOFF_GRADES.includes(grade as typeof HANDOFF_GRADES[number]))filter.grade=grade;
+  if(subject)filter.subject=subject;
+  const rows=await Slot.find(filter).sort({startAt:1}).limit(limit)
+    .select('startAt endAt grade subject booked capacity')
+    .lean<{_id:unknown;startAt:Date;endAt:Date;grade:string;subject:string;booked:number;capacity:number}[]>();
+  return rows.map(row=>({
+    id:String(row._id),startAt:new Date(row.startAt).toISOString(),endAt:new Date(row.endAt).toISOString(),
+    grade:String(row.grade||''),subject:String(row.subject||''),
+    seatsLeft:Math.max(0,(Number(row.capacity)||0)-(Number(row.booked)||0)),
+  }));
 }

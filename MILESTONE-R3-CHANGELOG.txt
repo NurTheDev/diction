@@ -394,8 +394,46 @@ Wave A — foundations, no UI:
     1440 px. Section 10's old assertion that a staff account sees no picker at all was replaced rather
     than left to rot: it described a screen the owner has now changed.
 
-Owed, stated plainly, in the order the owner fixed: the convert-to-admission / book-a-trial /
-mark-not-interested hand-offs (a reason required for not interested), then the import wizard with dry run
+23. The three hand-offs a visitor row owes (R3.13 rules and writes, R3.14 in the browser).
+    The Visitors drawer now carries a hand-off strip under the row's own facts and above the notes
+    timeline, with three buttons: convert to admission, book a trial, and mark not interested — the last
+    only with a reason, because a status that closes a promise without saying why is a row nobody can
+    work afterwards. Each hand-off writes its intake row and moves the lead in ONE transaction, so a lead
+    can never claim an admission that does not exist; the number on the intake row is copied from the
+    lead's own record at write time and is never posted by a form, which is also why a hand-off form
+    shows the number as a mask in a read-only box — a prefill is served HTML, and served HTML gets the
+    list screen's rule: no digits, no family key. Nothing is guessed: a lead with no guardian fills no
+    guardian, a class below four offers no grade because the intake schema would refuse it, and a lead
+    with no number cannot be handed over either way though it can still be closed with a reason. The
+    references are the intake screen's own ADM- and TRI- shapes, so a handed-over row and a public form
+    row are indistinguishable in the list, in tracking and in an export, and the three statuses are the
+    vocabulary's own admitted, trial_booked and not_interested rather than a fourth invented for the
+    occasion. A trial seat is taken with the same guarded increment the public booking uses, so two
+    operators cannot sell the last seat twice and a hand-off can never oversell a class the public form is
+    also filling; the slot list is asked for when the dialog opens and again when the class or subject
+    changes, because a seat is a fact of the moment. Refusals, each with a sentence in both languages and
+    each re-checked at write time so a disabled button is a courtesy and never the gate: a hand-off
+    already done (ALREADY_CONVERTED, ALREADY_BOOKED), no number (NO_PHONE), a binned lead (BINNED — the
+    next move is restore, not a form), consent the server does not simply trust (NO_CONSENT), a class
+    that is full (SLOT_FULL) or switched off or already started (SLOT_GONE), and a reason that is empty,
+    two characters or over two hundred (NO_REASON, REASON_TOO_SHORT, REASON_TOO_LONG). A reason that is
+    real is filed trimmed and collapsed to one line as a note tagged not_interested against the operator
+    who wrote it, and every hand-off audits the readable id and no digit.
+    Proven by tests/lead-handoff.test.ts (the rules with no database, including 400 references without a
+    repeat and a prefill that carries the mask and no eleven digits) and tests/lead-handoff.integration.ts
+    (the writes: one admission and one lead in the same breath, a second convert writing no second row, a
+    booking that takes its seat and a second one that refuses without taking one, the offered slot list
+    excluding the full, the switched off and the past, the empty and two-character reasons changing
+    nothing, BINNED for all three, NO_PHONE for both hand-offs but not for the close, NO_CONSENT writing
+    nothing, and the drawer's view carrying masks) — registry row R3.13, script test:lead:handoff; and by
+    tests/lead-handoff-browser.integration.ts, which drives all three at 360 px and 1440 px as an admin
+    and as a staff account, reads every write back from the database, measures overflow, and photographs
+    the three dialogs plus the switched-off strip into screenshots/r3 as b3-handoff-admission-{360,1440},
+    b3-handoff-trial-{1440,360}, b3-handoff-reason-{1440,360} and b3-handoff-blocked-1440 — registry row
+    R3.14. The registry is 41 rows. A duplicate test:sms:staff script line left behind by the previous
+    change set was removed rather than left to shadow itself.
+
+Owed, stated plainly, in the order the owner fixed: the import wizard with dry run
 (its merge step can reuse R3.10's planner as it stands), preview, flagged rows, unknown-column mapping,
 Bangla comments as the first note, undo and idempotent re-import, then the funnel reports with CSV export.
 No real SMS is sent at any point: SMS_PROVIDER stays mock until the owner approves

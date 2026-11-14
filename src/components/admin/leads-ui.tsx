@@ -33,6 +33,7 @@ import {
 } from '@/lib/leads/lead-ui';
 import {leadListQuery} from '@/lib/leads/vocab';
 import SmsDialogTrigger from './sms-dialog-trigger';
+import {LeadHandoff} from './lead-handoff';
 import type {LeadSmsKit} from '@/lib/leads/lead-sms';
 import {formatClass,formatDate,formatNumber,formatTime,type Digits} from '@/lib/admin/format';
 
@@ -334,6 +335,9 @@ function LeadDetailBody({seed,detail,loading,noteState,noteAction,notePending,re
     <dl>{fields.filter(([,value])=>value).map(([label,value],index)=><div key={index}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
     {!!(row?.flags||[]).length&&<><h3>{t('flags')}</h3>{/* The flag's own sentence, never the raw cell it quotes: a cell can hold a second valid number. */}
       {row!.flags.map((flag,index)=><p key={index} className="lead-flag">{language==='bn'?flag.messageBn:flag.messageEn}</p>)}</>}
+    {/* R3.13 · the three hand-offs. Loaded with the detail, because whether an admission or a trial is
+        already open is a fact about this row, not something the list carries. */}
+    {detail&&<LeadHandoff leadId={seed.id} handoff={detail.handoff} language={language} digits={digits} onDone={reload}/>}
     <h3>{t('notes')}</h3>
     {loading&&<p className="admin-help" role="status">{t('loading')}</p>}
     {!loading&&detail&&<ul className="lead-notes">{detail.notes.length?detail.notes.map((note,index)=><li key={index}>
