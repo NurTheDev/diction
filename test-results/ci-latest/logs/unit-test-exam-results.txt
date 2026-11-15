@@ -1,0 +1,17 @@
+--- tests/exam-results.integration.ts (exit 1) ---
+AssertionError [ERR_ASSERTION]: the class printed is the one the row belongs to
++ actual - expected
+
++ 'নমুনা নবম ক · 2026'
+- 'নমুনা নবম ক'
+              ^
+
+    at run (/home/runner/work/diction/diction/tests/exam-results.integration.ts:123:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: 'নমুনা নবম ক · 2026',
+  expected: 'নমুনা নবম ক',
+  operator: 'strictEqual',
+  diff: 'simple'
+}

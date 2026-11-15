@@ -1,0 +1,2 @@
+--- tests/exam-result-trend.test.ts (exit 0) ---
+Result trend: the series runs oldest to newest with the step between the last two exams, a fall and a flat line say what they are, an absent exam is left out of the line and counted rather than drawn as a collapse, an unreadable date sorts last, and the chart maps the whole 0–100 scale onto evenly spaced points with a single point centred and an out-of-range one clamped to the edge.
