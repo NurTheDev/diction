@@ -41,25 +41,41 @@ export function useOutsideClose(onClose:()=>void){
 export function Popover({label,className='',bodyClass='',children,title}:{label:ReactNode;className?:string;bodyClass?:string;children:ReactNode|((close:()=>void)=>ReactNode);title?:string}){
   const [open,setOpen]=useState(false);
   const anchor=useRef<HTMLButtonElement>(null);
+  const surface=useRef<HTMLDivElement>(null);
   const [box,setBox]=useState<{top:number;left:number;up:boolean}|null>(null);
   const ref=useOutsideClose(()=>setOpen(false));
   useEffect(()=>{
     if(!open)return;
+    /* Placed from the anchor's rectangle and then corrected against the surface's OWN measured size.
+       A guessed height is what leaves a tall calendar or a six-item menu hanging past the fold, and a
+       fixed box below the fold is on screen but unreachable: nothing can scroll it into view. So the
+       surface is measured, flipped upwards only when it does not fit below and fits better above, and
+       clamped inside the window either way — pinned to the edge, over the anchor if it must, rather
+       than off the screen. */
     const place=()=>{
       if(window.innerWidth<=760){setBox(null);return}
       const rect=anchor.current?.getBoundingClientRect();
       if(!rect)return;
-      const width=Math.min(330,window.innerWidth-24);
-      const up=rect.bottom+280>window.innerHeight&&rect.top>280;
-      setBox({top:up?rect.top-6:rect.bottom+6,left:Math.max(8,Math.min(rect.left,window.innerWidth-width-8)),up});
+      const gap=6,edge=8;
+      const wide=surface.current?.offsetWidth||Math.min(330,window.innerWidth-2*edge);
+      const tall=surface.current?.offsetHeight||280;
+      const below=window.innerHeight-rect.bottom-gap-edge;
+      const above=rect.top-gap-edge;
+      const up=tall>below&&above>below;
+      const top=up
+        ?Math.max(rect.top-gap,edge+tall)
+        :Math.min(rect.bottom+gap,Math.max(edge,window.innerHeight-edge-tall));
+      const left=Math.max(edge,Math.min(rect.left,window.innerWidth-wide-edge));
+      setBox(previous=>previous&&previous.top===top&&previous.left===left&&previous.up===up?previous:{top,left,up});
     };
     place();
+    const frame=requestAnimationFrame(place);
     window.addEventListener('scroll',place,true);window.addEventListener('resize',place);
-    return()=>{window.removeEventListener('scroll',place,true);window.removeEventListener('resize',place)};
+    return()=>{cancelAnimationFrame(frame);window.removeEventListener('scroll',place,true);window.removeEventListener('resize',place)};
   },[open]);
   return <div className={`pop ${className}`} ref={ref}>
     <button type="button" className="pop-anchor" ref={anchor} aria-expanded={open} aria-label={title} onClick={()=>setOpen(value=>!value)}>{label}</button>
-    {open&&<div className={`pop-body ${bodyClass}`} style={box?{top:box.top,left:box.left,transform:box.up?'translateY(-100%)':undefined}:undefined}>
+    {open&&<div className={`pop-body ${bodyClass}`} ref={surface} style={box?{top:box.top,left:box.left,transform:box.up?'translateY(-100%)':undefined}:undefined}>
       {typeof children==='function'?children(()=>setOpen(false)):children}</div>}
   </div>;
 }

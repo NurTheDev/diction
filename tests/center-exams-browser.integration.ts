@@ -570,22 +570,23 @@ async function run(){
     await english.page.locator('h1').filter({hasText:en_t.list.title}).waitFor({timeout:60000});
     /* The filter form is read one select at a time rather than as a box: its third select lists the
        centre's classes, and a class named in Bangla is data the owner typed, not interface chrome.
-       The account box in the top bar is the same case one level up — it holds the signed-in person's
-       own name, and this fixture is named in Bangla on purpose because the Bangla steps read that name
-       off the screen. So the chrome is swept line by line with that one box subtracted, rather than the
-       fixture being renamed to suit the assertion; a Bangla word anywhere else in the chrome still
-       fails, which is the whole point of the sweep. The desk header paints that box on the same line as
-       the breadcrumb and the rest of the bar, so what is subtracted is the box's own words rather than
-       its lines — subtracting a line would leave the name inside a longer one. */
-    /* The desk copy, by name: since R8 slice 1 the shell paints the same header twice, once in the phone
-       bar and once over the content, and a hidden copy reports its text without the line breaks the
-       visible one has — so subtracting it would subtract the wrong lines. This reads the box the sweep
-       itself reads. */
-    const accountWords=(await english.page.locator('.admin-main .admin-user-menu summary').innerText())
-      .split(/\s+/).map(word=>word.trim()).filter(word=>word.length>1);
-    const chromeBangla=(await english.page.locator('.admin-top,.admin-nav,.admin-panel-head,.admin-heading,.admin-table thead').allInnerTexts())
+       The top bar is the same case one level up, and twice over: it holds the signed-in person's own
+       name — this fixture is named in Bangla on purpose, because the Bangla steps read that name off
+       the screen — and it holds the digit setting and the language switcher, which name each language
+       in that language the way the public header-nav does (see the allow note in `top-header.tsx`). So
+       the desk header is read with those three lifted out, exactly as the two-language sweep reads it
+       on every operator screen, and what is left of the chrome has to be English. The desk copy is
+       named because since R8 slice 1 the shell paints the same header twice — once in the phone bar,
+       once over the content — and a hidden copy reports its text without the visible one's breaks. */
+    const headerChrome=await english.page.evaluate(()=>{
+      const clone=document.querySelector('.admin-main .admin-top')?.cloneNode(true) as HTMLElement|null;
+      if(!clone)return '';
+      for(const node of clone.querySelectorAll('.admin-digit-setting,.admin-user-menu summary,.admin-user-dropdown a[href^="/bn"],.admin-user-dropdown a[href^="/en"]'))node.remove();
+      return (clone.innerText||clone.textContent||'').trim();
+    });
+    const chromeBangla=[headerChrome,...await english.page.locator('.admin-nav,.admin-panel-head,.admin-heading,.admin-table thead').allInnerTexts()]
       .flatMap(text=>text.split('\n'))
-      .map(line=>accountWords.reduce((line,word)=>line.split(word).join(' '),line).replace(/\s+/g,' ').trim())
+      .map(line=>line.replace(/\s+/g,' ').trim())
       .filter(line=>BN.test(line));
     assert.deepEqual(chromeBangla,[],'the English exam list paints no Bangla in its chrome');
     assert.equal((await english.page.locator('[data-exam-filters] [name=type] option').allInnerTexts())[1],en_t.typeLabels.monthly,'and the type filter reads as English');
