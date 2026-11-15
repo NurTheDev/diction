@@ -85,6 +85,38 @@ function zip(entries:{name:string;data:Uint8Array}[]):Uint8Array{
   return out;
 }
 
+export type WorkbookSheet={name:string;title:string;header:string[];rows:SheetCell[][]};
+
+/**
+ * A workbook of any number of worksheets — what a full backup needs, one sheet per collection.
+ * Sheet names are ASCII and unique: Excel refuses a workbook whose sheet names collide or carry
+ * characters its own file names cannot.
+ */
+export function xlsxSheets(sheets:WorkbookSheet[]):Uint8Array{
+  const parts:{name:string;data:Uint8Array}[]=[
+    {name:'[Content_Types].xml',data:encoder.encode('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+      +'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+      +'<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
+      +'<Default Extension="xml" ContentType="application/xml"/>'
+      +'<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'
+      +sheets.map((_,index)=>`<Override PartName="/xl/worksheets/sheet${index+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('')
+      +'</Types>')},
+    {name:'_rels/.rels',data:encoder.encode('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+      +'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+      +'<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>'
+      +'</Relationships>')},
+    {name:'xl/workbook.xml',data:encoder.encode('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+      +'<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+      +`<sheets>${sheets.map((sheet,index)=>`<sheet name="${xmlEscape(sheet.name.slice(0,30)||`Sheet${index+1}`)}" sheetId="${index+1}" r:id="rId${index+1}"/>`).join('')}</sheets></workbook>`)},
+    {name:'xl/_rels/workbook.xml.rels',data:encoder.encode('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+      +'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+      +sheets.map((_,index)=>`<Relationship Id="rId${index+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${index+1}.xml"/>`).join('')
+      +'</Relationships>')},
+    ...sheets.map((sheet,index)=>({name:`xl/worksheets/sheet${index+1}.xml`,data:encoder.encode(sheetXml(sheet.title,sheet.header,sheet.rows))})),
+  ];
+  return zip(parts);
+}
+
 /** One worksheet, titled, header row under the title. Text cells are inline strings: never evaluated. */
 export function xlsxOf(title:string,header:string[],rows:SheetCell[][]):Uint8Array{
   const sheet=sheetXml(title,header,rows);

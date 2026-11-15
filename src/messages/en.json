@@ -1585,7 +1585,8 @@
       "reportsDaily": "Daily collection",
       "reportsMonthly": "Monthly collection",
       "reportsAudit": "Cashbook check",
-      "reportsYear": "Year summary"
+      "reportsYear": "Year summary",
+      "backup": "Backup"
     },
     "search": "Search menu",
     "noMenuResults": "No menu items found",
@@ -2075,6 +2076,17 @@
       "ok": "Restored.",
       "duplicate": "The same student is already active.",
       "failed": "Could not restore; check the month and the details."
+    },
+    "backup": {
+      "title": "Backup",
+      "desc": "One full copy of the database, to keep on your own drive.",
+      "json": "Download JSON backup",
+      "xlsx": "Download Excel backup",
+      "last": "Last backup: {date}",
+      "lastNever": "No backup has been taken yet.",
+      "help": "A backup file carries the students, fees, receipts, exams and SMS history; it never carries password hashes. Keep the downloaded file somewhere safe, with its date.",
+      "reminder": "It has been over a month — take a full backup of the database.",
+      "reminderHelp": "A backup nobody took is a backup nobody has. One click downloads the whole copy."
     }
   },
   "recycleBin": {

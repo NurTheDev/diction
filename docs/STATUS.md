@@ -1086,3 +1086,22 @@ by visibility, `.report-print` whitelisted back — the rule the R5 report card 
 Both catalogs carry a `reports` group from the first commit of the slice; the sidebar carries a
 `reports` nav group; screenshots land in `screenshots/r6/`; registry rows R6.1–R6.5 point at the math
 suite and `tests/reports-browser.integration.ts`.
+
+## 21. R6 slice 2 — backup, usage, retention and the role wall
+
+The backup door is the narrowest in the building: `/admin/backup` and its export route answer a
+`superadmin` session and redirect everybody else, staff included — a file that holds every child's
+record and every taka the centre took is not an accountant's carry-out. The JSON export carries all
+fifteen centre collections with `passwordHash` projected away; the Excel export is one worksheet per
+collection through the same store-only zip the report engine owns. A successful export writes
+`lastBackupAt` on the settings row and one `backup.export` line in the activity log, and the Overview
+reminder — Super Admin only — counts its month from that stamp: it stands while no backup exists or
+the last one is older than thirty days, and stands down the moment an export succeeds.
+
+The database usage card and the twelve-month log trim arrived in earlier milestones and are re-proven
+here rather than assumed: `tests/backup-roles-browser.integration.ts` reads the card on the Super
+Admin's Overview against its 512 MB ceiling, calls the daily job straight against its route handler
+with a bearer secret and watches a thirteen-month-old SmsLog and ActivityLog row disappear while last
+week's stay. The role matrix is asserted in the same suite: Super Admin reads backup, reports and the
+cash desk; staff read the reports and are refused the cash desk and the backup; a teacher is refused
+all three and never lands in the admin tree at all. Registry rows R6.6–R6.8.
