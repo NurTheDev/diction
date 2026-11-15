@@ -1059,3 +1059,30 @@ there would paint a key path instead of a word.
 (history, card, portal identity and the prompt's count against the disposable database,
 `test:exam:results`) and **R5.8** (the screens, `tests/exam-results-browser.integration.ts`); **R5.4** and
 **R0.13** reworded in the same patch, because a registry line may claim only what its suite proves.
+
+## 20. R6 slice 1 — the money reports, the cashbook check, the statement and the export engine
+
+Five screens under `/admin/reports` — a hub, the daily collection, the monthly collection, the cashbook
+check and the year summary — plus one student's ledger statement at
+`/admin/reports/statement/[studentId]`, all gated by `requireArchiver` (super admin, admin, staff: the
+accountant at the desk; never a teacher, which slice 2's role tests will hold to the wall).
+
+The mathematics is pure and lives in `src/lib/reports/`: `collections.ts` (a day split by the operator
+who took each receipt, a month in a class-by-day matrix whose row totals, column totals and head totals
+meet at one grand total), `receipt-audit.ts` (every receipt number written twice, every gap in the
+numeric sequence bounded by the two receipts around it), `ledger.ts` (assessments, waivers, holds and
+payments in date order with a running due that ends at the outstanding sum `monthStatus` shows — the R1
+fee engine, never a copy) and `year-summary.ts` (expected, collected, outstanding, pending, waived per
+class). The database halves are `server-only` loaders beside them; `tests/report-math.test.ts` proves
+the pure half without a database, registry row R6.1.
+
+The export engine (`src/lib/reports/export.ts`) is one door for every table: `?kind=…&format=csv|xlsx`.
+The CSV reuses R2's `csvCell` — every cell quoted, formula-like ones prefixed — and the `.xlsx` is
+written here rather than imported: a store-only zip of the five workbook parts with a correct CRC32 and
+inline-string text cells no spreadsheet will evaluate. The math suite unzips it and recomputes every
+CRC. Printing follows the house convention the daily receipt and the class sheet set: everything hidden
+by visibility, `.report-print` whitelisted back — the rule the R5 report card was caught breaking.
+
+Both catalogs carry a `reports` group from the first commit of the slice; the sidebar carries a
+`reports` nav group; screenshots land in `screenshots/r6/`; registry rows R6.1–R6.5 point at the math
+suite and `tests/reports-browser.integration.ts`.

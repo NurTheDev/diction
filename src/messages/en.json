@@ -1580,7 +1580,12 @@
       "importLeads": "Visitor import",
       "leadsFunnel": "Visitor funnel",
       "teacherCvs": "Teacher CVs",
-      "gradingScale": "Grading scales"
+      "gradingScale": "Grading scales",
+      "reportsHub": "Reports",
+      "reportsDaily": "Daily collection",
+      "reportsMonthly": "Monthly collection",
+      "reportsAudit": "Cashbook check",
+      "reportsYear": "Year summary"
     },
     "search": "Search menu",
     "noMenuResults": "No menu items found",
@@ -3612,8 +3617,7 @@
       "unpublishNote": "Unpublishing lets the marks change again; a message already sent will not be taken back.",
       "unpublishConfirm": "I understand this will unpublish the result",
       "unpublishButton": "Unpublish the result",
-      "unpublished": "Unpublished; the exam is a draft again."
-    ,
+      "unpublished": "Unpublished; the exam is a draft again.",
       "dialogTitle": "Publish the result",
       "smsQuestion": "Send result SMS to guardians now?",
       "smsHelp": "Each child gets their own subject marks, total and position. A child who was absent or holds no position gets no message.",
@@ -3625,7 +3629,8 @@
       "cancel": "Cancel",
       "openButton": "Publish results…",
       "audienceNone": "This exam has no publishable result yet.",
-      "audienceNote": "{count} messages from {students} students across {classes} classes."},
+      "audienceNote": "{count} messages from {students} students across {classes} classes."
+    },
     "classes": {
       "crumbStudents": "Students",
       "title": "Manage classes",
@@ -3697,7 +3702,7 @@
         "notAnInteger": "{student} · {subject}: write a whole number.",
         "outOfRange": "{student} · {subject}: cannot be more than {full}.",
         "more": "{count} more cells have a problem."
-    }
+      }
     },
     "summary": {
       "title": "Summary",
@@ -3769,9 +3774,9 @@
       "scaleMissingHundred": "The top range has to reach 100.",
       "scaleOverlap": "The range for {grade} overlaps another.",
       "scaleGap": "There is a gap between {grade} and {above}.",
-      "fileChanged": "The file changed; check it again."
-    ,
-      "smsUnavailable": "A result message cannot be sent right now — the provider is not ready or the sending gate is closed."},
+      "fileChanged": "The file changed; check it again.",
+      "smsUnavailable": "A result message cannot be sent right now — the provider is not ready or the sending gate is closed."
+    },
     "scale": {
       "title": "Grading scales",
       "desc": "Where the centre decides which grade and point each range of marks is worth.",
@@ -3818,8 +3823,7 @@
       "backToPortal": "Teacher portal",
       "portalDesc": "Marks and results for the classes you take.",
       "portalOpen": "Open exams"
-    }
-  ,
+    },
     "results": {
       "title": "Result history",
       "tab": "Results",
@@ -3860,7 +3864,8 @@
       "notPublished": "This exam is not published, so no report card can be made from it.",
       "noResult": "This student has no result in this exam.",
       "backToResults": "Back to results"
-    }},
+    }
+  },
   "legacy": {
     "review": {
       "crumbStudents": "Students",
@@ -4554,5 +4559,127 @@
     "reviseFailed": "The payment changed, or it could not be corrected.",
     "notRevised": "The change did not go through",
     "taka": "Tk "
+  },
+  "reports": {
+    "hub": {
+      "title": "Reports",
+      "desc": "Daily and monthly collection, the cashbook check, one student's ledger statement and the year's executive summary — in one place.",
+      "daily": "Daily collection report",
+      "monthly": "Monthly collection report",
+      "audit": "Cashbook check (receipt audit)",
+      "year": "Year summary",
+      "open": "Open"
+    },
+    "daily": {
+      "title": "Daily collection",
+      "desc": "Every valid receipt of one day, grouped by the person who took the money.",
+      "dateLabel": "Date",
+      "operatorLabel": "Taken by",
+      "operatorAll": "Everybody",
+      "apply": "Show",
+      "receipt": "Receipt",
+      "student": "Student",
+      "class": "Class",
+      "type": "Head",
+      "month": "Fee month",
+      "amount": "Taka",
+      "operator": "Taken by",
+      "note": "Note",
+      "totalLine": "{count} receipts in all · collected {total}",
+      "empty": "No receipt was written on this day."
+    },
+    "monthly": {
+      "title": "Monthly collection",
+      "desc": "The month's collection in class-by-day cells; the row totals and the column totals meet at one grand total.",
+      "yearLabel": "Year",
+      "monthLabel": "Month",
+      "apply": "Show",
+      "classColumn": "Class",
+      "dayWord": "Day",
+      "total": "Total",
+      "grand": "Grand total",
+      "typesTitle": "Totals by head",
+      "empty": "Nothing was collected in this month."
+    },
+    "audit": {
+      "title": "Cashbook check",
+      "desc": "The two holes a receipt book can have: one number written twice, and a number missing from the sequence.",
+      "scanned": "Receipts checked: {count}",
+      "range": "Sequence: {from} to {to}",
+      "duplicates": "One number, more than once",
+      "duplicatesHelp": "The same receipt number on more than one record. A shared receipt is a sanctioned flow — open the record for its reason.",
+      "gaps": "Numbers missing from the sequence",
+      "gapsHelp": "The numbers between two consecutive receipts appear on no record.",
+      "receipt": "Receipt",
+      "times": "{count} times",
+      "gapMissing": "{from} to {to} — {count} numbers missing",
+      "between": "before receipt {before} · after receipt {after}",
+      "review": "Review the record",
+      "clean": "No anomaly found.",
+      "cleanHelp": "No number written twice and no gap in the sequence — the book is clean.",
+      "unsequenced": "Receipt numbers that are not plain numbers",
+      "unsequencedHelp": "These do not sit in the numeric sequence, so they are listed apart; duplicates are still checked on them."
+    },
+    "statement": {
+      "title": "Ledger statement",
+      "desc": "One student's whole account in date order: fees assessed, waivers, holds and every payment against its receipt.",
+      "back": "Back to the student",
+      "roll": "Roll",
+      "statusWord": "Status",
+      "date": "Date",
+      "kind": "Head",
+      "detail": "Detail",
+      "amount": "Taka",
+      "running": "Running due",
+      "kinds": {
+        "assessment": "Fee assessed",
+        "waiver": "Waiver",
+        "hold": "Hold",
+        "payment": "Payment",
+        "extra": "Extra payment"
+      },
+      "summaryTitle": "Summary",
+      "assessed": "Assessed in all",
+      "waivedTotal": "Waived in all",
+      "paidMonthly": "Paid against fees",
+      "extras": "Extra payments",
+      "outstanding": "Outstanding",
+      "advance": "Advance",
+      "dueMonths": "Months in due",
+      "none": "None",
+      "assessmentDetail": "Fee assessed for {month}",
+      "waiverDetail": "Waiver reason: {reason}",
+      "holdDetail": "On hold in {month}",
+      "paymentDetail": "Receipt {receipt}",
+      "extraDetail": "{type}{other}"
+    },
+    "year": {
+      "title": "Year summary",
+      "desc": "One row per class: what the year expected, what arrived, what is still owed, what awaits its due day and what was given up.",
+      "yearLabel": "Year",
+      "apply": "Show",
+      "classColumn": "Class",
+      "students": "Students",
+      "expected": "Expected",
+      "collected": "Collected",
+      "outstanding": "Outstanding",
+      "pending": "Pending",
+      "waived": "Waived",
+      "extras": "Extra collections",
+      "totals": "Total",
+      "empty": "No figures for this year.",
+      "help": "Expected is the fee assessed up to the current month; collected is every payment taken inside the year, advances included; pending is this month's share that has not reached the due list yet; waived is the fee of months given up."
+    },
+    "export": {
+      "print": "Print / PDF",
+      "csv": "CSV (formula-safe for Excel)",
+      "xlsx": "Excel (.xlsx)"
+    },
+    "types": {
+      "monthly": "Monthly fee",
+      "admission": "Admission fee",
+      "examFee": "Exam fee",
+      "other": "Other"
+    }
   }
 }
