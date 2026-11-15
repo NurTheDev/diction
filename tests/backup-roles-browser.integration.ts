@@ -42,6 +42,11 @@ const t=bn.center;
 const SHOTS=path.join('screenshots','r6');
 const BN=/[\u0980-\u09ff]/;
 const KEY_PATH=/\b(?:center|admin|common|reports)\.[a-zA-Z][a-zA-Z0-9]*(?:\.[a-zA-Z0-9]+)+/;
+/* A missing catalog word does not always look like `reports.daily.total`: the sidebar paints group
+   titles from `adminRedesign.groups.*`, and their raw form slips past a prefix list built around the report
+   suite's own roots. Prose never writes a catalog root followed by a segment; a missing word always
+   does — so the scan rejects that shape too. */
+const ROOT_KEY=/\b(?:academic|accounts|achievement|admin|adminModules|adminPages|adminRedesign|adminWork|aiPublic|aiSetup|aiTest|audit|batchAdmin|center|channelVideo|classes|cms|collect|common|courseCms|cta|daily|dues|editorial|exams|features|fees|footer|forms|hero|heroCms|history|leads|legacy|materials|modelTest|nav|pages|payHistory|photoPicker|portalNotices|practice|practicePublic|proof|publicPages|quickChat|recovery|recycleBin|reports|seo|sheets|siteContent|siteSettings|sms|splash|staffRoles|stats|study|teacherCvs|theme)\.[A-Za-z][A-Za-z0-9]*/;
 
 async function run(){
   await preflight({
@@ -123,7 +128,9 @@ async function run(){
     assert.ok((await superBn.page.locator('[data-backup-last]').innerText()).includes(t.backup.lastNever),'which says no backup exists yet');
     const backupHead=await superBn.page.locator('.admin-heading').innerText();
     assert.ok(BN.test(backupHead),'and the page reads Bangla');
-    assert.equal(KEY_PATH.test(await superBn.page.evaluate(()=>document.body.innerText)),false,'with no catalog key path painted');
+    const backupBody=await superBn.page.evaluate(()=>document.body.innerText);
+    assert.equal(KEY_PATH.test(backupBody),false,'with no catalog key path painted');
+    assert.equal(ROOT_KEY.test(backupBody),false,'and no unresolved catalog path anywhere on the backup page');
     await shot(superBn.page,'backup-bn-1440');
 
     const jsonRes=await superBn.context.request.get(origin+'/bn/admin/backup/export?format=json');

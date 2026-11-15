@@ -47,6 +47,11 @@ const SHOTS=path.join('screenshots','r6');
 const BN=/[\u0980-\u09ff]/;
 const bnDigits=value=>String(value).replace(/[0-9]/g,digit=>'০১২৩৪৫৬৭৮৯'[Number(digit)]);
 const KEY_PATH=/\b(?:reports|admin|common|exams)\.[a-zA-Z][a-zA-Z0-9]*(?:\.[a-zA-Z0-9]+)+/;
+/* A missing catalog word does not always look like `reports.daily.total`: the sidebar paints group
+   titles from `adminRedesign.groups.*`, and their raw form slips past a prefix list built around this
+   suite's own roots. Prose never writes a catalog root followed by a segment; a missing word always
+   does — so the scan rejects that shape too. */
+const ROOT_KEY=/\b(?:academic|accounts|achievement|admin|adminModules|adminPages|adminRedesign|adminWork|aiPublic|aiSetup|aiTest|audit|batchAdmin|center|channelVideo|classes|cms|collect|common|courseCms|cta|daily|dues|editorial|exams|features|fees|footer|forms|hero|heroCms|history|leads|legacy|materials|modelTest|nav|pages|payHistory|photoPicker|portalNotices|practice|practicePublic|proof|publicPages|quickChat|recovery|recycleBin|reports|seo|sheets|siteContent|siteSettings|sms|splash|staffRoles|stats|study|teacherCvs|theme)\.[A-Za-z][A-Za-z0-9]*/;
 
 async function run(){
   await preflight({
@@ -280,11 +285,16 @@ async function run(){
     for(const [page,href] of [[adminEn.page,'/en/admin/reports/monthly?year=2026&month=2'],[adminEn.page,'/en/admin/reports/year?year=2026']]){
       await goto(page,href);
       assert.equal(BN.test((await page.locator('.admin-heading, .report-filters').allInnerTexts()).join('\n')),false,`English chrome at ${href}`);
+      assert.equal(ROOT_KEY.test(await page.evaluate(()=>document.body.innerText)),false,`no unresolved catalog path paints at ${href}`);
+      assert.ok((await page.locator('.admin-group-toggle').allInnerTexts()).join('\n').includes(en.adminRedesign.groups.reports),`and the sidebar names the reports group in English at ${href}`);
     }
     for(const href of ['/bn/admin/reports/daily?date=2026-02-10','/bn/admin/reports/monthly?year=2026&month=2','/bn/admin/reports/receipt-audit','/bn/admin/reports/year?year=2026',`/bn/admin/reports/statement/${String(sa._id)}`]){
       await goto(adminBn.page,href);
       const body=await adminBn.page.evaluate(()=>document.body.innerText);
       assert.equal(KEY_PATH.test(body),false,`no catalog key path paints at ${href}`);
+      assert.equal(ROOT_KEY.test(body),false,`no unresolved catalog path paints at ${href}`);
+      const groupTitles=(await adminBn.page.locator('.admin-group-toggle').allInnerTexts()).join('\n');
+      assert.ok(groupTitles.includes(bn.adminRedesign.groups.reports),`and the sidebar names the reports group in Bangla at ${href}`);
       await adminBn.page.setViewportSize({width:360,height:900});
       const overflow=await adminBn.page.evaluate(()=>{
         const bad=[];
