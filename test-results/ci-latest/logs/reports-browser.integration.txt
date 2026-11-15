@@ -1,9 +1,6 @@
-AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
-
-  assert.ok(matrixText.includes(t.monthly.grand))
-
-    at run (/home/runner/work/diction/diction/tests/reports-browser.integration.ts:153:12) {
-  generatedMessage: true,
+AssertionError [ERR_ASSERTION]: and each class row carries its own sum: 1000 of fee and 300 of admission
+    at run (/home/runner/work/diction/diction/tests/reports-browser.integration.ts:157:12) {
+  generatedMessage: false,
   code: 'ERR_ASSERTION',
   actual: false,
   expected: true,
