@@ -1,10 +1,10 @@
-locator.innerText: Error: strict mode violation: locator('.admin-user-menu summary') resolved to 2 elements:
-    1) <summary>…</summary> aka getByText('নমুনা পরীক্ষা পরিচালক ▾').first()
-    2) <summary>…</summary> aka getByText('নমুনা পরীক্ষা পরিচালক ▾').nth(1)
-
+locator.waitFor: Timeout 60000ms exceeded.
 Call log:
-  - waiting for locator('.admin-user-menu summary')
+  - waiting for locator('[data-exam-form="create"]') to be visible
 
-    at run (/home/runner/work/diction/diction/tests/center-exams-browser.integration.ts:576:80) {
-  log: [ "  - waiting for locator('.admin-user-menu summary')" ]
+    at run (/home/runner/work/diction/diction/tests/center-exams-browser.integration.ts:203:16) {
+  log: [
+    `  - waiting for locator('[data-exam-form="create"]') to be visible`
+  ],
+  name: 'TimeoutError'
 }
