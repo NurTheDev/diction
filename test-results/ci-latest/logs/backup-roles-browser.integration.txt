@@ -1,0 +1,17 @@
+/home/runner/work/diction/diction/node_modules/server-only/index.js:1
+throw new Error(
+      ^
+
+Error: This module cannot be imported from a Client Component module. It should only be used from a Server Component.
+    at Object.<anonymous> (/home/runner/work/diction/diction/node_modules/server-only/index.js:1:7)
+    at Module._compile (node:internal/modules/cjs/loader:1781:14)
+    at Object.transformer (/home/runner/work/diction/diction/node_modules/tsx/dist/register-B1c7OH6V.cjs:22:2188)
+    at Module.load (node:internal/modules/cjs/loader:1505:32)
+    at Function._load (node:internal/modules/cjs/loader:1309:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:254:19)
+    at Module.require (node:internal/modules/cjs/loader:1527:12)
+    at require (node:internal/modules/helpers:147:16)
+    at <anonymous> (/home/runner/work/diction/diction/src/lib/center/sms-send.ts:22:8)
+    at Object.<anonymous> (/home/runner/work/diction/diction/src/lib/center/sms-send.ts:562:23)
+
+Node.js v22.23.4
