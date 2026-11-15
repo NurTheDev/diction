@@ -627,12 +627,15 @@ export async function leadStatusCounts():Promise<{status:LeadStatus;count:number
 
 export type LeadUpdateResult={ok:true;id:string;status:LeadStatus;doNotContact:boolean;nextFollowUp:string|null}|Refusal;
 
-/* The fields a write needs in order to preserve what it is not changing. `phones` is here because
-   correcting one number must keep the rest of the list: the edit path replaces the first entry and
-   re-attaches whatever else the family was reached on, so a projection without it would drop them. */
-async function findLive(id:string):Promise<LeadDoc|null>{
+/* A projection is a promise, so it is written as one: the type says exactly which fields a write may
+   read, and the compiler refuses any field the query does not carry. `phones` is here because correcting
+   one number must keep the rest of the list — the edit path replaces the first entry and re-attaches
+   whatever else the family was reached on. When this projection did not name `phones`, that read threw on
+   every Edit → Save, and the operator got a generic "did not go through" with the reason hidden. */
+type LiveLead=Pick<LeadDoc,'leadId'|'phones'|'status'|'doNotContact'|'nextFollowUp'|'familyKey'>;
+async function findLive(id:string):Promise<LiveLead|null>{
   if(!id)return null;
-  return Lead.findById(id).select('leadId phones status doNotContact nextFollowUp familyKey').lean<LeadDoc>()||null;
+  return Lead.findById(id).select('leadId phones status doNotContact nextFollowUp familyKey').lean<LiveLead>()||null;
 }
 
 /**
@@ -977,7 +980,7 @@ export async function updateLeadBasics(input:{id:string;studentName:string;guard
   };
   delete set.name;
   if((LEAD_STATUSES as readonly string[]).includes(input.status))set.status=input.status;
-  if(phone)set.phones=[{normalized:phone,original:phone},...(current.phones??[]).slice(1)];
+  if(phone)set.phones=[{normalized:phone,original:phone},...(current.phones||[]).slice(1)];
   await Lead.updateOne({_id:input.id},{$set:set},{runValidators:true});
   await audit(actorId,'lead.update',current.leadId);
   return {ok:true};
