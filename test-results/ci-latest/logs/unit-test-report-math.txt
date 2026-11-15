@@ -1,0 +1,2 @@
+--- tests/report-math.test.ts (exit 0) ---
+report-math: daily, monthly, audit, ledger, year and the export engine all hold

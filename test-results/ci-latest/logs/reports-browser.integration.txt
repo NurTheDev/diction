@@ -1,0 +1,12 @@
+AssertionError [ERR_ASSERTION]: and the per-operator totals with them
+
+0 !== 1
+
+    at run (/home/runner/work/diction/diction/tests/reports-browser.integration.ts:145:12) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: 0,
+  expected: 1,
+  operator: 'strictEqual',
+  diff: 'simple'
+}
