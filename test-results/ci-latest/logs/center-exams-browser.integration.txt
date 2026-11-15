@@ -1,10 +1,8 @@
-AssertionError [ERR_ASSERTION]: the teacher marks grid overflows horizontally at 360px (408 > 360)
-    at noOverflow (/home/runner/work/diction/diction/tests/center-exams-browser.integration.ts:151:16)
-    at async run (/home/runner/work/diction/diction/tests/center-exams-browser.integration.ts:475:5) {
-  generatedMessage: false,
-  code: 'ERR_ASSERTION',
-  actual: false,
-  expected: true,
-  operator: '==',
-  diff: 'simple'
+page.evaluate: ReferenceError: __name is not defined
+    at eval (eval at evaluate (:370:30), <anonymous>:1:71)
+    at UtilityScript.evaluate (<anonymous>:372:16)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+    at noOverflow (/home/runner/work/diction/diction/tests/center-exams-browser.integration.ts:154:35)
+    at async run (/home/runner/work/diction/diction/tests/center-exams-browser.integration.ts:222:5) {
+  log: []
 }
