@@ -151,16 +151,28 @@ async function run(){
     const noOverflow=async(page,name)=>{
       for(const width of [360,768,1440]){
         await page.setViewportSize({width,height:900});
+        /* No function-valued `const` inside an evaluated closure: tsx transpiles with esbuild's
+           keepNames, which wraps a function assigned to a name in a `__name(...)` helper that does not
+           exist in the browser — the house shape for `page.evaluate` here is one expression, and this
+           stays loops and concatenation so the measurement is what runs, not a transpiler artefact. */
         const measured=await page.evaluate(()=>{
           const client=document.documentElement.clientWidth;
-          const scrolled=element=>{for(let node=element.parentElement;node;node=node.parentElement)if(getComputedStyle(node).overflowX!=='visible')return true;return false};
-          const wide=[];
+          const wide:string[]=[];
           for(const element of document.querySelectorAll('body *')){
             const box=element.getBoundingClientRect();
-            if(box.right<=client+1||scrolled(element))continue;
-            const hooks=[...element.attributes].filter(entry=>entry.name.startsWith('data-')).map(entry=>entry.name).slice(0,3).join(' ');
-            const classes=(element.getAttribute('class')||'').trim().split(/\s+/).filter(Boolean).join('.');
-            wide.push(`${element.tagName.toLowerCase()}${classes?'.'+classes:''}${hooks?' ['+hooks+']':''} right=${Math.round(box.right)}`);
+            if(box.right<=client+1)continue;
+            let insideScroller=false;
+            for(let node=element.parentElement;node;node=node.parentElement){
+              if(getComputedStyle(node).overflowX!=='visible'){insideScroller=true;break}
+            }
+            if(insideScroller)continue;
+            let label=element.tagName.toLowerCase();
+            const classes=(element.getAttribute('class')||'').trim();
+            if(classes)label+='.'+classes.split(/\s+/).join('.');
+            let hooks='';
+            for(const attribute of element.attributes)if(attribute.name.startsWith('data-')&&hooks.length<40)hooks+=(hooks?' ':'')+attribute.name;
+            if(hooks)label+=' ['+hooks+']';
+            wide.push(label+' right='+Math.round(box.right));
             if(wide.length>=6)break;
           }
           return {scroll:document.documentElement.scrollWidth,client,wide};
