@@ -519,9 +519,16 @@ async function run(){
     await english.page.goto(origin+'/en/admin/center-exams',{waitUntil:'domcontentloaded',timeout:180000});
     await english.page.locator('h1').filter({hasText:en_t.list.title}).waitFor({timeout:60000});
     /* The filter form is read one select at a time rather than as a box: its third select lists the
-       centre's classes, and a class named in Bangla is data the owner typed, not interface chrome. */
-    assert.deepEqual((await english.page.locator('.admin-top,.admin-nav,.admin-panel-head,.admin-heading,.admin-table thead').allInnerTexts()).filter(text=>BN.test(text)),[],
-      'the English exam list paints no Bangla in its chrome');
+       centre's classes, and a class named in Bangla is data the owner typed, not interface chrome.
+       The account box in the top bar is the same case one level up — it holds the signed-in person's
+       own name, and this fixture is named in Bangla on purpose because the Bangla steps read that name
+       off the screen. So the chrome is swept line by line with that one box subtracted, rather than the
+       fixture being renamed to suit the assertion; a Bangla line anywhere else in the chrome still
+       fails, which is the whole point of the sweep. */
+    const accountLines=(await english.page.locator('.admin-user-menu summary').innerText()).split('\n').map(line=>line.trim());
+    const chromeBangla=(await english.page.locator('.admin-top,.admin-nav,.admin-panel-head,.admin-heading,.admin-table thead').allInnerTexts())
+      .flatMap(text=>text.split('\n')).map(line=>line.trim()).filter(line=>BN.test(line)&&!accountLines.includes(line));
+    assert.deepEqual(chromeBangla,[],'the English exam list paints no Bangla in its chrome');
     assert.equal((await english.page.locator('[data-exam-filters] [name=type] option').allInnerTexts())[1],en_t.typeLabels.monthly,'and the type filter reads as English');
     assert.equal(await english.page.locator('[data-exam-status="draft"]').first().innerText(),en_t.status.draft,'and a status reads as English');
     await shot(english.page,'exams-list-en-1440');
