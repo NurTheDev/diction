@@ -33,7 +33,8 @@ import path from 'node:path';
 import {chromium} from 'playwright';
 import {preflight,testDbName} from './helpers/env-preflight';
 import {User} from '../src/models/User';
-import {CenterStudent,CenterClassGroup,CenterPayment,CenterSettings,CenterActivityLog} from '../src/models/CenterRecords';
+import {CenterStudent,CenterClassGroup,CenterPayment,CenterSettings} from '../src/models/CenterRecords';
+import {AdminAudit} from '../src/models/AdminAudit';
 import {GET as dailyJob} from '../src/app/api/admin/jobs/daily/route';
 import bn from '../src/messages/bn.json';
 
@@ -142,7 +143,9 @@ async function run(){
     const xlsxText=Buffer.from(xlsxBytes).toString('latin1');
     assert.ok(xlsxText.includes('xl/worksheets/sheet15.xml'),'fifteen collections, fifteen sheets');
 
-    const logRow=await CenterActivityLog.findOne({action:'backup.export'}).lean();
+    /* The operator audit trail is AdminAudit — the center activity log is the machine's own diary, and
+       the two are trimmed and read apart on purpose. */
+    const logRow=await AdminAudit.findOne({action:'backup.export'}).lean();
     assert.ok(logRow,'the export wrote its own line in the activity log');
     assert.equal(String(logRow.actor),String(superAdmin._id),'naming who took the copy');
 
