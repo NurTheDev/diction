@@ -289,15 +289,18 @@ async function run(){
        shrunk, because a report card with a sidebar on it is a report card nobody pins to a wall. */
     await page.emulateMedia({media:'print'});
     await page.setViewportSize({width:1440,height:900});
-    /* Hidden means it takes no space: `getComputedStyle` on a child of a `display:none` box still reports
-       the child's own value, so the box is measured rather than asked what it thinks it is. */
+    /* Hidden has two shapes here and both must be measured: the shell is `display:none` and takes no
+       space, while the house print convention hides everything else with `visibility:hidden`, which leaves
+       a box that measures fine and paints nothing — a report card that fails that rule prints a blank
+       page and a screenshot nobody can see the difference in. */
     const printed=await page.evaluate(()=>{
       const out:string[]=[];
-      for(const selector of ['.admin-sidebar','.admin-top','.daily-chips','.report-toolbar','[data-report-print]','[data-report-card]','.admin-test-banner']){
+      for(const selector of ['.admin-sidebar','.admin-top','.daily-chips','.report-toolbar','[data-report-print]','[data-report-card]','[data-report-brand]','.report-sign small','.admin-test-banner']){
         let hidden=true;
         for(const element of document.querySelectorAll(selector)){
           const box=element.getBoundingClientRect();
-          if(box.width>0||box.height>0)hidden=false;
+          const style=getComputedStyle(element);
+          if((box.width>0||box.height>0)&&style.visibility!=='hidden'&&style.display!=='none')hidden=false;
         }
         out.push(selector+'='+(hidden?'hidden':'shown'));
       }
@@ -305,7 +308,8 @@ async function run(){
     });
     for(const hidden of ['.admin-sidebar=hidden','.admin-top=hidden','.daily-chips=hidden','.report-toolbar=hidden','[data-report-print]=hidden','.admin-test-banner=hidden'])
       assert.ok(printed.includes(hidden),`printing the card should hide ${hidden.split('=')[0]}, and the page reported: ${printed}`);
-    assert.ok(printed.includes('[data-report-card]=shown'),'while the card itself is still the page');
+    for(const shown of ['[data-report-card]=shown','[data-report-brand]=shown','.report-sign small=shown'])
+      assert.ok(printed.includes(shown),`printing must paint ${shown.split('=')[0]}, and the page reported: ${printed}`);
     await shot(page,'report-card-print-bn-1440');
     await page.emulateMedia({media:null});
 

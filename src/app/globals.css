@@ -807,6 +807,13 @@ html:lang(bn) .public-motion-root:not(.private-motion-disabled) :is(h1,h2,h3,h4)
    that got you here — is hidden rather than shrunk, because a report card with a navigation bar on it is a
    report card nobody pins to a wall. */
 @media print{
+  /* The house print convention, two blocks above this one, hides every box on the page —
+     `body *{visibility:hidden}` — and whitelists only the subtree a screen means to print: `.daily-print`
+     for the daily collection, `.sheet-print` for the class sheet. A report card that forgets to join that
+     whitelist prints a blank page, so the card joins it. `visibility` is not `display`: the hidden chrome
+     would still take its space, so the display rules below take the shell out of the flow as well, and the
+     card starts at the top of the sheet instead of after a page of invisible bars. */
+  .report-card,.report-card *{visibility:visible!important}
   .no-print,.admin-top,.admin-nav,.admin-sidebar,.topbar,.footer,.portal-hero,.study-entry,.admin-dialog,
   .center-publish-dialog,.daily-chips,.admin-heading,.admin-test-banner,.portal-area>.wrap>.portal-card,
   .admin-panel[data-result-trend] .admin-help{display:none!important}
