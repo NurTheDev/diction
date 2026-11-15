@@ -27,7 +27,7 @@
 import {useCallback,useEffect,useMemo,useRef,useState,useTransition,type ClipboardEvent,type KeyboardEvent} from 'react';
 import {useRouter} from 'next/navigation';
 import {useTranslations} from 'next-intl';
-import {formatNumber,type Digits} from '@/lib/admin/format';
+import {formatNumber,inDigits,type Digits} from '@/lib/admin/format';
 import {calculateResult,classSummary,positionOf,type ExamSubject,type MarkEntry,type SummaryRow} from '@/lib/exams/grading';
 import {readMarkCell,parsePastedBlock} from '@/lib/exams/grid';
 import {isAbsentToken} from '@/lib/exams/vocab';
@@ -102,13 +102,16 @@ export function liveGrid(students:GridStudent[],subjects:GridSubject[],bands:{mi
 }
 
 /** One cell's refusal, painted under the grid: the subject, the reason, and the full mark it broke. */
-function CellErrors({errors}:{errors:CellErrors}){
+function CellErrors({errors,digits}:{errors:CellErrors;digits:Digits}){
   const t=useTranslations('exams');
+  // A refusal sentence names a number — the full mark it broke — and next-intl would paint it in Latin
+  // digits on a Bangla screen, so every numeric parameter goes through the operator's own digits.
+  const localize=inDigits(digits);
   const list=Object.entries(errors);
   if(!list.length)return null;
   return <ul className="center-exam-cellerrors" data-grid-errors role="alert">
-    {list.slice(0,6).map(([key,error])=><li key={key}>{t(error.messageKey,error.params)}</li>)}
-    {list.length>6&&<li>{t('grid.errors.more',{count:list.length-6})}</li>}
+    {list.slice(0,6).map(([key,error])=><li key={key}>{t(error.messageKey,localize(error.params))}</li>)}
+    {list.length>6&&<li>{t('grid.errors.more',{count:formatNumber(list.length-6,digits)})}</li>}
   </ul>;
 }
 
@@ -317,7 +320,7 @@ export function MarksGrid({examId,subjects,students,bands,canWrite,digits,publis
       {editable&&<button type="button" className="admin-mini-button" data-grid-save onClick={()=>{void save()}} disabled={pending||!dirtyIds.length}>
         {t('grid.saveNow')}{dirtyIds.length?` (${formatNumber(dirtyIds.length,digits)})`:''}
       </button>}
-      <span className="admin-help" data-grid-status role="status">{pending?t('grid.status.savingShort'):status?t(status.key,status.params):dirtyIds.length?t('grid.status.unsaved',{count:dirtyIds.length}):''}</span>
+      <span className="admin-help" data-grid-status role="status">{pending?t('grid.status.savingShort'):status?t(status.key,inDigits(digits)(status.params)):dirtyIds.length?t('grid.status.unsaved',{count:formatNumber(dirtyIds.length,digits)}):''}</span>
     </div>
     <div className="admin-table-wrap"><table className="center-exam-grid" ref={table} onPaste={onPaste} data-grid-table>
       <caption>{t('grid.caption')}</caption>
@@ -362,7 +365,7 @@ export function MarksGrid({examId,subjects,students,bands,canWrite,digits,publis
         <td colSpan={5+(editable?1:0)} data-summary-foot>{t('summary.average')}: {number(summary.average)} · {t('summary.passRate')}: {summary.passRate===null?'—':`${formatNumber(summary.passRate,digits)}%`} · {t('summary.counted')}: {formatNumber(summary.counted,digits)}</td>
       </tr></tfoot>
     </table></div>
-    <CellErrors errors={errors}/>
+    <CellErrors errors={errors} digits={digits}/>
     <dl className="center-exam-summary" data-exam-summary>
       <div><dt>{t('summary.students')}</dt><dd data-summary-students>{formatNumber(summary.students,digits)}</dd></div>
       <div><dt>{t('summary.counted')}</dt><dd data-summary-counted>{formatNumber(summary.counted,digits)}</dd></div>
@@ -384,8 +387,9 @@ export function MarksGrid({examId,subjects,students,bands,canWrite,digits,publis
  * and a row the sheet could not match to ONE student is listed as ambiguous rather than guessed at,
  * because a mark written onto the wrong child is the one mistake this screen must never make.
  */
-export function MarksImport({examId,onImported}:{examId:string;onImported:()=>void}){
+export function MarksImport({examId,onImported,digits}:{examId:string;onImported:()=>void;digits:Digits}){
   const t=useTranslations('exams');
+  const localize=inDigits(digits);
   const router=useRouter();
   const [file,setFile]=useState<File|null>(null);
   const [preview,setPreview]=useState<MarksImportState|null>(null);
@@ -413,23 +417,23 @@ export function MarksImport({examId,onImported}:{examId:string;onImported:()=>vo
     <p className="admin-help">{t('import.help')}</p>
     <button type="button" className="admin-mini-button" data-import-preview disabled={!file||busy} onClick={()=>{void run('preview')}}>{t('import.preview')}</button>
     {preview&&preview.status==='ok'&&<>
-      <p data-import-counts>{t('import.counts',{rows:preview.counts?.rows??0,ready:preview.counts?.ready??0,unmatched:preview.counts?.unmatched??0,ambiguous:preview.counts?.ambiguous??0,incomplete:preview.counts?.incomplete??0,invalid:preview.counts?.invalid??0})}</p>
+      <p data-import-counts>{t('import.counts',localize({rows:preview.counts?.rows??0,ready:preview.counts?.ready??0,unmatched:preview.counts?.unmatched??0,ambiguous:preview.counts?.ambiguous??0,incomplete:preview.counts?.incomplete??0,invalid:preview.counts?.invalid??0}))}</p>
       {preview.unusedHeaders?.length?<p className="admin-help" data-import-unused>{t('import.unused',{columns:preview.unusedHeaders.join(', ')})}</p>:null}
       <div className="admin-table-wrap"><table className="center-exam-importpreview" data-import-table>
         <thead><tr><th>{t('import.col.row')}</th><th>{t('import.col.student')}</th><th>{t('import.col.status')}</th><th>{t('import.col.marks')}</th></tr></thead>
         <tbody>{(preview.rows||[]).map(row=><tr key={row.row} data-import-row={row.row} data-import-status={row.status}>
-          <td>{row.row}</td>
+          <td>{formatNumber(row.row,digits)}</td>
           <td>{row.studentName||row.matches.join(' / ')||'—'}</td>
           <td>{t(row.statusKey)}</td>
-          <td>{row.cells.map(cell=>cell.ok||!cell.messageKey?cell.raw:t(cell.messageKey,{subject:cell.subject,full:cell.full??0})).join(' · ')}</td>
+          <td>{row.cells.map(cell=>cell.ok||!cell.messageKey?cell.raw:t(cell.messageKey,localize({subject:cell.subject,full:cell.full??0}))).join(' · ')}</td>
         </tr>)}</tbody>
       </table></div>
-      <button type="button" className="button button-navy" data-import-confirm disabled={busy||!(preview.counts?.ready)} onClick={()=>{void run('commit')}}>{t('import.commit',{count:preview.counts?.ready??0})}</button>
+      <button type="button" className="button button-navy" data-import-confirm disabled={busy||!(preview.counts?.ready)} onClick={()=>{void run('commit')}}>{t('import.commit',{count:formatNumber(preview.counts?.ready??0,digits)})}</button>
     </>}
-    {preview&&preview.status==='error'&&<p role="alert" className="admin-feedback error" data-import-error>{t(preview.messageKey||'errors.failed',preview.messageParams||{})}</p>}
+    {preview&&preview.status==='error'&&<p role="alert" className="admin-feedback error" data-import-error>{t(preview.messageKey||'errors.failed',localize(preview.messageParams||{}))}</p>}
     {outcome&&<p role="status" data-import-outcome>{outcome.status==='ok'
-      ? t('import.saved',{count:outcome.saved??0})
-      : t(outcome.messageKey||'errors.failed',outcome.messageParams||{})}</p>}
+      ? t('import.saved',{count:formatNumber(outcome.saved??0,digits)})
+      : t(outcome.messageKey||'errors.failed',localize(outcome.messageParams||{}))}</p>}
   </div>;
 }
 
@@ -442,6 +446,6 @@ export function ExamMarksPanel({examId,subjects,students,bands,canWrite,digits,p
   const [reload,setReload]=useState(0);
   return <div className="center-exam-panel">
     <MarksGrid key={reload} examId={examId} subjects={subjects} students={students} bands={bands} canWrite={canWrite} digits={digits} published={published}/>
-    {!published&&canWrite&&<MarksImport examId={examId} onImported={()=>{setReload(count=>count+1);router.refresh()}}/>}
+    {!published&&canWrite&&<MarksImport examId={examId} digits={digits} onImported={()=>{setReload(count=>count+1);router.refresh()}}/>}
   </div>;
 }

@@ -20,6 +20,7 @@ import {BanglaDate} from './bangla-date';
 import {createExamAction,updateExamAction,publishExamAction,unpublishExamAction,saveGradingScaleAction} from '@/actions/center-exams';
 import type {ExamState} from '@/lib/exams/exam-state';
 import {DEFAULT_GRADING_RANGES,EXAM_TYPES,MAX_EXAM_SUBJECTS,type GradeRange} from '@/lib/exams/vocab';
+import {formatNumber,type Digits} from '@/lib/admin/format';
 
 const initial:ExamState={status:'idle'};
 
@@ -51,7 +52,7 @@ const CUSTOM='custom';
  * `mode` decides which action it posts to and which button it shows; everything else is the same form,
  * because the two must never disagree about what an exam is made of.
  */
-export function ExamShapeForm({mode,groups,scales,value}:{mode:'create'|'edit';groups:ClassOption[];scales:ScaleOption[];value:ExamShapeValue}){
+export function ExamShapeForm({mode,groups,scales,value,digits}:{mode:'create'|'edit';groups:ClassOption[];scales:ScaleOption[];value:ExamShapeValue;digits:Digits}){
   const t=useTranslations('exams');
   const action=mode==='create'?createExamAction:updateExamAction;
   const [state,submit,pending]=useActionState(action,initial);
@@ -86,7 +87,7 @@ export function ExamShapeForm({mode,groups,scales,value}:{mode:'create'|'edit';g
     </select></label>
     <fieldset><legend>{t('form.subjectsLegend')}</legend>
       {Array.from({length:subjectCount},(_,index)=><div className="center-exam-subject" key={index}>
-        <label>{t('form.subjectLabel')} {index+1}<input name={`subject-${index}`} className="admin-input" required maxLength={100} defaultValue={value.subjects[index]?.name||''}/></label>
+        <label>{t('form.subjectLabel')} {formatNumber(index+1,digits)}<input name={`subject-${index}`} className="admin-input" required maxLength={100} defaultValue={value.subjects[index]?.name||''}/></label>
         <label>{t('form.fullLabel')}<input name={`full-${index}`} className="admin-input" inputMode="numeric" required defaultValue={value.subjects[index]?.full??''}/></label>
         <label>{t('form.passLabel')}<input name={`pass-${index}`} className="admin-input" inputMode="numeric" required defaultValue={value.subjects[index]?.pass??''}/></label>
       </div>)}

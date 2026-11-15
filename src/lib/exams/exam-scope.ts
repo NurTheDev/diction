@@ -54,6 +54,19 @@ export function scopeCovers(scope:ExamScope,classGroups:unknown[]):boolean{
   return list.length>0&&list.every(group=>allowed.has(group));
 }
 
+/**
+ * The classes of an exam this actor may actually work in, out of the exam's own list.
+ *
+ * `scopeCovers` asks whether an actor reaches **every** class of an exam, which is the right question for
+ * the acts that speak for the whole exam — publishing it, changing its shape, setting its scale. Marks are
+ * not such an act: a teacher who takes Nine A enters Nine A's marks in an exam that also covers Nine B, and
+ * the grid they are shown is Nine A's students alone. So the write path asks this instead, and an empty
+ * answer means the exam is none of theirs at all.
+ */
+export function scopeClasses(scope:ExamScope,classGroups:unknown[]):string[]{
+  return classGroups.map(group=>String(group)).filter(group=>scopeCoversClass(scope,group));
+}
+
 /** True when this scope reaches one class group — the check the marks write and the roster read use. */
 export function scopeCoversClass(scope:ExamScope,classGroup:unknown):boolean{
   if(!scope.classGroups)return true;

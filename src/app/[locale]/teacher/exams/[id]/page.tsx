@@ -3,7 +3,7 @@ import {Link} from '@/i18n/navigation';
 import {getTranslations} from 'next-intl/server';
 import {getPortalUser} from '@/lib/portal-guard';
 import {dashboardDigits} from '@/lib/admin/digits';
-import {formatNumber} from '@/lib/admin/format';
+import {formatDate,formatNumber} from '@/lib/admin/format';
 import {getExamScope} from '@/lib/exams/exam-actor';
 import {examDetailView} from '@/lib/exams/exam-view';
 import {EXAM_TYPE_LABEL_KEYS,EXAM_STATUS_LABEL_KEYS,type ExamType,type ExamStatus} from '@/lib/exams/vocab';
@@ -44,7 +44,7 @@ export default async function TeacherExamDetail({params}:{params:Promise<{locale
           <h2 data-teacher-exam-name>{view.name}</h2></div>
         </div>
         <p className="admin-help" data-teacher-exam-meta>
-          {view.date} · {t(EXAM_TYPE_LABEL_KEYS[view.type as ExamType]||'typeLabels.other')} · {t(EXAM_STATUS_LABEL_KEYS[view.status as ExamStatus]||'status.draft')} · {view.classes.map(entry=>entry.name).join(', ')}
+          {formatDate(view.date,digits,locale==='en'?'en':'bn')} · {t(EXAM_TYPE_LABEL_KEYS[view.type as ExamType]||'typeLabels.other')} · {t(EXAM_STATUS_LABEL_KEYS[view.status as ExamStatus]||'status.draft')} · {view.classes.map(entry=>entry.name).join(', ')}
         </p>
         {view.tooMany&&<p role="alert" className="admin-feedback error">{t('detail.tooManyRecords')}</p>}
         <p className="admin-help">{published?t('teacher.publishedNote'):t('teacher.draftNote')}</p>

@@ -13,7 +13,7 @@
  */
 import mongoose from 'mongoose';
 import {CenterClassGroup,CenterExam,CenterExamResult,CenterGradingScale,CenterStudent} from '../../models/CenterRecords';
-import {scopeCoversClass,type ExamScope} from './exam-scope';
+import {scopeClasses,scopeCoversClass,type ExamScope} from './exam-scope';
 import {classSummary,type ClassSummary,type SummaryRow} from './grading';
 
 /** A class group as a screen names it: the name in the page's language plus the session year. */
@@ -46,10 +46,9 @@ interface StudentDoc{_id:mongoose.Types.ObjectId;studentId:string;name:{bn:strin
 
 const localName=(name:{bn:string;en?:string},locale:string):string=>(locale==='en'?name.en||name.bn:name.bn)||name.bn;
 
-/** The class groups this actor may see, out of a list of ids. */
-function visibleClasses(scope:ExamScope,ids:unknown[]):string[]{
-  return ids.map(id=>String(id)).filter(id=>scopeCoversClass(scope,id));
-}
+/* The classes this actor may see are the classes this actor may write: one function, in the scope module,
+   answers both, so a read can never be narrower or wider than the write behind it. */
+const visibleClasses=scopeClasses;
 
 export interface ExamDetailView{
   id:string;name:string;type:string;date:string;status:string;scaleName:string;

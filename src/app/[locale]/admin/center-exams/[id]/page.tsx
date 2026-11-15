@@ -2,7 +2,7 @@ import {Link} from '@/i18n/navigation';
 import {notFound} from 'next/navigation';
 import {getTranslations} from 'next-intl/server';
 import {dashboardDigits} from '@/lib/admin/digits';
-import {formatNumber} from '@/lib/admin/format';
+import {formatDate,formatNumber} from '@/lib/admin/format';
 import {getExamScope} from '@/lib/exams/exam-actor';
 import {examDetailView,gradingScales} from '@/lib/exams/exam-view';
 import {EXAM_TYPE_LABEL_KEYS,EXAM_STATUS_LABEL_KEYS,type ExamType,type ExamStatus} from '@/lib/exams/vocab';
@@ -40,7 +40,7 @@ export default async function ExamDetail({params}:{params:Promise<{locale:string
     <div className="admin-heading"><div>
       <Link href="/admin/center-exams" className="text-link">← {t('detail.crumbExams')}</Link>
       <h1 data-exam-name>{view.name}</h1>
-      <p data-exam-meta>{view.date} · {t(EXAM_TYPE_LABEL_KEYS[view.type as ExamType]||'typeLabels.other')} · {t(EXAM_STATUS_LABEL_KEYS[view.status as ExamStatus]||'status.draft')} · {view.classes.join(', ')}</p>
+      <p data-exam-meta>{formatDate(view.date,digits,locale==='en'?'en':'bn')} · {t(EXAM_TYPE_LABEL_KEYS[view.type as ExamType]||'typeLabels.other')} · {t(EXAM_STATUS_LABEL_KEYS[view.status as ExamStatus]||'status.draft')} · {view.classes.join(', ')}</p>
       {view.scaleName&&<p className="admin-help" data-exam-scale-name>{t('detail.scaleUsed',{scale:view.scaleName})}</p>}
     </div></div>
     {view.tooMany&&<p role="alert" className="admin-feedback error">{t('detail.tooManyRecords')}</p>}
@@ -61,7 +61,7 @@ export default async function ExamDetail({params}:{params:Promise<{locale:string
         {published
           ? <p className="admin-help" data-edit-locked>{t('detail.editLocked')}</p>
           : <details className="center-exam-edit" data-exam-edit><summary>{t('detail.editSummary')}</summary>
-              <ExamShapeForm mode="edit"
+              <ExamShapeForm digits={digits} mode="edit"
                 groups={view.classes}
                 scales={scales}
                 value={{id:view.id,name:view.name,type:view.type,date:view.date,scaleName:view.scaleName,
@@ -72,7 +72,7 @@ export default async function ExamDetail({params}:{params:Promise<{locale:string
       </div>
     </section>}
     <section className="admin-panel">
-      <div className="admin-panel-head"><h2>{t('detail.enterMarksHeading')}</h2><span data-exam-progress>{view.results.length} / {view.students.length}</span></div>
+      <div className="admin-panel-head"><h2>{t('detail.enterMarksHeading')}</h2><span data-exam-progress>{formatNumber(view.results.length,digits)} / {formatNumber(view.students.length,digits)}</span></div>
       <p className="admin-help" style={{padding:'0 1rem'}}>{t('detail.marksHelp')}</p>
       <div className="admin-panel-body">
         <ExamMarksPanel examId={view.id} subjects={view.subjects} students={view.students} bands={view.bands}

@@ -22,7 +22,7 @@ import {preflight,testDbName} from './helpers/env-preflight';
 import {User} from '../src/models/User';
 import {CenterStudent,CenterClassGroup,CenterExam,CenterExamResult,CenterActivityLog,CenterGradingScale} from '../src/models/CenterRecords';
 import {createCenterExam,updateCenterExam,saveCenterExamMarks,saveCenterExamMarksBatch,publishCenterExam,unpublishCenterExam} from '../src/lib/center/exam-batch';
-import {teacherClassGroups,scopeCovers,scopeCoversClass,scopeFilter,type ExamScope} from '../src/lib/exams/exam-scope';
+import {teacherClassGroups,scopeClasses,scopeCovers,scopeCoversClass,scopeFilter,type ExamScope} from '../src/lib/exams/exam-scope';
 import {examDetailView,examListView,gradingScales} from '../src/lib/exams/exam-view';
 import {DEFAULT_GRADING_RANGES,rangesToBands} from '../src/lib/exams/vocab';
 
@@ -53,17 +53,21 @@ async function run(){
       User.create({name:'শিক্ষক খ',passwordHash:'x',role:'teacher'}),
       User.create({name:'Content editor',passwordHash:'x',role:'content_editor'}),
     ]);
-    const [classA,classB]=await Promise.all([
+    const [classA,classB,classC]=await Promise.all([
       CenterClassGroup.create({name:{bn:'নবম ক',en:'Nine A'},academicYear:2026,active:true,teachers:[teacherA._id]}),
       CenterClassGroup.create({name:{bn:'নবম খ',en:'Nine B'},academicYear:2026,active:true,teachers:[teacherB._id]}),
+      /* Nine C is in no exam. It exists so that "this student is not in the exam" and "this student is in
+         the exam but in another teacher's class" stay two separate refusals with two separate causes. */
+      CenterClassGroup.create({name:{bn:'নবম গ',en:'Nine C'},academicYear:2026,active:true}),
     ]);
     const student=(id,classGroup,marks)=>CenterStudent.create({
       studentId:id,name:{bn:`ছাত্র ${id}`,en:`Student ${id}`},classGroup,guardianName:'অভিভাবক',
       guardianPhone:`017${id.replace(/\D/g,'').padStart(8,'0')}`,admissionDate:'2026-01-01',
       startMonth:{year:2026,month:1},feeHistory:[{effectiveFrom:{year:2026,month:1},amount:1000}],
     });
-    const [a1,a2,a3,b1]=await Promise.all([
+    const [a1,a2,a3,b1,c1]=await Promise.all([
       student('EX-1',classA._id),student('EX-2',classA._id),student('EX-3',classA._id),student('EX-4',classB._id),
+      student('EX-5',classC._id),
     ]);
 
     // ── A teacher's scope is the classes assigned to them ───────────────────────────────────────
@@ -75,9 +79,14 @@ async function run(){
     const ownerScope={userId:String(owner._id),role:'admin',name:'Owner',manage:true,publish:true,scale:true,archive:true,classGroups:null,teacher:false};
     assert.equal(scopeCovers(scopeA,[classA._id]),true,'teacher A reaches Nine A');
     assert.equal(scopeCovers(scopeA,[classB._id]),false,'and never Nine B');
-    assert.equal(scopeCovers(scopeA,[classA._id,classB._id]),false,'an exam covering a class they do not take is not theirs to write');
+    /* `scopeCovers` is the whole-exam question — the right one for publishing, reshaping and scaling, which
+       speak for every class at once. Marks are not that kind of act, so they ask `scopeClasses` instead. */
+    assert.equal(scopeCovers(scopeA,[classA._id,classB._id]),false,'an exam covering a class they do not take is not theirs to publish or reshape');
     assert.equal(scopeCovers(ownerScope,[classA._id,classB._id]),true,'the owner reaches every class');
     assert.equal(scopeCoversClass(scopeA,classB._id),false);
+    assert.deepEqual(scopeClasses(scopeA,[classA._id,classB._id]),[String(classA._id)],'but Nine A inside that exam is theirs to mark');
+    assert.deepEqual(scopeClasses(scopeA,[classB._id]),[],'and an exam with none of their classes is none of theirs');
+    assert.deepEqual(scopeClasses(ownerScope,[classA._id,classB._id]),[String(classA._id),String(classB._id)],'while the owner’s slice is the whole exam');
     assert.deepEqual(scopeFilter(scopeA),{_id:{$in:[String(classA._id)]}},'a teacher list query is narrowed before it runs');
     assert.deepEqual(scopeFilter(ownerScope),{},'and an owner list query is not');
 
@@ -106,7 +115,7 @@ async function run(){
     assert.equal(String(first.classGroup),String(classA._id),'the result knows which class it belongs to');
     assert.equal(first.revision,0);
     await assert.rejects(()=>saveCenterExamMarks({examId:created.id,studentId:String(a1._id),version:-1,marks:marksOf(80,40)},String(teacherA._id)),/STALE_RESULT/,'a save that names an old revision is refused');
-    await assert.rejects(()=>saveCenterExamMarks({examId:created.id,studentId:String(b1._id),version:-1,marks:marksOf(80,40)},String(teacherA._id)),/STUDENT_UNAVAILABLE/,'a student of another class cannot be marked into this exam by accident');
+    await assert.rejects(()=>saveCenterExamMarks({examId:created.id,studentId:String(c1._id),version:-1,marks:marksOf(80,40)},String(teacherA._id)),/STUDENT_UNAVAILABLE/,'a student of a class the exam does not cover cannot be marked into it by accident');
 
     const batch=await saveCenterExamMarksBatch({examId:created.id,rows:[
       {studentId:String(a2._id),version:-1,marks:marksOf(85,40)},
@@ -139,6 +148,31 @@ async function run(){
     assert.match(String((race.find(outcome=>outcome.status==='rejected') as PromiseRejectedResult).reason),/STALE_RESULT/,'and the loser is told it was stale, not silently dropped');
     assert.equal(await CenterExamResult.countDocuments({student:b1._id}),1,'one result for one student, however many times the row was posted');
     assert.equal((await CenterExamResult.findOne({student:b1._id}).lean()).revision,1,'and the revision moved exactly once');
+
+    // ── A teacher's slice of an exam that covers two classes ───────────────────────────────────
+    /* The grid a teacher is shown holds their own class alone, so this path is only reachable by a request
+       built by hand — which is exactly why the narrowing lives in the engine, inside the transaction, and
+       not in the caller. Both refusals answer `STUDENT_UNAVAILABLE`, the same sentence the engine gives for
+       a student who is not in the exam at all, so a forged row learns nothing about whose class is whose. */
+    const slice=await saveCenterExamMarksBatch({examId:created.id,allowedClasses:[String(classA._id)],rows:[
+      {studentId:String(b1._id),version:1,marks:marksOf(70,30)},
+      {studentId:String(c1._id),version:-1,marks:marksOf(70,30)},
+    ]},String(teacherA._id));
+    assert.equal(slice.saved,0,'a teacher writes nothing into a class they do not take');
+    assert.deepEqual(slice.rows.map(row=>[row.status,row.reason]),[['refused','STUDENT_UNAVAILABLE'],['refused','STUDENT_UNAVAILABLE']],
+      'another teacher’s student and a student outside the exam are both refused');
+    assert.equal((await CenterExamResult.findOne({student:b1._id}).lean()).total,100,'and the refused write left the stored mark exactly as it was');
+    await assert.rejects(()=>saveCenterExamMarks({examId:created.id,studentId:String(b1._id),version:1,allowedClasses:[String(classA._id)],marks:marksOf(70,30)},String(teacherA._id)),
+      /STUDENT_UNAVAILABLE/,'the single save narrows the same way the batch does');
+    assert.equal(await CenterActivityLog.countDocuments({action:'exam.marks'}),6,'a refusal is not a marks write and is not logged as one');
+    /* And the same teacher, in the same exam, marking their own class: the wall is per class, not per exam. */
+    const own=await saveCenterExamMarksBatch({examId:created.id,allowedClasses:[String(classA._id)],rows:[
+      {studentId:String(a2._id),version:0,marks:marksOf(85,40)},
+    ]},String(teacherA._id));
+    assert.equal(own.saved,1,'their own class in a two-class exam is theirs to mark');
+    assert.equal((await CenterExamResult.findOne({student:a2._id}).lean()).total,125,'and the mark is the one they wrote');
+    // That write moved this row's revision to 1, which is the revision the ranking section below names.
+    assert.equal((await CenterExamResult.findOne({student:a2._id}).lean()).revision,1,'one write, one revision');
 
     // ── Each class ranks on its own ─────────────────────────────────────────────────────────────
     await saveCenterExamMarksBatch({examId:created.id,rows:[

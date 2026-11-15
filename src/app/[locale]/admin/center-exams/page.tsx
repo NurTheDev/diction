@@ -9,7 +9,7 @@ import {ExamShapeForm} from '@/components/admin/center-exam-forms';
 import {DeleteRow} from '@/components/admin/delete-row';
 import {notFound} from 'next/navigation';
 import {dashboardDigits} from '@/lib/admin/digits';
-import {formatNumber} from '@/lib/admin/format';
+import {formatDate,formatNumber} from '@/lib/admin/format';
 
 export const dynamic='force-dynamic';
 
@@ -59,7 +59,7 @@ export default async function Exams({params,searchParams}:{params:Promise<{local
       <p className="admin-help"><Link className="text-link" href="/admin/grading-scale" data-link-scale>{t('list.scaleLink')}</Link></p>
     </div></div>
     {scope.manage&&<section className="admin-panel"><div className="admin-panel-head"><h2>{t('list.createHeading')}</h2></div>
-      <div className="admin-panel-body"><ExamShapeForm mode="create" groups={choices} scales={scales} value={emptyExam}/></div>
+      <div className="admin-panel-body"><ExamShapeForm mode="create" groups={choices} scales={scales} value={emptyExam} digits={digits}/></div>
     </section>}
     <section className="admin-panel">
       <div className="admin-panel-head"><h2>{t('list.heading')}</h2><span data-exam-total>{formatNumber(list.total,digits)}</span></div>
@@ -88,9 +88,9 @@ export default async function Exams({params,searchParams}:{params:Promise<{local
           <td><Link className="text-link" href={`/admin/center-exams/${exam.id}`}>{exam.name}</Link></td>
           <td>{t(EXAM_TYPE_LABEL_KEYS[exam.type as keyof typeof EXAM_TYPE_LABEL_KEYS]||'typeLabels.other')}</td>
           <td>{exam.classes.join(', ')}</td>
-          <td>{exam.date}</td>
+          <td>{formatDate(exam.date,digits,locale==='en'?'en':'bn')}</td>
           <td data-exam-status={exam.status}>{t(EXAM_STATUS_LABEL_KEYS[exam.status as keyof typeof EXAM_STATUS_LABEL_KEYS]||'status.draft')}</td>
-          <td>{exam.results}</td>
+          <td>{formatNumber(exam.results,digits)}</td>
           {canDelete&&<td><DeleteRow kind="centerExam" id={exam.id} name={exam.name} canArchive={false}/></td>}
         </tr>)}</tbody>
       </table></div>

@@ -6,6 +6,8 @@ import {CenterGradingScale} from '@/models/CenterRecords';
 import {getExamScope} from '@/lib/exams/exam-actor';
 import {GradingScaleForm} from '@/components/admin/center-exam-forms';
 import {DEFAULT_GRADING_RANGES} from '@/lib/exams/vocab';
+import {dashboardDigits} from '@/lib/admin/digits';
+import {formatNumber} from '@/lib/admin/format';
 
 export const dynamic='force-dynamic';
 
@@ -27,6 +29,8 @@ export default async function GradingScalePage({params,searchParams}:{params:Pro
   const scope=await getExamScope();
   if(!scope||!scope.scale)notFound();
   const {scale}=await searchParams;
+  // The owner's own digit preference: a band boundary on a Bangla screen is a Bangla number.
+  const digits=await dashboardDigits(scope.userId);
   const scales=await CenterGradingScale.find({}).sort({active:-1,name:1}).limit(20)
     .lean<{_id:mongoose.Types.ObjectId;name:string;ranges:{min:number;max:number;grade:string;point:number}[];active:boolean}[]>();
   const options=scales.map(entry=>({
@@ -47,7 +51,7 @@ export default async function GradingScalePage({params,searchParams}:{params:Pro
       </div>
     </section>
     <section className="admin-panel">
-      <div className="admin-panel-head"><h2>{t('scale.savedHeading')}</h2><span data-scale-count>{options.length}</span></div>
+      <div className="admin-panel-head"><h2>{t('scale.savedHeading')}</h2><span data-scale-count>{formatNumber(options.length,digits)}</span></div>
       <div className="admin-table-wrap"><table className="admin-table" data-scale-list>
         <thead><tr><th>{t('scale.col.name')}</th><th>{t('scale.col.status')}</th><th>{t('scale.col.ranges')}</th><th/></tr></thead>
         <tbody>{options.map(entry=><tr key={entry.id} data-scale-row={entry.id}>

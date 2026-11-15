@@ -7,7 +7,7 @@ import {examListView} from '@/lib/exams/exam-view';
 import {EXAM_TYPE_LABEL_KEYS,EXAM_STATUS_LABEL_KEYS,type ExamType,type ExamStatus} from '@/lib/exams/vocab';
 import {PortalHero} from '@/components/portal/learner';
 import {dashboardDigits} from '@/lib/admin/digits';
-import {formatNumber} from '@/lib/admin/format';
+import {formatDate,formatNumber} from '@/lib/admin/format';
 import {ClipboardCheck} from 'lucide-react';
 
 export const dynamic='force-dynamic';
@@ -37,7 +37,7 @@ export default async function TeacherExams({params,searchParams}:{params:Promise
   return <>
     <PortalHero title={t('teacher.title')} name={user.name} showAnchors={false}/>
     <section className="portal-area"><div className="wrap portal-container">
-      <div className="notice-box" data-teacher-scope>{t('teacher.scopeNote',{classes:scope.classGroups?.length??0})}</div>
+      <div className="notice-box" data-teacher-scope>{t('teacher.scopeNote',{classes:formatNumber(scope.classGroups?.length??0,digits)})}</div>
       <section className="portal-card" id="exams">
         <div className="portal-card-head"><div className="portal-icon"><ClipboardCheck size={20}/></div>
           <div><span>{t('teacher.listHeading')}</span><h2 data-teacher-exam-total>{formatNumber(list.total,digits)}</h2></div>
@@ -50,7 +50,7 @@ export default async function TeacherExams({params,searchParams}:{params:Promise
             <td>{exam.name}</td>
             <td>{t(EXAM_TYPE_LABEL_KEYS[exam.type as ExamType]||'typeLabels.other')}</td>
             <td>{exam.classes.join(', ')}</td>
-            <td>{exam.date}</td>
+            <td>{formatDate(exam.date,digits,locale==='en'?'en':'bn')}</td>
             <td data-teacher-exam-status={exam.status}>{t(EXAM_STATUS_LABEL_KEYS[exam.status as ExamStatus]||'status.draft')}</td>
             <td><Link className="admin-mini-button" href={`/teacher/exams/${exam.id}`} data-teacher-open={exam.id}>
               {exam.status==='draft'?t('teacher.enterMarks'):t('teacher.viewMarks')}

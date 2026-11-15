@@ -36,13 +36,31 @@ function checkShape(data:z.infer<typeof examShapeSchema>):void{
 /** An exam's bands with the GPA point each one carries, sorted from the top down and re-validated. */
 const bandsWithPoints=(exam:Ex)=>{const bands=[...exam.gradeBands].sort((a,b)=>b.min-a.min).map(b=>({min:b.min,label:b.label,point:b.point??0}));validateBands(bands.map(b=>({min:b.min,label:b.label})));return bands};
 
-const markInput=z.object({examId:id,studentId:id,version:z.number().int().min(-1),marks:z.array(z.object({subject:id,obtained:z.number().int().min(0).nullable(),absent:z.boolean()})).min(1).max(8)});
-const batchInput=z.object({examId:id,rows:z.array(z.object({studentId:id,version:z.number().int().min(-1),marks:z.array(z.object({subject:id,obtained:z.number().int().min(0).nullable(),absent:z.boolean()})).min(1).max(8)})).min(1).max(500)});
+/* `allowedClasses` is the actor's slice of the exam: absent for an owner or an exam manager, who reach
+   every class, and the assigned list for a teacher. The narrowing happens in here, inside the same
+   transaction as the write, rather than in the caller — a check made outside the transaction is a check
+   against a database that may have moved by the time the mark lands. */
+const allowed=z.array(z.string()).optional();
+const markInput=z.object({examId:id,studentId:id,version:z.number().int().min(-1),allowedClasses:allowed,marks:z.array(z.object({subject:id,obtained:z.number().int().min(0).nullable(),absent:z.boolean()})).min(1).max(8)});
+const batchInput=z.object({examId:id,allowedClasses:allowed,rows:z.array(z.object({studentId:id,version:z.number().int().min(-1),marks:z.array(z.object({subject:id,obtained:z.number().int().min(0).nullable(),absent:z.boolean()})).min(1).max(8)})).min(1).max(500)});
 type Ex={_id:mongoose.Types.ObjectId;requestId?:string;createdBy?:mongoose.Types.ObjectId;name:{bn:string};type:string;date:string;scaleName?:string;classGroups:mongoose.Types.ObjectId[];gradeBands:{min:number;label:string;point?:number}[];subjects:{_id:mongoose.Types.ObjectId;name:{bn:string};fullMarks:number;passMarks:number}[];status:string};
 type Row={_id:mongoose.Types.ObjectId;student:mongoose.Types.ObjectId;classGroup?:mongoose.Types.ObjectId;revision?:number;marks?:{subject:string;obtained:number|null;absent:boolean}[];total?:number;grade?:string;percentage?:number;position?:number};
 /** An exam may be asked for one class at a time (the old single-class form) or several at once (R5). */
 export function classIdsOf(input:unknown):string[]{const raw=(input as {classIds?:unknown;classId?:unknown})||{};const list=Array.isArray(raw.classIds)?raw.classIds:raw.classId?[raw.classId]:[];return [...new Set(list.map(x=>String(x).toLowerCase()))]}
 const sortedIds=(list:{toString():string}[])=>list.map(x=>String(x).toLowerCase()).sort();
+/**
+ * The classes of this exam the actor may write into.
+ *
+ * A student outside it is refused as `STUDENT_UNAVAILABLE` — the same answer the engine already gives for a
+ * student who is not in the exam at all, and deliberately so: to a caller who forged a row for another
+ * teacher's class, the two cases are one sentence, and neither confirms who is in whose class.
+ */
+function reachable(exam:Ex,allowedClasses?:string[]){
+  const classes=exam.classGroups.map(group=>String(group).toLowerCase());
+  if(!allowedClasses?.length)return classes;
+  const slice=new Set(allowedClasses.map(group=>group.toLowerCase()));
+  return classes.filter(group=>slice.has(group));
+}
 /** One student's marks, recalculated, as the row stores them. Shared by the single save and the batch. */
 function applyMarks(exam:Ex,studentId:string,version:number,marks:{subject:string;obtained:number|null;absent:boolean}[],actor:string,classGroup:string){
   const normalized=marks.map(m=>({...m,subject:m.subject.toLowerCase()})),bands=bandsWithPoints(exam);
@@ -135,7 +153,7 @@ export async function saveCenterExamMarks(input:unknown,actor:string){
       await acquireCenterLocks([`exam:${p.examId.toLowerCase()}`,studentLock(p.studentId)],session);
       const ex=await CenterExam.findById(p.examId).session(session).lean<Ex>();
       if(!ex||ex.status!=='draft'||!ex.classGroups.length)throw Error('EXAM_UNAVAILABLE');
-      const student=await CenterStudent.findOne({_id:p.studentId,classGroup:{$in:ex.classGroups},status:'active'}).session(session).select('_id classGroup').lean<{_id:mongoose.Types.ObjectId;classGroup:mongoose.Types.ObjectId}>();
+      const student=await CenterStudent.findOne({_id:p.studentId,classGroup:{$in:reachable(ex,p.allowedClasses)},status:'active'}).session(session).select('_id classGroup').lean<{_id:mongoose.Types.ObjectId;classGroup:mongoose.Types.ObjectId}>();
       if(!student)throw Error('STUDENT_UNAVAILABLE');
       const current=await CenterExamResult.findOne({exam:p.examId,student:p.studentId}).session(session).lean<Row>();
       if((current?(current.revision??0):-1)!==p.version)throw Error('STALE_RESULT');
@@ -170,7 +188,7 @@ export async function saveCenterExamMarksBatch(input:unknown,actor:string):Promi
       await acquireCenterLocks([`exam:${p.examId.toLowerCase()}`,...students.map(studentLock)].sort(),session);
       const ex=await CenterExam.findById(p.examId).session(session).lean<Ex>();
       if(!ex||ex.status!=='draft'||!ex.classGroups.length)throw Error('EXAM_UNAVAILABLE');
-      const roster=await CenterStudent.find({_id:{$in:students},classGroup:{$in:ex.classGroups},status:'active'}).session(session).select('_id classGroup').lean<{_id:mongoose.Types.ObjectId;classGroup:mongoose.Types.ObjectId}[]>();
+      const roster=await CenterStudent.find({_id:{$in:students},classGroup:{$in:reachable(ex,p.allowedClasses)},status:'active'}).session(session).select('_id classGroup').lean<{_id:mongoose.Types.ObjectId;classGroup:mongoose.Types.ObjectId}[]>();
       const byId=new Map(roster.map(s=>[String(s._id).toLowerCase(),s]));
       const existing=await CenterExamResult.find({exam:ex._id,student:{$in:students}}).session(session).lean<Row[]>();
       const currentByStudent=new Map(existing.map(row=>[String(row.student).toLowerCase(),row]));

@@ -19,7 +19,7 @@
  */
 import {createHash} from 'node:crypto';
 import {revalidatePath} from 'next/cache';
-import {scopeCovers,type ExamScope} from '@/lib/exams/exam-scope';
+import {scopeClasses,scopeCovers,type ExamScope} from '@/lib/exams/exam-scope';
 import {getExamScope} from '@/lib/exams/exam-actor';
 import {createCenterExam,updateCenterExam,publishCenterExam,unpublishCenterExam,saveCenterExamMarksBatch} from '@/lib/center/exam-batch';
 import {CenterExam,CenterExamResult,CenterStudent,CenterClassGroup,CenterGradingScale} from '@/models/CenterRecords';
@@ -191,9 +191,14 @@ export async function saveMarksBatchAction(_:ExamState,form:FormData):Promise<Ex
   if(!examId||!Array.isArray(rows)||!rows.length)return refused('INVALID_MARKS');
   const exam=await CenterExam.findById(examId).select('classGroups status').lean<{classGroups:unknown[];status:string}|null>();
   if(!exam)return refused('EXAM_UNAVAILABLE');
-  if(!scopeCovers(actor.scope,exam.classGroups))return refused('UNAUTHORIZED');
+  /* Marks are not an act that speaks for the whole exam, so the question is not "does this actor reach
+     every class of it" but "which of its classes are theirs" — a teacher who takes Nine A marks Nine A in
+     an exam that also covers Nine B. An empty answer is the refusal, and the answer itself travels into the
+     engine so the narrowing happens inside the write transaction rather than before it. */
+  const allowed=scopeClasses(actor.scope,exam.classGroups);
+  if(!allowed.length)return refused('UNAUTHORIZED');
   try{
-    const out=await saveCenterExamMarksBatch({examId,rows},actor.scope.userId);
+    const out=await saveCenterExamMarksBatch({examId,rows,...(actor.scope.classGroups?{allowedClasses:allowed}:{})},actor.scope.userId);
     const refusals:ExamRefusal[]=out.rows.filter(row=>row.status!=='saved').map(row=>({
       studentId:row.studentId,reason:row.reason||row.status,messageKey:keyFor(row.reason||'INVALID_MARKS'),
     }));
@@ -280,12 +285,19 @@ export async function saveGradingScaleAction(_:ExamState,form:FormData):Promise<
 }
 
 /** The roster an upload may be matched against: the students of the exam's own classes, and no others. */
-async function rosterFor(examId:string,actorScope:ExamScope):Promise<{entries:RosterEntry[];subjects:{id:string;name:string;nameEn?:string;full:number}[]}|null>{
+async function rosterFor(examId:string,actorScope:ExamScope):Promise<{entries:RosterEntry[];subjects:{id:string;name:string;nameEn?:string;full:number}[];classes:string[]}|null>{
   const exam=await CenterExam.findById(examId).select('subjects classGroups').lean<{subjects:{_id:unknown;name:{bn:string;en?:string};fullMarks:number}[];classGroups:unknown[]}|null>();
-  if(!exam||!scopeCovers(actorScope,exam.classGroups))return null;
-  const classes=exam.classGroups.map(group=>String(group));
+  if(!exam)return null;
+  /* The roster an upload is matched against is the actor's slice of the exam, and nothing wider: a sheet
+     naming a student of another teacher's class comes back unmatched and listed, which is the honest
+     answer, instead of matching a child the uploader has no business writing marks for. */
+  const classes=scopeClasses(actorScope,exam.classGroups);
+  if(!classes.length)return null;
   const students=await CenterStudent.find({classGroup:{$in:classes},status:'active'}).select('studentId name roll classGroup').sort({studentId:1}).lean<{_id:unknown;studentId:string;name:{bn:string;en?:string};roll?:string;classGroup:unknown}[]>();
   return {
+    // The slice travels back with the roster, so a commit narrows its write by the same answer that
+    // narrowed the match — one question, asked once, used for both.
+    classes,
     subjects:exam.subjects.map(subject=>({id:String(subject._id),name:subject.name.bn,nameEn:subject.name.en,full:subject.fullMarks})),
     entries:students.map(student=>({
       id:String(student._id),studentId:String(student.studentId||''),
@@ -375,7 +387,10 @@ export async function commitMarksAction(_:MarksImportState,form:FormData):Promis
   }));
   if(!rows.length)return {status:'error',messageKey:'import.errors.nothingToSave',saved:0};
   try{
-    const out=await saveCenterExamMarksBatch({examId,rows},actor.scope.userId);
+    /* The roster this sheet was matched against was already the actor's slice of the exam, so every row here
+       is one of their students — and the slice is passed again anyway, because a commit is a write and the
+       write is the place the wall belongs. */
+    const out=await saveCenterExamMarksBatch({examId,rows,...(actor.scope.classGroups?{allowedClasses:roster.classes}:{})},actor.scope.userId);
     const refusals:ExamRefusal[]=out.rows.filter(row=>row.status!=='saved').map(row=>({
       studentId:row.studentId,reason:row.reason||row.status,messageKey:keyFor(row.reason||'INVALID_MARKS'),
     }));

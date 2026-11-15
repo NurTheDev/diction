@@ -5,6 +5,14 @@ const BN_DIGITS='০১২৩৪৫৬৭৮৯'; // i18n-scan-allow: the script
 const BN_DIGIT_RANGE=new RegExp(`[${BN_DIGITS[0]}-${BN_DIGITS[9]}]`,'g');
 const loc=(digits:Digits)=>digits==='bn'?'bn-BD':'en-GB';
 export function formatNumber(value:number,digits:Digits='bn'){return new Intl.NumberFormat(loc(digits),{useGrouping:false}).format(value)}
+/**
+ * The parameters of a translated sentence, with every number in the operator's digits.
+ *
+ * next-intl leaves an ICU number argument in Latin digits whatever the locale, so `{full}` on a Bangla
+ * screen painted "100 এর বেশি হতে পারে না" — the same lie a hardcoded sentence would tell, only harder to
+ * see because the words around it were right. Callers hand over the params they were going to pass anyway.
+ */
+export function inDigits(digits:Digits){return (params:Record<string,string|number>):Record<string,string|number>=>Object.fromEntries(Object.entries(params).map(([name,value])=>[name,typeof value==='number'?formatNumber(value,digits):value]))}
 /** Bangla-digit text to ASCII digits — a script conversion, used wherever a typed number must be parsed. */
 export function asciiDigits(value:string){return value.replace(BN_DIGIT_RANGE,c=>String(BN_DIGITS.indexOf(c)))}
 export function formatDate(value:Date|string,digits:Digits='bn',language:'bn'|'en'='bn'){const parts=new Intl.DateTimeFormat(language==='bn'?'bn-BD':'en-GB',{day:'numeric',month:'long',year:'numeric',timeZone:'Asia/Dhaka'}).formatToParts(new Date(value));const part=(name:string)=>parts.find(p=>p.type===name)?.value||'';const numeric=(value:string)=>formatNumber(Number(asciiDigits(value)),digits);return `${numeric(part('day'))} ${part('month')} ${numeric(part('year'))}`}
