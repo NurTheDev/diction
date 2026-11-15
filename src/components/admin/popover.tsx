@@ -26,13 +26,39 @@ export function useOutsideClose(onClose:()=>void){
   return ref;
 }
 
-/** A labelled anchor button and the surface it opens. One tap in, one tap (or Escape) out. */
+/**
+ * A labelled anchor button and the surface it opens. One tap in, one tap (or Escape) out.
+ *
+ * The surface is `position:fixed` and placed from the anchor's own rectangle, for two reasons that a
+ * list row makes unavoidable: an `overflow:auto` table wrap clips an absolutely positioned child (the
+ * last row's menu would be cut off), and a menu in the last column would hang past the viewport. Fixed
+ * positioning escapes the wrap's clipping, the placement keeps the surface inside the window, it flips
+ * upwards when there is no room below, and on a phone the stylesheet turns it into a bottom sheet
+ * instead — so `place()` sets no inline box at all under 761px.
+ */
 export function Popover({label,className='',bodyClass='',children,title}:{label:ReactNode;className?:string;bodyClass?:string;children:ReactNode|((close:()=>void)=>ReactNode);title?:string}){
   const [open,setOpen]=useState(false);
+  const anchor=useRef<HTMLButtonElement>(null);
+  const [box,setBox]=useState<{top:number;left:number;up:boolean}|null>(null);
   const ref=useOutsideClose(()=>setOpen(false));
+  useEffect(()=>{
+    if(!open)return;
+    const place=()=>{
+      if(window.innerWidth<=760){setBox(null);return}
+      const rect=anchor.current?.getBoundingClientRect();
+      if(!rect)return;
+      const width=Math.min(330,window.innerWidth-24);
+      const up=rect.bottom+280>window.innerHeight&&rect.top>280;
+      setBox({top:up?rect.top-6:rect.bottom+6,left:Math.max(8,Math.min(rect.left,window.innerWidth-width-8)),up});
+    };
+    place();
+    window.addEventListener('scroll',place,true);window.addEventListener('resize',place);
+    return()=>{window.removeEventListener('scroll',place,true);window.removeEventListener('resize',place)};
+  },[open]);
   return <div className={`pop ${className}`} ref={ref}>
-    <button type="button" className="pop-anchor" aria-expanded={open} aria-label={title} onClick={()=>setOpen(value=>!value)}>{label}</button>
-    {open&&<div className={`pop-body ${bodyClass}`}>{typeof children==='function'?children(()=>setOpen(false)):children}</div>}
+    <button type="button" className="pop-anchor" ref={anchor} aria-expanded={open} aria-label={title} onClick={()=>setOpen(value=>!value)}>{label}</button>
+    {open&&<div className={`pop-body ${bodyClass}`} style={box?{top:box.top,left:box.left,transform:box.up?'translateY(-100%)':undefined}:undefined}>
+      {typeof children==='function'?children(()=>setOpen(false)):children}</div>}
   </div>;
 }
 
