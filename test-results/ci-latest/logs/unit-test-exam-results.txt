@@ -1,17 +1,6 @@
---- tests/exam-results.integration.ts (exit 1) ---
+--- tests/exam-results.integration.ts (exit 0) ---
 Sent (mock) to 01711000011: ডিকশন কোচিং: নমুনা ছাত্র RS-1 এর নমুনা মাসিক পরীক্ষা ফলাফল: বাংলা ৯০, গণিত ৪৫। ম
+Sent (mock) to 01711000011: ডিকশন কোচিং: নমুনা ছাত্র RS-2 এর নমুনা মাসিক পরীক্ষা ফলাফল: বাংলা ৬০, গণিত ২০। ম
 Sent (mock) to 01711000055: ডিকশন কোচিং: নমুনা ছাত্র RS-5 এর নমুনা মাসিক পরীক্ষা ফলাফল: বাংলা ৭০, গণিত ৩৫। ম
 Sent (mock) to 01711000033: ডিকশন কোচিং: নমুনা ছাত্র RS-3 এর নমুনা মাসিক পরীক্ষা ফলাফল: বাংলা ৮০, গণিত ৪০। ম
-AssertionError [ERR_ASSERTION]: the prompt said 4 and the send wrote 3
-
-3 !== 4
-
-    at run (/home/runner/work/diction/diction/tests/exam-results.integration.ts:246:12)
-    at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {
-  generatedMessage: false,
-  code: 'ERR_ASSERTION',
-  actual: 3,
-  expected: 4,
-  operator: 'strictEqual',
-  diff: 'simple'
-}
+Exam results: a student’s history is the published exams newest first with each subject’s marks and pass mark, an absent exam keeps its row and no position and is left out of the trend with the skip counted, the payload the portal receives carries no money-shaped key, no money word and no phone number, a report card tells an unpublished exam from a child who was never in it and names the class the exam was sat in, a portal account reads only the children on its own exact number — never a sibling on a student account, never a near-miss number, never a removed child, never a teacher session — and the count the publish prompt shows is the count the send writes, with siblings unmerged and a draft exam still refused.

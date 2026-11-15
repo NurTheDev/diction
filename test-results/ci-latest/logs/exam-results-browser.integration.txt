@@ -1,9 +1,10 @@
-AssertionError [ERR_ASSERTION]: a student session is not let into the guardian’s Results tab; landed on http://localhost:3111/bn
-    at run (/home/runner/work/diction/diction/tests/exam-results-browser.integration.ts:367:12) {
-  generatedMessage: false,
-  code: 'ERR_ASSERTION',
-  actual: false,
-  expected: true,
-  operator: '==',
-  diff: 'simple'
+locator.innerText: Error: strict mode violation: locator('.portal-eyebrow, .portal-hero p') resolved to 2 elements:
+    1) <div class="portal-eyebrow">…</div> aka getByText('Results').nth(2)
+    2) <p>Your learning information, together in one place.</p> aka getByText('Your learning information,')
+
+Call log:
+  - waiting for locator('.portal-eyebrow, .portal-hero p')
+
+    at run (/home/runner/work/diction/diction/tests/exam-results-browser.integration.ts:476:90) {
+  log: [ "  - waiting for locator('.portal-eyebrow, .portal-hero p')" ]
 }
