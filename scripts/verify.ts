@@ -273,12 +273,23 @@ async function stepScreens(ctx:Context):Promise<void>{
 
 async function stepBrowserTests(ctx:Context):Promise<void>{
   const tests=ctx.requirements.filter(r=>r.proof.kind==='browser');
+  /* A browser suite may need the same run conditions as a unit suite: one that imports a `server-only`
+     chain (the daily job, say) dies under plain tsx. The package.json script is the single source of
+     those flags, so read them from it instead of hard-coding a bare `tsx <file>`. */
+  const pkg=JSON.parse(await readFile('package.json','utf8')) as {scripts:Record<string,string>};
+  const flagsFor=(file:string):string[]=>{
+    for(const script of Object.values(pkg.scripts)){
+      const hit=suitesFromScript(script).find(suite=>suite.file===file);
+      if(hit)return hit.flags;
+    }
+    return [];
+  };
   for(const requirement of tests){
     if(!ctx.serverUp){mark(ctx,requirement.id,'NOT TESTED','the app is not running, so the browser test cannot attach to it');continue}
     if(!ctx.mongoUri){mark(ctx,requirement.id,'NOT TESTED','no database URI was published by test mode');continue}
     if(!ctx.browserReady){mark(ctx,requirement.id,'NOT TESTED','Playwright Chromium is unavailable (see Notes)');continue}
     const logName=path.basename(requirement.proof.ref,'.ts');
-    const result=await run(process.execPath,[path.join('node_modules','tsx','dist','cli.mjs'),requirement.proof.ref],{
+    const result=await run(process.execPath,[path.join('node_modules','tsx','dist','cli.mjs'),...flagsFor(requirement.proof.ref),requirement.proof.ref],{
       env:{TEST_ORIGIN:ctx.origin,TEST_MONGO_URI:ctx.mongoUri,TEST_MONGO_DB:ctx.mongoDb},timeoutMs:900_000,log:logName,
     });
     const blocked=result.text.includes('BLOCKED (environment');
