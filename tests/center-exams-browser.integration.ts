@@ -406,6 +406,10 @@ async function run(){
       'and the row names who takes the class, so the owner reads the assignment without opening anything');
     await shot(ownerPage,'classes-teachers-bn-1440');
     await noOverflow(ownerPage,'the classes screen');
+    /* An English proof reads English all the way down, digits included: the digits are the operator's own
+       per-account cookie, not a property of the address they typed, so the English sweep sets it the same way
+       the language sweep does. */
+    await ownerSession.context.addCookies([{name:`diction_digits_${String(owner._id)}`,value:'en',url:origin+'/'}]);
     await ownerPage.goto(origin+'/en/admin/grading-scale',{waitUntil:'domcontentloaded',timeout:180000});
     await ownerPage.locator('h1').filter({hasText:en_t.scale.title}).waitFor({timeout:60000});
     const scaleChrome=await ownerPage.locator('.admin-panel-head,.admin-heading,.admin-table thead').allInnerTexts();
