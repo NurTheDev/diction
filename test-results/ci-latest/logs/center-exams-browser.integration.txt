@@ -2,15 +2,11 @@ AssertionError [ERR_ASSERTION]: the English exam list paints no Bangla in its ch
 + actual - expected
 
 + [
-+   'You are here / Overview / Center examsHelpHow to use this pageFind the information you need in the list.Select the button to view or change it.Save your changes and check the result.View websiteনমুনা পরীক্ষা পরিচালক ▾নমুনা পরীক্ষা পরিচালকExam managerNumbers বাংলাEnglishবাংলাView websiteChange passwordForgot password?Log out',
-+   'নমুনা পরীক্ষা পরিচালক'
++   'You are here / Overview / Center examsHelpHow to use this pageFind the information you need in the list.Select the button to view or change it.Save your changes and check the result.View websiteনমুনা পরীক্ষা পরিচালক ▾নমুনা পরীক্ষা পরিচালকExam managerNumbers বাংলাEnglishবাংলাView websiteChange passwordForgot password?Log out'
 + ]
 - []
 
-    at run (/home/runner/work/diction/diction/tests/center-exams-browser.integration.ts:583:12)
-    at runNextTicks (node:internal/process/task_queues:64:5)
-    at process.processImmediate (node:internal/timers:452:9)
-    at process.callbackTrampoline (node:internal/async_hooks:130:17) {
+    at run (/home/runner/work/diction/diction/tests/center-exams-browser.integration.ts:585:12) {
   generatedMessage: false,
   code: 'ERR_ASSERTION',
   actual: [Array],

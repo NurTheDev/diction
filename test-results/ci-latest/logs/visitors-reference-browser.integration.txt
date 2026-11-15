@@ -1,3 +1,6 @@
 visitors-reference-browser: FAIL
-AssertionError [ERR_ASSERTION]: and counts the days in Bangla digits
-    at run (/home/runner/work/diction/diction/tests/visitors-reference-browser.integration.ts:204:12)
+locator.waitFor: Timeout 90000ms exceeded.
+Call log:
+  - waiting for locator('tr[data-visitor-row]').filter({ hasText: 'রাহুল আহমেদ' }).first().locator('[data-follow-chip="tomorrow"]') to be visible
+
+    at run (/home/runner/work/diction/diction/tests/visitors-reference-browser.integration.ts:242:75)
