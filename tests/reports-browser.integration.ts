@@ -265,9 +265,14 @@ async function run(){
 
     // ── 8. English reads English, and nothing overflows or leaks a key path ────────────────────────
     await goto(adminEn.page,'/en/admin/reports/daily?date=2026-02-10');
-    const enChrome=(await adminEn.page.locator('.admin-heading, .report-filters, [data-daily-report] thead').allInnerTexts()).join('\n');
+    /* The filter’s operator options are people’s names — owned data, like a Bangla child’s name in an
+       English hero — so the chrome scan reads the heading and the table head, and the filter is checked
+       on the two words the catalog actually owns: its button and its “everybody” option. */
+    const enChrome=(await adminEn.page.locator('.admin-heading, [data-daily-report] thead').allInnerTexts()).join('\n');
     assert.equal(BN.test(enChrome),false,'the English day page’s own words carry no Bangla');
     assert.ok(enChrome.includes(en_t.daily.receipt)&&enChrome.includes(en_t.daily.operator));
+    assert.equal((await adminEn.page.locator('.report-filters button').innerText()).trim(),en_t.daily.apply,'and the filter’s button reads English');
+    assert.equal((await adminEn.page.locator('[data-operator-filter] option').first().innerText()).trim(),en_t.daily.operatorAll,'with English for the one option the catalog owns');
     assert.ok((await adminEn.page.locator('[data-daily-total]').innerText()).includes('1800'),'and its digits are English');
     await shot(adminEn.page,'reports-daily-en-1440');
     for(const [page,href] of [[adminEn.page,'/en/admin/reports/monthly?year=2026&month=2'],[adminEn.page,'/en/admin/reports/year?year=2026']]){
