@@ -866,7 +866,7 @@ the way there and only in CI, because five of the seven need a browser or a data
 both: the scope wall above, digits inside translated sentences, the summary that counted marks and called
 them students, the scale recompute, the missing provider, and the two layout faults.
 
-## 18. R5 slice 2 — the result SMS (code complete, awaiting its CI run)
+## 18. R5 slice 2 — the result SMS (verified: 56/56, run 43686815982)
 
 **What was missing was not the send.** `exam_result` has existed since R2 with the right purpose,
 `feeRelated:false` — so a held family still learns a result, a decision `sms-recipients.ts` makes from the
@@ -925,3 +925,21 @@ and a publish does not stop to ask. The failure mode that decision creates is ex
 `CenterSmsAutoProblem` exists: an automatic send nobody watched has to store its own failure, and it does,
 naming the exam and the class. **Still owed in slice 2:** the student's result history and improvement chart,
 the portal Results tab for a linked student, and the optional on-demand report-card PDF.
+
+**Verified, and what the first attempt taught.** Run 43686815982 on commit `84b7c0a`: 56 requirements PASS,
+0 FAIL, 0 NOT TESTED, the new row being **R5.5**. The first run of this slice, on `c138ec0`, failed R2.7,
+R2.8 and R2.9 — three suite faults, not product faults, and all three of a kind no local run can reach
+because two need a database and one needs a browser:
+
+* A stored `CenterExamResult` **requires** `recordedBy`, because `ref()` in `CenterRecords.ts` sets
+  `required:true` on every reference. Both database suites died seeding the published exam the result send
+  now reads.
+* The result row has **no** `absent` field — only its per-subject marks do — and absence is recognised by the
+  grade `ABSENT` that the engine writes, which is how `examDetailView` already read it. The new reader had
+  selected a field that does not exist and the seeded row had set one that mongoose quietly dropped, so a
+  reader can now take absence from the grade and from nothing else: one convention for reading a stored
+  result, not two.
+* The dialog offers one chip per `SMS_VARIABLES` entry and that list grew from nine to thirteen, so a
+  hard-coded `9` in the browser suite was a claim about a catalog this slice had deliberately changed. It
+  now reads the length of the list the dialog itself renders, and names the four result chips separately —
+  a count alone would also pass if they were swapped for four nobody asked for.

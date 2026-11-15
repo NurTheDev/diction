@@ -109,3 +109,12 @@ what it costs is an admin control and its catalog group riding in the JavaScript
 split the portal component from the control only an admin mounts — and **not** to ship the group, which is the
 tempting one-line answer and the wrong one: `center` holds the dues vocabulary and may be shipped to an admin
 and never into the teacher, student or parent trees.
+
+The result SMS is verified the same way: run **43686815982** on commit `84b7c0a` reports **56 requirements
+PASS, 0 FAIL, 0 NOT TESTED**, the new row being **R5.5** — `tests/exam-result-message.test.ts`, which needs no
+database and compares the sentence, rendered through the shipped template and the shipped renderer, with the
+wording in §R5 of `docs/SPEC.md` byte-for-byte. The first attempt failed three rows, and all three were suite
+faults only CI can find: a stored `CenterExamResult` requires `recordedBy`; the result row has **no** `absent`
+field, absence being the grade `ABSENT` the engine writes, so selecting one is reading a convention nobody
+implemented; and the browser suite counted nine variable chips, a hard-coded claim about a catalog this slice
+deliberately grew to thirteen.
