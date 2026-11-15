@@ -1,10 +1,20 @@
-locator.innerText: Error: strict mode violation: locator('.admin-user-menu summary') resolved to 2 elements:
-    1) <summary>…</summary> aka getByText('নমুনা পরীক্ষা পরিচালক ▾').first()
-    2) <summary>…</summary> aka getByText('নমুনা পরীক্ষা পরিচালক ▾').nth(1)
+AssertionError [ERR_ASSERTION]: the English exam list paints no Bangla in its chrome
++ actual - expected
 
-Call log:
-  - waiting for locator('.admin-user-menu summary')
++ [
++   'You are here / Overview / Center examsHelpHow to use this pageFind the information you need in the list.Select the button to view or change it.Save your changes and check the result.View websiteনমুনা পরীক্ষা পরিচালক ▾নমুনা পরীক্ষা পরিচালকExam managerNumbers বাংলাEnglishবাংলাView websiteChange passwordForgot password?Log out',
++   'নমুনা পরীক্ষা পরিচালক'
++ ]
+- []
 
-    at run (/home/runner/work/diction/diction/tests/center-exams-browser.integration.ts:578:80) {
-  log: [ "  - waiting for locator('.admin-user-menu summary')" ]
+    at run (/home/runner/work/diction/diction/tests/center-exams-browser.integration.ts:583:12)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at process.processImmediate (node:internal/timers:452:9)
+    at process.callbackTrampoline (node:internal/async_hooks:130:17) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: [Array],
+  expected: [],
+  operator: 'deepStrictEqual',
+  diff: 'simple'
 }

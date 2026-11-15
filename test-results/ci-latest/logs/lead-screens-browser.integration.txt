@@ -1,10 +1,4 @@
-locator.selectOption: Timeout 60000ms exceeded.
-Call log:
-  - waiting for locator('table.admin-table tbody tr').filter({ hasText: 'রাহুল আহমেদ' }).first().locator('select[name="status"]')
-
-    at run (/home/runner/work/diction/diction/tests/lead-screens-browser.integration.ts:459:48) {
-  log: [
-    `  - waiting for locator('table.admin-table tbody tr').filter({ hasText: 'রাহুল আহমেদ' }).first().locator('select[name="status"]')`
-  ],
-  name: 'TimeoutError'
-}
+Error: timed out after 90000ms waiting for the status menu to write
+    at until (/home/runner/work/diction/diction/tests/lead-screens-browser.integration.ts:164:36)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async run (/home/runner/work/diction/diction/tests/lead-screens-browser.integration.ts:463:5)
