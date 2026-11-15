@@ -613,6 +613,7 @@
     "slotHistory": "এই স্লটে বুকিংয়ের ইতিহাস আছে, তাই সময়সূচি পরিবর্তন করা যাবে না। পরিবর্তে নতুন স্লট তৈরি করুন।",
     "cancel": "ফিরে যান",
     "testModeBanner": "টেস্ট মোড — আলাদা dictioncoaching_test ডাটাবেস",
+    "testModeShort": "টেস্ট মোড",
     "aiPage": {
       "publicAi": "লগইন ছাড়া পাবলিক AI",
       "enabledByFlag": "চালু করার অনুমতি দেওয়া হয়েছে",
@@ -1572,6 +1573,7 @@
       "ai": "AI সেটিংস",
       "centerDailyCash": "নগদ ফি সংগ্রহ",
       "centerSheetView": "শিট ভিউ",
+      "centerDues": "বকেয়া তালিকা",
       "centerStudents": "শিক্ষার্থী",
       "centerExams": "কেন্দ্র পরীক্ষা",
       "recycleBin": "রিসাইকেল বিন",

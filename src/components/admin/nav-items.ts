@@ -16,7 +16,8 @@ export const navGroups=[
   /* R5: the grading scale sits beside the exams it grades, and is the owner's alone — an exam manager
      runs exams but does not decide what an A+ is worth centre-wide, and a teacher marks one class. */
   ['/admin/grading-scale','gradingScale',Scale],['/admin/model-tests','modelTests',ClipboardCheck],['/admin/practice-tests','practice',ClipboardCheck]]},
- {key:'people',items:[['/admin/students','centerStudents',UsersRound],['/admin/students/collect','centerDailyCash',Wallet],['/admin/students/fees-grid','centerSheetView',FileText],['/admin/accounts','accounts',UsersRound],['/admin/fees','fees',Wallet],['/admin/sms','sms',MessageSquare]]},
+ {key:'people',items:[['/admin/students','centerStudents',UsersRound],['/admin/students/collect','centerDailyCash',Wallet],['/admin/students/fees-grid','centerSheetView',FileText],
+  ['/admin/students/dues','centerDues',Wallet],['/admin/accounts','accounts',UsersRound],['/admin/fees','fees',Wallet],['/admin/sms','sms',MessageSquare]]},
  /* R6: the money questions the owner asks at month's end, as their own group: what came in by day and
     by operator, what a month's cells add up to, whether the receipt book has a hole in it, and what the
     year expected against what it got. Staff sits at the cash desk, so staff may read all of it; a

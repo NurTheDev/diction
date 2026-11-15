@@ -613,6 +613,7 @@
     "slotHistory": "This slot has booking history, so its schedule cannot be changed. Create a new slot instead.",
     "cancel": "Go back",
     "testModeBanner": "TEST MODE — separate dictioncoaching_test database",
+    "testModeShort": "Test mode",
     "aiPage": {
       "publicAi": "Public AI without login",
       "enabledByFlag": "enabled by flag",
@@ -1572,6 +1573,7 @@
       "ai": "AI settings",
       "centerDailyCash": "Cash collection",
       "centerSheetView": "Sheet view",
+      "centerDues": "Due list",
       "centerStudents": "Students",
       "centerExams": "Center exams",
       "recycleBin": "Recycle Bin",
