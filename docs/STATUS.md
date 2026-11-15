@@ -782,3 +782,37 @@ browser and photographs them at 360 px and 1440 px into `screenshots/r5/`, in bo
 not in the admin route tree and nothing else would have caught a hardcoded sentence there. The old
 `tests/center-exam-batch.integration.ts` is deleted: it asserted the pre-R5 signatures, and its two
 claims that nothing else made — the concurrent-save race and the revision counter — moved into R5.3.
+
+**Two scope questions, not one.** `scopeCovers(scope,classGroups)` asks whether an actor reaches *every*
+class of an exam, and it is the right question for the acts that speak for the whole exam at once:
+publishing, reshaping, choosing the scale. `scopeClasses(scope,classGroups)` asks which of those classes
+the actor may touch, and it is the right question for marks, because a teacher who takes Nine A marks Nine
+A inside an exam that also covers Nine B. R5 shipped with the write asking the wider question, so the grid
+a teacher was shown — already narrowed by the view — refused to save behind their back. Both now live in
+`exam-scope.ts` side by side, and `exam-view.ts` reads its `visibleClasses` through `scopeClasses` so the
+screen and the write cannot drift apart again. The actor's slice travels into the engine as
+`allowedClasses` and narrows the roster *inside the write transaction*, because a check made outside a
+transaction is a check against a database that may have moved by the time the mark lands. A refused row
+answers `STUDENT_UNAVAILABLE` — the same sentence the engine gives for a student who is not in the exam at
+all, so a forged row learns nothing about whose class is whose.
+
+**Digits are a promise that reaches the numbers inside sentences.** next-intl leaves an ICU number
+argument exactly as it was passed, whatever the locale, so `t('grid.errors.outOfRange',{full:100})` painted
+`100` in the middle of an otherwise Bangla refusal on a `/bn` address — the words were Bangla and the number
+was not, which is the same breach a hardcoded sentence would be and considerably harder to see. Every
+numeric parameter now goes through `inDigits(digits)` in `src/lib/admin/format.ts`, and every count, total
+and date through `formatNumber`/`formatDate`: cell refusals, the grid's status lines, the upload's counts
+and row numbers, the subject labels in the exam form, the exam dates, the result and scale counts, and the
+teacher's "your N classes" note.
+
+**"Students" is the class, not the marks.** `classSummary` answered its `students` field with the number of
+rows it was handed, and a row only reaches the summary once every subject of it is marked — so a class of
+five with one child not yet marked read "মোট শিক্ষার্থী ৪" under a label that promises the class. Both
+callers know the size of the class they are summarizing and both pass it now; the difference between that
+number and `counted` is the honest "still to mark".
+
+**A stored mark's subject is an ObjectId.** `calculateExam` compares ids as lowercase hex, and `applyMarks`
+normalizes on the way in — but the recompute inside `updateCenterExam` read the stored marks raw, so every
+row looked like a mark for a subject the exam did not have and tightening the scale of an exam anyone had
+sat failed with `INVALID_MARKS`, transaction and all. The recompute is the only reason that path exists, so
+this was the one edit guaranteed to be attempted and guaranteed to fail. It reads through `String` now.

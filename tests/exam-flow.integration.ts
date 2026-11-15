@@ -263,7 +263,9 @@ async function run(){
 
     // ── The grading scale the centre saves ──────────────────────────────────────────────────────
     await CenterGradingScale.create([{name:'মান স্কেল',ranges:DEFAULT_GRADING_RANGES,active:true}]);
-    const second=await CenterGradingScale.create([{name:'কঠোর স্কেল',ranges:DEFAULT_GRADING_RANGES.map(range=>({...range})),active:true}]);
+    // `create` with an array answers an array: naming the scale needs the document, or `{$ne:undefined}`
+    // below matches every row and switches the whole centre off.
+    const [second]=await CenterGradingScale.create([{name:'কঠোর স্কেল',ranges:DEFAULT_GRADING_RANGES.map(range=>({...range})),active:true}]);
     await CenterGradingScale.updateMany({_id:{$ne:second._id}},{$set:{active:false}});
     const scales=await gradingScales();
     assert.equal(scales.length,2,'both scales are listed');

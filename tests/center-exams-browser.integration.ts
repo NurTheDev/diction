@@ -450,6 +450,12 @@ async function run(){
        screen is scanned where it is built — `tests/exam-flow.integration.ts` walks the teacher's view for
        any payment field — and the links out of it are checked just below, against this screen's DOM. */
     const teacherText=await teacherPage.locator('body').innerText();
+    /* A client component whose namespace no provider ships does not fail loudly — next-intl hands back the
+       key path and the screen reads `exams.grid.save` where a sentence belongs. This page is outside the
+       admin tree, so nothing above it ships `exams`, and a scan for catalog paths is the cheapest way to
+       know the grid a teacher is given is the grid that was written. */
+    assert.equal(/\b(?:exams|admin|nav|common)\.[a-zA-Z][a-zA-Z0-9]*(?:\.[a-zA-Z0-9]+)+/.test(teacherText),false,
+      "the teacher's grid reads sentences, not the catalog's key paths");
     for(const word of ['বেতন','বকেয়া','রশিদ','ক্যাশ','ফি লেজার','টাকা জমা']){
       assert.ok(!teacherText.includes(word),`a teacher's exam screen never says ${word}`);
     }

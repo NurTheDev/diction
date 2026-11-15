@@ -15,6 +15,21 @@
    without this filter, or if a group that IS shipped names an environment variable. */
 export const SERVER_ONLY_NAMESPACES=['aiPublic','aiSetup','audit','classes','cta','features','footer','hero','history','importNotes','seo','stats'] as const;
 
+/**
+ * Ship exactly these groups and no others — the tightest filter there is, for a route that renders one
+ * client component and must not carry the rest of the catalog in its payload. `clientMessages` subtracts
+ * what no client can read, which is the right answer inside the admin tree where the shell reads dozens
+ * of groups; outside it a page should name what it ships, because everything else in the catalog is
+ * somebody else's copy. A teacher's exam screen is the case that made this exist: the grid reads `exams`
+ * alone, and the groups it does not read include the fees and dues vocabulary the wall around a teacher's
+ * eyes is built to keep off that screen — including out of the bytes behind the visible ones.
+ */
+export function pickedMessages<T extends Record<string,unknown>>(messages:T,pick:readonly string[]):T{
+  const out:Record<string,unknown>={};
+  for(const group of pick)if(group in messages)out[group]=messages[group];
+  return out as T;
+}
+
 /** Drop the groups no client component can read, keeping every other group exactly as it is. */
 export function clientMessages<T extends Record<string,unknown>>(messages:T):T{
   const out:Record<string,unknown>={};

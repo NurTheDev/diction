@@ -219,7 +219,7 @@ for(const file of sourceFiles('src')){
     for(const match of text.matchAll(/useTranslations\(\s*'([^']+)'/g))readByClient.add(match[1].split('.')[0]);
   }
   // A layout that hands the catalog to the client has to hand it the filtered one.
-  if(/NextIntlClientProvider/.test(text)&&/getMessages\(\)/.test(text)&&!/clientMessages\(|clientNamespaces/.test(text))notFiltered.push(file);
+  if(/NextIntlClientProvider/.test(text)&&/getMessages\(\)/.test(text)&&!/clientMessages\(|pickedMessages\(|clientNamespaces/.test(text))notFiltered.push(file);
 }
 assert.deepEqual([...readByClient].filter(ns=>!shipped(ns)).sort(),[],'no client component reads a group the layouts keep on the server');
 assert.deepEqual(notFiltered.sort(),[],'every layout that ships messages to the client filters them first');
@@ -246,5 +246,119 @@ assert.deepEqual(leakedSecrets.sort(),[],'no value the browser receives names a 
 assert.deepEqual(unnamedSettings.sort(),[],'a shipped value names a setting only where the reason is written down');
 assert.deepEqual([...new Set(rotten)].sort(),[],'every allowed name is still in the value it was allowed for');
 console.log(`Browser exposure: ${readByClient.size} groups are read by client components, ${SERVER_ONLY_NAMESPACES.length} stay on the server, ${Object.keys(NAMED_SETTINGS).length} shipped values name an operator setting and none names a secret.`);
+
+// ── 6. A client component is given the group it reads, on the route that renders it ───────────────
+/* Rule 5 knows which groups may travel to the browser. It cannot see WHERE: a page is served the
+   messages its own provider chain hands it, and a chain that does not include the group a client
+   component reads does not fail a build, does not fail a type check and does not fail a server test —
+   next-intl hands the component its key path back and the screen reads `exams.grid.save` where a
+   sentence belongs. That shipped once, on the teacher's marks grid, because the portal is not inside
+   the admin tree and the public layout ships only the groups the public site's own client components
+   read.
+
+   So this walks the routes the way Next.js does: for every page, the layouts above it plus the page
+   itself are its provider chain, and every client component reachable from its imports has to be read
+   by a group that chain ships. Coverage is a union, which is the pragmatic reading — a nested provider
+   replaces rather than merges for its own subtree, so a page that ships one group and renders a
+   component reading another is still a page worth a human look, and the browser suites are where that
+   nuance is settled.
+
+   The extractor is deliberately brittle in one direction: a provider whose shape it does not recognize
+   is a FAILURE, not a pass, so a new way of shipping messages has to be taught here rather than
+   silently widening every route. */
+const PROVIDER=/NextIntlClientProvider/;
+const resolveImport=(from:string,spec:string):string|null=>{
+  const base=spec.startsWith('@/')?path.join('src',spec.slice(2)):spec.startsWith('.')?path.resolve(path.dirname(from),spec):null;
+  if(!base)return null;
+  for(const candidate of [base,`${base}.tsx`,`${base}.ts`,path.join(base,'index.tsx'),path.join(base,'index.ts')]){
+    if(fs.existsSync(candidate)&&fs.statSync(candidate).isFile())return candidate;
+  }
+  return null;
+};
+/** The groups a file's provider ships, or `null` for "everything a client may read", or `undefined` when
+    the file has a provider this extractor cannot read. */
+const coverageOf=(file:string):{wide:boolean;groups:Set<string>}|undefined=>{
+  const text=fs.readFileSync(file,'utf8');
+  if(!PROVIDER.test(text))return {wide:false,groups:new Set()};
+  if(/clientMessages\(/.test(text))return {wide:true,groups:new Set()};
+  const groups=new Set<string>();
+  // `pickedMessages(await getMessages(),['exams'])` names its groups in an array literal.
+  for(const match of text.matchAll(/pickedMessages\([^,]+,\s*\[([^\]]*)\]/g)){
+    for(const name of match[1].matchAll(/'([^']+)'/g)){
+      assert.ok(!SERVER_ONLY_NAMESPACES.includes(name[1] as typeof SERVER_ONLY_NAMESPACES[number]),`${file} ships '${name[1]}', a group only a server reads`);
+      groups.add(name[1]);
+    }
+  }
+  for(const match of text.matchAll(/clientNamespaces\s*=\s*\[([^\]]*)\]/g))for(const name of match[1].matchAll(/'([^']+)'/g))groups.add(name[1]);
+  for(const match of text.matchAll(/messages=\{\{([^}]*)\}\}/g))for(const name of match[1].matchAll(/(\w+)\s*:/g))groups.add(name[1]);
+  for(const match of text.matchAll(/const \w*[Mm]essages=\{([^}]*)\}/g))for(const name of match[1].matchAll(/(\w+)\s*:/g))groups.add(name[1]);
+  if(!groups.size)return undefined;
+  return {wide:false,groups};
+};
+const clientGroupsOf=(file:string,seen=new Set<string>()):Set<string>=>{
+  const out=new Set<string>();
+  if(seen.has(file))return out;
+  seen.add(file);
+  const text=fs.readFileSync(file,'utf8');
+  if(text.startsWith("'use client'")||text.startsWith('"use client"'))for(const match of text.matchAll(/useTranslations\(\s*'([^']+)'/g))out.add(match[1].split('.')[0]);
+  for(const match of text.matchAll(/from\s+'(@\/[^']+|\.[^']+)'/g)){
+    const target=resolveImport(file,match[1]);
+    if(target&&/[\\/]components[\\/]|[\\/]app[\\/]/.test(target))for(const group of clientGroupsOf(target,seen))out.add(group);
+  }
+  return out;
+};
+const pages=sourceFiles(path.join('src','app')).filter(file=>/[\\/]page\.tsx$/.test(file));
+const uncovered:string[]=[];
+const unreadProviders:string[]=[];
+for(const page of pages){
+  const chain:string[]=[page];
+  for(let dir=path.dirname(page);dir.startsWith('src'+path.sep)||dir==='src';dir=path.dirname(dir)){
+    const layout=path.join(dir,'layout.tsx');
+    if(fs.existsSync(layout))chain.push(layout);
+    if(dir==='src')break;
+  }
+  const coverage=chain.map(file=>coverageOf(file));
+  for(const file of chain){
+    if(PROVIDER.test(fs.readFileSync(file,'utf8'))&&coverageOf(file)===undefined)unreadProviders.push(file);
+  }
+  const wide=coverage.some(entry=>entry?.wide);
+  const groups=new Set<string>();
+  for(const entry of coverage)if(entry)for(const group of entry.groups)groups.add(group);
+  const reads=clientGroupsOf(page);
+  for(const group of reads){
+    if(wide||groups.has(group))continue;
+    if(!shipped(group)){continue}
+    uncovered.push(`${page} renders a client component reading '${group}', which no provider above it ships`);
+  }
+}
+assert.deepEqual(unreadProviders.sort(),[],'every provider in src/app ships messages in a shape this suite can read');
+/* Twelve routes paint key paths today, and not one of them is R5's: the student and parent fee screens
+   read `center`, the materials and notices screens of all three portal trees read `adminWork`, and the two
+   practice screens read `practicePublic`. None is in the public layout's list, and the fix is not one line
+   there either — `center` holds the dues vocabulary that the wall around a teacher's eyes exists to keep
+   off a teacher's screen, so it may be shipped into the student and parent trees and never into the
+   teacher one. That is a per-tree provider, which is its own slice of work; named here so the list can
+   only shrink, in both directions: a route that stops being uncovered has to be struck off, and a new one
+   fails. */
+const KNOWN_UNCOVERED_ROUTES=[
+  'src/app/[locale]/dashboard/fees/[id]/page.tsx',
+  'src/app/[locale]/dashboard/fees/page.tsx',
+  'src/app/[locale]/dashboard/materials/page.tsx',
+  'src/app/[locale]/dashboard/notices/page.tsx',
+  'src/app/[locale]/dashboard/practice-history/page.tsx',
+  'src/app/[locale]/parent/fees/[id]/page.tsx',
+  'src/app/[locale]/parent/fees/page.tsx',
+  'src/app/[locale]/parent/materials/page.tsx',
+  'src/app/[locale]/parent/notices/page.tsx',
+  'src/app/[locale]/practice-tests/[slug]/page.tsx',
+  'src/app/[locale]/teacher/materials/page.tsx',
+  'src/app/[locale]/teacher/notices/page.tsx',
+].map(route=>route.split('/').join(path.sep));
+const stillUncovered=(route:string):boolean=>uncovered.some(entry=>entry.startsWith(route));
+assert.deepEqual(uncovered.filter(entry=>!KNOWN_UNCOVERED_ROUTES.some(route=>entry.startsWith(route))).sort(),[],
+  'every page hands its client components the catalog group they read, apart from the routes named as debt');
+assert.deepEqual(KNOWN_UNCOVERED_ROUTES.filter(route=>!stillUncovered(route)).sort(),[],
+  'every route on the debt list is still uncovered — strike it off the moment it is fixed');
+console.log(`Provider chain: ${pages.length} pages walked against the layouts above them; every group a client component reads is shipped by the route that renders it, apart from ${KNOWN_UNCOVERED_ROUTES.length} named as debt.`);
 
 console.log('A.7 · the catalogs are whole: parity both ways, no mis-nested keys, no leftover templates, every key src/ asks for resolves in both languages, and Bangla inside an English value only where a language names itself, and the browser receives no secret and no group only a server reads.');

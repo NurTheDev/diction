@@ -3631,7 +3631,7 @@
       "saveFailed": "Not saved; refresh and retry.",
       "teachers": "Which teachers take this class",
       "noTeachers": "No teacher accounts yet; add a teacher in the portal accounts first.",
-      "teachersHelp": "Only the teachers ticked here may enter marks for this class’s exams, and they see no fee or due information.",
+      "teachersHelp": "Only the teachers ticked here may enter marks for this class’s exams, and exams are all they are given to see.",
       "teacherNone": "Nobody assigned"
     },
     "page": "Page",

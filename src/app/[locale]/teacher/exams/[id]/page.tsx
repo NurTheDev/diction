@@ -1,6 +1,8 @@
 import {redirect} from 'next/navigation';
 import {Link} from '@/i18n/navigation';
-import {getTranslations} from 'next-intl/server';
+import {NextIntlClientProvider} from 'next-intl';
+import {getMessages,getTranslations} from 'next-intl/server';
+import {pickedMessages} from '@/i18n/client-namespaces';
 import {getPortalUser} from '@/lib/portal-guard';
 import {dashboardDigits} from '@/lib/admin/digits';
 import {formatDate,formatNumber} from '@/lib/admin/format';
@@ -36,6 +38,13 @@ export default async function TeacherExamDetail({params}:{params:Promise<{locale
   if(!view)redirect(`/${locale}/teacher/exams`);
   const digits=await dashboardDigits(scope.userId);
   const published=view.status==='published';
+  /* The grid is a client component and reads `exams`, and this page is not in the admin tree: the public
+     layout ships only the groups the public site's own client components read, so without a provider here
+     the grid would paint the catalog's key paths where its sentences belong — every button, every status
+     line, every refusal, on the screen R5 exists for. Only `exams` is shipped, deliberately: the rest of
+     the catalog is admin copy, and a teacher's screen should carry no fee or dues vocabulary even in the
+     bytes behind the visible ones. */
+  const gridMessages=pickedMessages(await getMessages(),['exams']);
   return <>
     <PortalHero title={t('teacher.title')} name={user.name} showAnchors={false}/>
     <section className="portal-area"><div className="wrap portal-container">
@@ -48,8 +57,10 @@ export default async function TeacherExamDetail({params}:{params:Promise<{locale
         </p>
         {view.tooMany&&<p role="alert" className="admin-feedback error">{t('detail.tooManyRecords')}</p>}
         <p className="admin-help">{published?t('teacher.publishedNote'):t('teacher.draftNote')}</p>
-        <ExamMarksPanel examId={view.id} subjects={view.subjects} students={view.students} bands={view.bands}
-          canWrite={!published} digits={digits} published={published}/>
+        <NextIntlClientProvider messages={gridMessages}>
+          <ExamMarksPanel examId={view.id} subjects={view.subjects} students={view.students} bands={view.bands}
+            canWrite={!published} digits={digits} published={published}/>
+        </NextIntlClientProvider>
       </section>
       <section className="portal-card" id="exam-results">
         <div className="portal-card-head"><div><span>{t('detail.savedResultsHeading')}</span>
