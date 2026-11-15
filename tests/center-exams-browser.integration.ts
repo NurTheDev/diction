@@ -20,7 +20,9 @@
  *  7. a CSV sheet is previewed — rows matched to students, an unmatched row and an incomplete row listed
  *     rather than guessed, a column that is not a subject left unread and named — and only the ready rows
  *     are committed;
- *  8. publishing freezes the exam, ranks each class on its own and offers the way back;
+ *  8. publishing is a question first: the prompt counts the messages its SMS box would send, unticked
+ *     publishes and sends nothing, ticked publishes and sends one batch per class with the setting still
+ *     off — then freezing the exam, ranking each class on its own and offering the way back;
  *  9. a teacher on no class sees no exam at all — an empty scope is an empty list, not everybody's;
  * 10. the owner assigns the teachers on the classes screen, which is the only place that list is written,
  *     and the assignment is what the teacher's scope reads on their next page load;
@@ -51,7 +53,7 @@ import {chromium} from 'playwright';
 import type {Page,BrowserContext} from 'playwright';
 import {preflight,testDbName} from './helpers/env-preflight';
 import {User} from '../src/models/User';
-import {CenterStudent,CenterClassGroup,CenterExam,CenterExamResult,CenterGradingScale} from '../src/models/CenterRecords';
+import {CenterStudent,CenterClassGroup,CenterExam,CenterExamResult,CenterGradingScale,CenterSmsBatch} from '../src/models/CenterRecords';
 import bn from '../src/messages/bn.json';
 import en from '../src/messages/en.json';
 
@@ -347,9 +349,32 @@ async function run(){
     await page.setViewportSize({width:1440,height:900});
     await noOverflow(page,'the marks grid');
     const publish=page.locator('[data-exam-publish="publish"]');
-    await publish.locator('[name=confirm]').check();
-    await publish.getByRole('button',{name:t.publish.button}).click();
+    /* R5 slice 2 turned publishing into a question rather than a button: a dialog holding the review box,
+       the result-SMS box and the count of what ticking that box would send. The count is compared with the
+       rows the database can actually quote, because a prompt that says four and a send that writes two has
+       told the operator a lie with their own software. */
+    await publish.locator('[data-publish-open]').click();
+    const dialog=page.locator('[data-publish-dialog]');
+    await dialog.waitFor({state:'visible',timeout:60000});
+    assert.equal((await dialog.locator('h2').innerText()).trim(),t.publish.dialogTitle,'the question is asked before anything is frozen');
+    assert.equal(await dialog.locator('[data-publish-sms]').isChecked(),false,
+      'the SMS box starts unticked: the automatic-result setting ships off, and the setting is only the box’s starting state — the decision belongs to the person holding the mouse');
+    const quotable=await CenterExamResult.countDocuments({exam:examId,grade:{$ne:'ABSENT'}});
+    assert.equal(quotable,4,'four of the five rows can be quoted; the absent student has no result to send');
+    assert.ok((await dialog.locator('[data-publish-count]').innerText()).includes(bnDigits(quotable)),
+      `the prompt counts the messages ticking the box would send, and it counted ${bnDigits(quotable)}`);
+    await shot(page,'exam-publish-prompt-bn-1440');
+    await page.setViewportSize({width:360,height:900});
+    await shot(page,'exam-publish-prompt-bn-360');
+    await noOverflow(page,'the publish prompt');
+    await page.setViewportSize({width:1440,height:900});
+    /* Unticked: publish, and send nothing. */
+    await dialog.locator('[data-publish-confirm]').check();
+    await dialog.locator('[data-publish-submit]').click();
     await page.locator('[data-exam-publish="unpublish"]').waitFor({timeout:90000});
+    assert.equal((await page.locator('[data-publish-status]').innerText()).trim(),t.publish.smsSkipped,
+      'and the screen says the messages did not go out, rather than leaving the operator to wonder');
+    assert.equal(await CenterSmsBatch.countDocuments({purpose:'exam_result'}),0,'because nothing was sent');
     assert.equal((await CenterExam.findById(examId).lean()).status,'published','the exam is published');
     assert.equal(await page.locator('[data-exam-grid]').getAttribute('data-editable'),'no','and a published exam takes no more marks');
     const ranked=await CenterExamResult.find({exam:examId}).lean();
@@ -372,6 +397,24 @@ async function run(){
     await unpublish.getByRole('button',{name:t.publish.unpublishButton}).click();
     await page.locator('[data-exam-publish="publish"]').waitFor({timeout:90000});
     assert.equal((await CenterExam.findById(examId).lean()).status,'draft','unpublishing is the only way back into a result, and it works');
+
+    /* Ticked: publish AND send, with the setting still off — the operator consented to this exam's messages
+       in the prompt, which is a stronger authority than a toggle somebody left on months ago. Then unpublish
+       again, so the rest of the suite reads the same draft it always has. */
+    await page.locator('[data-publish-open]').click();
+    await dialog.waitFor({state:'visible',timeout:60000});
+    await dialog.locator('[data-publish-sms]').check();
+    await dialog.locator('[data-publish-confirm]').check();
+    await dialog.locator('[data-publish-submit]').click();
+    await page.locator('[data-exam-publish="unpublish"]').waitFor({timeout:90000});
+    assert.equal((await page.locator('[data-publish-status]').innerText()).trim(),t.publish.smsSent,'the screen says the messages went out');
+    const batches=await CenterSmsBatch.find({purpose:'exam_result',trigger:'auto_result'}).lean();
+    assert.equal(batches.length,2,'one batch per class, because a result message quotes a class’s own students and their own positions');
+    assert.equal(batches.reduce((total,batch)=>total+(batch.sentCount||0),0),quotable,`and the send wrote the ${quotable} messages the prompt had promised`);
+    await page.locator('[data-exam-publish="unpublish"]').locator('[name=confirm]').check();
+    await page.locator('[data-exam-publish="unpublish"]').getByRole('button',{name:t.publish.unpublishButton}).click();
+    await page.locator('[data-exam-publish="publish"]').waitFor({timeout:90000});
+    assert.equal((await CenterExam.findById(examId).lean()).status,'draft','the exam is a draft again for the screens that follow');
 
     // ── 9. A teacher on no class sees nothing at all ────────────────────────────────────────────
     /* The classes exist and the exam exists, and no teacher is assigned to either. An empty scope has to

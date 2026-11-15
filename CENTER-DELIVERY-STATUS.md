@@ -118,3 +118,26 @@ faults only CI can find: a stored `CenterExamResult` requires `recordedBy`; the 
 field, absence being the grade `ABSENT` the engine writes, so selecting one is reading a convention nobody
 implemented; and the browser suite counted nine variable chips, a hard-coded claim about a catalog this slice
 deliberately grew to thirteen.
+
+Slice 2 is now finished, and the four things it finished are four different kinds of honesty. Publishing asks
+first: a dialog with the review box, the result-SMS box and a count computed the way the send counts — the
+same candidates, the same sibling rule, the same stored template, the same chip-completeness check — with
+nothing written, and `autoResult` demoted to the box's starting state; ticked sends with the setting ignored
+because the operator has just consented, unticked publishes and writes no batch, and the screen says which.
+The student's profile has a Results tab with the published exams newest first and a trend drawn as SVG: an
+exam the child missed is left out of the line and counted as skipped, because an absence is 0 percent and
+plotting it would draw a collapse that never happened. The portal has `/dashboard/results` and
+`/parent/results`, two routes for two roles, reading only the children on the account's own exact phone
+number — a student never its sibling on the same guardian number, a number one digit away nothing, a removed
+child nothing — through a reader that selects marks, totals, grades and positions and asks for no fee,
+payment, receipt, due or number at all, which is the only way "no payment data in the portal" holds. And the
+report card quotes the stored row, carries `common.brand`, leaves the remarks as two ruled lines and a
+sentence saying nothing has been written yet — no field stores a teacher's remark and a card that invented
+one would forge the part a family reads aloud — and under `@media print` the sidebar, header, tab bar and
+toolbar take no space, which is what makes it printable rather than a screenshot of a screen.
+
+Verified: **59 requirements**, the new rows **R5.6** (the trend and the chart's geometry, pure), **R5.7**
+(the history, the card's two refusals, portal identity and the prompt's count against the disposable
+database, including a real send whose `sentCount` must equal the count the prompt showed) and **R5.8** (all
+four screens in the browser, photographed at 360 px and 1440 px in Bangla and English into `screenshots/r5`,
+including one report card under print media), with **R5.4** and **R0.13** reworded in the same patch.

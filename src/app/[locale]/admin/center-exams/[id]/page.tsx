@@ -5,6 +5,7 @@ import {dashboardDigits} from '@/lib/admin/digits';
 import {formatDate,formatNumber} from '@/lib/admin/format';
 import {getExamScope} from '@/lib/exams/exam-actor';
 import {examDetailView,gradingScales} from '@/lib/exams/exam-view';
+import {resultSmsAudience} from '@/lib/center/exam-result-audience';
 import {EXAM_TYPE_LABEL_KEYS,EXAM_STATUS_LABEL_KEYS,type ExamType,type ExamStatus} from '@/lib/exams/vocab';
 import {ExamShapeForm,PublishCenterExam} from '@/components/admin/center-exam-forms';
 import {ExamMarksPanel} from '@/components/exams/marks-grid';
@@ -36,6 +37,10 @@ export default async function ExamDetail({params}:{params:Promise<{locale:string
   if(!view)notFound();
   const [digits,scales]=await Promise.all([dashboardDigits(scope.userId),gradingScales()]);
   const published=view.status==='published';
+  /* The publish prompt asks "send the result SMS now?" and answers with a number, so the number is counted
+     here — while the exam is still a draft, which is the only moment the question can be asked. A
+     published exam shows no prompt, so it is not asked and nothing is counted for it. */
+  const sms=scope.publish&&!published?await resultSmsAudience(view.id):undefined;
   return <>
     <div className="admin-heading"><div>
       <Link href="/admin/center-exams" className="text-link">← {t('detail.crumbExams')}</Link>
@@ -81,7 +86,7 @@ export default async function ExamDetail({params}:{params:Promise<{locale:string
     </section>
     {scope.publish&&<section className="admin-panel">
       <div className="admin-panel-head"><h2>{published?t('detail.publishedHeading'):t('detail.publishHeading')}</h2></div>
-      <div className="admin-panel-body"><PublishCenterExam exam={view.id} published={published}/></div>
+      <div className="admin-panel-body"><PublishCenterExam exam={view.id} published={published} sms={sms} digits={digits}/></div>
     </section>}
     <section className="admin-panel">
       <div className="admin-panel-head"><h2>{t('detail.savedResultsHeading')}</h2><span>{formatNumber(view.results.length,digits)}</span></div>

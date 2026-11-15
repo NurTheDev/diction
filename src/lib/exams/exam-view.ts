@@ -180,9 +180,23 @@ export interface ExamResultMessage{classId:string;studentId:string;values:Result
  * no positions yet, and an absent or unranked row is left out rather than turned into a message about it.
  */
 export async function resultMessagesForExam(examId:string):Promise<ExamResultMessage[]>{
+  return messageRows(examId,true);
+}
+
+/**
+ * The same bags with the publication gate lifted, for the one reader that has to count a message before it
+ * can exist: the publish prompt asks how many families a result would reach while the exam is still a
+ * draft. Nothing sends from this — `autoSendClassResults` reads the gated one, so an unpublished exam can
+ * never be quoted to a family by the sender however this is used.
+ */
+export async function resultMessagesIgnoringStatus(examId:string):Promise<ExamResultMessage[]>{
+  return messageRows(examId,false);
+}
+
+async function messageRows(examId:string,publishedOnly:boolean):Promise<ExamResultMessage[]>{
   if(!mongoose.isValidObjectId(examId))return [];
   const exam=await CenterExam.findById(examId).select('name subjects status').lean<ExamDoc>();
-  if(!exam||exam.status!=='published')return [];
+  if(!exam||(publishedOnly&&exam.status!=='published'))return [];
   const subjects=(exam.subjects||[])
     .map(subject=>({id:String(subject._id),name:(subject.name?.bn||'').trim()}))
     .filter(subject=>!!subject.name);

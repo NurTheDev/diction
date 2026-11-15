@@ -15,7 +15,7 @@
  *     they now come from `exams.typeLabels.*` like everything else on the page.
  */
 import {useTranslations} from 'next-intl';
-import {useActionState,useEffect,useState} from 'react';
+import {useActionState,useEffect,useRef,useState} from 'react';
 import {BanglaDate} from './bangla-date';
 import {createExamAction,updateExamAction,publishExamAction,unpublishExamAction,saveGradingScaleAction} from '@/actions/center-exams';
 import type {ExamState} from '@/lib/exams/exam-state';
@@ -116,19 +116,68 @@ export function ExamShapeForm({mode,groups,scales,value,digits}:{mode:'create'|'
   </form>;
 }
 
-/** Publish, and the way back: unpublish. Both need the operator to say they have checked the results. */
-export function PublishCenterExam({exam,published}:{exam:string;published:boolean}){
+/** What the publish prompt is allowed to know about the result SMS: a count and how the box starts. It is
+    computed on the server by `src/lib/center/exam-result-audience.ts` and passed down as plain data, so
+    this client component reads no ledger, no settings document and no provider. */
+export interface PublishSmsPrompt{messages:number;students:number;classes:number;possible:boolean;reason:string|null;defaultOn:boolean}
+
+/**
+ * Publish, and the way back: unpublish.
+ *
+ * Publishing **asks first**. The spec's "Send result SMS now?" is a question with a moment to be asked in,
+ * and that moment is the click: a modal carrying the review checkbox, the SMS checkbox and the number of
+ * messages that would go out, counted the same way the send counts them. The setting is not the decision —
+ * `autoResult` only says how the checkbox starts, so an unticked box publishes and sends nothing, and a
+ * ticked one sends even when the setting is off, because the person holding the mouse just said so. The
+ * count is part of the question for the same reason a price is: 212 messages and 4 messages are not the
+ * same decision.
+ *
+ * Unpublishing asks nothing new and keeps the confirmation it has always had.
+ */
+export function PublishCenterExam({exam,published,sms,digits}:{exam:string;published:boolean;sms?:PublishSmsPrompt;digits:Digits}){
   const t=useTranslations('exams');
-  const action=published?unpublishExamAction:publishExamAction;
-  const [state,submit,pending]=useActionState(action,initial);
-  return <form action={submit} data-exam-publish={published?'unpublish':'publish'}>
+  const [state,submit,pending]=useActionState(publishExamAction,initial);
+  const [backState,backSubmit,backPending]=useActionState(unpublishExamAction,initial);
+  const dialog=useRef<HTMLDialogElement|null>(null);
+  const [send,setSend]=useState(!!sms?.defaultOn);
+  // The question closes when it has an answer, whichever way it went: an error has to be readable.
+  useEffect(()=>{if(state.status!=='idle'&&dialog.current?.open)dialog.current.close()},[state.status]);
+  const open=():void=>{dialog.current?.showModal()};
+  if(published)return <form action={backSubmit} data-exam-publish="unpublish">
     <input type="hidden" name="exam" value={exam}/>
-    <p>{published?t('publish.unpublishNote'):t('publish.note')}</p>
-    <label className="admin-check"><input type="checkbox" name="confirm" value="YES" required/> {published?t('publish.unpublishConfirm'):t('publish.confirmReview')}</label>
-    <button className="button button-navy" disabled={pending}>{published?t('publish.unpublishButton'):t('publish.button')}</button>
-    {state.status==='ok'&&<p role="status">{published?t('publish.unpublished'):t('publish.published')}</p>}
-    <ExamError state={state}/>
+    <p>{t('publish.unpublishNote')}</p>
+    <label className="admin-check"><input type="checkbox" name="confirm" value="YES" required/> {t('publish.unpublishConfirm')}</label>
+    <button className="button button-navy" disabled={backPending}>{t('publish.unpublishButton')}</button>
+    {backState.status==='ok'&&<p role="status">{t('publish.unpublished')}</p>}
+    <ExamError state={backState}/>
   </form>;
+  const count=sms?.messages??0;
+  return <div data-exam-publish="publish" className="center-publish">
+    <p>{t('publish.note')}</p>
+    <button type="button" className="button button-navy" data-publish-open onClick={open} disabled={pending}>{t('publish.openButton')}</button>
+    {state.status==='ok'&&<p role="status" data-publish-status>{send?t('publish.smsSent'):t('publish.smsSkipped')}</p>}
+    <ExamError state={state}/>
+    <dialog ref={dialog} className="admin-dialog center-publish-dialog" data-publish-dialog>
+      <form action={submit} method="post" data-publish-form>
+        <input type="hidden" name="exam" value={exam}/>
+        <h2>{t('publish.dialogTitle')}</h2>
+        <label className="admin-check"><input type="checkbox" name="confirm" value="YES" required data-publish-confirm/> {t('publish.confirmReview')}</label>
+        <label className="admin-check"><input type="checkbox" name="sendResults" value="on" checked={send} data-publish-sms
+          onChange={event=>setSend(event.target.checked)}/> {t('publish.smsQuestion')}</label>
+        <p className="admin-help" data-publish-count>
+          {count?t('publish.smsCount',{count:formatNumber(count,digits)}):t('publish.smsCountNone')}
+          {count>0&&sms?` · ${t('publish.audienceNote',{count:formatNumber(count,digits),students:formatNumber(sms.students,digits),classes:formatNumber(sms.classes,digits)})}`:''}
+        </p>
+        <p className="admin-help">{t('publish.smsHelp')}</p>
+        {sms&&!sms.possible&&<p className="admin-help" data-publish-blocked>{sms.reason==='NO_TEMPLATE'?t('publish.smsCountNone'):t('errors.smsUnavailable')}</p>}
+        <p className="admin-help">{t('publish.smsDefault')}</p>
+        <div className="admin-dialog-actions">
+          <button type="button" className="admin-mini-button" data-publish-cancel onClick={()=>dialog.current?.close()}>{t('publish.cancel')}</button>
+          <button type="submit" className="button button-navy" data-publish-submit disabled={pending}>{t('publish.button')}</button>
+        </div>
+      </form>
+    </dialog>
+  </div>;
 }
 
 /**

@@ -79,9 +79,9 @@ stack trace (`tests/helpers/env-preflight.ts`).
 | Month-end due snapshots — **scheduled endpoint** | **missing** | No `/api/admin/center/month-end-scheduler` route exists; `CRON_SECRET` and `DUE_SNAPSHOT_START_MONTH` appear only in `MILESTONE-3-4-START-HERE.md`, never in `src/`. No `vercel.json` either. |
 | Legacy fee **review** (read-only suggestions) | working | code read: `admin/students/legacy-review/page.tsx`. |
 | Legacy fee **conversion/migration** | **missing** | No conversion code (searched `poisha`, `convertLegacy`, `LegacyFee`). Only the experimental identity link (`CENTER_LEGACY_LINK_ENABLED`, off by default). |
-| Portal linking for Center students/guardians | **missing** | `/parent/*` reads the legacy `Student`/`FeeInvoice`/`FeePayment` models only. No page outside `/admin` reads `CenterStudent` or `CenterPayment`. |
+| Portal linking for Center students/guardians | **partial (R5 slice 2)** | There is still no stored link: `/dashboard/results` and `/parent/results` match the signed-in account's own `User.phone` against a `CenterStudent`'s `studentPhone`, `guardianPhone` or `altPhone`, exactly and never as a pattern, and read only published exam results (§19). Fees are still the legacy `Student`/`FeeInvoice`/`FeePayment` models, and no page outside `/admin` reads `CenterPayment`. |
 | "ভর্তি সম্পন্ন" creates a student | **missing** | `ভর্তি সম্পন্ন` is only a status **label** (`admin.enrolled`, `forms.statusEnrolled`). `CenterStudent` is created by the student form, the import batch or the workbook batch — never from an admission. |
-| Exams (create, subjects, marks, ranking, publish) | **working (R5 slice 1 + slice 2's result SMS)** | ran today (`tests/exam-rules.test.ts`, `tests/exam-grid.test.ts`, `tests/exam-result-message.test.ts`, `tests/staff-role.test.ts`, catalog) + the browser flow and the database flow are CI-proven (§17): one exam over several classes, a keyboard-first marks grid with autosave, Excel paste, CSV/XLSX import with a preview, absence, per-class positions with ties, publish **and unpublish**, saved grading scales with GPA points, teacher scoping by assigned class, and a teacher screen with no payment data in it. The write gate is **retired** — exam writes are a normal feature (§17). Slice 2's result SMS now sends the spec's own sentence with each child's own marks, total and position, and sends nothing at all to a family whose child was absent (§18). Still owed by R5 slice 2: the student's result history and improvement chart, the portal Results tab, and the optional report-card PDF. |
+| Exams (create, subjects, marks, ranking, publish) | **working (R5 slice 1 + slice 2's result SMS)** | ran today (`tests/exam-rules.test.ts`, `tests/exam-grid.test.ts`, `tests/exam-result-message.test.ts`, `tests/staff-role.test.ts`, catalog) + the browser flow and the database flow are CI-proven (§17): one exam over several classes, a keyboard-first marks grid with autosave, Excel paste, CSV/XLSX import with a preview, absence, per-class positions with ties, publish **and unpublish**, saved grading scales with GPA points, teacher scoping by assigned class, and a teacher screen with no payment data in it. The write gate is **retired** — exam writes are a normal feature (§17). Slice 2's result SMS now sends the spec's own sentence with each child's own marks, total and position, and sends nothing at all to a family whose child was absent (§18). Slice 2 is **finished** (§19): publishing asks first, with a count computed the way the send counts; the student profile has a Results tab with the published exams and an SVG improvement trend that leaves an absence out of the line; the portal has `/dashboard/results` and `/parent/results`; and the report card is printable under `@media print`. |
 | SMS | partial | A low-level BulkSMSBD adapter + segment estimator exist and are unit-tested, gated off. **No** queue, UI, templates UI, opt-out/quiet-hours, idempotency, logs page or balance → R2. Models `CenterSmsTemplate/Batch/Log` and `CenterSettings` already exist. |
 | Visitor leads | **missing** | → R3. |
 | Teacher CV bank | **missing** | → R4. |
@@ -923,8 +923,8 @@ result SMS now?". It does not. R2 built this as a settings toggle — `autoResul
 page — which publishing honours, and R5 kept that shape, so the operator's decision is made once in advance
 and a publish does not stop to ask. The failure mode that decision creates is exactly why
 `CenterSmsAutoProblem` exists: an automatic send nobody watched has to store its own failure, and it does,
-naming the exam and the class. **Still owed in slice 2:** the student's result history and improvement chart,
-the portal Results tab for a linked student, and the optional on-demand report-card PDF.
+naming the exam and the class. **Still owed in slice 2** — and delivered in §19: the student's result history
+and improvement chart, the portal Results tab for a linked student, and the on-demand report card.
 
 **Verified, and what the first attempt taught.** Run 43686815982 on commit `84b7c0a`: 56 requirements PASS,
 0 FAIL, 0 NOT TESTED, the new row being **R5.5**. The first run of this slice, on `c138ec0`, failed R2.7,
@@ -943,3 +943,98 @@ because two need a database and one needs a browser:
   hard-coded `9` in the browser suite was a claim about a catalog this slice had deliberately changed. It
   now reads the length of the list the dialog itself renders, and names the four result chips separately —
   a count alone would also pass if they were swapped for four nobody asked for.
+
+
+## 19. R5 slice 2, finished — the prompt, the history, the portal tab and the report card (verified: 59/59)
+
+§18 shipped the sentence a family reads on result day and left the three screens around it owed. This
+section closes them, and the four things it closes are four different kinds of honesty.
+
+**The publish prompt is a question, not a toggle.** `publishExamAction` has called `autoSendClassResults`
+since slice 1, gated on `CenterSettings.autoResult`, which meant the decision was made once, centre-wide,
+months before the exam — and a publish did not stop to ask. `PublishCenterExam` is now a native `<dialog>`
+holding the review box, the result-SMS box and a count, and `autoResult` only says how that box *starts*.
+Ticked, the action sends with `ignoreToggle:true`, because the person holding the mouse has just consented
+to this exam's messages, which is a stronger authority than a setting somebody left on; unticked, it
+publishes and writes no batch. Either way the screen says which happened (`publish.smsSent` /
+`publish.smsSkipped`), and either way publishing itself succeeds — a send stays best-effort.
+
+The count comes from `resultSmsAudience(examId)`, which counts **the way the send counts**: the same
+candidates from `resolveSmsSource`, the same per-student values, the same recipient rules including the
+sibling rule that refuses to merge two children on one number, the same effective template body with an
+operator's stored edit honoured, and the same chip-completeness check that makes the plan skip a family
+with nothing to quote. The only difference is that nothing is written, and the publication gate is lifted
+because at prompt time the exam is still a draft. `tests/exam-results.integration.ts` runs the real send
+afterwards and asserts the batch's `sentCount` equals the number the prompt showed: a prompt that says
+four and a send that writes two has told the operator a lie with their own software. Whether a send is
+*possible* is asked of `createSmsProvider()` and not of the environment flag, because the mock provider
+never consults it — a test-mode prompt that said "cannot send" would be wrong in the one place its numbers
+are checked.
+
+**The history and its trend.** `studentResultHistory(studentId,locale)` returns the published exams newest
+first, each with the exam's own subjects, marks, full and pass marks, total, percentage, grade and the
+position publishing wrote. Only `status:'published'`: a draft is the operator's working paper, with marks
+that may still move and positions publishing has not finished ranking, and that is one condition in one
+query rather than a filter applied in three screens. The class printed is the **result row's** class, so a
+promoted child's old report belongs to the class they sat it in, while the profile header names the class
+they are in now.
+
+`trendOf` sorts oldest first whatever order the rows were read in, takes the step between the *last* two
+exams — a good month in the middle cannot hide a bad one after it — and leaves an exam the child was
+absent from out of the line while counting it as skipped. That last rule is the one the chart exists to
+get right: an absent row is 0 percent, and plotting it would draw a collapse and a recovery that never
+happened. `chartOf` maps the whole 0–100 scale into the padded box rather than squeezing the axis to fit
+the data, spaces the exams evenly because they are a sequence and not a timeline, centres a single point
+and clamps an out-of-range percentage to the edge. Both are pure and proved in
+`tests/exam-result-trend.test.ts` (**R5.6**), which needs no database and no browser.
+
+**The portal tab reads only what it may.** There is no stored link between a portal account and a centre
+student, so the identity evidence is the phone number: it is what the result SMS is sent to and what the
+operator typed for that child. `portalResultStudents({id,role})` reads the number **from the account
+itself**, by id — a route that could hand it somebody else's phone could hand it somebody else's child —
+and matches it exactly: a student account against its own `studentPhone`, a guardian account against
+`guardianPhone` or `altPhone`. Not a pattern, not a tail: a number one digit away is another family. A
+removed student is left out, a teacher or admin session gets nothing, an account with no number gets the
+empty state. `/dashboard/results` and `/parent/results` are two routes because they are two roles, and a
+student session at the guardian's address is sent to sign in.
+
+The isolation is structural rather than a filter applied late, and the reader is the wall: it selects
+marks, totals, grades and positions and asks for no fee, payment, receipt, due or guardian number at all,
+so there is no field that could reach a student's browser. `tests/exam-results.integration.ts` (**R5.7**)
+serializes what the portal receives and walks its **keys** as well as its text for a money word in either
+language and for a phone number; `tests/exam-results-browser.integration.ts` (**R5.8**) asserts the same
+thing about the painted screen — no sibling's name, no other child's, no fee from the child's own record,
+no `/admin/` address anywhere on the page, no catalog key path where a word belongs.
+
+**The report card is printable because print is written down.** `ReportCard` quotes the stored row through
+`studentReportCard`, so a card and the exam's own result table cannot disagree about a total. The
+institute's name is `common.brand`, the same one the public site prints, because a card with a name nobody
+maintains goes out wrong the day the centre is renamed. The remarks block is a **placeholder on purpose**:
+no schema field holds a teacher's remark, and a card that printed an invented sentence under a heading
+would be forging the one part a family reads aloud — so the heading, two ruled lines and a sentence saying
+nothing has been written yet are what ships, and the space is there for a hand. `@media print` in
+`globals.css` hides the sidebar, the header, the tab bar, the toolbar and the print button by measurement,
+not by shrinking them, and the browser suite asserts each of those takes no space while the card is still
+the page — that is what makes it a report card rather than a screenshot of one. Two refusals are told
+apart: `NOT_PUBLISHED` is the centre still working, `NO_RESULT` is this child never having been in that
+exam, and a screen that said the first for both would send a parent to ask about a result that cannot
+exist.
+
+**Screens and languages.** The new suite photographs the results tab, the report card (including one under
+print media), the student's tab, the guardian's tab and the portal report card at 360 px and 1440 px into
+`screenshots/r5`, in Bangla and in English, and asserts on the English addresses that every label these
+screens own is English with English digits and English month names on the chart — while the exam keeps the
+Bangla name it was given, because an exam is stored with one name and inventing an English one would be
+inventing data. `PublishCenterExam`'s prompt is photographed by the exam suite. The two-language sweep
+(**R0.13**, reworded in the same patch) now also reads `/dashboard/results` and `/parent/results` on both
+addresses with a student and a guardian session, sweeping the portal chrome, the headline, the card head
+and the empty state — with no student record seeded, because a sweep proves language and a class group
+here would paint its Bangla name into admin screens that have always been swept with an empty database.
+Both new portal components are **server** components, and `PrintButton` is a client island whose label is
+a prop: the portal tree's client catalog is `PUBLIC_NAMESPACES`, and a client component reading `exams`
+there would paint a key path instead of a word.
+
+**Registry: 59 requirements.** New rows **R5.6** (trend and chart geometry, `test:exam:trend`), **R5.7**
+(history, card, portal identity and the prompt's count against the disposable database,
+`test:exam:results`) and **R5.8** (the screens, `tests/exam-results-browser.integration.ts`); **R5.4** and
+**R0.13** reworded in the same patch, because a registry line may claim only what its suite proves.

@@ -68,6 +68,12 @@ const PAGES=adminRoutes();
 const NOT_A_SCREEN=new Map<string,string>([]);
 const SWEPT=PAGES.filter(page=>!NOT_A_SCREEN.has(page));
 const BN=/[\u0980-\u09ff]/;
+/** A catalog key path painted where a word should be: the sign of a client component reading a group its
+    route never shipped. Checked on the learner screens, which are new in R5 slice 2 and are rendered by
+    components the portal tree has never mounted before. */
+const KEY_PATH=/\b(?:exams|admin|nav|common)\.[a-zA-Z][a-zA-Z0-9]*(?:\.[a-zA-Z0-9]+)+/;
+/** The two Results tabs, each with the role that owns it: they are two screens and not one longer URL. */
+const LEARNER_PAGES=[['/dashboard/results','student'],['/parent/results','parent']];
 
 async function run(){
   await preflight({mongo:true,browser:true,origin:process.env.TEST_ORIGIN||'http://127.0.0.1:3100',originTimeoutMs:process.env.TEST_ORIGIN?60000:8000,test:'tests/language-sweep-browser.integration.ts — start the app first, then run it with TEST_ORIGIN and TEST_MONGO_URI (see STALE-TESTS-REPORT.md)'});
@@ -86,6 +92,14 @@ async function run(){
      that have always been swept with an empty one. What a class does to a teacher's scope is proven by
      tests/center-exams-browser.integration.ts, which assigns one through the classes screen. */
   const teacher=await User.create({name:'Sweep Teacher',email:'sweep-teacher@example.test',passwordHash:hash,role:'teacher',active:true});
+  /* R5 slice 2: a student and a guardian, so the two Results tabs the slice added mount for real sessions
+     instead of redirecting to sign-in and being swept as empty pages. Neither account holds a phone number
+     and no student record is seeded: a sweep proves language, not data, and a linked child here would need
+     a class group and an exam whose Bangla names would paint into admin screens that have always been swept
+     with an empty database. What these two pages paint without a linked child is their own chrome and the
+     empty state an unlinked account gets — every word of both is the catalog's. */
+  const learner=await User.create({name:'Sweep Student',email:'sweep-student@example.test',passwordHash:hash,role:'student',active:true});
+  const guardianAccount=await User.create({name:'Sweep Guardian',email:'sweep-guardian@example.test',passwordHash:hash,role:'parent',active:true});
   assert.ok(PAGES.length>=30,`the admin route tree produced ${PAGES.length} screens — the walk is looking in the wrong place`);
   assert.ok(SWEPT.includes('/admin/students/import'),'the paysheet import screen is mounted, so it is swept');
   const origin=process.env.TEST_ORIGIN||'http://127.0.0.1:3100',browser=await chromium.launch();
@@ -162,8 +176,46 @@ async function run(){
       }
       await context.close();
     }
+    /* R5 slice 2 · the student's and the guardian's own Results tabs, on both addresses, with the portal's
+       own chrome plus the one box that is theirs alone: the empty state an unlinked account is shown. */
+    for(const [locale,digits] of [['en','en'],['bn','bn']]){
+      for(const [route,role] of LEARNER_PAGES){
+        const account=role==='student'?learner:guardianAccount;
+        const context=await browser.newContext({viewport:{width:1440,height:900}});
+        const csrf=await (await context.request.get(origin+'/api/auth/csrf')).json();
+        await context.request.post(origin+'/api/auth/callback/credentials',{timeout:180000,headers:{origin,'content-type':'application/x-www-form-urlencoded'},form:{csrfToken:csrf.csrfToken,identifier:account.email,password:pass,callbackUrl:`${origin}/${locale}${route}`}});
+        await context.addCookies([{name:`diction_digits_${String(account._id)}`,value:digits,url:origin+'/'}]);
+        const page=await context.newPage();
+        await page.goto(origin+'/'+locale+route,{waitUntil:'domcontentloaded',timeout:180000});
+        await page.waitForLoadState('networkidle',{timeout:15000}).catch(()=>{});
+        assert.ok(page.url().includes(route),`a ${role} was not let into ${route}; landed on ${page.url()}`);
+        for(const selector of PORTAL_CHROME){
+          for(const box of await page.locator(selector).all()){
+            const text=await box.innerText().catch(()=>'');
+            if(locale==='en'&&BN.test(text))found.push(`/${locale}${route} ${selector} carries Bangla: ${text.split('\n').find(l=>BN.test(l))}`);
+          }
+        }
+        if(!await page.locator('.portal-hero').count())found.push(`/${locale}${route} painted no .portal-hero — a mounted screen that cannot be swept has to be written off with its reason`);
+        const headline=await page.locator('h1').first().innerText().catch(()=>'');
+        if(locale==='bn'&&!BN.test(headline))found.push(`/bn${route} h1 lost its Bangla: ${headline.slice(0,60)}`);
+        if(locale==='en'&&BN.test(headline))found.push(`/en${route} h1 carries Bangla: ${headline.split('\n').find(l=>BN.test(l))}`);
+        const card=await page.locator('.portal-card-head').first().innerText().catch(()=>'');
+        if(locale==='bn'&&!BN.test(card))found.push(`/bn${route} the card head lost its Bangla: ${card.slice(0,60)}`);
+        if(locale==='en'&&BN.test(card))found.push(`/en${route} the card head carries Bangla: ${card.split('\n').find(l=>BN.test(l))}`);
+        /* The empty state is this screen's own sentence — the one an account with no linked child reads
+           instead of a blank table — so it is swept like any other painted word. */
+        const empty=await page.locator('[data-portal-results-empty]').first().innerText().catch(()=>'');
+        if(!empty)found.push(`/${locale}${route} painted no empty state for an account with no linked student`);
+        if(locale==='bn'&&!BN.test(empty))found.push(`/bn${route} the empty state lost its Bangla: ${empty.slice(0,60)}`);
+        if(locale==='en'&&BN.test(empty))found.push(`/en${route} the empty state carries Bangla: ${empty.split('\n').find(l=>BN.test(l))}`);
+        const painted=await page.locator('body').innerText().catch(()=>'');
+        const leaked=painted.match(KEY_PATH);
+        if(leaked)found.push(`/${locale}${route} paints a catalog key path instead of a word: ${leaked[0]}`);
+        await context.close();
+      }
+    }
     assert.deepEqual(found,[],`the two-language sweep found interface text in the wrong language:\n  ${found.join('\n  ')}`);
-    console.log(`Language sweep: ${SWEPT.length} mounted operator screens out of ${PAGES.length} in the admin route tree, plus ${PORTAL_PAGES.length} teacher-portal exam screen${NOT_A_SCREEN.size?`, minus ${NOT_A_SCREEN.size} written off (${[...NOT_A_SCREEN].map(([page,why])=>`${page}: ${why}`).join('; ')})`:''}, each read twice, once per address — every English page's top bar, sidebar, panel heads, heading, pager and test-mode banner are free of Bangla letters and Bangla digits, and the Bangla pages still read Bangla in the sidebar and the heading.`);
+    console.log(`Language sweep: ${SWEPT.length} mounted operator screens out of ${PAGES.length} in the admin route tree, plus ${PORTAL_PAGES.length} teacher-portal exam screen and ${LEARNER_PAGES.length} learner results tab${NOT_A_SCREEN.size?`, minus ${NOT_A_SCREEN.size} written off (${[...NOT_A_SCREEN].map(([page,why])=>`${page}: ${why}`).join('; ')})`:''}, each read twice, once per address — every English page's top bar, sidebar, panel heads, heading, pager and test-mode banner are free of Bangla letters and Bangla digits, and the Bangla pages still read Bangla in the sidebar and the heading.`);
   }finally{
     await browser.close();
     await mongoose.disconnect();

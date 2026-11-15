@@ -2029,6 +2029,7 @@
     "smsSelected": "SMS {count} selected",
     "cashFees": "Cash fees",
     "profileTab": "Profile",
+    "paymentHistory": "Payment history",
     "yearWord": "Year",
     "viewButton": "View",
     "removedPage": {
@@ -3612,7 +3613,19 @@
       "unpublishConfirm": "I understand this will unpublish the result",
       "unpublishButton": "Unpublish the result",
       "unpublished": "Unpublished; the exam is a draft again."
-    },
+    ,
+      "dialogTitle": "Publish the result",
+      "smsQuestion": "Send result SMS to guardians now?",
+      "smsHelp": "Each child gets their own subject marks, total and position. A child who was absent or holds no position gets no message.",
+      "smsCount": "{count} messages will go out",
+      "smsCountNone": "There is no result to send",
+      "smsDefault": "The box starts as your automatic-result setting on the SMS page; the decision is made here.",
+      "smsSent": "Published, and the result messages went out.",
+      "smsSkipped": "Published; no message was sent.",
+      "cancel": "Cancel",
+      "openButton": "Publish results…",
+      "audienceNone": "This exam has no publishable result yet.",
+      "audienceNote": "{count} messages from {students} students across {classes} classes."},
     "classes": {
       "crumbStudents": "Students",
       "title": "Manage classes",
@@ -3684,7 +3697,7 @@
         "notAnInteger": "{student} · {subject}: write a whole number.",
         "outOfRange": "{student} · {subject}: cannot be more than {full}.",
         "more": "{count} more cells have a problem."
-      }
+    }
     },
     "summary": {
       "title": "Summary",
@@ -3757,7 +3770,8 @@
       "scaleOverlap": "The range for {grade} overlaps another.",
       "scaleGap": "There is a gap between {grade} and {above}.",
       "fileChanged": "The file changed; check it again."
-    },
+    ,
+      "smsUnavailable": "A result message cannot be sent right now — the provider is not ready or the sending gate is closed."},
     "scale": {
       "title": "Grading scales",
       "desc": "Where the centre decides which grade and point each range of marks is worth.",
@@ -3805,7 +3819,48 @@
       "portalDesc": "Marks and results for the classes you take.",
       "portalOpen": "Open exams"
     }
-  },
+  ,
+    "results": {
+      "title": "Result history",
+      "tab": "Results",
+      "empty": "No published result yet.",
+      "publishedOnly": "Only published exams are shown.",
+      "trendTitle": "Improvement trend",
+      "trendHelp": "Percentage and position across consecutive published exams.",
+      "trendEmpty": "The trend needs results from at least two published exams.",
+      "change": "Change",
+      "up": "Improved",
+      "down": "Fell",
+      "same": "Unchanged",
+      "positionNone": "None",
+      "reportLink": "Report card",
+      "chartPoint": "{exam} — {percentage} percent, position {position}",
+      "axisPercent": "Percentage",
+      "portalTitle": "Results",
+      "portalDesc": "Marks, grade and position from published exams.",
+      "portalOpen": "See results",
+      "linkedNone": "No student is linked to your account, so there is no result to show.",
+      "childOf": "Results for {name}",
+      "report": "Report card"
+    },
+    "report": {
+      "title": "Report card",
+      "subjects": "Subject breakdown",
+      "obtained": "Obtained",
+      "point": "Point",
+      "remarks": "Teacher’s remarks",
+      "remarksPlaceholder": "No remark has been written yet.",
+      "generatedOn": "Generated on",
+      "print": "Print / PDF",
+      "signGuardian": "Guardian’s signature",
+      "signHead": "Institute signature",
+      "absentNote": "An absent student holds no position.",
+      "studentId": "Student ID",
+      "roll": "Roll",
+      "notPublished": "This exam is not published, so no report card can be made from it.",
+      "noResult": "This student has no result in this exam.",
+      "backToResults": "Back to results"
+    }},
   "legacy": {
     "review": {
       "crumbStudents": "Students",

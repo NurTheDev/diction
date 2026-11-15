@@ -61,12 +61,15 @@
     "test:teacher:sheet": "tsx tests/teacher-cv-sheet.test.ts",
     "test:teacher:db": "tsx --conditions=react-server tests/teacher-cv-bank.integration.ts",
     "test:teacher:screens": "tsx tests/teacher-cv-screens-browser.integration.ts",
-    "test:exams": "npm run test:exam:rules && npm run test:exam:grid && npm run test:exam:result",
+    "test:exams": "npm run test:exam:rules && npm run test:exam:grid && npm run test:exam:result && npm run test:exam:trend",
     "test:exam:rules": "tsx tests/exam-rules.test.ts",
     "test:exam:result": "tsx tests/exam-result-message.test.ts",
+    "test:exam:trend": "tsx tests/exam-result-trend.test.ts",
+    "test:exam:results": "tsx --conditions=react-server tests/exam-results.integration.ts",
     "test:exam:grid": "tsx tests/exam-grid.test.ts",
     "test:exam:db": "tsx --conditions=react-server tests/exam-flow.integration.ts",
-    "test:exam:screens": "tsx tests/center-exams-browser.integration.ts"
+    "test:exam:screens": "tsx tests/center-exams-browser.integration.ts",
+    "test:exam:results:browser": "tsx tests/exam-results-browser.integration.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

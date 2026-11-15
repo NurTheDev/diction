@@ -209,23 +209,29 @@ export async function saveMarksBatchAction(_:ExamState,form:FormData):Promise<Ex
   }catch(error){return refused((error as Error).message)}
 }
 
-/** Publish: freeze the exam, write each class's positions, then offer the result SMS. */
+/**
+ * Publish: freeze the exam, write each class's positions, then send the result SMS **if the operator asked**.
+ *
+ * R5 slice 2 moved the question into the publish prompt, so the setting is no longer the decision: it only
+ * says how the prompt's checkbox starts. A ticked box sends with `ignoreToggle`, because the person holding
+ * the mouse has just consented to this exam's messages; an unticked one publishes and sends nothing. Either
+ * way publishing itself must succeed, so a send stays best-effort and only logged — one class at a time,
+ * since a result message is about a class's own students and their own positions.
+ */
 export async function publishExamAction(_:ExamState,form:FormData):Promise<ExamState>{
   const actor=await scope(scope_=>scope_.publish);
   if('state' in actor)return actor.state;
   if(form.get('confirm')!=='YES')return refused('CONFIRM');
   const id=String(form.get('exam')||'').trim();
+  const sendResults=form.get('sendResults')==='on';
   const exam=await CenterExam.findById(id).select('classGroups').lean<{classGroups:unknown[]}|null>();
   if(!exam)return refused('EXAM_UNAVAILABLE');
   if(!scopeCovers(actor.scope,exam.classGroups))return refused('UNAUTHORIZED');
   try{
     await publishCenterExam(id,actor.scope.userId);
-    // Automatic result SMS (a settings toggle, OFF by default). Publishing must succeed even when a
-    // message cannot go out, so the send is best-effort and only logged — one class at a time, since a
-    // result SMS is about a class's own students and their own positions.
-    for(const group of exam.classGroups){
-      try{await autoSendClassResults({exam:id,classGroup:String(group)})}
-      catch(error){console.error('Automatic result SMS failed',(error as Error).message)}
+    if(sendResults)for(const group of exam.classGroups){
+      try{await autoSendClassResults({exam:id,classGroup:String(group)},{ignoreToggle:true})}
+      catch(error){console.error('Result SMS failed',(error as Error).message)}
     }
     refresh(id);
     return {status:'ok',id};

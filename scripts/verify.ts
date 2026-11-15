@@ -368,6 +368,9 @@ async function main():Promise<void>{
     await stepUnitSuites(ctx,'test:exam:db','R5.3','The exam flow against the disposable database: a teacher\u2019s scope is the class groups assigned to them, one exam covering two classes, marks saved in one batched request with a stale row named instead of overwritten and a student of another class refused, absence stored as absence, publication ranking each class on its own with ties shared and the absent holding no position, a published exam refusing marks and edits until it is unpublished, subjects frozen once a result exists, a boundary that moved recomputing every stored grade and point while the marks stay as written, and a teacher\u2019s exam view carrying no fee, payment, receipt, cash, due, amount or guardian number anywhere in it',
       {needsDb:true,env:{TEST_ORIGIN:ctx.origin,TEST_MONGO_URI:ctx.mongoUri,TEST_MONGO_DB:ctx.mongoDb}});
     await stepUnitSuites(ctx,'test:exam:result','R5.5','What a result SMS says, as pure rules over the shipped template and the shipped renderer: the spec sentence byte-for-byte in Bangla digits with no chip left standing in it, values covering exactly the chips that template asks for, a subject the child did not sit as a dash rather than a zero, subjects in the exam’s own order, a tie read as the position publishing wrote, and no values at all for an absent or unranked child so the plan counts them instead of sending');
+    await stepUnitSuites(ctx,'test:exam:trend','R5.6','The improvement trend and the coordinates of the chart that draws it');
+    await stepUnitSuites(ctx,'test:exam:results','R5.7','Result history, report card, portal identity and the prompt’s count against the disposable database',
+      {needsDb:true,env:{TEST_ORIGIN:ctx.origin,TEST_MONGO_URI:ctx.mongoUri,TEST_MONGO_DB:ctx.mongoDb}});
     await stepScreens(ctx);
     await stepBrowserTests(ctx);
     (ctx as Context&{stop?:()=>void}).stop?.();
