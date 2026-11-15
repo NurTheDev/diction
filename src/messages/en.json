@@ -2090,7 +2090,13 @@
       "help": "A backup file carries the students, fees, receipts, exams and SMS history; it never carries password hashes. Keep the downloaded file somewhere safe, with its date.",
       "reminder": "It has been over a month — take a full backup of the database.",
       "reminderHelp": "A backup nobody took is a backup nobody has. One click downloads the whole copy."
-    }
+    },
+    "hold": "Hold",
+    "unhold": "Lift hold",
+    "remove": "Remove",
+    "removeLeave": "Leave month",
+    "removeReason": "Reason (at least 3 characters)",
+    "removeInvalid": "Could not remove — check the month and reason"
   },
   "recycleBin": {
     "title": "Recycle Bin",
@@ -3552,7 +3558,9 @@
       "createHeading": "Create exam",
       "heading": "Exams",
       "empty": "No exams.",
-      "scaleLink": "View and edit the grading scale"
+      "scaleLink": "View and edit the grading scale",
+      "new": "New exam",
+      "back": "Back to list"
     },
     "col": {
       "exam": "Exam",

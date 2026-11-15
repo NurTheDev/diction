@@ -22,7 +22,7 @@ const emptyExam={id:'',name:'',type:'monthly',date:'',scaleName:'',classIds:[],s
  * never reaches this screen — theirs is `/teacher/exams`) would see only their own. Writing needs
  * `scope.manage`, and deleting stays where the Recycle Bin puts it: admin and super admin only.
  */
-export default async function Exams({params,searchParams}:{params:Promise<{locale:string}>;searchParams:Promise<{page?:string;type?:string;status?:string;classId?:string}>}){
+export default async function Exams({params,searchParams}:{params:Promise<{locale:string}>;searchParams:Promise<{page?:string;type?:string;status?:string;classId?:string;new?:string}>}){
   const t=await getTranslations('exams');
   const scope=await getExamScope();
   if(!scope)notFound();
@@ -57,10 +57,11 @@ export default async function Exams({params,searchParams}:{params:Promise<{local
       <h1>{t('list.title')}</h1>
       <p>{t('list.desc')}</p>
       <p className="admin-help"><Link className="text-link" href="/admin/grading-scale" data-link-scale>{t('list.scaleLink')}</Link></p>
-    </div></div>
-    {scope.manage&&<section className="admin-panel"><div className="admin-panel-head"><h2>{t('list.createHeading')}</h2></div>
-      <div className="admin-panel-body"><ExamShapeForm mode="create" groups={choices} scales={scales} value={emptyExam} digits={digits}/></div>
-    </section>}
+    </div>{scope.manage&&<Link href="/admin/center-exams?new=1" className="button button-navy" data-exam-new>+ {t('list.new')}</Link>}</div>
+    {scope.manage&&query.new==='1'&&<><div className="admin-heading"><div><h1>{t('list.createHeading')}</h1></div>
+      <Link href="/admin/center-exams" className="admin-mini-button">{t('list.back')}</Link></div>
+      <section className="admin-panel"><div className="admin-panel-body"><ExamShapeForm mode="create" groups={choices} scales={scales} value={emptyExam} digits={digits}/></div>
+    </section></>}
     <section className="admin-panel">
       <div className="admin-panel-head"><h2>{t('list.heading')}</h2><span data-exam-total>{formatNumber(list.total,digits)}</span></div>
       <form className="admin-filters" method="get" data-exam-filters>

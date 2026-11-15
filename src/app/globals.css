@@ -882,3 +882,7 @@ html:lang(bn) .public-motion-root:not(.private-motion-disabled) :is(h1,h2,h3,h4)
 .admin-section{border:1px solid #d9deee;border-radius:10px;background:#fff;margin:12px 0}
 .admin-section>summary{cursor:pointer;font-weight:700;padding:12px 16px;min-height:44px;display:flex;align-items:center}
 .admin-section-body{padding:0 16px 16px}
+.admin-dialog{border:0;border-radius:12px;padding:20px;width:min(440px,92vw);box-shadow:0 12px 40px #1a1d3a30}
+.admin-dialog::backdrop{background:#11132d99}
+.admin-dialog h2{font-size:18px;margin:0 0 10px}
+.admin-dialog label{display:grid;gap:6px;margin:10px 0;font-weight:600}
