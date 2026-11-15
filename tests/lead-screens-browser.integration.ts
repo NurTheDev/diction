@@ -120,6 +120,32 @@ async function run(){
     assert.ok(!stripped.includes(number),`${label}: ${number} appears nowhere in the served HTML outside its tel: and wa.me destinations`);
     assert.ok(html.includes(`tel:+88${number.slice(1)}`),`${label}: and the call destination it needs is there`);
   };
+  /**
+   * Owner review, 2026-11-15: the Visitors list prints the number for the signed-in roles that call
+   * visitors — a front desk dials from this row, and a mask cost a call. Printing is all it may do, so
+   * this asserts the three things that keep a printed digit from becoming a leaked one: it sits in the
+   * row's number cell, no link carries it except the `tel:` and `wa.me` destinations, and it is not in
+   * the address bar. Every OTHER screen still masks, which is what `onlyAsDestination` checks.
+   */
+  const printedForCallers=async(page:Page,number:string,label:string)=>{
+    const html=await page.content();
+    assert.ok(html.includes(`tel:+88${number.slice(1)}`),`${label}: the call destination is there`);
+    assert.ok(html.includes(`https://wa.me/88${number.slice(1)}`),`${label}: and so is WhatsApp`);
+    assert.ok(await page.locator('[data-visitor-phone]',{hasText:number}).count()>0,`${label}: ${number} is printed in the row's number cell, for the role that dials it`);
+    const hrefs=await page.locator('a[href]').evaluateAll(nodes=>nodes.map(node=>(node as HTMLAnchorElement).href));
+    for(const href of hrefs){
+      const carries=href.includes(number)||href.includes(number.slice(1));
+      assert.ok(!carries||href.startsWith('tel:')||href.startsWith('https://wa.me/'),`${label}: no link carries the number except the two destinations (${href})`);
+    }
+    assert.ok(!page.url().includes(number)&&!page.url().includes(number.slice(1)),`${label}: the number is not in the address bar (${page.url()})`);
+    assert.ok(!html.includes(`fam:${number}`),`${label}: and no family key reaches the browser`);
+  };
+  /** The same rule, scoped to one piece of the page — the drawer and the search panel live on the list. */
+  const maskedWithin=async(locator:{innerHTML():Promise<string>},number:string,label:string)=>{
+    const html=await locator.innerHTML();
+    const stripped=html.split(`tel:+88${number.slice(1)}`).join('').split(`https://wa.me/88${number.slice(1)}`).join('');
+    assert.ok(!stripped.includes(number),`${label}: ${number} appears nowhere here outside its tel: and wa.me destinations`);
+  };
   const panel=(page:Page,heading:string)=>page.locator('section.admin-panel',{has:page.locator('h2',{hasText:heading})}).first();
   /**
    * The list's own rows, never the search panel's: after a search the page can hold two tables, and
@@ -177,18 +203,14 @@ async function run(){
     await rows(boss.page).first().waitFor({timeout:60000});
     const body=await boss.page.locator('body').innerText();
     for(const name of [RAHUL,SISTER,OLD,NO_PHONE,BLOCKED,NEXT_WEEK])assert.ok(body.includes(name),`the list shows ${name}`);
-    assert.ok(body.includes(MASK_1),`a number is shown as its mask (${MASK_1})`);
-    assert.ok(!body.includes(P1),'and the number itself is never printed');
+    assert.ok(body.includes(P1),`the list prints the number itself for a signed-in admin, who calls from it (${P1})`);
     assert.ok(body.includes(statusLabel(lt,'new')),'with its status');
     assert.ok(body.includes(statusLabel(lt,'do_not_contact')),'including the do-not-contact one');
     assert.ok(body.includes(t.noPhone),'a lead with no number says so instead of leaving an empty cell');
-    assert.ok(body.includes(t.lastNote),'the last note is on the row, so the queue can be read without opening anything');
+    assert.ok(body.includes('প্রথম কল'),'the last note is on the row, so the queue can be read without opening anything');
     assert.ok(await boss.page.locator(`a[href="tel:+88${P1.slice(1)}"]`).count()>0,'the call destination is a real link');
     assert.ok(await boss.page.locator(`a[href="https://wa.me/88${P1.slice(1)}"]`).count()>0,'and so is WhatsApp');
-    await onlyAsDestination(boss.page,P1,'the list');
-    // The family key is the smallest number of a family with `fam:` in front of it, so a screen that
-    // carried it would hand the browser a number that reads like an id.
-    assert.ok(!(await boss.page.content()).includes(`fam:${P1}`),'no family key reaches the browser');
+    await printedForCallers(boss.page,P1,'the list');
     const wide=await noOverflow(boss.page,'the list at 1440');
     assert.ok(wide.clientWidth>=1200,'the desktop viewport really is desktop width');
     await shot(boss.page,'b2-visitors-list-1440');
@@ -252,7 +274,7 @@ async function run(){
 
     // ---- 3. The detail drawer, with the notes timeline.
     const rahulRow=boss.page.locator('table.admin-table tbody tr',{hasText:RAHUL}).first();
-    await rahulRow.locator('button',{hasText:t.detail}).first().click();
+    await rahulRow.locator('[data-visitor-open]').first().click();
     const drawer=boss.page.locator('dialog.overview-drawer[open]');
     await drawer.waitFor({state:'visible',timeout:60000});
     await drawer.locator('h3',{hasText:t.notes}).waitFor({state:'visible',timeout:60000});
@@ -262,7 +284,7 @@ async function run(){
     assert.ok(!drawerText.includes(P1),'and never prints it');
     assert.ok(drawerText.includes(SISTER),'the family is listed, so a sibling is visible without searching for one');
     assert.ok(!drawerText.includes(t.noNotes),'the timeline shows the note quick-add wrote, not an empty state');
-    await onlyAsDestination(boss.page,P1,'the drawer');
+    await maskedWithin(drawer,P1,'the drawer');
     await noOverflow(boss.page,'the drawer at 1440');
     await shot(boss.page,'b2-detail-drawer-1440',false);
 
@@ -283,7 +305,7 @@ async function run(){
     await drawer.waitFor({state:'detached',timeout:30000});
 
     await desk.page.goto(`${origin}${list}`,{waitUntil:'domcontentloaded',timeout:180000});
-    await desk.page.locator('table.admin-table tbody tr',{hasText:RAHUL}).first().locator('button',{hasText:t.detail}).first().click();
+    await desk.page.locator('table.admin-table tbody tr',{hasText:RAHUL}).first().locator('[data-visitor-open]').first().click();
     const deskDrawer=desk.page.locator('dialog.overview-drawer[open]');
     await deskDrawer.locator('ul.lead-notes li').first().waitFor({state:'visible',timeout:90000});
     await noOverflow(desk.page,'the drawer at 360');
@@ -382,7 +404,7 @@ async function run(){
     assert.ok(hitText.includes(MASK_1),'…and masks its number');
     assert.ok(!(await boss.page.locator('body').innerText()).includes('7090'),'not even the fragment that was typed is echoed back');
     assert.ok(!/\d{4,}/.test(new URL(boss.page.url()).search),`the search stayed out of the address bar: ${boss.page.url()}`);
-    await onlyAsDestination(boss.page,P1,'the search results');
+    await maskedWithin(search,P1,'the search results');
     await noOverflow(boss.page,'the search results at 1440');
     await shot(boss.page,'b2-number-search-1440');
 
@@ -684,7 +706,7 @@ async function run(){
     await rows(boss.page).first().waitFor({timeout:60000});
     // `smsRow`/`smsDrawer`, not `rahulRow`/`drawer`: section 3 already opened that drawer in this scope.
     const smsRow=rows(boss.page).filter({hasText:RAHUL}).first();
-    await smsRow.locator('button',{hasText:t.detail}).first().click();
+    await smsRow.locator('[data-visitor-open]').first().click();
     const smsDrawer=boss.page.locator('dialog.overview-drawer[open]');
     await smsDrawer.waitFor({timeout:60000});
     await smsDrawer.locator('button[data-sms-open]').waitFor({timeout:60000});
@@ -749,7 +771,7 @@ async function run(){
     // (d) The drawer names the number-mates outside the family, masked, and merges one on purpose.
     await boss.page.goto(`${origin}${list}`,{waitUntil:'domcontentloaded',timeout:180000});
     await rows(boss.page).filter({hasText:DUP2}).first().waitFor({timeout:90000});
-    await rows(boss.page).filter({hasText:DUP2}).first().locator('button',{hasText:t.detail}).first().click();
+    await rows(boss.page).filter({hasText:DUP2}).first().locator('[data-visitor-open]').first().click();
     const dupDrawer=boss.page.locator('dialog.overview-drawer[open]');
     await dupDrawer.waitFor({state:'visible',timeout:60000});
     const mates=dupDrawer.locator('[data-dup-mates]');
@@ -800,7 +822,7 @@ async function run(){
     await until(async()=>(await Lead.countDocuments({studentName:T2}))===1,'the second stranger was written',90000);
     await boss.page.goto(`${origin}${list}`,{waitUntil:'domcontentloaded',timeout:180000});
     await rows(boss.page).filter({hasText:T2}).first().waitFor({timeout:90000});
-    await rows(boss.page).filter({hasText:T2}).first().locator('button',{hasText:t.detail}).first().click();
+    await rows(boss.page).filter({hasText:T2}).first().locator('[data-visitor-open]').first().click();
     const tieDrawer=boss.page.locator('dialog.overview-drawer[open]');
     await tieDrawer.waitFor({state:'visible',timeout:60000});
     await tieDrawer.locator('[data-dup-mates] li',{hasText:T1}).waitFor({state:'visible',timeout:90000});
@@ -937,7 +959,7 @@ async function run(){
     await boss.page.setViewportSize({width:1440,height:900});
     await boss.page.goto(`${origin}/en/admin/leads`,{waitUntil:'domcontentloaded',timeout:180000});
     const enRow=boss.page.locator('table.admin-table tbody tr').first();
-    await enRow.locator('button',{hasText:en.leads.detail}).first().click();
+    await enRow.locator('[data-visitor-open]').first().click();
     const enDrawer=boss.page.locator('dialog.overview-drawer[open]');
     await enDrawer.waitFor({state:'visible',timeout:60000});
     await shot(boss.page,'b2-detail-drawer-en-1440',false);

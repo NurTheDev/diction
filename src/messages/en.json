@@ -2377,7 +2377,8 @@
       "UNMAPPED_SOURCE": "That source was not recognised, so it was left as other.",
       "SAME_LEAD_MERGE": "A lead cannot be merged into itself.",
       "SOURCE_CONVERTED": "{student} was already converted to an admission or a trial, so it cannot be merged away.",
-      "BAD_PHONE": "That number could not be read — check how it is written."
+      "BAD_PHONE": "The number must be 11 digits starting with 01",
+      "BAD_NAME": "Write a name (120 characters at most)"
     },
     "actionErrors": {
       "NO_WRITE_ACCESS": "You do not have access to the visitor list.",
@@ -2400,7 +2401,13 @@
       "FOLLOW_UP_SET": "Follow-up set: {day}",
       "FOLLOW_UP_CLEARED": "Follow-up cleared.",
       "SAVED": "Saved — {leadId}{family}",
-      "SAVED_FAMILY": " · tied to the same family as lead {from}"
+      "SAVED_FAMILY": " · tied to the same family as lead {from}",
+      "LEAD_SAVED": "Saved",
+      "BULK_STATUS": "Status changed for {count}",
+      "BULK_FOLLOW": "Follow-up set for {count}",
+      "BULK_DELETED": "{count} leads moved to the Recycle Bin for 30 days",
+      "BULK_ARCHIVED": "{count} leads archived",
+      "NOT_INTERESTED": "Marked not interested"
     },
     "classFlags": {
       "unrecognized": "\"{value}\" gave no class — the label was kept and nothing was guessed.",
@@ -2559,7 +2566,45 @@
       "binNote": "Leads in the Recycle Bin are left out, exactly as the Visitors list leaves them out.",
       "monthsFilledNote": "Months inside the dates you chose that brought no visitors are shown as zero.",
       "noRateNote": "A dash means there was nobody to divide by."
-    }
+    },
+    "row": {
+      "open": "Open",
+      "edit": "Edit",
+      "more": "More",
+      "sendSms": "Send SMS",
+      "bookTrial": "Book trial class",
+      "convert": "Convert to admission",
+      "notInterested": "Mark not interested",
+      "archive": "Archive",
+      "delete": "Delete",
+      "deleteHint": "Move to the Recycle Bin for 30 days",
+      "save": "Save",
+      "cancel": "Cancel",
+      "pickDate": "Pick a date",
+      "clear": "Clear",
+      "today": "Today",
+      "tomorrow": "Tomorrow",
+      "in3": "In 3 days",
+      "nextWeek": "Next week",
+      "overdueDays": "Overdue {count} days",
+      "noFollow": "No follow-up",
+      "bulkStatus": "Change status",
+      "bulkFollow": "Set follow-up",
+      "bulkRemove": "Archive/Delete",
+      "thanks": "Send thank-you SMS",
+      "editTitle": "Edit",
+      "phone": "Mobile",
+      "lastNote": "Last note",
+      "filters": "Filters",
+      "bulkSelected": "{count} selected",
+      "clearSelection": "Clear selection",
+      "bulk": "Pick visitors",
+      "visitDate": "Date",
+      "saved": "Saved",
+      "deleteAdminOnly": "Only an Admin can move a visitor to the Recycle Bin. To close a row at the desk, mark the visitor not interested."
+    },
+    "guardian": "Guardian",
+    "interested": "Interested in"
   },
   "teacherCvs": {
     "title": "Teacher CVs",

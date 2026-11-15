@@ -886,3 +886,94 @@ html:lang(bn) .public-motion-root:not(.private-motion-disabled) :is(h1,h2,h3,h4)
 .admin-dialog::backdrop{background:#11132d99}
 .admin-dialog h2{font-size:18px;margin:0 0 10px}
 .admin-dialog label{display:grid;gap:6px;margin:10px 0;font-weight:600}
+/* R8 · the reference list row (owner review, 2026-11-15). Visitors is the pattern every other admin
+   list copies: a popover where an inline control used to be, one compact line per row, a bulk bar that
+   appears the moment a row is ticked, our own calendar instead of the browser's date box, and a card
+   at phone width. Nothing here is visitor-specific except the names — the classes are the pattern. */
+.pop{position:relative;display:inline-flex;min-width:0}
+.pop-anchor{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:2px 8px;background:transparent;border:0;border-radius:8px;cursor:pointer;color:inherit;font:inherit;min-width:0}
+.pop-anchor:hover{background:#eef0ff}
+.pop-anchor[aria-expanded=true]{background:#e8ebff;outline:2px solid #bec3ee;outline-offset:1px}
+.pop-body{position:absolute;z-index:60;top:calc(100% + 6px);left:0;min-width:212px;max-width:min(330px,calc(100vw - 24px));padding:8px;background:#fff;border:1px solid #d9deee;border-radius:12px;box-shadow:0 12px 32px #1a1d3a2e}
+.pop-menu{display:grid;gap:2px}
+.pop-menu button{display:flex;align-items:center;gap:8px;width:100%;min-height:44px;padding:8px 10px;background:transparent;border:0;border-radius:8px;text-align:left;cursor:pointer;font:inherit;color:#1a1d3a}
+.pop-menu button:hover{background:#eef0ff}
+.pop-item{display:block;padding:2px}
+.pop-item>.admin-mini-button,.pop-item button{width:100%;min-height:44px;justify-content:flex-start;text-align:left}
+.pop-destructive{display:flex;gap:6px;flex-wrap:wrap;padding:4px 2px 2px}
+.pop-destructive>.admin-mini-button,.pop-destructive button{flex:1 1 auto}
+.pop-inline{display:grid;gap:6px;padding:8px 10px}
+.pop-inline .admin-input{min-width:0;width:100%}
+.pop-inline button{min-height:44px}
+.pop-sep{border:0;border-top:1px solid #e6e9f4;margin:6px 0}
+.pop-hint{display:block;padding:0 10px 6px}
+.pop-dots{display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px}
+.pop-calendar{min-width:268px;padding:10px}
+.pop-cal-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.pop-cal-head strong{font-size:14px;color:#1a1d3a}
+.pop-cal-head button{min-width:44px;min-height:44px;background:#f4f6fd;border:1px solid #d9deee;border-radius:8px;font-size:18px;line-height:1;cursor:pointer;color:#2e3192}
+.pop-cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:2px}
+.pop-cal-dayhead{font-size:12px;font-weight:700;color:#4a5072;text-align:center;padding:4px 0}
+.pop-cal-day{min-width:32px;min-height:40px;background:transparent;border:1px solid transparent;border-radius:8px;cursor:pointer;font:inherit;color:#1a1d3a}
+.pop-cal-day:hover{background:#eef0ff}
+.pop-cal-day.today{border-color:#2e3192;font-weight:700;background:#f4f6ff}
+.pop-day-field{display:inline-flex;align-items:center;gap:6px;min-width:0;flex-wrap:wrap}
+.pop-day-view{display:inline-flex;align-items:center;min-height:44px;min-width:0;padding:8px 10px;background:#f8f9fe;border:1px dashed #c5cce0;border-radius:8px;color:#1a1d3a;overflow-wrap:anywhere}
+/* The row: two lines of text, five visible controls, and no cell taller than the rest. */
+.visitor-table{min-width:840px}
+.visitor-table tbody td{padding:7px 8px;border-top:1px solid #f1f2f6;vertical-align:middle}
+.visitor-check{width:46px;text-align:center}
+.visitor-check input[type=checkbox]{width:22px;height:22px;accent-color:#2e3192}
+.visitor-who{min-width:170px;max-width:270px}
+.visitor-name{display:flex;align-items:center;gap:6px;min-width:0}
+.visitor-name strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px}
+.visitor-name .lead-flag{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}
+.visitor-sub{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#4a5072;font-size:12px}
+.visitor-phone{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}
+.visitor-number{font-weight:700;color:#25295f;font-size:13px;white-space:nowrap}
+.visitor-note{min-width:110px;max-width:250px}
+.visitor-note-text{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#4a5072;font-size:13px}
+.visitor-act{white-space:nowrap;text-align:right}
+.visitor-act>.admin-mini-button{min-height:44px}
+.visitor-status-cell{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}
+/* The follow-up chip reads like a promise: today, tomorrow, overdue by days, a later day, or none. */
+.lead-chip{display:inline-flex;align-items:center;min-height:30px;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;white-space:nowrap;border:1px solid transparent}
+.lead-chip.none{background:#f1f3f9;color:#4a5072}
+.lead-chip.today{background:#e5f0ff;color:#1c58a2}
+.lead-chip.later{background:#e1f6e8;color:#006b34}
+.lead-chip.overdue{background:#fff0ed;color:#a63325}
+/* The bulk bar: it exists only while rows are ticked, and it says how many. */
+.lead-bulk-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;width:100%;padding:10px 12px;margin-top:10px;background:#eef0ff;border:1px solid #c9cdf2;border-radius:10px}
+.lead-bulk-bar strong{font-size:13px;color:#2e3192}
+.lead-bulk-bar .admin-mini-button{min-height:44px}
+.lead-bulk-bar .pop-form{margin:0}
+.lead-filters[open]>form{margin-top:12px}
+/* Phone width: the row is a card — name, class, badge, chip, big Call and WhatsApp, then the three. */
+@media(max-width:760px){
+  .visitor-table{min-width:0!important}
+  .visitor-table tbody tr{display:grid;grid-template-columns:minmax(0,1fr);gap:0;padding:12px;border:1px solid #d9deee;border-radius:12px;background:#fff}
+  .visitor-table tbody td{display:flex;justify-content:space-between;align-items:center;gap:12px;border:0!important;padding:6px 0;text-align:right;min-width:0}
+  .visitor-table tbody td:before{content:attr(data-label);color:#4a5072;font-weight:600;text-align:left;flex:none;max-width:38%}
+  .visitor-check{order:1;justify-content:flex-start}.visitor-check:before{content:''}
+  .visitor-who{order:2;display:block;text-align:left;max-width:none}.visitor-who:before{display:none}
+  .visitor-status{order:3}.visitor-follow{order:4}
+  .visitor-call{order:5;flex-wrap:wrap}.visitor-phone{width:100%;justify-content:space-between}
+  .visitor-dial{flex:1 1 44%;min-height:52px;justify-content:center;font-size:15px}
+  .visitor-note{order:6}.visitor-note-text{white-space:normal;text-align:right}
+  .visitor-act{order:7;justify-content:flex-end;gap:6px}
+  .pop-body{position:fixed;top:auto;bottom:calc(76px + env(safe-area-inset-bottom));left:12px;right:12px;max-width:none;min-width:0}
+  .pop-calendar{width:100%}
+}
+/* A popover is clipped by a scrollable table wrap, so the visitor wrap only scrolls where the table
+   genuinely does not fit — a desktop reads the whole row, a phone reads a card, and neither clips the
+   menu a tap just opened. The ⋯ menu opens leftwards because it sits in the last column. */
+.visitor-act .pop-body{left:auto;right:0}
+@media(min-width:1024px){.visitor-wrap{overflow:visible}}
+@media(max-width:760px){.visitor-wrap{overflow:visible}}
+/* The drawer's edit mode: every field, two columns where there is room, Save and Cancel at the foot. */
+.lead-edit-form{display:grid;gap:12px;padding:14px;margin:8px 0 16px;border:1px solid #d9deee;border-radius:12px;background:#fbfcff}
+.lead-edit-form label{display:grid;gap:5px;font-size:14px;font-weight:600;color:#1a1d3a;min-width:0}
+.lead-edit-form .admin-input,.lead-edit-form .admin-select{min-width:0;width:100%}
+.lead-edit-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(190px,100%),1fr));gap:12px}
+.lead-edit-foot{display:flex;gap:10px;flex-wrap:wrap}
+.lead-edit-foot button{min-height:44px}

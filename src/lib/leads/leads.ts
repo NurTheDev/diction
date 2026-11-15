@@ -944,3 +944,36 @@ export async function trialSlotsForLead(grade:string,subject:string,now:Date=new
     seatsLeft:Math.max(0,(Number(row.capacity)||0)-(Number(row.booked)||0)),
   }));
 }
+
+/**
+ * The reference row's Edit drawer: every field a person wrote, behind one Save. The phone is
+ * validated the way quick-add validates it — the dialed digits or nothing — and the family key stays
+ * with the row it was assigned to: replacing a number here never re-inherits a family.
+ */
+export async function updateLeadBasics(input:{id:string;studentName:string;guardianName:string;phone:string;school:string;interestedIn:string;classGroup:string;group:string;shift:string;medium:string;source:string;status:string},actorId:string):Promise<{ok:true}|Refusal>{
+  if(!isValidObjectId(input.id))return refuse('BAD_ID','errors.MISSING');
+  const current=await findLive(input.id);
+  if(!current)return refuse('MISSING','errors.MISSING');
+  const name=input.studentName.trim();
+  if(!name||name.length>120)return refuse('BAD_NAME','errors.BAD_NAME');
+  const phone=input.phone.trim();
+  if(phone&&!/^01[3-9]\d{8}$/.test(phone))return refuse('BAD_PHONE','errors.BAD_PHONE');
+  const set:FilterQuery<unknown>={
+    'name':undefined,
+    studentName:name,
+    guardianName:input.guardianName.trim().slice(0,120),
+    school:input.school.trim().slice(0,160),
+    interestedIn:input.interestedIn.trim().slice(0,200),
+    classGroup:input.classGroup?Math.min(12,Math.max(1,Number(input.classGroup))):null,
+    group:(LEAD_GROUPS as readonly string[]).includes(input.group)?input.group:'unknown',
+    shift:(LEAD_SHIFTS as readonly string[]).includes(input.shift)?input.shift:'any',
+    medium:(LEAD_MEDIUMS as readonly string[]).includes(input.medium)?input.medium:'unknown',
+    source:(LEAD_SOURCES as readonly string[]).includes(input.source)?input.source:'walk_in',
+  };
+  delete set.name;
+  if((LEAD_STATUSES as readonly string[]).includes(input.status))set.status=input.status;
+  if(phone)set.phones=[{normalized:phone,original:phone},...current.phones.slice(1)];
+  await Lead.updateOne({_id:input.id},{$set:set},{runValidators:true});
+  await audit(actorId,'lead.update',current.leadId);
+  return {ok:true};
+}
