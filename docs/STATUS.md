@@ -981,6 +981,17 @@ rank with the same function instead of its own inline copy of the rule — one r
 and by the count that promises what the publish will send. A stored position always wins; nothing re-ranks a
 published row.
 
+The same cross-check then found a fault in the R2 send engine, and it is worth stating plainly because it
+was invisible for four milestones. `sendChunks` grouped its rows **by phone** and transmitted the first
+message of each group, which is right for a merged sibling reminder — one sentence covering both children,
+one call, two log rows — and wrong for a result send, where `resolveRecipients` refuses to merge two
+children whose marks differ and the plan holds two items with two different bodies for one number. The
+second child's message never left, and both rows were marked `sent`, so the batch reported a transmission
+that did not happen and a guardian read about one of her two children. Grouping is now by phone **and**
+message: the merged case still takes one call, and two different sentences to one number take two. R2.8
+already claimed "two siblings on one number get one each, because their marks are not the same sentence" —
+it was asserting the log rows, and the rows were right while the wire was not.
+
 **The history and its trend.** `studentResultHistory(studentId,locale)` returns the published exams newest
 first, each with the exam's own subjects, marks, full and pass marks, total, percentage, grade and the
 position publishing wrote. Only `status:'published'`: a draft is the operator's working paper, with marks

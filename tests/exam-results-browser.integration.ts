@@ -362,9 +362,13 @@ async function run(){
     await studentPage.setViewportSize({width:360,height:900});
     await shot(studentPage,'portal-report-card-bn-360');
     await noOverflow(studentPage,'the portal report card');
-    /* A student session at the guardian's address is sent to sign in: the two tabs are two roles. */
+    /* A student session at the guardian's address is turned away: the two tabs are two roles. Where it
+       lands is the sign-in page's own business — it bounces an already-signed-in account to the home page
+       rather than showing a form — so what is asserted is that the guardian's tab did not open. */
     await goto(studentPage,'/bn/parent/results');
-    assert.ok(studentPage.url().includes('/login'),`a student session is not let into the guardian’s Results tab; landed on ${studentPage.url()}`);
+    assert.equal(studentPage.url().includes('/parent/results'),false,`a student session was let into the guardian’s Results tab; landed on ${studentPage.url()}`);
+    assert.equal(await studentPage.locator('[data-result-history], [data-portal-results-empty]').count(),0,
+      'and it was shown no result of anybody’s, not even an empty one of its own');
     await studentSession.context.close();
 
     // ── 7. The guardian's Results tab: their two children, with a switcher ──────────────────────────

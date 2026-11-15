@@ -143,6 +143,13 @@ The refusal stayed; the ungated reader now ranks a draft per class with `positio
 `publishCenterExam` ranks with the same pure function instead of its own inline copy, so the count and the
 ranks a family is texted come from one rule.
 
+The same cross-check found a fault that had been in the send engine since R2: `sendChunks` grouped rows by
+phone and transmitted only the first message of each group. For a merged sibling reminder that is correct —
+one sentence, one call, two log rows — but a result send refuses to merge two children whose marks differ,
+so the plan held two different bodies for one number, the second never left, and both rows were marked
+`sent`. Grouping is now by phone and message. R2.8 had asserted the log rows, and the rows were right while
+the wire was not; only a count that had to equal a real send could see it.
+
 Verified: **59 requirements**, the new rows **R5.6** (the trend and the chart's geometry, pure), **R5.7**
 (the history, the card's two refusals, portal identity and the prompt's count against the disposable
 database, including a real send whose `sentCount` must equal the count the prompt showed) and **R5.8** (all

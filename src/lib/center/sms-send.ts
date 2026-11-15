@@ -416,22 +416,30 @@ export async function executeSmsPlan(plan:SmsPlan,options:SmsExecuteOptions={}):
 interface PendingRow{_id?:unknown;batch:string;student?:string;lead?:string;phone:string;message:string;segments:number;cost:number;templateKey:string;month:string;status:string;reason?:string}
 
 /**
- * Send in provider-sized chunks. Rows are grouped by phone because the provider answers once per
- * call, so every student sharing that phone legitimately shares the outcome. `sent`/`failed` count
- * messages (phones), which is what the provider bills and what the batch reports.
+ * Send in provider-sized chunks. Rows are grouped by phone **and by message**: the provider answers once
+ * per call, so every row sharing a phone and a sentence legitimately shares the outcome — that is the
+ * grouped sibling case, where one transmission covers both children and both rows record it.
+ *
+ * Grouping by phone alone was a bug this slice's cross-check found. Two children on one guardian number
+ * whose results differ are two messages: `resolveRecipients` refuses to merge them precisely so each
+ * family reads its own child's marks, and the plan then holds two items with two different bodies. One
+ * call per phone transmitted the first and dropped the second — while marking both rows `sent`, so the
+ * batch reported a message that never left and the guardian of the second child learned nothing. `sent`
+ * and `failed` therefore count transmissions, which is what the provider bills and what the plan promised.
  */
 async function sendChunks(rows:PendingRow[],provider:SmsProvider,now:Date,waits?:number[]):Promise<{sent:number;failed:number}>{
   let sent=0,failed=0;
-  const byPhone=new Map<string,PendingRow[]>();
+  const byMessage=new Map<string,PendingRow[]>();
   for(const row of rows){
-    const list=byPhone.get(row.phone)||[];
+    const key=`${row.phone}\u0000${row.message}`;
+    const list=byMessage.get(key)||[];
     list.push(row);
-    byPhone.set(row.phone,list);
+    byMessage.set(key,list);
   }
-  for(const chunk of chunkRecipients([...byPhone.keys()],SMS_BATCH_SIZE)){
-    const items=chunk.map(phone=>({phone,message:byPhone.get(phone)![0].message}));
+  for(const chunk of chunkRecipients([...byMessage.keys()],SMS_BATCH_SIZE)){
+    const items=chunk.map(key=>({phone:byMessage.get(key)![0].phone,message:byMessage.get(key)![0].message}));
     const {outcome,attempts}=await submitWithRetry(()=>provider.sendMany(items),waits);
-    const affected=chunk.flatMap(phone=>byPhone.get(phone)!);
+    const affected=chunk.flatMap(key=>byMessage.get(key)!);
     if(outcome.status==='submitted'){
       sent+=chunk.length;
       await markRows(affected,'sent',{sentAt:now,attempts,providerCode:outcome.code||'',providerMessage:smsCodeMessage(outcome.code)});
