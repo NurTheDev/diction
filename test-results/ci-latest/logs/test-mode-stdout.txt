@@ -17,7 +17,7 @@ https://nextjs.org/telemetry
   ✓ webpackMemoryOptimizations
 
   Creating an optimized production build ...
-✓ Compiled successfully in 30.1s
+✓ Compiled successfully in 29.9s
   Skipping validation of types
   Finished TypeScript config validation in 3ms ...
   Collecting page data using 1 worker ...
@@ -25,7 +25,7 @@ https://nextjs.org/telemetry
   Generating static pages using 1 worker (48/193) 
   Generating static pages using 1 worker (96/193) 
   Generating static pages using 1 worker (144/193) 
-✓ Generating static pages using 1 worker (193/193) in 1156ms
+✓ Generating static pages using 1 worker (193/193) in 1059ms
   Finalizing page optimization ...
   Collecting build traces ...
 
@@ -181,7 +181,7 @@ Route (app)                                      Revalidate  Expire
 
 Starting disposable test database… first startup may download MongoDB.
 TEST_ORIGIN=http://localhost:3111
-TEST_MONGO_URI=mongodb://127.0.0.1:41553/?replicaSet=testset
+TEST_MONGO_URI=mongodb://127.0.0.1:46009/?replicaSet=testset
 TEST_MONGO_DB=dictioncoaching_test
 
 DISPOSABLE TEST MODE — all data disappears when stopped.
@@ -194,5 +194,5 @@ Database is an in-memory replica set; real MONGODB_URI is ignored. Ctrl+C to sto
 ▲ Next.js 16.4.5
 - Local:         http://localhost:3111
 - Network:       http://0.0.0.0:3111
-✓ Ready in 102ms
-✓ Running next.config.ts took 53ms
+✓ Ready in 95ms
+✓ Running next.config.ts took 62ms
