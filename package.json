@@ -72,7 +72,7 @@
     "test:exam:results:browser": "tsx tests/exam-results-browser.integration.ts",
     "test:report:math": "tsx tests/report-math.test.ts",
     "test:report:browser": "tsx tests/reports-browser.integration.ts",
-    "test:backup:browser": "tsx tests/backup-roles-browser.integration.ts"
+    "test:backup:browser": "tsx --conditions=react-server tests/backup-roles-browser.integration.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
