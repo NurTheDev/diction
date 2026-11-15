@@ -698,7 +698,15 @@ html:lang(bn) .public-motion-root:not(.private-motion-disabled) :is(h1,h2,h3,h4)
    hands the shrinking back to the wrapper that can scroll, and it is the house fix: `.private-notice`,
    `.practice-question` and `.editorial-section` all carry it for the same reason. */
 .center-exam-panel>*,.center-exam-gridwrap>*,.portal-card .admin-table-wrap,.admin-panel .admin-table-wrap{min-width:0;max-width:100%}
-.center-exam-import input[type="file"]{max-width:100%}
+/* The import panel decides its own width the same way, from the one child that has an intrinsic size:
+   a file input is a form control, and as a grid item its automatic minimum IS that intrinsic width, so at
+   360px the input — not the panel, not the page — chose 393px, and the label, the help line and the
+   preview button all stretched to the input's edge and off the screen. `max-width` cannot fix this, because
+   a maximum does not lower a minimum; `min-width:0` does, and `width:100%` then lets the control fill the
+   track it is given instead of insisting on the one it was born with. */
+.center-exam-import>*,.center-exam-import label>*{min-width:0}
+.center-exam-import input[type="file"]{width:100%;min-width:0;max-width:100%}
+.center-exam-import .admin-mini-button,.center-exam-import .button{max-width:100%}
 .center-exam-gridbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:0 2px}
 .center-exam-gridbar .admin-help{margin:0}
 .center-exam-gridwrap .admin-table-wrap{overflow:auto;max-height:70vh;border:1px solid #d7dfed;border-radius:10px}
