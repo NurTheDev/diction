@@ -1,12 +1,12 @@
-AssertionError [ERR_ASSERTION]: 1000 + 500 + 300 + 500 + 1000, the whole month
+AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
 
-'3300' !== '4300'
+  assert.ok(matrixText.includes(t.monthly.grand))
 
-    at run (/home/runner/work/diction/diction/tests/reports-browser.integration.ts:151:12) {
-  generatedMessage: false,
+    at run (/home/runner/work/diction/diction/tests/reports-browser.integration.ts:153:12) {
+  generatedMessage: true,
   code: 'ERR_ASSERTION',
-  actual: '3300',
-  expected: '4300',
-  operator: 'strictEqual',
+  actual: false,
+  expected: true,
+  operator: '==',
   diff: 'simple'
 }
