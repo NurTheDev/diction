@@ -1,10 +1,5 @@
 visitors-reference-browser: FAIL
-locator.click: Error: strict mode violation: locator('tr[data-visitor-row]').filter({ hasText: 'রাহুল আহমেদ' }).first().locator('[data-more-menu]').locator('[data-row-delete] button') resolved to 3 elements:
-    1) <button type="button" class="admin-mini-button admin-danger-text">মুছুন</button> aka getByRole('button', { name: 'মুছুন' })
-    2) <button type="button" class="admin-mini-button">না, রেখে দিন</button> aka getByText('না, রেখে দিন')
-    3) <button type="button" class="button admin-danger">হ্যাঁ, মুছে ফেলুন</button> aka getByText('হ্যাঁ, মুছে ফেলুন')
-
-Call log:
-  - waiting for locator('tr[data-visitor-row]').filter({ hasText: 'রাহুল আহমেদ' }).first().locator('[data-more-menu]').locator('[data-row-delete] button')
-
-    at run (/home/runner/work/diction/diction/tests/visitors-reference-browser.integration.ts:276:52)
+Error: timed out after 90000ms waiting for the edit to be saved
+    at until (/home/runner/work/diction/diction/tests/visitors-reference-browser.integration.ts:116:36)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async run (/home/runner/work/diction/diction/tests/visitors-reference-browser.integration.ts:312:5)
