@@ -71,6 +71,7 @@ export default async function MonthlyReport({params,searchParams}:{params:Promis
             </tr>
           </tfoot>
         </table></div>
+        <p data-mx-grand-line>{t('monthly.grand')}: {currency}{formatNumber(matrix.grand,digits)}</p>
         {matrix.typeTotals.length>0&&<ul data-monthly-types>
           <li><strong>{t('monthly.typesTitle')}</strong></li>
           {matrix.typeTotals.map(entry=><li key={entry.type}>{t(typeLabelKey(entry.type))}: {currency}{formatNumber(entry.total,digits)}</li>)}
