@@ -69,6 +69,16 @@ export function screenPlan(_milestone:string):ScreenTarget[]{
     {path:'/en/admin/teacher-cvs',label:'teacher-cvs-en'},
     {path:'/en/admin/teacher-cvs/find',label:'teacher-cvs-find-en'},
     {path:'/en/admin/teacher-cvs/import',label:'teacher-cvs-import-en'},
+    /* R5: the grading scale, the owner's screen for what a grade is worth centre-wide, beside the exam
+       list it feeds. The screens pass signs in as the demo admin and runs before the browser suites, so
+       what it photographs is the honest scale screen with only the standard bands; the R5 browser suite
+       photographs the same screen after a scale is saved, and the marks grid and the teacher portal —
+       which this pass cannot reach, because the demo admin is not a teacher — into screenshots/r5. */
+    {path:'/bn/admin/grading-scale',label:'grading-scale-bn'},
+    /* R5: the classes screen, where the owner says who takes a class — a teacher's whole exam scope is
+       that list, and it is written nowhere else. */
+    {path:'/bn/admin/students/classes',label:'classes-bn'},
+    {path:'/en/admin/grading-scale',label:'grading-scale-en'},
   ];
 }
 

@@ -169,9 +169,10 @@ async function stepBrowser(ctx:Context):Promise<void>{
 async function stepApp(ctx:Context,port:number,timeoutMs:number):Promise<void>{
   const child=spawn(process.execPath,[path.join('node_modules','tsx','dist','cli.mjs'),'scripts/test-mode.ts'],{
     cwd:process.cwd(),
-    // CENTER_EXAM_WRITE_ENABLED is on for this disposable database only, so the exam flow can be
-    // demonstrated end to end instead of asserting a disabled button. Production keeps the default.
-    env:{...process.env,TEST_MODE_PORT:String(port),MONGODB_URI:'mongodb://THIS-MUST-NOT-BE-USED.invalid/prod',CENTER_EXAM_WRITE_ENABLED:'true'},
+    // No feature gate is set for the run: R5 retired CENTER_EXAM_WRITE_ENABLED, so the exam flow is
+    // demonstrated exactly as production serves it. The invalid MONGODB_URI stays — it is the assertion
+    // that test mode never reaches a real one.
+    env:{...process.env,TEST_MODE_PORT:String(port),MONGODB_URI:'mongodb://THIS-MUST-NOT-BE-USED.invalid/prod'},
     stdio:['ignore','pipe','pipe'],
   });
   let log='';
@@ -220,7 +221,7 @@ async function stepApp(ctx:Context,port:number,timeoutMs:number):Promise<void>{
   }
   step(ctx,'database','Isolated disposable test database','PASS',ctx.mongoUri?`in-memory replica set at ${ctx.mongoUri.replace(/\/\/[^@]*@/,'//')} (database ${ctx.mongoDb||'dictioncoaching_test'}); the real MONGODB_URI was replaced with an invalid host for this run`:'in-memory replica set started');
   step(ctx,'serve','App serves the admin sign-in page','PASS',`GET ${ctx.origin}/api/auth/csrf answered 200`);
-  ctx.notes.push('This run served the disposable database with CENTER_EXAM_WRITE_ENABLED=true, so the exam create, marks and publication flow is demonstrated end to end. The gate stays off by default in production and is scheduled for removal in R5.');
+  ctx.notes.push('This run served the disposable database with no feature gate set, so the exam flow (create, marks by typing, paste and upload, grade, GPA point, positions with ties, publish) is demonstrated exactly as production serves it. R5 retired CENTER_EXAM_WRITE_ENABLED: who may write is decided by role and by the class groups a teacher is assigned to.');
   ctx.logs[ctx.logs.length-1]={name:'test-mode-stdout',text:log};
   (ctx as Context&{stop?:()=>void}).stop=()=>{if(!exited)child.kill('SIGTERM')};
 }
@@ -278,7 +279,7 @@ async function stepBrowserTests(ctx:Context):Promise<void>{
     if(!ctx.browserReady){mark(ctx,requirement.id,'NOT TESTED','Playwright Chromium is unavailable (see Notes)');continue}
     const logName=path.basename(requirement.proof.ref,'.ts');
     const result=await run(process.execPath,[path.join('node_modules','tsx','dist','cli.mjs'),requirement.proof.ref],{
-      env:{TEST_ORIGIN:ctx.origin,TEST_MONGO_URI:ctx.mongoUri,TEST_MONGO_DB:ctx.mongoDb,CENTER_EXAM_WRITE_ENABLED:'true'},timeoutMs:900_000,log:logName,
+      env:{TEST_ORIGIN:ctx.origin,TEST_MONGO_URI:ctx.mongoUri,TEST_MONGO_DB:ctx.mongoDb},timeoutMs:900_000,log:logName,
     });
     const blocked=result.text.includes('BLOCKED (environment');
     if(result.code===0){
@@ -361,6 +362,10 @@ async function main():Promise<void>{
     await stepUnitSuites(ctx,'test:teacher:rules','R4.1','The teacher CV vocabulary and the rules that read a CV: statuses, ratings, sources, shifts, classes, subjects and note outcomes in both languages, the twelve-month review as a computation, availability folding digits across scripts, a filter value that is not in the vocabulary dropped, the subject and free-time readers keeping every word and reporting every inference, a salary written as a word left empty, an unnamed column asked about, and a candidate reaching the SMS pipeline as an active non-student');
     await stepUnitSuites(ctx,'test:teacher:sheet','R4.2','The teacher CV sheet read whole on the labelled fake fixture: XLSX and CSV giving one preview, day-first dates, a suggested year that never moves on its own, an empty date offered today, normalized and flagged numbers, the brief’s own messy subject cells, two rows blocked in the preview, the owner’s mapping, accept and skip answers changing exactly their rows, and a CV already on file filling only its gaps');
     await stepUnitSuites(ctx,'test:teacher:db','R4.3','The CV bank against the disposable database: readable ids that are never reused, validation and the duplicate question, the bin with a hired CV refusing to leave, the hire transaction, the twelve-month review deleting nothing, teaching needs, the import commit and undo, and no whole number in a list, a drawer, a match or an audit row',
+      {needsDb:true,env:{TEST_ORIGIN:ctx.origin,TEST_MONGO_URI:ctx.mongoUri,TEST_MONGO_DB:ctx.mongoDb}});
+    await stepUnitSuites(ctx,'test:exam:rules','R5.1','What a set of marks means, as pure rules: the seven bands of the standard Bangladeshi scale sorted from the top down with the GPA point each carries, a band written before R5 getting 0 rather than a guess, a percentage graded by the band floor it reaches, a subject under its own pass mark failing the result whatever the total says, absence never folded into a zero, positions that share a tie and skip the next one and leave an absent student with none, a class summary whose every average is over those who sat and which says nothing to average instead of 0, and a grading scale refused unless it covers 0 to 100 exactly once');
+    await stepUnitSuites(ctx,'test:exam:grid','R5.2','Reading a mark, a pasted block and a marks sheet, as pure rules over a real CSV and a real XLSX built in the suite: Bangla digits folded before parsing, a decimal refused rather than rounded, a mark over the full mark refused rather than clipped with the full mark in the sentence, A and its Bangla word read as absence, an empty cell named as a hole and not as a mark, a header folded so three spellings of the student column are one column, a row matched by student id then roll then name in either language and listed rather than guessed when two students match, a column that is not a subject of this exam left unread and named, and a sheet that is not a workbook refused with a code');
+    await stepUnitSuites(ctx,'test:exam:db','R5.3','The exam flow against the disposable database: a teacher\u2019s scope is the class groups assigned to them, one exam covering two classes, marks saved in one batched request with a stale row named instead of overwritten and a student of another class refused, absence stored as absence, publication ranking each class on its own with ties shared and the absent holding no position, a published exam refusing marks and edits until it is unpublished, subjects frozen once a result exists, a boundary that moved recomputing every stored grade and point while the marks stay as written, and a teacher\u2019s exam view carrying no fee, payment, receipt, cash, due, amount or guardian number anywhere in it',
       {needsDb:true,env:{TEST_ORIGIN:ctx.origin,TEST_MONGO_URI:ctx.mongoUri,TEST_MONGO_DB:ctx.mongoDb}});
     await stepScreens(ctx);
     await stepBrowserTests(ctx);

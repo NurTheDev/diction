@@ -30,8 +30,7 @@
  * `previewCvImport` is called twice per import: once to show the preview, and once inside the commit
  * with the owner's decisions, so what is written is exactly what was shown.
  */
-import ExcelJS from 'exceljs';
-import {parseCsvGrid} from '@/lib/leads/import-csv';
+import {readWorkbook} from '@/lib/sheets/workbook';
 import {isUnnamedColumnHeader} from '@/lib/leads/lead-columns';
 import {parsePhoneCell,phoneSearchMask,type PhoneFlag} from '@/lib/leads/lead-phone';
 import {parseSheetDate,flagSuspiciousYears} from '@/lib/leads/lead-date';
@@ -317,44 +316,13 @@ export function previewCvImport(sheets:CvSheetGrid[],decisions:CvImportDecision,
   return {fileLabel,hash,sheet:split.map(part=>part.sheet).filter(Boolean).join(', '),columns,rows,counts,alreadyImported:existing.hashSeen};
 }
 
-function cellValue(cell:ExcelJS.Cell):unknown{
-  const value=cell.value;
-  if(value&&typeof value==='object'){
-    if(value instanceof Date)return value;
-    const record=value as {result?:unknown;text?:string;richText?:{text:string}[];hyperlink?:string};
-    if(record.richText)return record.richText.map(part=>part.text).join('');
-    if('result' in record&&record.result!==undefined)return record.result;
-    if(record.text!==undefined)return record.text;
-    if(record.hyperlink)return record.hyperlink;
-    return '';
-  }
-  return value;
-}
-
-/** XLSX or CSV → grids. Anything else is refused with a code the action turns into a sentence. */
+/**
+ * XLSX or CSV → grids, through the one reader this app has (`lib/sheets/workbook`): the marks sheet
+ * (R5) and the visitor sheet (R3) are read by the same rule, so a workbook is never two kinds of
+ * workbook depending on which screen uploaded it.
+ */
 export async function readCvWorkbook(fileName:string,buffer:Buffer):Promise<CvSheetGrid[]>{
-  const lower=String(fileName||'').toLowerCase();
-  if(lower.endsWith('.csv')||lower.endsWith('.txt')){
-    const grid=parseCsvGrid(buffer.toString('utf8'));
-    if(!grid.length)throw Object.assign(new Error('EMPTY_SHEET'),{code:'EMPTY_SHEET'});
-    return [{name:String(fileName).replace(/\.[^.]+$/,'')||'CSV',grid}];
-  }
-  if(!/\.(xlsx|xlsm)$/.test(lower))throw Object.assign(new Error('NOT_A_WORKBOOK'),{code:'NOT_A_WORKBOOK'});
-  const workbook=new ExcelJS.Workbook();
-  try{await workbook.xlsx.load(buffer as never)}
-  catch{throw Object.assign(new Error('NOT_A_WORKBOOK'),{code:'NOT_A_WORKBOOK'})}
-  const sheets:CvSheetGrid[]=[];
-  workbook.eachSheet(worksheet=>{
-    const grid:unknown[][]=[];
-    worksheet.eachRow({includeEmpty:false},row=>{
-      const cells:unknown[]=[];
-      for(let index=1;index<=row.cellCount;index+=1)cells.push(cellValue(row.getCell(index)));
-      grid.push(cells);
-    });
-    if(grid.length)sheets.push({name:worksheet.name,grid});
-  });
-  if(!sheets.length)throw Object.assign(new Error('EMPTY_SHEET'),{code:'EMPTY_SHEET'});
-  return sheets;
+  return readWorkbook(fileName,buffer);
 }
 
 /** What the wizard carries between its three posts: the dry run, the owner's answers, the outcome. */

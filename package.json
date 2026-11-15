@@ -60,7 +60,12 @@
     "test:teacher:rules": "tsx tests/teacher-cv-rules.test.ts",
     "test:teacher:sheet": "tsx tests/teacher-cv-sheet.test.ts",
     "test:teacher:db": "tsx --conditions=react-server tests/teacher-cv-bank.integration.ts",
-    "test:teacher:screens": "tsx tests/teacher-cv-screens-browser.integration.ts"
+    "test:teacher:screens": "tsx tests/teacher-cv-screens-browser.integration.ts",
+    "test:exams": "npm run test:exam:rules && npm run test:exam:grid",
+    "test:exam:rules": "tsx tests/exam-rules.test.ts",
+    "test:exam:grid": "tsx tests/exam-grid.test.ts",
+    "test:exam:db": "tsx --conditions=react-server tests/exam-flow.integration.ts",
+    "test:exam:screens": "tsx tests/center-exams-browser.integration.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

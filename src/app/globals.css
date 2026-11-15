@@ -463,7 +463,7 @@ html:lang(bn) .public-motion-root:not(.private-motion-disabled) :is(h1,h2,h3,h4)
 .center-cash-months{grid-template-columns:repeat(6,minmax(0,1fr))}.center-cash-months label{min-width:0}@media(max-width:1050px){.center-cash-months{grid-template-columns:repeat(4,minmax(0,1fr))}}@media(max-width:600px){.center-cash-months{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .center-fee-grid{min-width:1550px}.center-fee-grid th:first-child,.center-fee-grid td:first-child{position:sticky;left:0;background:#fff;min-width:170px;z-index:1}.center-fee-grid th:first-child{background:#f1f5fc;z-index:2}.center-fee-grid td{vertical-align:top;min-width:110px}.center-fee-grid td small{display:block;white-space:nowrap;margin-top:5px}.center-month-status{display:inline-block;border-radius:7px;padding:3px 7px;font-size:.78rem;background:#eef1f7;color:#30405d}.center-month-paid{background:#e1f6e8;color:#13663c}.center-month-due,.center-month-partial{background:#fff0ed;color:#a63325}.center-month-pending{background:#e5f0ff;color:#1c58a2}.center-month-held{background:#e8e9eb;color:#4b5563}.center-month-waived{background:#f2ecfd;color:#6f43a8}
 .center-month-partial-notdue{background:#e5f0ff;color:#1c58a2}
-.center-exam-subject{display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px;margin-bottom:12px}.center-exam-markrow{display:flex;gap:10px;align-items:end;padding:12px;border-bottom:1px solid #e4e9f5;min-width:max-content}.center-exam-markrow strong{width:180px;white-space:normal}.center-exam-markrow label{width:125px}.center-exam-markrow .admin-input{width:100%}@media(max-width:600px){.center-exam-subject{grid-template-columns:1fr}.center-exam-markrow strong{width:145px}}
+.center-exam-subject{display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px;margin-bottom:12px}@media(max-width:600px){.center-exam-subject{grid-template-columns:1fr}}
 .admin-test-banner{background:#fff0c2;color:#603d00;padding:12px 22px;font-weight:800;border-bottom:2px solid #d99b00}
 /* Keep the existing cash grid inside the card while the new tile workflow is built. */
 .center-cash-months{min-width:0;grid-template-columns:repeat(6,minmax(0,1fr))}.center-cash-months label,.center-cash-months .admin-input{min-width:0!important;width:100%;max-width:100%}.center-cash-columns>label{min-width:0}@media(max-width:600px){.center-cash-months{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:10px}}
@@ -681,4 +681,57 @@ html:lang(bn) .public-motion-root:not(.private-motion-disabled) :is(h1,h2,h3,h4)
   .cv-need{flex-direction:column}
   .cv-chips .admin-check{flex:1 1 auto;justify-content:center}
   .cv-photo{max-width:120px}
+}
+
+/* ── R5 · Exams: the marks grid, its import, the class summary and the grading scale ───────────────
+   The grid is a table a teacher types through, so it behaves like one: the name column and the header
+   stay put while the numbers scroll, a cell that refuses a mark says so on itself, and a row that
+   another person has changed is marked rather than silently overwritten. At 360px the grid scrolls
+   sideways instead of shrinking the cells — a number that is too narrow to read is worse than a swipe. */
+.admin-filters{display:flex;flex-wrap:wrap;gap:12px;align-items:end;padding:12px 16px;border-bottom:1px solid #e4e9f5}
+.admin-filters label{display:grid;gap:5px;min-width:150px}
+.center-exam-panel{display:grid;gap:16px}
+.center-exam-gridwrap{display:grid;gap:10px}
+.center-exam-gridbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:0 2px}
+.center-exam-gridbar .admin-help{margin:0}
+.center-exam-gridwrap .admin-table-wrap{overflow:auto;max-height:70vh;border:1px solid #d7dfed;border-radius:10px}
+.center-exam-grid{border-collapse:separate;border-spacing:0;min-width:max-content}
+.center-exam-grid caption{text-align:left;padding:10px 12px;font-weight:700;color:#30405d}
+.center-exam-grid thead th{position:sticky;top:0;z-index:3;background:#f1f5fc;border-bottom:1px solid #d7dfed;padding:8px 10px;white-space:nowrap;text-align:left}
+.center-exam-grid thead th small{display:block;font-weight:400;color:#5a6b8c}
+.center-exam-grid tbody th{position:sticky;left:0;z-index:2;background:#fff;border-bottom:1px solid #eef1f7;padding:6px 10px;min-width:170px;max-width:220px;text-align:left;white-space:normal}
+.center-exam-grid tbody th small{display:block;font-weight:400;color:#5a6b8c}
+.center-exam-grid tfoot th{position:sticky;left:0;z-index:2;background:#f7f9fd;text-align:left;padding:8px 10px}
+.center-exam-grid tfoot td{background:#f7f9fd;padding:8px 10px;border-top:1px solid #d7dfed;font-weight:700}
+.center-exam-grid td{border-bottom:1px solid #eef1f7;padding:4px 6px;vertical-align:middle;text-align:center}
+.center-exam-cell{width:78px;min-width:78px;padding:6px 8px;text-align:center}
+.center-exam-cell[data-absent="true"]{background:#fff6e6;color:#8a5a00;font-weight:700}
+.center-exam-cell[aria-invalid="true"]{border-color:#c9331f;background:#fff4f2}
+.center-exam-cell:focus{outline:2px solid #1c58a2;outline-offset:1px}
+.center-exam-grid tr[data-row-dirty="true"] th{box-shadow:inset 3px 0 0 #d99b00}
+.center-exam-grid tr[data-row-stale="true"] th{box-shadow:inset 3px 0 0 #c9331f}
+.center-exam-grid tr[data-row-stale="true"] td{background:#fff8f7}
+.center-exam-cellerrors{margin:0;padding-left:1.2rem;color:#a63325;display:grid;gap:3px}
+.center-exam-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(150px,100%),1fr));gap:10px;margin:0;padding:12px 16px;border-top:1px solid #e4e9f5}
+.center-exam-summary div{display:grid;gap:2px}
+.center-exam-summary dt{font-size:.8rem;color:#5a6b8c}
+.center-exam-summary dd{margin:0;font-weight:800;color:#1d2b4f}
+.center-exam-import{display:grid;gap:10px;border:1px dashed #c5cce0;border-radius:10px;padding:14px}
+.center-exam-import label{display:grid;gap:5px}
+.center-exam-importpreview{min-width:max-content}
+.center-exam-importpreview td{padding:5px 8px;border-bottom:1px solid #eef1f7;text-align:left}
+.center-exam-importpreview tr[data-import-status="ready"] td{background:#f2fbf5}
+.center-exam-importpreview tr[data-import-status="unmatched"],.center-exam-importpreview tr[data-import-status="ambiguous"],.center-exam-importpreview tr[data-import-status="invalid"] td{background:#fff6f5}
+.center-exam-importpreview tr[data-import-status="incomplete"] td{background:#fffbf0}
+.center-scale-editor,.center-scale-preview{min-width:max-content}
+.center-scale-editor td,.center-scale-preview td{padding:5px 8px;border-bottom:1px solid #eef1f7;text-align:left}
+.center-scale-editor .admin-input{width:110px}
+.center-exam-edit summary{cursor:pointer;font-weight:700;color:#1c58a2;padding:4px 0}
+@media(max-width:600px){
+  .admin-filters{padding:10px 12px;gap:8px}
+  .admin-filters label{min-width:0;flex:1 1 100%}
+  .center-exam-grid tbody th,.center-exam-grid tfoot th{min-width:130px;max-width:150px}
+  .center-exam-cell{width:64px;min-width:64px}
+  .center-exam-summary{grid-template-columns:repeat(2,minmax(0,1fr));padding:10px 12px}
+  .center-exam-gridwrap .admin-table-wrap{max-height:60vh}
 }

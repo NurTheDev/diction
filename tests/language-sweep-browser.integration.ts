@@ -52,6 +52,17 @@ function adminRoutes(root=path.join('src','app','[locale]','admin')):string[]{
   if(existsSync(path.join(root,'page.tsx')))out.push('/admin');
   return out.sort();
 }
+/** R5 · The teacher portal's own exam screens. They are not under the admin route tree, so the walk
+    above never reaches them, and no admin screen covers them: a teacher reads their marks grid in their
+    own language and the only way that is proven is to sweep it. A bracketed route is left out for the
+    same reason the admin walk leaves one out — it needs an exam id, and the R5 browser suite drives that
+    screen with a real one. */
+const PORTAL_PAGES=['/teacher/exams'];
+/** The portal's chrome: the boxes that hold painted words on a portal screen. The public header and
+    footer are deliberately not in it — they belong to the marketing site, they have never been swept, and
+    an R5 suite is the wrong place for a public-site sentence to fail. What is swept is the portal's own
+    frame: the hero, the card heads, the notice box, the pager and the test-mode banner. */
+const PORTAL_CHROME=['.portal-hero','.portal-card-head','.notice-box','.admin-pagination','.admin-test-banner'];
 const PAGES=adminRoutes();
 /** A mounted screen that cannot be swept, and why. An entry here is a decision, not an oversight. */
 const NOT_A_SCREEN=new Map<string,string>([]);
@@ -69,6 +80,12 @@ async function run(){
   // A superadmin, so that the screens which refuse an ordinary admin (the audit log, the roles
   // screen) are swept too instead of quietly redirecting to /admin.
   const admin=await User.create({name:'Sweep Admin',email:'sweep-admin@example.test',passwordHash:hash,role:'superadmin',active:true});
+  /* R5: a teacher, so the portal's exam screen mounts for a real session instead of redirecting to the
+     sign-in page and being swept as an empty one. No class is assigned on purpose — a sweep proves
+     language, not data, and a class group in this database would paint its Bangla name into admin screens
+     that have always been swept with an empty one. What a class does to a teacher's scope is proven by
+     tests/center-exams-browser.integration.ts, which assigns one through the classes screen. */
+  const teacher=await User.create({name:'Sweep Teacher',email:'sweep-teacher@example.test',passwordHash:hash,role:'teacher',active:true});
   assert.ok(PAGES.length>=30,`the admin route tree produced ${PAGES.length} screens — the walk is looking in the wrong place`);
   assert.ok(SWEPT.includes('/admin/students/import'),'the paysheet import screen is mounted, so it is swept');
   const origin=process.env.TEST_ORIGIN||'http://127.0.0.1:3100',browser=await chromium.launch();
@@ -80,6 +97,13 @@ async function run(){
       await context.request.post(origin+'/api/auth/callback/credentials',{timeout:180000,headers:{origin,'content-type':'application/x-www-form-urlencoded'},form:{csrfToken:csrf.csrfToken,identifier:'sweep-admin@example.test',password:pass,callbackUrl:`${origin}/${locale}/admin`}});
       // An English proof reads English all the way down, digits included, exactly as the screenshot pass does.
       await context.addCookies([{name:`diction_digits_${String(admin._id)}`,value:digits,url:origin+'/'}]);
+      return context;
+    }
+    async function teacherSession(locale,digits){
+      const context=await browser.newContext({viewport:{width:1440,height:900}});
+      const csrf=await (await context.request.get(origin+'/api/auth/csrf')).json();
+      await context.request.post(origin+'/api/auth/callback/credentials',{timeout:180000,headers:{origin,'content-type':'application/x-www-form-urlencoded'},form:{csrfToken:csrf.csrfToken,identifier:'sweep-teacher@example.test',password:pass,callbackUrl:`${origin}/${locale}/teacher/exams`}});
+      await context.addCookies([{name:`diction_digits_${String(teacher._id)}`,value:digits,url:origin+'/'}]);
       return context;
     }
     const found=[];
@@ -113,8 +137,33 @@ async function run(){
       }
       await context.close();
     }
+    /* R5 · the teacher portal, swept on both addresses with the portal's own chrome. The rules are the
+       same two: an /en address paints no Bangla letter and no Bangla digit in the interface, and a /bn
+       address still reads Bangla where the portal names itself. */
+    for(const [locale,digits] of [['en','en'],['bn','bn']]){
+      const context=await teacherSession(locale,digits),page=await context.newPage();
+      for(const route of PORTAL_PAGES){
+        await page.goto(origin+'/'+locale+route,{waitUntil:'domcontentloaded',timeout:180000});
+        await page.waitForLoadState('networkidle',{timeout:15000}).catch(()=>{});
+        assert.ok(page.url().includes('teacher/exams'),`the teacher was not let into ${route}; landed on ${page.url()}`);
+        for(const selector of PORTAL_CHROME){
+          for(const box of await page.locator(selector).all()){
+            const text=await box.innerText().catch(()=>'');
+            if(locale==='en'&&BN.test(text))found.push(`/${locale}${route} ${selector} carries Bangla: ${text.split('\n').find(l=>BN.test(l))}`);
+          }
+        }
+        const hero=await page.locator('.portal-hero').count();
+        if(!hero)found.push(`/${locale}${route} painted no .portal-hero — a mounted screen that cannot be swept has to be written off with its reason`);
+        const headline=await page.locator('h1').first().innerText().catch(()=>'');
+        if(locale==='bn'&&!BN.test(headline))found.push(`/bn${route} h1 lost its Bangla: ${headline.slice(0,60)}`);
+        if(locale==='en'&&BN.test(headline))found.push(`/en${route} h1 carries Bangla: ${headline.split('\n').find(l=>BN.test(l))}`);
+        const card=await page.locator('.portal-card-head').first().innerText().catch(()=>'');
+        if(locale==='bn'&&!BN.test(card))found.push(`/bn${route} the card head lost its Bangla: ${card.slice(0,60)}`);
+      }
+      await context.close();
+    }
     assert.deepEqual(found,[],`the two-language sweep found interface text in the wrong language:\n  ${found.join('\n  ')}`);
-    console.log(`Language sweep: ${SWEPT.length} mounted operator screens out of ${PAGES.length} in the admin route tree${NOT_A_SCREEN.size?`, minus ${NOT_A_SCREEN.size} written off (${[...NOT_A_SCREEN].map(([page,why])=>`${page}: ${why}`).join('; ')})`:''}, each read twice, once per address — every English page's top bar, sidebar, panel heads, heading, pager and test-mode banner are free of Bangla letters and Bangla digits, and the Bangla pages still read Bangla in the sidebar and the heading.`);
+    console.log(`Language sweep: ${SWEPT.length} mounted operator screens out of ${PAGES.length} in the admin route tree, plus ${PORTAL_PAGES.length} teacher-portal exam screen${NOT_A_SCREEN.size?`, minus ${NOT_A_SCREEN.size} written off (${[...NOT_A_SCREEN].map(([page,why])=>`${page}: ${why}`).join('; ')})`:''}, each read twice, once per address — every English page's top bar, sidebar, panel heads, heading, pager and test-mode banner are free of Bangla letters and Bangla digits, and the Bangla pages still read Bangla in the sidebar and the heading.`);
   }finally{
     await browser.close();
     await mongoose.disconnect();

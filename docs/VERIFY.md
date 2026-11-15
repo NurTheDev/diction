@@ -39,12 +39,11 @@ Two environment details that matter when reading the report:
   `CENTER_DATA_MODE`, so a test that hard-codes a name seeds a database nobody reads — the app then
   bounces the sign-in and every locator times out. That exact failure cost the first CI run its only
   FAIL; `tests/center-data-mode.test.ts` now asserts the invariant (`docs/STALE-TESTS.md` §7).
-- **`CENTER_EXAM_WRITE_ENABLED=true` for this disposable database only.** Verification demonstrates
-  the exam flow end to end (create → marks → total/grade → rank → publish) instead of asserting a
-  disabled button, which is what the owner's rule asks for: test mode means a separate database, not
-  a blocked feature. The gate is untouched in production and is scheduled for removal in R5; the
-  report says so in its Notes, and the exams test still asserts the disabled-button behaviour when
-  it is run without the gate.
+- **No exam gate is set any more.** R5 retired `CENTER_EXAM_WRITE_ENABLED`, so verification runs the
+  exam flow exactly as production does: create → marks (typed, pasted, imported) → total, grade, GPA
+  point → positions with ties → publish. The harness still sets `TEST_MONGO_URI`, `TEST_MONGO_DB` and
+  `TEST_ORIGIN`, because those say which disposable database and which app the suites are pointed at;
+  nothing switches a feature on for the test run that is off for the owner.
 
 ## Reading the report
 

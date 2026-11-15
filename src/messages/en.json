@@ -1579,7 +1579,8 @@
       "followUps": "Follow-ups",
       "importLeads": "Visitor import",
       "leadsFunnel": "Visitor funnel",
-      "teacherCvs": "Teacher CVs"
+      "teacherCvs": "Teacher CVs",
+      "gradingScale": "Grading scales"
     },
     "search": "Search menu",
     "noMenuResults": "No menu items found",
@@ -3529,7 +3530,8 @@
       "desc": "Exams for new center students. Results are not automatically sent to the legacy portal or SMS.",
       "createHeading": "Create exam",
       "heading": "Exams",
-      "empty": "No exams."
+      "empty": "No exams.",
+      "scaleLink": "View and edit the grading scale"
     },
     "col": {
       "exam": "Exam",
@@ -3540,39 +3542,44 @@
       "student": "Student",
       "total": "Total",
       "grade": "Grade",
-      "rank": "Rank"
+      "rank": "Rank",
+      "type": "Type",
+      "results": "Results",
+      "subject": "Subject",
+      "fullMarks": "Full marks",
+      "passMarks": "Pass marks",
+      "percentage": "Percentage",
+      "point": "Point",
+      "absent": "Absent"
     },
     "status": {
       "published": "Published",
       "draft": "Draft"
     },
     "detail": {
-      "multiClassUnsupported": "Multi-class exams are not supported on this screen.",
       "tooManyRecords": "Too many records; an incomplete list is not displayed.",
       "crumbExams": "Exams",
       "marksHelp": "Enter A for absent. Marks are whole numbers; complete every subject. Use Tab to move between fields.",
       "subjectsHeading": "Subjects and grades",
-      "passLabel": "pass",
       "enterMarksHeading": "Enter marks",
-      "entryDisabled": "Mark entry is disabled.",
       "savedResultsHeading": "Saved results",
       "rankHelp": "Equal totals share a competition rank; absent students are unranked.",
-      "outsideRoster": "Outside current roster",
-      "noResults": "No saved results."
+      "noResults": "No saved results.",
+      "scaleUsed": "Grading scale: {scale}",
+      "bandsHeading": "Grade bands",
+      "editHeading": "Edit the exam",
+      "editLockedHeading": "Editing is locked",
+      "editLocked": "A published exam cannot be edited. Unpublish the result first.",
+      "editSummary": "Change the name, type, date, classes, subjects or grade bands",
+      "publishHeading": "Publish the result",
+      "publishedHeading": "The published result"
     },
     "form": {
       "notSavedPrefix": "Not saved: ",
-      "writeDisabled": "Exam writes are disabled for safety.",
       "nameLabel": "Exam name",
       "classLabel": "Class",
-      "choose": "Choose",
       "dateLabel": "Date",
       "typeLabel": "Type",
-      "typeMonthly": "Monthly",
-      "typeModelTest": "Model test",
-      "typeTerm": "Term",
-      "typeClassTest": "Class test",
-      "typeOther": "Other",
       "subjectsLegend": "Subjects, full and pass marks",
       "subjectLabel": "Subject",
       "fullLabel": "Full",
@@ -3583,17 +3590,28 @@
       "bandsHelp": "Review and edit the suggested bands. A 0% band is required; below a subject pass mark is FAIL.",
       "confirmReview": "I reviewed subjects, pass marks and grades",
       "createButton": "Create exam",
-      "created": "Created. Open the exam in the list."
-    },
-    "marks": {
-      "placeholder": "mark or A",
-      "save": "Save",
-      "saved": "Saved"
+      "created": "Created. Open the exam in the list.",
+      "classHelp": "An exam may cover one class or several; positions and summaries are worked out class by class.",
+      "noClasses": "There is no active class. Add a class first.",
+      "scaleLabel": "Grading scale",
+      "scaleDefault": "Standard scale (A+ to F)",
+      "scaleActive": "active",
+      "scaleCustom": "Write one for this exam",
+      "scalePreview": "The bands this will use",
+      "scaleNameLabel": "Scale name",
+      "subjectsLockedHelp": "Once a result is stored, subjects, full marks and pass marks are frozen: a stored mark would stop meaning what it said.",
+      "saveButton": "Save the changes",
+      "saved": "Saved."
     },
     "publish": {
       "note": "Publishing locks marks. Only saved results are published; unentered students are not automatically included.",
       "confirmReview": "I reviewed marks and participants",
-      "button": "Publish results"
+      "button": "Publish results",
+      "published": "The result is published.",
+      "unpublishNote": "Unpublishing lets the marks change again; a message already sent will not be taken back.",
+      "unpublishConfirm": "I understand this will unpublish the result",
+      "unpublishButton": "Unpublish the result",
+      "unpublished": "Unpublished; the exam is a draft again."
     },
     "classes": {
       "crumbStudents": "Students",
@@ -3610,11 +3628,183 @@
       "help": "Past records are retained; academic year cannot be changed.",
       "save": "Save",
       "saved": "Saved",
-      "saveFailed": "Not saved; refresh and retry."
+      "saveFailed": "Not saved; refresh and retry.",
+      "teachers": "Which teachers take this class",
+      "noTeachers": "No teacher accounts yet; add a teacher in the portal accounts first.",
+      "teachersHelp": "Only the teachers ticked here may enter marks for this class’s exams, and they see no fee or due information.",
+      "teacherNone": "Nobody assigned"
     },
     "page": "Page",
     "previous": "Previous",
-    "next": "Next"
+    "next": "Next",
+    "filter": {
+      "type": "Type",
+      "status": "Status",
+      "class": "Class",
+      "any": "Any",
+      "apply": "Filter",
+      "clear": "Clear filters"
+    },
+    "typeLabels": {
+      "monthly": "Monthly",
+      "model_test": "Model test",
+      "term": "Term",
+      "class_test": "Class test",
+      "other": "Other"
+    },
+    "grades": {
+      "absent": "Absent",
+      "fail": "Fail"
+    },
+    "grid": {
+      "help": "Tab moves across, Enter moves down, the arrow keys move anywhere. Type A for absent. A block copied from a spreadsheet can be pasted in.",
+      "readOnly": "This result is published; the marks can no longer change.",
+      "saveNow": "Save now",
+      "placeholder": "Mark or A",
+      "cellLabel": "{student} · {subject}",
+      "caption": "The marks grid",
+      "noStudents": "This class has no active students.",
+      "fullOf": "/{full}",
+      "absentToggle": "Absent",
+      "status": {
+        "saving": "Saving {count} rows…",
+        "savingShort": "Saving…",
+        "saved": "{saved} rows saved.",
+        "partial": "{saved} rows saved, {refused} were not.",
+        "pasted": "{filled} cells filled, {refused} refused, {cut} fell outside the grid.",
+        "unsaved": "{count} rows still to save.",
+        "nothingToSave": "There is no complete row to save.",
+        "absent": "{student} marked absent.",
+        "present": "{student} set back to present.",
+        "lastRow": "This is the last row."
+      },
+      "errors": {
+        "empty": "{student} · {subject}: the cell is empty.",
+        "notANumber": "{student} · {subject}: that is not a number.",
+        "notAnInteger": "{student} · {subject}: write a whole number.",
+        "outOfRange": "{student} · {subject}: cannot be more than {full}.",
+        "more": "{count} more cells have a problem."
+      }
+    },
+    "summary": {
+      "title": "Summary",
+      "students": "Students",
+      "counted": "Counted",
+      "absent": "Absent",
+      "passed": "Passed",
+      "failed": "Failed",
+      "average": "Average",
+      "highest": "Highest",
+      "lowest": "Lowest",
+      "passRate": "Pass rate",
+      "subjectAverage": "Subject average"
+    },
+    "import": {
+      "label": "Bring marks in from a sheet (CSV or XLSX)",
+      "help": "Headers on the first row: one column with the student id, roll or name, and one column per subject. Check the preview, then save.",
+      "preview": "Check the sheet",
+      "commit": "Save {count} rows",
+      "counts": "{rows} rows: {ready} ready, {unmatched} unmatched, {ambiguous} ambiguous, {incomplete} incomplete, {invalid} invalid.",
+      "unused": "These columns were not read: {columns}",
+      "saved": "Marks saved for {count} rows.",
+      "status": {
+        "ready": "Ready",
+        "unmatched": "No student matched",
+        "ambiguous": "More than one student matched",
+        "incomplete": "Incomplete",
+        "invalid": "Invalid mark"
+      },
+      "col": {
+        "row": "Row",
+        "student": "Student",
+        "status": "Status",
+        "marks": "Marks"
+      },
+      "errors": {
+        "noFile": "No file was given.",
+        "tooLarge": "The file is too large; 5 MB is the limit.",
+        "empty": "The sheet has nothing written in it.",
+        "notASheet": "This is not a CSV or XLSX file.",
+        "noRows": "The sheet has no student rows.",
+        "noSubjectColumn": "No column matched a subject of this exam.",
+        "nothingToSave": "There is no row to save.",
+        "nothingSaved": "No row was saved."
+      }
+    },
+    "errors": {
+      "unauthorized": "You do not have permission for this.",
+      "invalidExam": "The exam details are not right.",
+      "requestConflict": "The same request arrived earlier with different details. Open the page again.",
+      "classUnavailable": "A chosen class is not active.",
+      "examUnavailable": "The exam could not be found.",
+      "examPublished": "A published exam cannot be changed.",
+      "subjectsLocked": "Subjects cannot change while a result is stored.",
+      "classHasResults": "A class being removed already has stored results.",
+      "studentUnavailable": "The student is not active in this exam’s class.",
+      "staleResult": "Somebody changed this result meanwhile. Read the row again.",
+      "invalidMarks": "The marks are not right.",
+      "noResults": "Save at least one result before publishing.",
+      "failed": "That could not be completed.",
+      "confirm": "Tick the box to say you have checked it.",
+      "noClass": "Choose at least one class.",
+      "noSubject": "Write at least one subject.",
+      "scaleNotFound": "The chosen grading scale could not be found.",
+      "scaleName": "Give the scale a name.",
+      "scaleInvalid": "The ranges of the scale are not right.",
+      "scaleDuplicateGrade": "The same grade appears more than once.",
+      "scaleMissingZero": "One range has to start at 0.",
+      "scaleMissingHundred": "The top range has to reach 100.",
+      "scaleOverlap": "The range for {grade} overlaps another.",
+      "scaleGap": "There is a gap between {grade} and {above}.",
+      "fileChanged": "The file changed; check it again."
+    },
+    "scale": {
+      "title": "Grading scales",
+      "desc": "Where the centre decides which grade and point each range of marks is worth.",
+      "crumbExams": "Exams",
+      "newHeading": "A new scale",
+      "editHeading": "Edit the scale",
+      "savedHeading": "Saved scales",
+      "nameLabel": "Scale name",
+      "rangesHeading": "Ranges",
+      "activeLabel": "Use this scale as the default for new exams",
+      "help": "The ranges must cover 0 to 100 with no gap, and a grade appears once.",
+      "others": "Making one scale active switches the others off.",
+      "save": "Save the scale",
+      "saved": "Scale saved.",
+      "remove": "Remove",
+      "add": "Add a range",
+      "active": "Active",
+      "inactive": "Not active",
+      "empty": "No scale has been saved yet.",
+      "edit": "Edit",
+      "defaultHeading": "The standard scale",
+      "defaultHelp": "With no scale chosen, this standard Bangladeshi scale is used.",
+      "col": {
+        "name": "Name",
+        "status": "Status",
+        "ranges": "Ranges",
+        "grade": "Grade",
+        "from": "From",
+        "to": "To",
+        "point": "Point"
+      }
+    },
+    "teacher": {
+      "title": "Exams and marks",
+      "scopeNote": "Exams of the {classes} classes assigned to you appear here. There is no payment, due or cash information on this screen.",
+      "listHeading": "Your exams",
+      "empty": "No exam has been set for your classes yet.",
+      "enterMarks": "Enter marks",
+      "viewMarks": "View the result",
+      "marksHeading": "The marks grid",
+      "publishedNote": "The result is published; the marks can no longer change.",
+      "draftNote": "A draft exam: type the marks and they save themselves.",
+      "backToList": "Back to the exam list",
+      "backToPortal": "Teacher portal",
+      "portalDesc": "Marks and results for the classes you take — no fee or due information.",
+      "portalOpen": "Open exams"
+    }
   },
   "legacy": {
     "review": {

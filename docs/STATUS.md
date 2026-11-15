@@ -81,7 +81,7 @@ stack trace (`tests/helpers/env-preflight.ts`).
 | Legacy fee **conversion/migration** | **missing** | No conversion code (searched `poisha`, `convertLegacy`, `LegacyFee`). Only the experimental identity link (`CENTER_LEGACY_LINK_ENABLED`, off by default). |
 | Portal linking for Center students/guardians | **missing** | `/parent/*` reads the legacy `Student`/`FeeInvoice`/`FeePayment` models only. No page outside `/admin` reads `CenterStudent` or `CenterPayment`. |
 | "ভর্তি সম্পন্ন" creates a student | **missing** | `ভর্তি সম্পন্ন` is only a status **label** (`admin.enrolled`, `forms.statusEnrolled`). `CenterStudent` is created by the student form, the import batch or the workbook batch — never from an admission. |
-| Exams (create, subjects, marks, ranking, publish) | partial | ran today (grading/ranking unit) + **browser flow proven on GitHub Actions** (§11): create with two subjects → marks 80+40 → total 120/150 → A+ → rank → publish, plus role scope and 360/768/1440 layout. Writes gated by `CENTER_EXAM_WRITE_ENABLED` (off in production; `npm run verify` turns it on for the disposable database). Single class per screen, ≤500 students, no unpublish/correction, no teacher scoping, no SMS/portal/PDF → R5. |
+| Exams (create, subjects, marks, ranking, publish) | **working (R5 slice 1)** | ran today (`tests/exam-rules.test.ts`, `tests/exam-grid.test.ts`, `tests/staff-role.test.ts`, catalog) + the browser flow and the database flow are CI-proven (§17): one exam over several classes, a keyboard-first marks grid with autosave, Excel paste, CSV/XLSX import with a preview, absence, per-class positions with ties, publish **and unpublish**, saved grading scales with GPA points, teacher scoping by assigned class, and a teacher screen with no payment data in it. The write gate is **retired** — exam writes are a normal feature (§17). Still owed by R5 slice 2: the result SMS, the student's result history and improvement chart, the portal Results tab, and the optional report-card PDF. |
 | SMS | partial | A low-level BulkSMSBD adapter + segment estimator exist and are unit-tested, gated off. **No** queue, UI, templates UI, opt-out/quiet-hours, idempotency, logs page or balance → R2. Models `CenterSmsTemplate/Batch/Log` and `CenterSettings` already exist. |
 | Visitor leads | **missing** | → R3. |
 | Teacher CV bank | **missing** | → R4. |
@@ -120,7 +120,7 @@ older files are left in place as history, and this table is the authority.
 
 ## 5. Feature flags (all off by default)
 
-`CENTER_DATA_MODE` (`test` = disposable DB) · `CENTER_EXAM_WRITE_ENABLED` ·
+`CENTER_DATA_MODE` (`test` = disposable DB) ·
 `CENTER_DUE_SNAPSHOT_WRITE_ENABLED` · `CENTER_LEGACY_LINK_ENABLED` · `CENTER_SMS_WRITE_ENABLED` ·
 `ACHIEVEMENTS_ENABLED` · `DATA_COLLECTION_ENABLED` · `PASSWORD_RESET_ENABLED` · `PUBLIC_AI_ENABLED` ·
 `PREVIEW_WITHOUT_SERVICES`. Secrets: `MONGODB_URI`, `NEXTAUTH_SECRET`, `CLOUDINARY_*`,
@@ -128,13 +128,14 @@ older files are left in place as history, and this table is the authority.
 `BULKSMSBD_SENDER_ID`. All are listed in `.env.example`; none are committed.
 
 Note against SPEC §4 ("no core feature hidden behind a disabled-by-default switch"): the exam write
-gate, the snapshot gate and the SMS gate currently do exactly that. R2 and R5 must turn SMS and
-exams into normal features (mock provider first), and the snapshot confirm checkbox should be
-revisited in R6.
+gate, the snapshot gate and the SMS gate did exactly that. R2 made SMS a normal feature (mock
+provider first), **R5 retired the exam write gate**, and the snapshot confirm checkbox is R6 work.
 
-`npm run verify` sets `CENTER_EXAM_WRITE_ENABLED=true` for the disposable test database only, so
-verification demonstrates the exam flow instead of asserting a disabled button. No production
-default was changed.
+`CENTER_EXAM_WRITE_ENABLED` no longer exists in the code. Exams are written in normal mode and
+authorization is by role and by the class groups a teacher is assigned to
+(`src/lib/exams/exam-scope.ts`), so `npm run verify` demonstrates the same flow the owner gets:
+create → marks → grade, point and position → publish. The name survives in `.env.example` only as a
+note for anybody holding an old `.env`.
 
 ## 6. Owner decisions
 
@@ -728,3 +729,56 @@ than an error. `tests/lead-funnel-browser.integration.ts` (R3.18) drives the scr
 languages, switches the breakdown, downloads the CSV twice and asserts its name, its BOM, its
 headers and the absence of a single Bangla digit, checks that nothing overflows at 360 px, and
 photographs 360 px and 1440 px in Bangla and English into `screenshots/r3/leads-funnel-*`.
+
+---
+
+## 17. R5 slice 1 — exams and results (code complete, awaiting CI verification)
+
+**The gate is gone.** `CENTER_EXAM_WRITE_ENABLED` was the flag that kept the experimental exam code from
+writing in production. R5 retires it: the feature is the feature, and what replaces the flag is
+authorization — `src/lib/exams/exam-scope.ts` decides, once, what each role may do and which classes it
+may touch, and every exam screen and action asks that module instead of reasoning about roles itself.
+The flag is kept in `.env.example` as a line that says it does nothing, so an operator's existing
+environment file is not silently wrong.
+
+**One workbook reader.** `src/lib/sheets/workbook.ts` reads `.xlsx`, `.xls`, `.csv` and `.txt` into the
+same `SheetGrid[]`. The teacher-CV importer and the marks importer now share it, which is why a sheet
+with an empty worksheet, a Bangla header or a comma inside a quoted cell behaves the same in both.
+
+**The rules are pure and tested without a database.** `src/lib/exams/grading.ts` (bands, points,
+percentage → grade, pass/fail, positions with ties, the class summary), `src/lib/exams/grid.ts` (reading
+one mark, a pasted block, a whole sheet, and matching a sheet row to a student) and
+`src/lib/exams/vocab.ts` (exam types, the standard scale, absence words, the student-column spellings).
+Two decisions worth naming: a mark over the full mark is **refused, not clipped**, and the sentence says
+which full mark it broke; and a class summary with nobody to average says **nothing** rather than `0`,
+because `0%` pass rate and `no results` are different facts.
+
+**Scope is read fresh, never remembered.** A teacher's scope is the `teachers` list on
+`CenterClassGroup`, read on every request — moving a teacher onto or off a class changes what they may
+mark on the next page load, with no session to invalidate. That list had nowhere to be written before
+R5: the classes screen (`/admin/students/classes`) now carries it, one tick per live teacher account,
+and the row names who takes the class so the owner can read the assignment without opening anything. An
+id that is not an active `teacher` account is refused rather than stored, because an assignment is an
+authorization and a dead entry that looks live is worse than none.
+
+**The wall around a teacher's eyes.** The teacher's exam screens are built from a scope-filtered view
+(`src/lib/exams/exam-view.ts`) that never selects fee history, dues, receipts or guardian numbers, and
+`tests/exam-flow.integration.ts` asserts it by serializing the whole view a teacher gets and searching
+it for `fee`, `payment`, `receipt`, `cash`, `due`, `amount` and `guardianPhone`. The browser suite
+asserts the same thing the way an owner would notice it: no such word on the screen and no link into the
+admin.
+
+**Sessions stay out of the rule layer.** `src/lib/exams/exam-actor.ts` holds the half that reads the
+session; `exam-scope.ts` holds the pure predicates. A plain test runner cannot import `next/navigation`,
+so a module that reached for the session could not be loaded by a suite that only wanted the rules — and
+a rule that cannot be tested without a browser is a rule nobody will test.
+
+**Proofs.** `tests/exam-rules.test.ts` (R5.1) and `tests/exam-grid.test.ts` (R5.2) run with no database,
+over a real CSV and a real XLSX built inside the suite. `tests/exam-flow.integration.ts` (R5.3) runs the
+whole flow against the disposable database, including two concurrent saves of one row settling as exactly
+one write. `tests/center-exams-browser.integration.ts` (R0.9 and R5.4) drives thirteen steps in the
+browser and photographs them at 360 px and 1440 px into `screenshots/r5/`, in both languages;
+`tests/language-sweep-browser.integration.ts` now sweeps `/teacher/exams` too, because a portal screen is
+not in the admin route tree and nothing else would have caught a hardcoded sentence there. The old
+`tests/center-exam-batch.integration.ts` is deleted: it asserted the pre-R5 signatures, and its two
+claims that nothing else made — the concurrent-save race and the revision counter — moved into R5.3.

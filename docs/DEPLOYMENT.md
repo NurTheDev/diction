@@ -92,8 +92,13 @@ you need it. The short version:
 `DATA_COLLECTION_ENABLED=false`, `SMS_PROVIDER=mock`, `CENTER_SMS_WRITE_ENABLED=false`,
 `PASSWORD_RESET_ENABLED=false`, `ACHIEVEMENTS_ENABLED=false`, `PUBLIC_AI_ENABLED=false`,
 `AI_STUDY_BUDDY_ENABLED=false`, `CENTER_LEGACY_LINK_ENABLED=false`,
-`CENTER_DUE_SNAPSHOT_WRITE_ENABLED=false`, `CENTER_EXAM_WRITE_ENABLED=false`. Each one is a gate that
-a person opens deliberately, in writing, after the review named beside it in `.env.example`.
+`CENTER_DUE_SNAPSHOT_WRITE_ENABLED=false`. Each one is a gate that a person opens deliberately, in
+writing, after the review named beside it in `.env.example`.
+
+`CENTER_EXAM_WRITE_ENABLED` is no longer one of them: R5 retired it. Exams are a normal feature and the
+question "may this person write?" is answered by role and by the class groups a teacher is assigned to
+(`src/lib/exams/exam-scope.ts`), which is an answer a flag cannot give — a flag that is off in production
+and on in CI protects nothing and hides a real refusal. An old `.env` may still name it; it does nothing.
 
 **Only used by the seed, not by the deployed site:** `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`
 (12–72 bytes). Set them in your local `.env.local`, run the seed (§7), and do not add them to Vercel.

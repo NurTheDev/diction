@@ -30,3 +30,43 @@ Synthetic tests `tests/center-due-snapshot.integration.ts` cover request replay/
 For financial and operational safety, do not enable the new flags on real data until backups, real-workbook acceptance, access control and independent review are complete. Legacy migration, actual payment conversion, the SMS queue/delivery workflow, retention/restore/purge, full reports/backups and portal links remain unimplemented. Existing feature and exam schemas are not proof of completing the full project.
 
 Synthetic tests `center-exam-marks.test.ts`, `center-exam-batch.integration.ts`, and `center-exams-browser.integration.ts` cover grading, invalid marks, absent/tie behavior, exam-manager access, default-off gate, two-subject creation, concurrent/stale marks, audit and publication. Baseline tests and standalone `npm run typecheck` passed. Webpack production build succeeded with TypeScript checking run separately; its in-build TypeScript step was temporarily skipped due to environment memory pressure, then the original Next config was restored. No real exam results or external services were tested.
+
+## Latest: Center exams and results are a normal feature (R5 slice 1)
+
+This section **supersedes** "Latest: experimental Center exams and results" above.
+
+`CENTER_EXAM_WRITE_ENABLED` no longer exists in the code. Exam writes are not behind a flag; what
+gates them is authorization — role plus the class groups a teacher is assigned to — decided once in
+`src/lib/exams/exam-scope.ts` and read fresh on every request. The flag is still named in
+`.env.example` as a line that says it does nothing, so an existing environment file is not silently
+wrong.
+
+What now exists beyond the earlier description: an exam covers **several classes** at once; marks are
+entered on one keyboard-first grid (Enter down a column, arrows across, `A` for absence) with live
+total, percentage, grade, GPA point and position, batched autosave, spreadsheet paste from the focused
+cell, and CSV/XLSX upload through a preview that matches rows by student ID, roll or name in either
+language and **lists** an unmatched, ambiguous or incomplete row instead of guessing it; positions are
+computed **per class** (ties share a position, the next one skips, an absent student holds none);
+publishing is reversible through an explicit, logged unpublish; grading scales are savable centre-wide
+with GPA points and validated to cover 0–100 exactly once; and a teacher reaches their own exams from
+the portal home. A teacher sees only assigned classes, and their exam view is built from a query that
+never selects fee history, dues, receipts, cash or guardian numbers — asserted both by serializing the
+view a teacher receives and by reading the painted screen.
+
+Still **not** delivered, and not to be inferred from the schema: result SMS delivery, the student's
+result history and improvement chart, the portal Results tab for a linked student, and any report-card
+PDF (R5 slice 2). Names and classes still come from the current roster, not a historical snapshot; the
+500-student cap still fails closed; publication remains internal to this admin module and is not a
+public release. No real exam results, real workbooks or external services were used — the proofs are
+synthetic and labelled নমুনা.
+
+Synthetic tests: `tests/exam-rules.test.ts` and `tests/exam-grid.test.ts` (no database, over a real CSV
+and a real XLSX built in the suite), `tests/exam-flow.integration.ts` (disposable database: scope,
+batched marks with stale and refused rows named, absence, per-class positions, publish/unpublish,
+subject and class locks, recomputed grades, two concurrent saves settling as one write, and the
+payment-free teacher view) and `tests/center-exams-browser.integration.ts` (driven in the browser at
+360 px and 1440 px in both languages, photographed into `screenshots/r5/`).
+`tests/center-exam-batch.integration.ts` is deleted: it asserted the pre-R5 signatures, and its two
+claims nothing else made — the concurrent-save race and the student revision counter — moved into
+`tests/exam-flow.integration.ts`. `tests/center-exam-marks.test.ts` remains, because
+`src/lib/center/exam-marks.ts` is still the engine the new rule layer reads through.

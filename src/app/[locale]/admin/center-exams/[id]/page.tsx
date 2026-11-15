@@ -1,4 +1,93 @@
-import mongoose from 'mongoose';import {notFound} from 'next/navigation';import {Link} from '@/i18n/navigation';import {requireStaffPermission} from '@/lib/admin/guard';import {CenterExam,CenterExamResult,CenterStudent} from '@/models/CenterRecords';import {ExamMarkRow,PublishCenterExam} from '@/components/admin/center-exam-forms';import {rankResults} from '@/lib/center/exam-marks';import {getTranslations} from 'next-intl/server';
+import {Link} from '@/i18n/navigation';
+import {notFound} from 'next/navigation';
+import {getTranslations} from 'next-intl/server';
+import {dashboardDigits} from '@/lib/admin/digits';
+import {formatNumber} from '@/lib/admin/format';
+import {getExamScope} from '@/lib/exams/exam-actor';
+import {examDetailView,gradingScales} from '@/lib/exams/exam-view';
+import {EXAM_TYPE_LABEL_KEYS,EXAM_STATUS_LABEL_KEYS,type ExamType,type ExamStatus} from '@/lib/exams/vocab';
+import {ExamShapeForm,PublishCenterExam} from '@/components/admin/center-exam-forms';
+import {ExamMarksPanel} from '@/components/exams/marks-grid';
+import {ExamResultsTable,ExamSummaryPanel} from '@/components/exams/exam-result-table';
+
 export const dynamic='force-dynamic';
-type Exam={name:{bn:string};date:string;status:string;classGroups:mongoose.Types.ObjectId[];subjects:{_id:mongoose.Types.ObjectId;name:{bn:string};fullMarks:number;passMarks:number}[];gradeBands:{min:number;label:string}[]};type Student={_id:mongoose.Types.ObjectId;studentId:string;name:{bn:string};roll?:string};type Result={_id:mongoose.Types.ObjectId;student:mongoose.Types.ObjectId;revision?:number;marks:{subject:mongoose.Types.ObjectId;obtained:number|null;absent:boolean}[];total:number;fullTotal:number;percentage:number;grade:string};
-export default async function ExamDetail({params}:{params:Promise<{locale:string;id:string}>}){const t=await getTranslations('exams');await requireStaffPermission('exams');const {id}=await params;if(!mongoose.isValidObjectId(id))notFound();const exam=await CenterExam.findById(id).lean<Exam>();if(!exam)notFound();if(exam.classGroups.length!==1)return <p role="alert">{t('detail.multiClassUnsupported')}</p>;const [students,results]=await Promise.all([CenterStudent.find({classGroup:exam.classGroups[0],status:'active'}).select('name studentId roll').sort({'name.bn':1,_id:1}).limit(501).lean<Student[]>(),CenterExamResult.find({exam:id}).select('student marks total fullTotal percentage grade revision').limit(501).lean<Result[]>()]);if(students.length>500||results.length>500)return <p role="alert">{t('detail.tooManyRecords')}</p>;const byResult=new Map(results.map(r=>[String(r.student),r])),byStudent=new Map(students.map(s=>[String(s._id),s])),ranks=new Map(rankResults(results).map(r=>[String(r.student),r.position]));const subjects=exam.subjects.map(s=>({id:String(s._id),name:s.name.bn,full:s.fullMarks})),enabled=process.env.CENTER_EXAM_WRITE_ENABLED==='true';return <><div className="admin-heading"><div><Link href="/admin/center-exams" className="text-link">← {t('detail.crumbExams')}</Link><h1>{exam.name.bn}</h1><p>{exam.date} · {exam.status==='published'?t('status.published'):t('status.draft')}</p></div></div><p className="notice-box">{t('detail.marksHelp')}</p><section className="admin-panel"><div className="admin-panel-head"><h2>{t('detail.subjectsHeading')}</h2></div><div className="admin-panel-body"><p>{exam.subjects.map(s=>`${s.name.bn}: ${s.fullMarks} (${t('detail.passLabel')} ${s.passMarks})`).join(' · ')}</p><p>{exam.gradeBands.map(g=>`${g.min}%: ${g.label}`).join(' · ')}</p></div></section>{exam.status==='draft'&&<section className="admin-panel"><div className="admin-panel-head"><h2>{t('detail.enterMarksHeading')}</h2><span>{results.length} / {students.length}</span></div>{!enabled&&<p className="admin-feedback error">{t('detail.entryDisabled')}</p>}<div className="admin-table-wrap">{students.map(s=>{const r=byResult.get(String(s._id)),values=Object.fromEntries((r?.marks||[]).map(m=>[String(m.subject),m.absent?'A':String(m.obtained??'')]));return <ExamMarkRow key={String(s._id)} exam={id} student={String(s._id)} name={`${s.name.bn} · ${s.studentId}`} version={r?(r.revision??0):-1} subjects={subjects} values={values} enabled={enabled}/>})}</div><div className="admin-panel-body"><PublishCenterExam exam={id} enabled={enabled}/></div></section>}<section className="admin-panel"><div className="admin-panel-head"><h2>{t('detail.savedResultsHeading')}</h2></div><p className="admin-help" style={{padding:'0 1rem'}}>{t('detail.rankHelp')}</p><div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>{t('col.student')}</th>{exam.subjects.map(s=><th key={String(s._id)}>{s.name.bn}</th>)}<th>{t('col.total')}</th><th>{t('col.grade')}</th><th>{t('col.rank')}</th></tr></thead><tbody>{results.map(r=>{const student=byStudent.get(String(r.student));return <tr key={String(r._id)}><td>{student?`${student.name.bn} · ${student.studentId}`:t('detail.outsideRoster')}</td>{exam.subjects.map(s=>{const m=r.marks.find(x=>String(x.subject)===String(s._id));return <td key={String(s._id)}>{m?.absent?'A':m?.obtained??'—'}</td>})}<td>{r.total} / {r.fullTotal}</td><td>{r.grade}</td><td>{ranks.get(String(r.student))??'—'}</td></tr>})}</tbody></table></div>{!results.length&&<p className="admin-empty">{t('detail.outsideRoster')}</p>}</section></>}
+
+/**
+ * R5 · One exam: its shape, its marks grid, its stored results and the class summary.
+ *
+ * The screen is built from the actor's scope, so the same address shows an admin the whole centre and a
+ * teacher (who reaches their own copy of this screen at `/teacher/exams/[id]`) only the classes they take.
+ * Three things are deliberate:
+ *
+ *   • **The grid is the only way in.** Marks are entered by typing, pasting or uploading into one grid, and
+ *     every route through it is checked by the same engine, so there is no side door that skips validation.
+ *   • **A published exam is read-only here too.** The publish form becomes an unpublish form, and the grid
+ *     stops accepting keys — correcting a result somebody has already been told about is a separate,
+ *     logged decision rather than a keystroke.
+ *   • **The summary is the stored results' own**, not the grid's live guess: what the owner reads beside
+ *     the publish button is what was written, so publishing is a decision made on real numbers.
+ */
+export default async function ExamDetail({params}:{params:Promise<{locale:string;id:string}>}){
+  const t=await getTranslations('exams');
+  const scope=await getExamScope();
+  if(!scope)notFound();
+  const {locale,id}=await params;
+  const view=await examDetailView(id,scope,locale);
+  if(!view)notFound();
+  const [digits,scales]=await Promise.all([dashboardDigits(scope.userId),gradingScales()]);
+  const published=view.status==='published';
+  return <>
+    <div className="admin-heading"><div>
+      <Link href="/admin/center-exams" className="text-link">← {t('detail.crumbExams')}</Link>
+      <h1 data-exam-name>{view.name}</h1>
+      <p data-exam-meta>{view.date} · {t(EXAM_TYPE_LABEL_KEYS[view.type as ExamType]||'typeLabels.other')} · {t(EXAM_STATUS_LABEL_KEYS[view.status as ExamStatus]||'status.draft')} · {view.classes.join(', ')}</p>
+      {view.scaleName&&<p className="admin-help" data-exam-scale-name>{t('detail.scaleUsed',{scale:view.scaleName})}</p>}
+    </div></div>
+    {view.tooMany&&<p role="alert" className="admin-feedback error">{t('detail.tooManyRecords')}</p>}
+    <section className="admin-panel">
+      <div className="admin-panel-head"><h2>{t('detail.subjectsHeading')}</h2></div>
+      <div className="admin-panel-body">
+        <table className="admin-table" data-exam-subjects><thead><tr>
+          <th>{t('col.subject')}</th><th>{t('col.fullMarks')}</th><th>{t('col.passMarks')}</th>
+        </tr></thead><tbody>{view.subjects.map(subject=><tr key={subject.id}>
+          <td>{subject.name}</td><td>{subject.full}</td><td>{subject.pass}</td>
+        </tr>)}</tbody></table>
+        <p className="admin-help" data-exam-bands>{t('detail.bandsHeading')}: {view.bands.map(band=>`${band.min}% ${band.label} (${band.point})`).join(' · ')}</p>
+      </div>
+    </section>
+    {scope.manage&&<section className="admin-panel">
+      <div className="admin-panel-head"><h2>{published?t('detail.editLockedHeading'):t('detail.editHeading')}</h2></div>
+      <div className="admin-panel-body">
+        {published
+          ? <p className="admin-help" data-edit-locked>{t('detail.editLocked')}</p>
+          : <details className="center-exam-edit" data-exam-edit><summary>{t('detail.editSummary')}</summary>
+              <ExamShapeForm mode="edit"
+                groups={view.classes}
+                scales={scales}
+                value={{id:view.id,name:view.name,type:view.type,date:view.date,scaleName:view.scaleName,
+                  classIds:view.classes.map(entry=>entry.id),
+                  subjects:view.subjects.map(subject=>({name:subject.name,full:subject.full,pass:subject.pass})),
+                  bands:view.bands}}/>
+            </details>}
+      </div>
+    </section>}
+    <section className="admin-panel">
+      <div className="admin-panel-head"><h2>{t('detail.enterMarksHeading')}</h2><span data-exam-progress>{view.results.length} / {view.students.length}</span></div>
+      <p className="admin-help" style={{padding:'0 1rem'}}>{t('detail.marksHelp')}</p>
+      <div className="admin-panel-body">
+        <ExamMarksPanel examId={view.id} subjects={view.subjects} students={view.students} bands={view.bands}
+          canWrite={scope.manage||scope.teacher} digits={digits} published={published}/>
+      </div>
+    </section>
+    {scope.publish&&<section className="admin-panel">
+      <div className="admin-panel-head"><h2>{published?t('detail.publishedHeading'):t('detail.publishHeading')}</h2></div>
+      <div className="admin-panel-body"><PublishCenterExam exam={view.id} published={published}/></div>
+    </section>}
+    <section className="admin-panel">
+      <div className="admin-panel-head"><h2>{t('detail.savedResultsHeading')}</h2><span>{formatNumber(view.results.length,digits)}</span></div>
+      <p className="admin-help" style={{padding:'0 1rem'}}>{t('detail.rankHelp')}</p>
+      <div className="admin-panel-body"><ExamSummaryPanel summary={view.summary} digits={digits}/></div>
+      <ExamResultsTable results={view.results} subjects={view.subjects} digits={digits} showClass={view.classes.length>1}/>
+    </section>
+  </>;
+}
