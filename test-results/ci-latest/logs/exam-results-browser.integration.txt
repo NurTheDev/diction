@@ -1,5 +1,5 @@
-AssertionError [ERR_ASSERTION]: each row carries its own subjects with their own full marks
-    at run (/home/runner/work/diction/diction/tests/exam-results-browser.integration.ts:214:12) {
+AssertionError [ERR_ASSERTION]: a student session is not let into the guardian’s Results tab; landed on http://localhost:3111/bn
+    at run (/home/runner/work/diction/diction/tests/exam-results-browser.integration.ts:367:12) {
   generatedMessage: false,
   code: 'ERR_ASSERTION',
   actual: false,

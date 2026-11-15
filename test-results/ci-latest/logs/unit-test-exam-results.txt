@@ -1,17 +1,17 @@
 --- tests/exam-results.integration.ts (exit 1) ---
-AssertionError [ERR_ASSERTION]: the class printed is the one the row belongs to
-+ actual - expected
+Sent (mock) to 01711000011: ডিকশন কোচিং: নমুনা ছাত্র RS-1 এর নমুনা মাসিক পরীক্ষা ফলাফল: বাংলা ৯০, গণিত ৪৫। ম
+Sent (mock) to 01711000055: ডিকশন কোচিং: নমুনা ছাত্র RS-5 এর নমুনা মাসিক পরীক্ষা ফলাফল: বাংলা ৭০, গণিত ৩৫। ম
+Sent (mock) to 01711000033: ডিকশন কোচিং: নমুনা ছাত্র RS-3 এর নমুনা মাসিক পরীক্ষা ফলাফল: বাংলা ৮০, গণিত ৪০। ম
+AssertionError [ERR_ASSERTION]: the prompt said 4 and the send wrote 3
 
-+ 'নমুনা নবম ক · 2026'
-- 'নমুনা নবম ক'
-              ^
+3 !== 4
 
-    at run (/home/runner/work/diction/diction/tests/exam-results.integration.ts:123:12)
+    at run (/home/runner/work/diction/diction/tests/exam-results.integration.ts:246:12)
     at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {
   generatedMessage: false,
   code: 'ERR_ASSERTION',
-  actual: 'নমুনা নবম ক · 2026',
-  expected: 'নমুনা নবম ক',
+  actual: 3,
+  expected: 4,
   operator: 'strictEqual',
   diff: 'simple'
 }
