@@ -1,15 +1,1 @@
-AssertionError [ERR_ASSERTION]: the English day page’s own words carry no Bangla
-
-true !== false
-
-    at run (/home/runner/work/diction/diction/tests/reports-browser.integration.ts:269:12)
-    at runNextTicks (node:internal/process/task_queues:64:5)
-    at process.processImmediate (node:internal/timers:452:9)
-    at process.callbackTrampoline (node:internal/async_hooks:130:17) {
-  generatedMessage: false,
-  code: 'ERR_ASSERTION',
-  actual: true,
-  expected: false,
-  operator: 'strictEqual',
-  diff: 'simple'
-}
+ReportsBrowser: day, month, year, cashbook check, statement, print, exports, the role wall and both languages all hold
