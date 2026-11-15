@@ -1,10 +1,10 @@
-locator.fill: Timeout 30000ms exceeded.
-Call log:
-  - waiting for locator('[aria-label="নমুনা ছাত্র ক · গণিত"]').first()
-
-    at run (/home/runner/work/diction/diction/tests/center-exams-browser.integration.ts:460:54) {
-  log: [
-    `  - waiting for locator('[aria-label="নমুনা ছাত্র ক · গণিত"]').first()`
-  ],
-  name: 'TimeoutError'
+AssertionError [ERR_ASSERTION]: the teacher marks grid overflows horizontally at 360px (408 > 360)
+    at noOverflow (/home/runner/work/diction/diction/tests/center-exams-browser.integration.ts:151:16)
+    at async run (/home/runner/work/diction/diction/tests/center-exams-browser.integration.ts:475:5) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
 }

@@ -1,14 +1,2 @@
---- tests/exam-flow.integration.ts (exit 1) ---
-AssertionError [ERR_ASSERTION]: and exactly one is the default
-
-0 !== 1
-
-    at run (/home/runner/work/diction/diction/tests/exam-flow.integration.ts:270:12)
-    at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {
-  generatedMessage: false,
-  code: 'ERR_ASSERTION',
-  actual: 0,
-  expected: 1,
-  operator: 'strictEqual',
-  diff: 'simple'
-}
+--- tests/exam-flow.integration.ts (exit 0) ---
+Exam flow: teacher class scope with no payment field anywhere, one exam over two classes, batched marks with a stale row named, per-class positions with ties and absence, publish and unpublish, what an edit may change, and the saved grading scales passed.
