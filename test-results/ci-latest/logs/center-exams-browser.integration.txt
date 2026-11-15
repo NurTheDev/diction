@@ -1,1 +1,10 @@
-Exams in the browser, photographed at 360 px and 1440 px into screenshots/r5: an exam manager created a two-class exam in Bangla digits with the create button enabled — the write gate is retired — typed and arrowed through the grid, watched 135 of 150 become an A+ worth 5 in position ১, saw ১০১ refused in the cell and never written, pasted a spreadsheet block from the focused cell, marked a row absent and watched it hold no position, let four rows autosave in one batch, previewed a CSV (2 ready, 1 unmatched, 1 incomplete, an unread column named) and committed it, published so Nine A ranked 1–4 with the absent student out and Nine B ranked first on its own, unpublished again; a teacher on no class saw no exam at all until the owner ticked them on the classes screen — the only place that list is written — and the row then named who takes the class; the owner saved a grading scale the exam form then offered while the exam manager was shown no scale form; that teacher then saw only their 4 students with no payment word and no admin link anywhere, and the other class’s teacher saw only their 1; the English addresses paint no Bangla, a content editor is shown no list, and nothing overflows at 360, 768 or 1440.
+locator.innerText: Error: strict mode violation: locator('.admin-user-menu summary') resolved to 2 elements:
+    1) <summary>…</summary> aka getByText('নমুনা পরীক্ষা পরিচালক ▾').first()
+    2) <summary>…</summary> aka getByText('নমুনা পরীক্ষা পরিচালক ▾').nth(1)
+
+Call log:
+  - waiting for locator('.admin-user-menu summary')
+
+    at run (/home/runner/work/diction/diction/tests/center-exams-browser.integration.ts:576:80) {
+  log: [ "  - waiting for locator('.admin-user-menu summary')" ]
+}
