@@ -148,12 +148,12 @@ async function run(){
     // ── 2. the month matrix ────────────────────────────────────────────────────────────────────────
     await goto(adminBn.page,'/bn/admin/reports/monthly?year=2026&month=2');
     const grand=await adminBn.page.locator('[data-mx-grand]').getAttribute('data-mx-grand');
-    assert.equal(grand,'4300','1000 + 500 + 300 + 500 + 1000, the whole month');
+    assert.equal(grand,'3300','1000 + 500 + 300 + 500 + 1000, the whole month');
     const matrixText=await adminBn.page.locator('[data-monthly-matrix]').innerText();
     assert.ok(matrixText.includes(t.monthly.grand));
     const dayTotals=await adminBn.page.locator('[data-mx-day-totals] td').allInnerTexts();
     const classTotals=await adminBn.page.locator('[data-mx-class-total]').allInnerTexts();
-    assert.ok(dayTotals.join(' ').replace(/\s/g,'').includes(bnDigits(4300).replace(/\s/g,'')),'the day row ends at the grand total');
+    assert.ok(dayTotals.join(' ').replace(/\s/g,'').includes(bnDigits(3300).replace(/\s/g,'')),'the day row ends at the grand total');
     assert.ok(classTotals.join(' ').includes(bnDigits(1300)),'and each class row carries its own sum: 1000 of fee and 300 of admission');
     assert.ok((await adminBn.page.locator('[data-monthly-types]').innerText()).includes(t.types.admission));
     await shot(adminBn.page,'reports-monthly-bn-1440');
