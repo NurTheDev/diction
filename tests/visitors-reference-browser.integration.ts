@@ -273,8 +273,12 @@ async function run(){
     assert.ok(moreText.includes(t.row.deleteHint),'and it says what Delete really does');
     await shot(boss.page,'r8-visitors-more-menu-1440',false);
 
-    await more.locator('[data-row-delete] button').click();
-    const confirm=boss.page.locator('dialog.admin-confirm');
+    /* The menu item keeps its own confirmation inside itself, so it holds three buttons: the verb, and
+       the dialog's no and yes. The verb is the one on screen, and it is named. */
+    await more.locator('[data-row-delete] button',{hasText:w.deleteAction}).first().click();
+    /* The confirmation belongs to the menu item that opened it, so it is read from there: a page-wide
+       `dialog.admin-confirm` would also match the dialogs of any other row's menu that is in the document. */
+    const confirm=more.locator('dialog.admin-confirm');
     await confirm.waitFor({state:'visible',timeout:30000});
     const confirmText=(await confirm.innerText()).replace(/\s+/g,' ');
     assert.ok(confirmText.includes(FIRST),`the dialog names the visitor it is about to move (${confirmText})`);
