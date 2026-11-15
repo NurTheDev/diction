@@ -14,7 +14,11 @@
  */
 export function smsTemplateName(names:Record<string,string>,value:string):string{return names[value]||value}
 
-export const SMS_VARIABLES=['student_name','class','month','due_amount','receipt_no','amount','due_date','institute_phone','subject'] as const;
+/* `exam`, `marks`, `total` and `rank` are the result message's own chips, and all four are per student:
+   a result SMS that said the class's marks would be worse than none, so `autoSendClassResults` fills each
+   recipient's own through `SmsCandidateStudent.values` and a student with no result to report is skipped
+   as `missing_value` by `buildSmsPlan` rather than sent a sentence with a hole in it. */
+export const SMS_VARIABLES=['student_name','class','month','due_amount','receipt_no','amount','due_date','institute_phone','subject','exam','marks','total','rank'] as const;
 export type SmsVariable=typeof SMS_VARIABLES[number];
 
 export type SmsTemplateKey='payment_receipt'|'due_reminder'|'pending_reminder'|'visitor_thanks'|'teacher_opening'|'exam_result'|'custom'|'notice';
@@ -42,7 +46,7 @@ export const SMS_TEMPLATE_DEFAULTS:SmsTemplateDefault[]=[
   {key:'pending_reminder',name:'templates.pending_reminder',body:'ডিকশন কোচিং: {student_name} এর {month} মাসের {amount} টাকা আগামী {due_date} তারিখের মধ্যে দিলে ভালো হয়। ধন্যবাদ।',variables:['student_name','month','amount','due_date'],purpose:'due_reminder',feeRelated:true},
   {key:'visitor_thanks',name:'templates.visitor_thanks',body:'ডিকশন কোচিং-এ আসার জন্য ধন্যবাদ। ভর্তি সংক্রান্ত তথ্যের জন্য যোগাযোগ করুন: {institute_phone}',variables:['institute_phone'],purpose:'visitor_thanks',feeRelated:false},
   {key:'teacher_opening',name:'templates.teacher_opening',body:'ডিকশন কোচিং: আমাদের {subject} বিষয়ে শিক্ষক প্রয়োজন। আগ্রহী হলে যোগাযোগ করুন: {institute_phone}',variables:['subject','institute_phone'],purpose:'teacher_opening',feeRelated:false},
-  {key:'exam_result',name:'templates.exam_result',body:'ডিকশন কোচিং: {student_name} এর ফলাফল প্রকাশ হয়েছে। বিস্তারিত দেখতে পোর্টেলে লগইন করুন। যোগাযোগ: {institute_phone}',variables:['student_name','institute_phone'],purpose:'exam_result',feeRelated:false,autoSendKey:'autoResult'},
+  {key:'exam_result',name:'templates.exam_result',body:'ডিকশন কোচিং: {student_name} এর {exam} ফলাফল: {marks}। মোট {total}, অবস্থান {rank}।',variables:['student_name','exam','marks','total','rank'],purpose:'exam_result',feeRelated:false,autoSendKey:'autoResult'},
   {key:'custom',name:'templates.custom',body:'',variables:[],purpose:'custom',feeRelated:false},
   {key:'notice',name:'templates.notice',body:'ডিকশন কোচিং: {subject}',variables:['subject'],purpose:'notice',feeRelated:false},
 ];

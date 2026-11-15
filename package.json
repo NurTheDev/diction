@@ -61,8 +61,9 @@
     "test:teacher:sheet": "tsx tests/teacher-cv-sheet.test.ts",
     "test:teacher:db": "tsx --conditions=react-server tests/teacher-cv-bank.integration.ts",
     "test:teacher:screens": "tsx tests/teacher-cv-screens-browser.integration.ts",
-    "test:exams": "npm run test:exam:rules && npm run test:exam:grid",
+    "test:exams": "npm run test:exam:rules && npm run test:exam:grid && npm run test:exam:result",
     "test:exam:rules": "tsx tests/exam-rules.test.ts",
+    "test:exam:result": "tsx tests/exam-result-message.test.ts",
     "test:exam:grid": "tsx tests/exam-grid.test.ts",
     "test:exam:db": "tsx --conditions=react-server tests/exam-flow.integration.ts",
     "test:exam:screens": "tsx tests/center-exams-browser.integration.ts"

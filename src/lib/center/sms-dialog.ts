@@ -38,6 +38,7 @@ import {buildSmsPlan,executeSmsPlan,loadSmsSettings,monthSmsTotals,retryFailedSm
 import {dailyLimitApplies,dailySmsLimitOf,dailyLimitReachedMessage} from './sms-staff';
 import {resolveSmsSource} from './sms-source';
 import {isSmsTemplateKey} from './sms-templates';
+import {resultMessagesForExam} from '@/lib/exams/exam-view';
 import {
   autoProblemText,findAutoSmsProblem,noteAutoSmsRetryFailed,recordAutoSmsProblem,resolveAutoSmsProblem,
   type AutoSmsCause,type AutoSmsContext,type AutoSmsTrigger,
@@ -407,9 +408,23 @@ export async function autoSendClassResults(input:{exam:string;classGroup:string}
     const resolved=await resolveSmsSource({source:'class',classGroup:input.classGroup},now);
     who=resolved.className||smsPair('who.classFallback').bn;
     if(!resolved.candidates.length)return {attempted:true,reason:'no students'};
+    /* Four of the sentence's five chips belong to one child each, so they are attached per candidate here
+       rather than sent as class-wide values: a parent reading a total and a position has to be reading
+       their own child's, and one result row per exam-and-student makes the id unambiguous. A candidate
+       with no published row keeps no values and the plan skips them as `missing_value`, so an absent child
+       is counted in the batch summary instead of being texted a result they do not have. */
+    const valuesByStudent=new Map((await resultMessagesForExam(input.exam)).map(entry=>[entry.studentId,entry.values]));
+    const students=resolved.candidates.map(candidate=>{
+      const values=valuesByStudent.get(candidate.id);
+      return values?{...candidate,values:{...candidate.values,...values}}:candidate;
+    });
+    /* A class inside a multi-class exam can legitimately have no results of its own — publishing refuses an
+       exam with none at all, not one with none in this class. That is nothing to alarm anybody with a
+       Problem card, so it is reported as a reason and the send simply does not happen. */
+    if(!students.some(candidate=>valuesByStudent.has(candidate.id)))return {attempted:true,reason:'no results'};
     const plan=await buildSmsPlan({
       requestId:autoKey(['result',input.exam,input.classGroup],options),
-      students:resolved.candidates,
+      students,
       templateKey:'exam_result',
       audience:'guardian',
       onePerPhone:true,

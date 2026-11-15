@@ -15,6 +15,7 @@ import mongoose from 'mongoose';
 import {CenterClassGroup,CenterExam,CenterExamResult,CenterGradingScale,CenterStudent} from '../../models/CenterRecords';
 import {scopeClasses,scopeCoversClass,type ExamScope} from './exam-scope';
 import {classSummary,type ClassSummary,type SummaryRow} from './grading';
+import {resultMessage,type ResultMessageValues} from './result-message';
 
 /** A class group as a screen names it: the name in the page's language plus the session year. */
 export interface ViewClass{id:string;name:string}
@@ -40,7 +41,7 @@ interface ExamDoc{
 interface ResultDoc{
   _id:mongoose.Types.ObjectId;student:mongoose.Types.ObjectId;classGroup?:mongoose.Types.ObjectId;
   revision?:number;marks:{subject:mongoose.Types.ObjectId;obtained:number|null;absent:boolean}[];
-  total:number;fullTotal:number;percentage:number;grade:string;point?:number;position?:number;
+  total:number;fullTotal:number;percentage:number;grade:string;point?:number;position?:number;absent?:boolean;
 }
 interface StudentDoc{_id:mongoose.Types.ObjectId;studentId:string;name:{bn:string;en?:string};roll?:string;classGroup:mongoose.Types.ObjectId}
 
@@ -160,6 +161,46 @@ export async function examListView(scope:ExamScope,filters:ExamListFilters,page:
     results:counts.get(String(doc._id))||0,
   }));
   return {exams,total,page:safePage,pages:Math.max(1,Math.ceil(total/perPage))};
+}
+
+/** One published result, as the per-student chips of a result SMS: `null` for a row with nothing to report. */
+export interface ExamResultMessage{classId:string;studentId:string;values:ResultMessageValues}
+
+/**
+ * R5 slice 2 · The per-student half of a result SMS, read from the rows publishing wrote.
+ *
+ * `autoSendClassResults` calls this once for the exam and then attaches each bag to the candidate whose
+ * `_id` it names, so the message a family receives quotes that child's own marks, total and position —
+ * not the class's. The sentence itself is built in `result-message.ts`, which is pure and proved there;
+ * this is only the fetch and the keying.
+ *
+ * No locale and no scope: the template catalog is Bangla, so the exam and subject names are read in Bangla
+ * whatever the operator's language is, and the send is already narrowed to one class by its caller — a
+ * scope argument here would only be a second way to be wrong. A draft exam returns nothing because it has
+ * no positions yet, and an absent or unranked row is left out rather than turned into a message about it.
+ */
+export async function resultMessagesForExam(examId:string):Promise<ExamResultMessage[]>{
+  if(!mongoose.isValidObjectId(examId))return [];
+  const exam=await CenterExam.findById(examId).select('name subjects status').lean<ExamDoc>();
+  if(!exam||exam.status!=='published')return [];
+  const subjects=(exam.subjects||[])
+    .map(subject=>({id:String(subject._id),name:(subject.name?.bn||'').trim()}))
+    .filter(subject=>!!subject.name);
+  const examName=localName(exam.name,'bn');
+  const results=await CenterExamResult.find({exam:exam._id})
+    .select('student classGroup marks total fullTotal grade position absent').lean<ResultDoc[]>();
+  return results.flatMap(row=>{
+    const absent=!!row.absent||row.grade==='ABSENT';
+    const values=resultMessage({
+      examName,subjects,
+      marks:(row.marks||[]).map(mark=>({subject:String(mark.subject),obtained:mark.absent?null:mark.obtained,absent:!!mark.absent})),
+      // A stored total is quoted, never recomputed here: the message and the result table have to agree.
+      total:absent?null:row.total??null,fullTotal:absent?null:row.fullTotal??null,
+      position:absent?null:row.position??null,absent,
+    });
+    if(!values)return [];
+    return [{classId:String(row.classGroup||''),studentId:String(row.student),values}];
+  });
 }
 
 /** The active saved scales, for the exam form's scale picker. */

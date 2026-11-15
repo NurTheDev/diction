@@ -37,7 +37,8 @@ import {preflight,testDbName} from './helpers/env-preflight';
 import {User} from '../src/models/User';
 import {AdminAudit} from '../src/models/AdminAudit';
 import {
-  CenterClassGroup,CenterStudent,CenterSettings,CenterPayment,CenterSmsBatch,CenterSmsLog,CenterSmsAutoProblem,
+  CenterClassGroup,CenterStudent,CenterSettings,CenterPayment,CenterExam,CenterExamResult,CenterSmsBatch,
+  CenterSmsLog,CenterSmsAutoProblem,
 } from '../src/models/CenterRecords';
 import {recordCenterCash} from '../src/lib/center/cash-batch';
 import {autoSendReceipt,autoSendClassDues,autoSendClassResults,retryAutoSmsProblem} from '../src/lib/center/sms-dialog';
@@ -202,8 +203,21 @@ async function run(){
 
     // ---- 6. No batch at all: the balance call died, so the whole send has to run again.
     await CenterSettings.updateOne({key:'main'},{$set:{autoResult:true}});
+    /* A result message exists only for a child with a published result, so the exam is seeded here with one
+       row for the one student in this class who has a number. Without it the send would stop earlier — with
+       "no results" — and this section would be proving nothing about a dead balance call. */
+    const resultExam=await CenterExam.create({
+      name:{bn:'সমস্যা পরীক্ষা'},type:'monthly',date:`${today.year}-${String(today.month).padStart(2,'0')}-15`,status:'published',classGroups:[group._id],
+      subjects:[{name:{bn:'বাংলা'},fullMarks:100,passMarks:33},{name:{bn:'গণিত'},fullMarks:50,passMarks:25}],
+      gradeBands:[{min:80,label:'A+',point:5},{min:70,label:'A',point:4},{min:60,label:'A-',point:3.5},{min:50,label:'B',point:3.25},{min:40,label:'C',point:2},{min:33,label:'D',point:1},{min:0,label:'F',point:0}],
+    });
+    await CenterExamResult.create({
+      exam:resultExam._id,student:payer._id,classGroup:group._id,
+      marks:[{subject:resultExam.subjects[0]._id,obtained:80,absent:false},{subject:resultExam.subjects[1]._id,obtained:40,absent:false}],
+      total:120,fullTotal:150,percentage:80,grade:'A+',point:5,position:1,
+    });
     const batchesBefore=await CenterSmsBatch.countDocuments();
-    const noBatch=await autoSendClassResults({exam:'synthetic-exam',classGroup:String(group._id)},{now,provider:noBalanceProvider().provider});
+    const noBatch=await autoSendClassResults({exam:String(resultExam._id),classGroup:String(group._id)},{now,provider:noBalanceProvider().provider});
     assert.equal(noBatch.attempted,true);
     assert.equal(noBatch.failed,true);
     assert.ok(noBatch.problem);
@@ -220,6 +234,14 @@ async function run(){
     assert.equal(await CenterSmsBatch.countDocuments(),batchesBefore+1,'exactly one new batch');
     assert.ok(rerun.sent>=1,'the result messages went out this time');
     assert.equal(await CenterSmsLog.countDocuments({status:'sent',templateKey:'exam_result'})>=1,true);
+    /* The retried send rebuilt the message from the stored rows, so it still quotes that one child — the
+       point of the whole exercise, since a result message cannot be un-sent once it is wrong. */
+    const resultMessage=(await CenterSmsLog.findOne({status:'sent',templateKey:'exam_result'}).lean()).message;
+    assert.match(resultMessage,/রসিদ শিক্ষার্থী/,'naming the child it is about');
+    assert.match(resultMessage,/বাংলা ৮০, গণিত ৪০/,'with their own subject marks');
+    assert.match(resultMessage,/মোট ১২০\/১৫০/,'their own total against the exam’s full mark');
+    assert.match(resultMessage,/অবস্থান ১/,'and their own position — all in Bangla digits');
+    assert.equal(/\{\w+\}/.test(resultMessage),false,'with no chip left standing in it');
     assert.equal((await autoSmsProblems()).count,0,'and the card is empty again');
     assert.equal(await CenterSmsAutoProblem.countDocuments({resolved:true}),2,'both problems stay on record, resolved');
 
@@ -235,6 +257,21 @@ async function run(){
     assert.equal((await autoSmsProblems()).count,0,'so neither shows up as a problem');
     assert.equal(await CenterSmsBatch.countDocuments({status:'queued'}),1,'the queued batch is real and will go out at the flush');
     await CenterSettings.updateOne({key:'main'},{$set:{quietStart:'00:00',quietEnd:'00:00'}});
+    /* Nor is an exam with nothing to report a problem. A draft has no positions yet, and a class inside a
+       multi-class exam can have no rows of its own: either way there is nothing to send and nothing broken,
+       so the operator gets no card and the provider is never even asked for a balance. */
+    const draftExam=await CenterExam.create({
+      name:{bn:'খসড়া পরীক্ষা'},type:'class_test',date:`${today.year}-${String(today.month).padStart(2,'0')}-18`,status:'draft',classGroups:[group._id],
+      subjects:[{name:{bn:'বাংলা'},fullMarks:100,passMarks:33}],gradeBands:[{min:0,label:'F',point:0},{min:33,label:'D',point:1}],
+    });
+    const drafter=fakeProvider();
+    const batchesBeforeDraft=await CenterSmsBatch.countDocuments();
+    const noResults=await autoSendClassResults({exam:String(draftExam._id),classGroup:String(group._id)},{now,provider:drafter.provider});
+    assert.equal(noResults.attempted,true);
+    assert.equal(noResults.reason,'no results','an unpublished exam has no positions to quote');
+    assert.equal(noResults.failed,undefined,'which is not a failure');
+    assert.equal(drafter.itemCount(),0,'and nothing was asked of the provider');
+    assert.equal(await CenterSmsBatch.countDocuments(),batchesBeforeDraft,'so no batch was written for it either');
 
     // ---- 8. Every trigger has its own words, and a credential never reaches the operator.
     for(const trigger of ['auto_receipt','auto_due','auto_result']){

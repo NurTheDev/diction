@@ -13,13 +13,17 @@ function run(){
     pending_reminder:'ডিকশন কোচিং: {student_name} এর {month} মাসের {amount} টাকা আগামী {due_date} তারিখের মধ্যে দিলে ভালো হয়। ধন্যবাদ।',
     visitor_thanks:'ডিকশন কোচিং-এ আসার জন্য ধন্যবাদ। ভর্তি সংক্রান্ত তথ্যের জন্য যোগাযোগ করুন: {institute_phone}',
     teacher_opening:'ডিকশন কোচিং: আমাদের {subject} বিষয়ে শিক্ষক প্রয়োজন। আগ্রহী হলে যোগাযোগ করুন: {institute_phone}',
+    /* R5's spec fixes this sentence too, and it is the one a family reads on the day a result is
+       published: the exam, the subject-wise marks, the total and the position — not "log in to the
+       portal", which tells a parent nothing about the child. */
+    exam_result:'ডিকশন কোচিং: {student_name} এর {exam} ফলাফল: {marks}। মোট {total}, অবস্থান {rank}।',
   };
   for(const [key,body] of Object.entries(expected)){
     assert.equal(defaultTemplate(key)?.body,body,`the ${key} default must match the spec wording`);
   }
 
   // 2. Every chip the dialog offers is a real variable, and every default only uses known chips.
-  assert.deepEqual([...SMS_VARIABLES],['student_name','class','month','due_amount','receipt_no','amount','due_date','institute_phone','subject']);
+  assert.deepEqual([...SMS_VARIABLES],['student_name','class','month','due_amount','receipt_no','amount','due_date','institute_phone','subject','exam','marks','total','rank']);
   for(const template of SMS_TEMPLATE_DEFAULTS){
     assert.equal(hasUnknownChip(template.body),false,`${template.key} must not contain an unknown chip`);
     for(const variable of template.variables)assert.ok(SMS_VARIABLES.includes(variable),`${template.key} lists an unknown variable`);
@@ -35,6 +39,8 @@ function run(){
 
   // 4. Chips in first-appearance order, deduped, restricted to the known set.
   assert.deepEqual(templateVariablesOf('{month} {student_name} {month} {bogus}'),['month','student_name']);
+  assert.deepEqual(templateVariablesOf(defaultTemplate('exam_result')!.body),['student_name','exam','marks','total','rank'],
+    'and the result sentence uses exactly the chips the spec names, in its order');
   assert.deepEqual(templateVariablesOf('no chips here'),[]);
 
   // 5. Fee-relatedness drives the held-student rule, so it must be declared per template.
@@ -48,7 +54,7 @@ function run(){
   // 6. Auto-send is offered for exactly three templates, and the spec ships every toggle OFF.
   assert.deepEqual(SMS_TEMPLATE_DEFAULTS.filter(t=>t.autoSendKey).map(t=>t.autoSendKey).sort(),['autoDue','autoReceipt','autoResult']);
 
-  console.log('SMS templates: the five spec bodies match byte-for-byte, chips substitute without inventing values, an unknown chip stays visible, and fee-relatedness and auto-send keys are declared per template.');
+  console.log('SMS templates: the six spec bodies match byte-for-byte, chips substitute without inventing values, an unknown chip stays visible, and fee-relatedness and auto-send keys are declared per template.');
 }
 
 run();

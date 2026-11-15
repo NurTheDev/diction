@@ -81,7 +81,7 @@ stack trace (`tests/helpers/env-preflight.ts`).
 | Legacy fee **conversion/migration** | **missing** | No conversion code (searched `poisha`, `convertLegacy`, `LegacyFee`). Only the experimental identity link (`CENTER_LEGACY_LINK_ENABLED`, off by default). |
 | Portal linking for Center students/guardians | **missing** | `/parent/*` reads the legacy `Student`/`FeeInvoice`/`FeePayment` models only. No page outside `/admin` reads `CenterStudent` or `CenterPayment`. |
 | "ভর্তি সম্পন্ন" creates a student | **missing** | `ভর্তি সম্পন্ন` is only a status **label** (`admin.enrolled`, `forms.statusEnrolled`). `CenterStudent` is created by the student form, the import batch or the workbook batch — never from an admission. |
-| Exams (create, subjects, marks, ranking, publish) | **working (R5 slice 1)** | ran today (`tests/exam-rules.test.ts`, `tests/exam-grid.test.ts`, `tests/staff-role.test.ts`, catalog) + the browser flow and the database flow are CI-proven (§17): one exam over several classes, a keyboard-first marks grid with autosave, Excel paste, CSV/XLSX import with a preview, absence, per-class positions with ties, publish **and unpublish**, saved grading scales with GPA points, teacher scoping by assigned class, and a teacher screen with no payment data in it. The write gate is **retired** — exam writes are a normal feature (§17). Still owed by R5 slice 2: the result SMS, the student's result history and improvement chart, the portal Results tab, and the optional report-card PDF. |
+| Exams (create, subjects, marks, ranking, publish) | **working (R5 slice 1 + slice 2's result SMS)** | ran today (`tests/exam-rules.test.ts`, `tests/exam-grid.test.ts`, `tests/exam-result-message.test.ts`, `tests/staff-role.test.ts`, catalog) + the browser flow and the database flow are CI-proven (§17): one exam over several classes, a keyboard-first marks grid with autosave, Excel paste, CSV/XLSX import with a preview, absence, per-class positions with ties, publish **and unpublish**, saved grading scales with GPA points, teacher scoping by assigned class, and a teacher screen with no payment data in it. The write gate is **retired** — exam writes are a normal feature (§17). Slice 2's result SMS now sends the spec's own sentence with each child's own marks, total and position, and sends nothing at all to a family whose child was absent (§18). Still owed by R5 slice 2: the student's result history and improvement chart, the portal Results tab, and the optional report-card PDF. |
 | SMS | partial | A low-level BulkSMSBD adapter + segment estimator exist and are unit-tested, gated off. **No** queue, UI, templates UI, opt-out/quiet-hours, idempotency, logs page or balance → R2. Models `CenterSmsTemplate/Batch/Log` and `CenterSettings` already exist. |
 | Visitor leads | **missing** | → R3. |
 | Teacher CV bank | **missing** | → R4. |
@@ -865,3 +865,63 @@ overflows by 48px" is a CSS question and a screenshot does not answer it.
 the way there and only in CI, because five of the seven need a browser or a database and the other two need
 both: the scope wall above, digits inside translated sentences, the summary that counted marks and called
 them students, the scale recompute, the missing provider, and the two layout faults.
+
+## 18. R5 slice 2 — the result SMS (code complete, awaiting its CI run)
+
+**What was missing was not the send.** `exam_result` has existed since R2 with the right purpose,
+`feeRelated:false` — so a held family still learns a result, a decision `sms-recipients.ts` makes from the
+template's own flag — and `autoSendKey:'autoResult'`; and since R5 slice 1 `publishExamAction` has called
+`autoSendClassResults` once per class of the exam, best-effort inside a `try`, so a send that fails never
+turns a published exam back into a draft. What it would have sent was the R2 body: the result is published,
+log in to the portal for details, contact `{institute_phone}`. True, and useless to the person it was for.
+§R5 of `docs/SPEC.md` fixes the sentence a family reads on result day, and that sentence names the child's
+marks, their total and their position — three numbers for which no chip existed, so the spec's wording could
+not be shipped until the chips did and something filled them.
+
+**Four new chips, all per student.** `SMS_VARIABLES` gains `exam`, `marks`, `total` and `rank`, and the
+default body is now the spec's sentence byte-for-byte with `variables` naming all five. "Per student" is the
+part that decides the design: a result message quoting the class's numbers would be worse than no message, so
+the values travel on the candidate rather than as class-wide `globalValues`, through
+`SmsCandidateStudent.values`, which `resolveRecipients` already merges under `student_name`. One consequence
+falls out for free and is now asserted: two siblings on one guardian number get **one message each**, because
+`mergeValues` refuses to merge a chip whose value differs between them — their marks are not one sentence.
+
+**`src/lib/exams/result-message.ts` builds the four strings, purely.** Given the exam name, the exam's own
+subject list and one result row's marks, total, full total and position, it returns the values or `null`.
+Three of its rules are why it is a module rather than a line in the sender: a subject the child did not sit
+reads as a dash and not as a zero, because a zero claims they sat and scored nothing, while a genuine zero
+stays a zero; subjects are listed in the exam's own order however the marks were stored, and a mark for a
+subject this exam does not have is left out; and nothing re-ranks — a tie reads as the position publishing
+wrote, since a message that disagreed with the result table would be a second and worse bug. Numbers go
+through `formatNumber(value,'bn')`, the same helper every screen uses, so an SMS and a result table cannot
+disagree about a total.
+
+**A child with nothing to report is sent nothing.** `resultMessage` returns `null` for an absent row, for a
+row whose every subject is absent, for a row publishing has not ranked, for an exam with no name or no
+subjects, and for a row with no stored total. `resultMessagesForExam` — in `exam-view.ts`, beside the other
+reads of stored results — leaves those rows out, the candidate keeps no values, and `buildSmsPlan` skips them
+as `missing_value`: counted on the batch, with the reason the operator reads there. The alternative was
+texting the family of a child who never sat that the child's total was 0 out of 150. A class with no results
+of its own — a draft exam, or one class of a multi-class exam — answers `no results` and raises no problem
+card, because nothing is broken and `publishCenterExam` already refuses an exam with no results anywhere.
+
+**Proofs.** `tests/exam-result-message.test.ts` (new, pure, `npm run test:exam:result` and part of
+`test:exams`) renders the values through the shipped template and the shipped renderer and compares what comes
+out with the spec's wording byte-for-byte, then checks the coverage fact that actually protects an operator:
+every chip of the shipped body except `student_name` — which `resolveRecipients` fills — is a key of these
+values, and no value is invented. It is asserted against the template rather than a list, so a wording change
+in the catalog fails here instead of in front of a family. The two database suites that already drove this
+send now seed a real published exam: the dialog contract asserts the exact sentence five families receive,
+including the sibling pair on one number, that the absent child is on the batch as a `missing_value` skip and
+not as a message, and that a result message carries no chip and no word about money; the problems suite
+asserts that a retried send still quotes that one child's own marks and position, and that a draft exam is
+not a problem. Registered as **R5.5**, so the registry holds 56 requirements; R2.2's "five default bodies" is
+corrected to six, and R2.8 and R2.9 each gained a clause in both languages for what their suites now prove.
+
+**One deviation from the spec, recorded rather than papered over.** §R5 says publishing *prompts* "Send
+result SMS now?". It does not. R2 built this as a settings toggle — `autoResult`, OFF by default, on the SMS
+page — which publishing honours, and R5 kept that shape, so the operator's decision is made once in advance
+and a publish does not stop to ask. The failure mode that decision creates is exactly why
+`CenterSmsAutoProblem` exists: an automatic send nobody watched has to store its own failure, and it does,
+naming the exam and the class. **Still owed in slice 2:** the student's result history and improvement chart,
+the portal Results tab for a linked student, and the optional on-demand report-card PDF.

@@ -53,19 +53,33 @@ the portal home. A teacher sees only assigned classes, and their exam view is bu
 never selects fee history, dues, receipts, cash or guardian numbers — asserted both by serializing the
 view a teacher receives and by reading the painted screen.
 
-Still **not** delivered, and not to be inferred from the schema: result SMS delivery, the student's
-result history and improvement chart, the portal Results tab for a linked student, and any report-card
-PDF (R5 slice 2). Names and classes still come from the current roster, not a historical snapshot; the
+Publishing can now tell a family the result. The `exam_result` template's default body is the spec's own
+sentence, and its four per-student chips — the exam, that child's subject-wise marks, their total against the
+exam's full mark, and their position — are filled from the rows publishing wrote, so every message quotes one
+child: siblings sharing a guardian number get one message each, because their marks are not one sentence. A
+child who was absent, or whom publishing has not ranked, is counted on the batch as incomplete and sent
+nothing, rather than texted a total of zero. The send stays behind the `autoResult` toggle, OFF by default,
+and a failure lands on the Automatic-SMS problems card instead of failing the publish. The deviation is worth
+naming: §R5 of the spec asks for a "Send result SMS now?" prompt at publish time, and what exists is that
+toggle honoured by publishing — the decision is made once, in advance, on the SMS page.
+
+Still **not** delivered, and not to be inferred from the schema: the student's result history and
+improvement chart, the portal Results tab for a linked student, and any report-card PDF (the rest of R5
+slice 2). Names and classes still come from the current roster, not a historical snapshot; the
 500-student cap still fails closed; publication remains internal to this admin module and is not a
 public release. No real exam results, real workbooks or external services were used — the proofs are
 synthetic and labelled নমুনা.
 
-Synthetic tests: `tests/exam-rules.test.ts` and `tests/exam-grid.test.ts` (no database, over a real CSV
-and a real XLSX built in the suite), `tests/exam-flow.integration.ts` (disposable database: scope,
+Synthetic tests: `tests/exam-rules.test.ts`, `tests/exam-grid.test.ts` (no database, over a real CSV
+and a real XLSX built in the suite) and `tests/exam-result-message.test.ts` (no database: the result SMS
+rendered through the shipped template and renderer, and what gets no message at all), `tests/exam-flow.integration.ts` (disposable database: scope,
 batched marks with stale and refused rows named, absence, per-class positions, publish/unpublish,
 subject and class locks, recomputed grades, two concurrent saves settling as one write, and the
 payment-free teacher view) and `tests/center-exams-browser.integration.ts` (driven in the browser at
-360 px and 1440 px in both languages, photographed into `screenshots/r5/`).
+360 px and 1440 px in both languages, photographed into `screenshots/r5/`). The result send itself is proved
+where the send already was: `tests/sms-dialog.integration.ts` seeds a published exam and asserts the exact
+sentence each family receives, and `tests/sms-auto-problem.integration.ts` asserts that a retried send still
+quotes that child's own numbers and that an exam with nothing to report is not a problem.
 `tests/center-exam-batch.integration.ts` is deleted: it asserted the pre-R5 signatures, and its two
 claims nothing else made — the concurrent-save race and the student revision counter — moved into
 `tests/exam-flow.integration.ts`. `tests/center-exam-marks.test.ts` remains, because
