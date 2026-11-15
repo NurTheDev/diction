@@ -253,8 +253,13 @@ async function run(){
       assert.equal(await teacherBn.page.locator('[data-reports-hub],[data-daily-report],[data-monthly-matrix],[data-receipt-audit],[data-year-report],[data-ledger-statement]').count(),0,
         `a teacher reads nothing at ${href}`);
     }
-    const teacherExport=await teacherBn.context.request.get(origin+'/bn/admin/reports/export?kind=daily&date=2026-02-10&format=csv');
-    assert.equal(teacherExport.status(),403,'and the export door says no to a teacher');
+    /* Two doors, one wall: the middleware bounces a signed-in teacher off every /admin address with a
+       redirect, and the route's own guard answers 403 if anything ever reaches it. Either way the
+       teacher's client never holds a file. */
+    const teacherExport=await teacherBn.context.request.get(origin+'/bn/admin/reports/export?kind=daily&date=2026-02-10&format=csv',{maxRedirects:0});
+    const status=teacherExport.status();
+    assert.ok(status===403||(status>=300&&status<400),`the export door turns a teacher away before or at the threshold, got ${status}`);
+    assert.ok(!(teacherExport.headers()['content-type']||'').includes('text/csv'),'and whatever answered, it answered with no file');
     await goto(staffBn.page,'/bn/admin/reports/daily?date=2026-02-10');
     assert.equal(await staffBn.page.locator('[data-daily-row]').count(),3,'the accountant at the desk reads the day');
 
