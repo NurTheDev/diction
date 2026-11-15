@@ -573,15 +573,20 @@ async function run(){
        The account box in the top bar is the same case one level up — it holds the signed-in person's
        own name, and this fixture is named in Bangla on purpose because the Bangla steps read that name
        off the screen. So the chrome is swept line by line with that one box subtracted, rather than the
-       fixture being renamed to suit the assertion; a Bangla line anywhere else in the chrome still
-       fails, which is the whole point of the sweep. */
+       fixture being renamed to suit the assertion; a Bangla word anywhere else in the chrome still
+       fails, which is the whole point of the sweep. The desk header paints that box on the same line as
+       the breadcrumb and the rest of the bar, so what is subtracted is the box's own words rather than
+       its lines — subtracting a line would leave the name inside a longer one. */
     /* The desk copy, by name: since R8 slice 1 the shell paints the same header twice, once in the phone
        bar and once over the content, and a hidden copy reports its text without the line breaks the
        visible one has — so subtracting it would subtract the wrong lines. This reads the box the sweep
        itself reads. */
-    const accountLines=(await english.page.locator('.admin-main .admin-user-menu summary').innerText()).split('\n').map(line=>line.trim());
+    const accountWords=(await english.page.locator('.admin-main .admin-user-menu summary').innerText())
+      .split(/\s+/).map(word=>word.trim()).filter(word=>word.length>1);
     const chromeBangla=(await english.page.locator('.admin-top,.admin-nav,.admin-panel-head,.admin-heading,.admin-table thead').allInnerTexts())
-      .flatMap(text=>text.split('\n')).map(line=>line.trim()).filter(line=>BN.test(line)&&!accountLines.includes(line));
+      .flatMap(text=>text.split('\n'))
+      .map(line=>accountWords.reduce((line,word)=>line.split(word).join(' '),line).replace(/\s+/g,' ').trim())
+      .filter(line=>BN.test(line));
     assert.deepEqual(chromeBangla,[],'the English exam list paints no Bangla in its chrome');
     assert.equal((await english.page.locator('[data-exam-filters] [name=type] option').allInnerTexts())[1],en_t.typeLabels.monthly,'and the type filter reads as English');
     assert.equal(await english.page.locator('[data-exam-status="draft"]').first().innerText(),en_t.status.draft,'and a status reads as English');

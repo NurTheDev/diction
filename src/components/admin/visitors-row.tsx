@@ -38,6 +38,7 @@ import {ArchiveRow} from './archive-row';
 import {canArchiveKind} from '@/lib/admin/recycle-kinds';
 import {DeleteRow} from './delete-row';
 import {formatClass,inDigits,type Digits} from '@/lib/admin/format';
+import {dhakaDay} from '@/lib/admin/today';
 
 type Language='bn'|'en';
 
@@ -90,10 +91,13 @@ export function FollowUpChip({row,digits,language}:{row:LeadRowView;digits:Digit
     if(!row.nextFollowUp)return <span className="lead-chip none" data-follow-chip="none">{t('row.noFollow')}</span>;
     if(row.followUp==='today')return <span className="lead-chip today" data-follow-chip="today">{t('row.today')}</span>;
     if(row.followUp==='overdue'){
-      const days=Math.max(1,Math.round((Date.now()-new Date(`${row.nextFollowUp}T12:00:00Z`).getTime())/86400000));
+      /* Noon in Dhaka anchors the count to the operator's own day, the day the record was written in. */
+      const days=Math.max(1,Math.round((Date.now()-new Date(`${row.nextFollowUp}T12:00:00+06:00`).getTime())/86400000));
       return <span className="lead-chip overdue" data-follow-chip="overdue">{t('row.overdueDays',inDigits(digits)({count:days}))}</span>;
     }
-    const tomorrow=new Date(Date.now()+86400000).toISOString().slice(0,10);
+    /* Dhaka's tomorrow, not UTC's: the rule layer writes the day in Asia/Dhaka, so a chip that compared
+       it with a UTC date would call the same day "later" for six hours every evening. */
+    const tomorrow=dhakaDay(new Date(Date.now()+86400000));
     return row.nextFollowUp===tomorrow
       ?<span className="lead-chip later" data-follow-chip="tomorrow">{t('row.tomorrow')}</span>
       :<span className="lead-chip later" data-follow-chip="later">{shortDate(row.nextFollowUp,digits,language)}</span>;

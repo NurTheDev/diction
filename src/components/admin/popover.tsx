@@ -7,9 +7,11 @@
  * follow-up promised for a Dhaka day can be read back as a different day than the one that was picked.
  * The calendar here is ours: it names its months and its weekday headers through `Intl` in the
  * account's language — no hardcoded Bangla anywhere in src/ — reads a picked day back as dd/mm/yyyy in
- * the operator's digits or as "15 Nov 2026", and closes on Escape or a click outside.
+ * the operator's digits or as "15 Nov 2026", opens on Dhaka's own month and rings Dhaka's own today, and
+ * closes on Escape or a click outside.
  */
 import {useEffect,useRef,useState,type ReactNode} from 'react';
+import {dhakaDay} from '@/lib/admin/today';
 import {formatDigits,formatNumber,type Digits} from '@/lib/admin/format';
 
 type Language='bn'|'en';
@@ -87,8 +89,13 @@ export function shortDate(iso:string,digits:Digits,language:Language):string{
 
 /** The calendar popover: month grid, today ringed, `‹ ›` for the months, one tap picks a day. */
 export function DatePopover({onPick,digits,language,label}:{onPick:(iso:string)=>void;digits:Digits;language:Language;label:ReactNode}){
-  const now=new Date();
-  const [cursor,setCursor]=useState({year:now.getFullYear(),month:now.getMonth()+1});
+  /* Dhaka's own day, not the machine's: the operator's midnight is six hours ahead of UTC, so a calendar
+     built from `new Date()` rings yesterday's date for six hours every evening — and near a month's end
+     it opens on the wrong month. `dhakaDay` is what the rule layer stores a follow-up with, so the
+     calendar and the record agree about when "today" is. */
+  const today=dhakaDay();
+  const todayYear=Number(today.slice(0,4)),todayMonth=Number(today.slice(5,7)),todayDay=Number(today.slice(8,10));
+  const [cursor,setCursor]=useState({year:todayYear,month:todayMonth});
   const first=new Date(Date.UTC(cursor.year,cursor.month-1,1)).getUTCDay();
   const length=new Date(Date.UTC(cursor.year,cursor.month,0)).getUTCDate();
   const iso=(day:number)=>`${cursor.year}-${String(cursor.month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
@@ -105,9 +112,9 @@ export function DatePopover({onPick,digits,language,label}:{onPick:(iso:string)=
         {dayHeaders(language).map((head,index)=><span key={`${head}${index}`} className="pop-cal-dayhead" role="columnheader">{head}</span>)}
         {Array.from({length:first},(_,index)=><span key={`pad${index}`}/>)}
         {Array.from({length:length},(_,index)=>index+1).map(day=>{
-          const today=day===now.getDate()&&cursor.month===now.getMonth()+1&&cursor.year===now.getFullYear();
+          const isToday=day===todayDay&&cursor.month===todayMonth&&cursor.year===todayYear;
           return <button key={day} type="button" role="gridcell" data-cal-day={iso(day)}
-            className={today?'pop-cal-day today':'pop-cal-day'} aria-current={today?'date':undefined}
+            className={isToday?'pop-cal-day today':'pop-cal-day'} aria-current={isToday?'date':undefined}
             onClick={()=>{onPick(iso(day));close()}}>{formatNumber(day,digits)}</button>;
         })}
       </div>
