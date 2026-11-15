@@ -22,7 +22,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import bnMessages from '../src/messages/bn.json';
 import enMessages from '../src/messages/en.json';
-import {SERVER_ONLY_NAMESPACES} from '../src/i18n/client-namespaces';
+import {PUBLIC_NAMESPACES,SERVER_ONLY_NAMESPACES} from '../src/i18n/client-namespaces';
 
 type Catalog=Record<string,unknown>;
 const BN=/[\u0980-\u09ff]/;
@@ -282,6 +282,9 @@ const coverageOf=(file:string):{wide:boolean;groups:Set<string>}|undefined=>{
   if(!PROVIDER.test(text))return {wide:false,groups:new Set()};
   if(/clientMessages\(/.test(text))return {wide:true,groups:new Set()};
   const groups=new Set<string>();
+  // `pickedMessages(messages,PUBLIC_NAMESPACES)` names a list the module owns; read it from the module
+  // rather than parsing an import, so the suite and the layout cannot disagree about what is in it.
+  if(/pickedMessages\([^,]+,\s*PUBLIC_NAMESPACES\s*\)/.test(text))for(const group of PUBLIC_NAMESPACES)groups.add(group);
   // `pickedMessages(await getMessages(),['exams'])` names its groups in an array literal.
   for(const match of text.matchAll(/pickedMessages\([^,]+,\s*\[([^\]]*)\]/g)){
     for(const name of match[1].matchAll(/'([^']+)'/g)){
@@ -331,32 +334,37 @@ for(const page of pages){
     uncovered.push(`${page} renders a client component reading '${group}', which no provider above it ships`);
   }
 }
-assert.deepEqual(unreadProviders.sort(),[],'every provider in src/app ships messages in a shape this suite can read');
-/* Twelve routes paint key paths today, and not one of them is R5's: the student and parent fee screens
-   read `center`, the materials and notices screens of all three portal trees read `adminWork`, and the two
-   practice screens read `practicePublic`. None is in the public layout's list, and the fix is not one line
-   there either — `center` holds the dues vocabulary that the wall around a teacher's eyes exists to keep
-   off a teacher's screen, so it may be shipped into the student and parent trees and never into the
-   teacher one. That is a per-tree provider, which is its own slice of work; named here so the list can
-   only shrink, in both directions: a route that stops being uncovered has to be struck off, and a new one
-   fails. */
+assert.deepEqual([...new Set(unreadProviders)].sort(),[],'every provider in src/app ships messages in a shape this suite can read');
+/* Ten routes are left on this list, and what is true of them is narrower than "broken screen". Each one
+   imports an admin control that a role gate then never mounts: the student and parent fee screens pull in
+   the invoice form and its student-search picker (`center`) behind `{role==='admin'&&…}`, and the materials
+   and notices screens of all three portal trees pull in the publish and delete controls (`adminWork`,
+   through `DeleteRow`) behind `{isAdmin&&…}`. So no key path paints on them — the check that matters, and
+   the reason the two practice screens that WERE on this list are now off it, is that those rendered their
+   client component unconditionally and really did paint `practicePublic.exam.start` in production.
+
+   What the ten do cost is the bundle: an admin control, and the catalog group it reads, ride along in the
+   JavaScript of a student's fee screen and a teacher's materials screen. The fix is to split the portal
+   component from the admin control that only an admin mounts — and NOT to ship the group, which is the
+   tempting one-line answer and the wrong one: `center` holds the dues vocabulary that the wall around a
+   teacher's eyes exists to keep off a teacher's screen, so it may be shipped to an admin and never into the
+   teacher, student or parent trees. Named here so the list can only shrink, in both directions: a route
+   that stops being uncovered has to be struck off, and a new one fails. */
 const KNOWN_UNCOVERED_ROUTES=[
   'src/app/[locale]/dashboard/fees/[id]/page.tsx',
   'src/app/[locale]/dashboard/fees/page.tsx',
   'src/app/[locale]/dashboard/materials/page.tsx',
   'src/app/[locale]/dashboard/notices/page.tsx',
-  'src/app/[locale]/dashboard/practice-history/page.tsx',
   'src/app/[locale]/parent/fees/[id]/page.tsx',
   'src/app/[locale]/parent/fees/page.tsx',
   'src/app/[locale]/parent/materials/page.tsx',
   'src/app/[locale]/parent/notices/page.tsx',
-  'src/app/[locale]/practice-tests/[slug]/page.tsx',
   'src/app/[locale]/teacher/materials/page.tsx',
   'src/app/[locale]/teacher/notices/page.tsx',
 ].map(route=>route.split('/').join(path.sep));
 const stillUncovered=(route:string):boolean=>uncovered.some(entry=>entry.startsWith(route));
 assert.deepEqual(uncovered.filter(entry=>!KNOWN_UNCOVERED_ROUTES.some(route=>entry.startsWith(route))).sort(),[],
-  'every page hands its client components the catalog group they read, apart from the routes named as debt');
+  'every page hands its client components the catalog group they read, apart from the admin controls named as debt');
 assert.deepEqual(KNOWN_UNCOVERED_ROUTES.filter(route=>!stillUncovered(route)).sort(),[],
   'every route on the debt list is still uncovered — strike it off the moment it is fixed');
 console.log(`Provider chain: ${pages.length} pages walked against the layouts above them; every group a client component reads is shipped by the route that renders it, apart from ${KNOWN_UNCOVERED_ROUTES.length} named as debt.`);

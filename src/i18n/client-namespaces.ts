@@ -30,6 +30,19 @@ export function pickedMessages<T extends Record<string,unknown>>(messages:T,pick
   return out as T;
 }
 
+/**
+ * The groups the public site's own client components read — the header, the course and editorial screens,
+ * the study and practice tools, the public forms. `src/app/[locale]/layout.tsx` ships exactly these and
+ * nothing else, so a public page carries no admin copy in its payload, and a portal tree that needs one
+ * more group says so on its own page rather than widening every address on the site.
+ *
+ * `practicePublic` is here because the two screens that read it are public: `/practice-tests/[slug]` needs
+ * no session at all, and the practice history in the student dashboard renders the same client component.
+ * It is two keys, and until it was shipped both screens painted `practicePublic.exam.start` where a
+ * sentence belongs — a defect no build, type check or server test can see.
+ */
+export const PUBLIC_NAMESPACES=['nav','pages','quickChat','courseCms','channelVideo','editorial','forms','recovery','study','academic','modelTest','fees','portalNotices','materials','common','splash','publicPages','practicePublic'] as const;
+
 /** Drop the groups no client component can read, keeping every other group exactly as it is. */
 export function clientMessages<T extends Record<string,unknown>>(messages:T):T{
   const out:Record<string,unknown>={};

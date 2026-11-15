@@ -80,9 +80,18 @@ subject id is an ObjectId, a marks grid on the portal that painted catalog key p
 it shipped its group, and two screens that scrolled sideways at 360px.
 
 One of those is bigger than R5 and is recorded here so it is not lost: the catalog suite now checks that every
-page hands its client components the group they read, and **twelve portal routes fail that today** — the
-student and parent fee screens (`center`), the materials and notices screens of the student, parent and
-teacher trees (`adminWork`), and the two practice screens (`practicePublic`). Those screens paint key paths
-instead of sentences in production. They are named as debt inside `tests/i18n-catalog.test.ts`, which fails if
-the list grows and fails if a fixed route is left on it. The fix is a provider per portal tree, not one line in
-the public layout: `center` holds the dues vocabulary and may be shipped to a student and never to a teacher.
+page hands its client components the group they read, and it found two screens that were broken the same way
+as the teacher's grid: `/practice-tests/[slug]` and the student's practice history rendered a client component
+reading `practicePublic`, which nothing shipped, so both painted key paths instead of sentences in production.
+Both are fixed — `practicePublic` is two keys and the first route is public, so it joined `PUBLIC_NAMESPACES`,
+the list the root layout now reads from `src/i18n/client-namespaces.ts` rather than holding its own copy.
+
+The same check names **ten routes as debt**, and the debt is narrower than a broken screen: each imports an
+admin control that a role gate never mounts — the student and parent fee screens pull in the invoice form and
+its student-search picker (`center`) behind `{role==='admin'&&…}`, and the materials and notices screens of all
+three portal trees pull in the publish and delete controls (`adminWork`) behind `{isAdmin&&…}`. Nothing paints;
+what it costs is an admin control and its catalog group riding in the JavaScript of a student's fee screen.
+`tests/i18n-catalog.test.ts` fails if that list grows and fails if a fixed route is left on it. The fix is to
+split the portal component from the control only an admin mounts — and **not** to ship the group, which is the
+tempting one-line answer and the wrong one: `center` holds the dues vocabulary and may be shipped to an admin
+and never into the teacher, student or parent trees.

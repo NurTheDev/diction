@@ -829,12 +829,25 @@ include the dues vocabulary that wall is built to keep off that screen.
 
 **And the check that should have existed with it.** `tests/i18n-catalog.test.ts` now walks every page against
 the layouts above it, follows its imports to the client components it renders, and fails when a group they
-read is shipped by no provider in that chain. It found the teacher's grid and **eleven more routes that paint
-key paths today**, none of them R5's: the student and parent fee screens read `center`, the materials and
-notices screens of all three portal trees read `adminWork`, and the two practice screens read `practicePublic`.
-Those twelve are named as debt inside the suite, in both directions — a route that stops being uncovered has
-to be struck off, and a new one fails. The fix is a provider per portal tree and not one line in the public
-layout, because `center` may be shipped to a student and never to a teacher.
+read is shipped by no provider in that chain. It found the teacher's grid and eleven more routes, none of them
+R5's, and following the imports split those eleven into two very different facts.
+
+Two were broken the same way the teacher's grid was: `/practice-tests/[slug]` and the student's practice
+history both render a client component that reads `practicePublic`, unconditionally, and no provider shipped
+it — so both painted `practicePublic.exam.start` where a sentence belongs. `practicePublic` is two keys and
+the first of those routes needs no session at all, so it joined `PUBLIC_NAMESPACES`, the list the root layout
+now reads from `src/i18n/client-namespaces.ts` instead of holding its own copy of.
+
+The other ten are not broken screens and the suite says so in those words: each one imports an admin control
+that a role gate then never mounts — the student and parent fee screens pull in the invoice form and its
+student-search picker (`center`) behind `{role==='admin'&&…}`, and the materials and notices screens of all
+three portal trees pull in the publish and delete controls (`adminWork`, through `DeleteRow`) behind
+`{isAdmin&&…}`. Nothing paints. What it costs is the bundle: an admin control and the catalog group it reads
+ride along in the JavaScript of a student's fee screen. Those ten are named as debt inside the suite, in both
+directions — a route that stops being uncovered has to be struck off, and a new one fails — and the fix is to
+split the portal component from the control only an admin mounts. It is **not** to ship the group, which is
+the tempting one-line answer and the wrong one: `center` holds the dues vocabulary that the wall around a
+teacher's eyes exists to keep off a teacher's screen.
 
 **Two responsive faults, both the same CSS fact.** A grid item's automatic minimum size is its content's own
 minimum, so the marks table — deliberately `min-width:max-content` so eight columns of Bangla headings stay
