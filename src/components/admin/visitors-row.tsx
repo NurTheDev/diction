@@ -26,7 +26,7 @@ import {
   markLeadUninterested,
 } from '@/actions/leads';
 import {
-  FOLLOW_UP_KEYS,LEAD_STATUS_OPTIONS,idleLeadForm,statusBadge,statusLabel,type LeadRowView,
+  FOLLOW_UP_KEYS,FOLLOW_UP_CLEAR,LEAD_STATUS_OPTIONS,idleLeadForm,statusBadge,statusLabel,type LeadRowView,
 } from '@/lib/leads/lead-ui';
 import type {LeadSmsKit} from '@/lib/leads/lead-sms';
 import {Popover,DatePopover,shortDate} from './popover';
@@ -37,7 +37,7 @@ import SmsDialogTrigger from './sms-dialog-trigger';
 import {ArchiveRow} from './archive-row';
 import {canArchiveKind} from '@/lib/admin/recycle-kinds';
 import {DeleteRow} from './delete-row';
-import {formatClass,type Digits} from '@/lib/admin/format';
+import {formatClass,inDigits,type Digits} from '@/lib/admin/format';
 
 type Language='bn'|'en';
 
@@ -57,17 +57,21 @@ export function StatusMenu({row}:{row:LeadRowView}){
   const [state,action]=useActionState(changeLeadStatus,null);
   useToast(state);
   return <span className="visitor-status-cell">
-    <form action={action} className="pop-form">
-      <input type="hidden" name="id" value={row.id}/>
+    <div className="pop-form">
       <Popover title={t('colStatus')} className="pop-status" label={
         <span className={`admin-badge ${statusBadge(row.status)}`} data-status-badge="">{statusLabel(t,row.status)}</span>}>
         {close=><div className="pop-menu" role="menu" data-status-menu="">
+          {/* Not `type="submit"` with `onClick={close}`: closing the menu detaches the button before the
+              browser runs the click's activation behaviour, so a submit button that shuts its own menu
+              never submits and the tap looks accepted while nothing is written. The item hands the
+              action its own FormData and then closes — the same way the calendar below picks a day. */}
           {LEAD_STATUS_OPTIONS.map(option=>option===row.status?null:
-            <button key={option} type="submit" name="status" value={option} role="menuitem" data-status-option={option} onClick={close}>
+            <button key={option} type="button" role="menuitem" data-status-option={option}
+              onClick={()=>{const form=new FormData();form.set('id',row.id);form.set('status',option);action(form);close();}}>
               <span className={`admin-badge ${statusBadge(option)}`}>{statusLabel(t,option)}</span></button>)}
         </div>}
       </Popover>
-    </form>
+    </div>
     {row.doNotContact&&<span className="admin-badge disabled" data-dnc="">{t('doNotContact')}</span>}
   </span>;
 }
@@ -87,28 +91,28 @@ export function FollowUpChip({row,digits,language}:{row:LeadRowView;digits:Digit
     if(row.followUp==='today')return <span className="lead-chip today" data-follow-chip="today">{t('row.today')}</span>;
     if(row.followUp==='overdue'){
       const days=Math.max(1,Math.round((Date.now()-new Date(`${row.nextFollowUp}T12:00:00Z`).getTime())/86400000));
-      return <span className="lead-chip overdue" data-follow-chip="overdue">{t('row.overdueDays',{count:days})}</span>;
+      return <span className="lead-chip overdue" data-follow-chip="overdue">{t('row.overdueDays',inDigits(digits)({count:days}))}</span>;
     }
     const tomorrow=new Date(Date.now()+86400000).toISOString().slice(0,10);
     return row.nextFollowUp===tomorrow
       ?<span className="lead-chip later" data-follow-chip="tomorrow">{t('row.tomorrow')}</span>
       :<span className="lead-chip later" data-follow-chip="later">{shortDate(row.nextFollowUp,digits,language)}</span>;
   };
-  return <form action={action} className="pop-form">
-    <input type="hidden" name="id" value={row.id}/>
+  return <div className="pop-form">
     <Popover title={t('colFollowUp')} className="pop-follow" label={chip()}>
       {close=><div className="pop-menu" role="menu" data-follow-menu="">
-        {FOLLOW_UP_KEYS.slice(0,4).map(key=><button key={key} type="submit" name="followUp" value={key} role="menuitem"
-          data-follow-option={key} onClick={close}>{followWord(t,key)}</button>)}
+        {FOLLOW_UP_KEYS.slice(0,4).map(key=><button key={key} type="button" role="menuitem" data-follow-option={key}
+          onClick={()=>{const form=new FormData();form.set('id',row.id);form.set('followUp',key);action(form);close();}}>{followWord(t,key)}</button>)}
         <DatePopover digits={digits} language={language} label={<span data-follow-pick="">{t('row.pickDate')}</span>}
           onPick={iso=>{
             const form=new FormData();form.set('id',row.id);form.set('followUp','custom');form.set('customDay',iso);
             action(form);close();
           }}/>
-        <button type="submit" name="followUp" value="clear" role="menuitem" data-follow-clear="" onClick={close}>{t('row.clear')}</button>
+        <button type="button" role="menuitem" data-follow-clear=""
+          onClick={()=>{const form=new FormData();form.set('id',row.id);form.set('followUp',FOLLOW_UP_CLEAR);action(form);close();}}>{t('row.clear')}</button>
       </div>}
     </Popover>
-  </form>;
+  </div>;
 }
 
 /** The ⋯ menu: the four things a row can become, a separator, then the destructive pair the role allows. */
@@ -144,11 +148,10 @@ export function RowMoreMenu({row,canDelete,canArchive,sms,language,drawer}:{
       {/* Lifting a block is rare, deliberate and only ever on a blocked row, so it is not one of the
           row's five visible controls — it belongs with the rest of what a row can become. The badge on
           the row is the warning; this is the way back. */}
-      {row.doNotContact&&<form action={liftAction} className="pop-item" data-more-allow="" onClick={event=>event.stopPropagation()}>
-        <input type="hidden" name="id" value={row.id}/>
-        <input type="hidden" name="allowed" value="true"/>
-        <button type="submit" role="menuitem" onClick={close}>{t('allowContact')}</button>
-      </form>}
+      {row.doNotContact&&<div className="pop-item" data-more-allow="" onClick={event=>event.stopPropagation()}>
+        <button type="button" role="menuitem"
+          onClick={()=>{const form=new FormData();form.set('id',row.id);form.set('allowed','true');liftAction(form);close();}}>{t('allowContact')}</button>
+      </div>}
       <hr className="pop-sep"/>
       {/* Delete is Admin and Super Admin; Archive is the floor every role that may write here has. */}
       {(archivable||canDelete)&&<div className="pop-item pop-destructive" role="menuitem" data-more-destructive="">
@@ -228,35 +231,41 @@ export function LeadBulkBar({canDelete,canArchive,digits,language}:{canDelete:bo
   useToast(statusState);useToast(followState);useToast(removeState);
   if(!sms||sms.picked.length===0)return null;
   const ids=sms.picked;
-  const hidden=(tag:string)=>ids.map(id=><input key={tag+id} type="hidden" name="ids" value={id}/>);
   return <div className="lead-bulk-bar" data-lead-bulk-bar="">
-    <strong data-bulk-count="">{t('row.bulkSelected',{count:ids.length})}</strong>
+    <strong data-bulk-count="">{t('row.bulkSelected',inDigits(digits)({count:ids.length}))}</strong>
     <button type="button" className="admin-mini-button" data-bulk-thanks="" onClick={sms.openSend}>
       <MessageSquare size={15} aria-hidden="true"/>{t('row.thanks')}
     </button>
-    <form action={statusAction} className="pop-form">{hidden('s')}
+    {/* Every item in a menu hands its action the FormData itself and then closes the menu. A submit
+        button that shuts its own menu is detached before the browser runs the click's activation
+        behaviour, so it never submits: the tap looks accepted and nothing is written. */}
+    <div className="pop-form">
       <Popover title={t('row.bulkStatus')} label={<span className="admin-mini-button" data-bulk-status="">{t('row.bulkStatus')}</span>}>
         {close=><div className="pop-menu" role="menu">
-          {LEAD_STATUS_OPTIONS.map(option=><button key={option} type="submit" name="status" value={option} role="menuitem"
-            data-bulk-status-option={option} onClick={close}>{statusLabel(t,option)}</button>)}
+          {LEAD_STATUS_OPTIONS.map(option=><button key={option} type="button" role="menuitem" data-bulk-status-option={option}
+            onClick={()=>{const form=new FormData();ids.forEach(id=>form.append('ids',id));form.set('status',option);statusAction(form);close();}}>{statusLabel(t,option)}</button>)}
         </div>}
       </Popover>
-    </form>
-    <form action={followAction} className="pop-form">{hidden('f')}
+    </div>
+    <div className="pop-form">
       <Popover title={t('row.bulkFollow')} label={<span className="admin-mini-button" data-bulk-follow="">{t('row.bulkFollow')}</span>}>
         {close=><div className="pop-menu" role="menu">
-          {FOLLOW_UP_KEYS.slice(0,4).map(key=><button key={key} type="submit" name="followUp" value={key} role="menuitem"
-            data-bulk-follow-option={key} onClick={close}>{followWord(t,key)}</button>)}
+          {FOLLOW_UP_KEYS.slice(0,4).map(key=><button key={key} type="button" role="menuitem" data-bulk-follow-option={key}
+            onClick={()=>{const form=new FormData();ids.forEach(id=>form.append('ids',id));form.set('followUp',key);followAction(form);close();}}>{followWord(t,key)}</button>)}
           <DatePopover digits={digits} language={language} label={<span>{t('row.pickDate')}</span>}
             onPick={iso=>{
               const form=new FormData();ids.forEach(id=>form.append('ids',id));form.set('followUp','custom');form.set('customDay',iso);
               followAction(form);close();
             }}/>
-          <button type="submit" name="followUp" value="clear" role="menuitem" onClick={close}>{t('row.clear')}</button>
+          <button type="button" role="menuitem" data-bulk-follow-clear=""
+            onClick={()=>{const form=new FormData();ids.forEach(id=>form.append('ids',id));form.set('followUp',FOLLOW_UP_CLEAR);followAction(form);close();}}>{t('row.clear')}</button>
         </div>}
       </Popover>
-    </form>
-    {(canDelete||canArchiveKind('lead'))&&<form action={removeAction} className="pop-form">{hidden('r')}
+    </div>
+        {/* The destructive verb is a real submit: it is not inside a menu that closes on the click, so the
+        form and its hidden ids carry the selection the way a form should. */}
+    {(canDelete||canArchiveKind('lead'))&&<form action={removeAction} className="pop-form">
+      {ids.map(id=><input key={id} type="hidden" name="ids" value={id}/>)}
       <button type="submit" className="admin-mini-button admin-danger-text" data-bulk-remove="">{canDelete?t('row.delete'):t('row.archive')}</button>
     </form>}
     <button type="button" className="admin-mini-button" data-bulk-clear="" onClick={()=>sms.selectPage(false)}>{t('row.clearSelection')}</button>
