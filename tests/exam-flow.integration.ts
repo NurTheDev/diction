@@ -203,11 +203,14 @@ async function run(){
     await unpublishCenterExam(created.id,String(owner._id));
     assert.equal((await CenterExam.findById(created.id).lean()).status,'draft');
     assert.equal(await CenterActivityLog.countDocuments({action:'exam.unpublish'}),1,'taking a result back is an act somebody can see was done');
-    /* Revision 2, because the teacher's own-class write above already moved this row once — a suite that
-       counts revisions is a suite that notices when a write it did not ask for lands. */
-    await saveCenterExamMarks({examId:created.id,studentId:String(a1._id),version:2,marks:marksOf(60,30)},String(teacherA._id));
-    assert.equal((await CenterExamResult.findOne({student:a1._id}).lean()).total,90,'and the marks move again');
-    assert.equal((await CenterExamResult.findOne({student:a1._id}).lean()).revision,3);
+    /* Version 0: this row was created at the top of the suite and every write aimed at it since was a
+       refusal — the stale one, the over-full one, the published one — so 0 is still what it holds. Naming
+       the revision the row actually has is the point of the check: a write that landed unasked for shows up
+       here as a stale refusal rather than as a mystery three sections later. */
+    await saveCenterExamMarks({examId:created.id,studentId:String(a1._id),version:0,marks:marksOf(60,30)},String(teacherA._id));
+    const moved=await CenterExamResult.findOne({student:a1._id}).lean();
+    assert.equal(moved.total,90,'and the marks move again');
+    assert.equal(moved.revision,1,'one write on this row, so one revision');
     await publishCenterExam(created.id,String(owner._id));
     const reranked=await CenterExamResult.find({}).lean();
     assert.equal(reranked.find(row=>String(row.student)===String(a2._id)).position,1,'publishing again re-ranks the class on the marks as they now are');
