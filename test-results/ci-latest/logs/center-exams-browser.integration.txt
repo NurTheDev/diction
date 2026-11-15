@@ -1,11 +1,20 @@
-AssertionError [ERR_ASSERTION]: the teacher marks grid overflows horizontally at 360px (393 > 360)
-  escaping the viewport: label right=393 | input [data-import-file] right=393 | p.admin-help right=393 | button.admin-mini-button [data-import-preview] right=393
-    at noOverflow (/home/runner/work/diction/diction/tests/center-exams-browser.integration.ts:180:16)
-    at async run (/home/runner/work/diction/diction/tests/center-exams-browser.integration.ts:505:5) {
+AssertionError [ERR_ASSERTION]: the English exam list paints no Bangla in its chrome
++ actual - expected
+
++ [
++   'You are here / Overview / Center exams\n' +
++     'Help\n' +
++     'View website\n' +
++     'নমুনা পরীক্ষা পরিচালক\n' +
++     '▾'
++ ]
+- []
+
+    at run (/home/runner/work/diction/diction/tests/center-exams-browser.integration.ts:523:12) {
   generatedMessage: false,
   code: 'ERR_ASSERTION',
-  actual: false,
-  expected: true,
-  operator: '==',
+  actual: [Array],
+  expected: [],
+  operator: 'deepStrictEqual',
   diff: 'simple'
 }
