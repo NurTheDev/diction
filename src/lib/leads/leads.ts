@@ -627,9 +627,12 @@ export async function leadStatusCounts():Promise<{status:LeadStatus;count:number
 
 export type LeadUpdateResult={ok:true;id:string;status:LeadStatus;doNotContact:boolean;nextFollowUp:string|null}|Refusal;
 
+/* The fields a write needs in order to preserve what it is not changing. `phones` is here because
+   correcting one number must keep the rest of the list: the edit path replaces the first entry and
+   re-attaches whatever else the family was reached on, so a projection without it would drop them. */
 async function findLive(id:string):Promise<LeadDoc|null>{
   if(!id)return null;
-  return Lead.findById(id).select('leadId status doNotContact nextFollowUp familyKey').lean<LeadDoc>()||null;
+  return Lead.findById(id).select('leadId phones status doNotContact nextFollowUp familyKey').lean<LeadDoc>()||null;
 }
 
 /**
@@ -974,7 +977,7 @@ export async function updateLeadBasics(input:{id:string;studentName:string;guard
   };
   delete set.name;
   if((LEAD_STATUSES as readonly string[]).includes(input.status))set.status=input.status;
-  if(phone)set.phones=[{normalized:phone,original:phone},...current.phones.slice(1)];
+  if(phone)set.phones=[{normalized:phone,original:phone},...(current.phones??[]).slice(1)];
   await Lead.updateOne({_id:input.id},{$set:set},{runValidators:true});
   await audit(actorId,'lead.update',current.leadId);
   return {ok:true};
