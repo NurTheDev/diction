@@ -473,7 +473,8 @@ async function run(){
     assert.equal((await textOf(enStudent.page,'.portal-eyebrow')).trim(),en_t.results.portalTitle,'the portal tab reads English');
     /* The hero's h1 carries the child's own name, which is data the operator typed and stays Bangla on an
        English address; what has to be English is every word the portal chose. */
-    assert.equal(BN.test(await enStudent.page.locator('.portal-eyebrow, .portal-hero p').innerText()),false,'the hero’s own words carry no Bangla');
+    const heroWords=(await enStudent.page.locator('.portal-eyebrow, .portal-hero p').allInnerTexts()).join('\n');
+    assert.equal(BN.test(heroWords),false,`the hero’s own words carry no Bangla: ${heroWords.split('\n').filter(line=>BN.test(line)).join(' | ')}`);
     assert.equal((await textOf(enStudent.page,'.portal-card-head h2')).trim(),en_t.results.portalTitle,'nor does the card head');
     assert.ok((await textOf(enStudent.page,'[data-portal-results-who]')).includes(en_t.results.publishedOnly));
     assert.equal(BN.test(await enStudent.page.locator('[data-result-table] thead').innerText()),false,'and the table headers are English');
