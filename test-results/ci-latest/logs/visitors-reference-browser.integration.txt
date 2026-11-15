@@ -1,5 +1,3 @@
 visitors-reference-browser: FAIL
-Error: timed out after 90000ms waiting for the edit to be saved
-    at until (/home/runner/work/diction/diction/tests/visitors-reference-browser.integration.ts:116:36)
-    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
-    at async run (/home/runner/work/diction/diction/tests/visitors-reference-browser.integration.ts:312:5)
+AssertionError [ERR_ASSERTION]: the admin's bulk bar offers মুছুন (২টি নির্বাচিত ধন্যবাদ এসএমএস পাঠান স্ট্যাটাস বদল ফলো-আপ ঠিক করুন ডিলিট নির্বাচন বাতিল)
+    at run (/home/runner/work/diction/diction/tests/visitors-reference-browser.integration.ts:326:14)
