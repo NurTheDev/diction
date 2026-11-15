@@ -402,7 +402,10 @@ async function run(){
     const hitText=(await Promise.all([hits.nth(0).innerText(),hits.nth(1).innerText()])).join(' · ');
     assert.ok(hitText.includes(RAHUL),'the hit names the lead…');
     assert.ok(hitText.includes(MASK_1),'…and masks its number');
-    assert.ok(!(await boss.page.locator('body').innerText()).includes('7090'),'not even the fragment that was typed is echoed back');
+    /* Scoped to the search panel, not to the body: since the owner's 2026-11-15 review the list prints
+       whole numbers for the roles that call, so a fragment of one is on the page by design. What must not
+       happen is the panel echoing back what was typed at it — the refusal names the rule, not the digits. */
+    assert.ok(!(await search.innerText()).includes('7090'),'the search panel does not echo back the fragment that was typed');
     assert.ok(!/\d{4,}/.test(new URL(boss.page.url()).search),`the search stayed out of the address bar: ${boss.page.url()}`);
     await maskedWithin(search,P1,'the search results');
     await noOverflow(boss.page,'the search results at 1440');

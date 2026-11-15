@@ -920,8 +920,32 @@ html:lang(bn) .public-motion-root:not(.private-motion-disabled) :is(h1,h2,h3,h4)
 .pop-day-field{display:inline-flex;align-items:center;gap:6px;min-width:0;flex-wrap:wrap}
 .pop-day-view{display:inline-flex;align-items:center;min-height:44px;min-width:0;padding:8px 10px;background:#f8f9fe;border:1px dashed #c5cce0;border-radius:8px;color:#1a1d3a;overflow-wrap:anywhere}
 /* The row: two lines of text, five visible controls, and no cell taller than the rest. */
-.visitor-table{min-width:980px}
-.visitor-table tbody td{padding:7px 8px;border-top:1px solid #f1f2f6;vertical-align:middle}
+/* The row height budget, 72px, is met by construction and only on desk widths — below 761px the card
+   layout below owns the row and none of this applies. `table-layout:fixed` is the same choice
+   `.overview-columns .admin-table` already makes: with the columns owning their widths, a long Bangla
+   name, a school, a printed number and a last note truncate inside their cell instead of stacking, and
+   `white-space:nowrap` on every cell means nothing in a row can ever wrap to a second line except the
+   visitor's own two-line identity cell. The widths add up to 1066px, which fits the 1440px screen the
+   brief is written for without scrolling the wrap; where a screen is narrower, the wrap scrolls the
+   table and the page itself never overflows. */
+@media(min-width:761px){
+  .visitor-table{min-width:1066px;table-layout:fixed}
+  .visitor-table .visitor-check{width:44px}
+  .visitor-table .visitor-who{width:156px}
+  .visitor-table .visitor-call{width:292px}
+  .visitor-table .visitor-status{width:130px}
+  .visitor-table .visitor-follow{width:116px}
+  .visitor-table .visitor-note{width:92px}
+  .visitor-table .visitor-act{width:236px}
+  .visitor-table tbody td{padding:7px 8px;border-top:1px solid #f1f2f6;vertical-align:middle;overflow:hidden;white-space:nowrap;line-height:1.35}
+  /* The status cell keeps its wrap on purpose: a do-not-contact row carries two badges, and a warning
+     an operator cannot see is worse than a row two short badge lines tall — 22px each plus the 14px of
+     padding still lands inside the 72px budget. */
+  .visitor-table .pop-day-field{flex-wrap:nowrap}
+  /* The three desk controls and the two destinations have to fit their column on one line, so they are
+     a step smaller here than the 15px the shell gives every mini button. */
+  .visitor-table .visitor-act>.admin-mini-button,.visitor-table .visitor-act .pop-anchor,.visitor-table .visitor-dial{padding-inline:9px;font-size:14px}
+}
 .visitor-check{width:46px;text-align:center}
 .visitor-check input[type=checkbox]{width:22px;height:22px;accent-color:#2e3192}
 .visitor-who{min-width:170px;max-width:270px}

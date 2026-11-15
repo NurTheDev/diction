@@ -32,8 +32,10 @@ import path from 'node:path';
 import {preflight,testDbName} from './helpers/env-preflight';
 import {User} from '../src/models/User';
 
-/** The interface chrome: boxes that hold painted words, never user data. */
-const CHROME=['.admin-top','.admin-nav','.admin-panel-head','.admin-heading','.admin-pagination','.admin-test-banner'];
+/** The interface chrome: boxes that hold painted words, never user data.
+    `.admin-top` is not here — the header is read on its own below, because it now carries the digit and
+    language switcher and a picker has to name each language in that language. */
+const CHROME=['.admin-nav','.admin-panel-head','.admin-heading','.admin-pagination','.admin-test-banner'];
 /** Where Bangla must still be found on a /bn address. */
 const BN_ANCHORS=['.admin-nav','.admin-heading'];
 /** Every mounted admin screen: a directory under the admin route tree that has a `page.tsx`.
@@ -132,6 +134,20 @@ async function run(){
             if(locale==='en'&&BN.test(text))found.push(`/${locale}${route} ${selector} carries Bangla: ${text.split('\n').find(l=>BN.test(l))}`);
           }
         }
+        /* The header is read as its own box, and narrower than the sweep above: it carries the digit
+           setting and the language switcher, and a picker names each language in that language — see the
+           allow note in top-header.tsx, and header-nav on the public side. So the switcher is lifted out
+           before the English check, and everything left in the header has to follow the address: the
+           breadcrumb, the operator's own name, role and menu, and the test-mode label. */
+        const headChrome=await page.evaluate(()=>{
+          const source=document.querySelector('.admin-main .admin-top')||document.querySelector('.admin-top');
+          const clone=source?.cloneNode(true) as HTMLElement|null;
+          if(!clone)return '';
+          for(const node of clone.querySelectorAll('.admin-digit-setting,.admin-user-dropdown a[href^="/bn"],.admin-user-dropdown a[href^="/en"]'))node.remove();
+          return (clone.innerText||clone.textContent||'').trim();
+        });
+        if(locale==='en'&&BN.test(headChrome))found.push(`/en${route} .admin-top carries Bangla outside its language switcher: ${headChrome.split(' ').filter(part=>BN.test(part)).join(' ')}`);
+        if(locale==='bn'&&!BN.test(headChrome))found.push(`/bn${route} .admin-top lost its Bangla: ${headChrome.slice(0,60)}`);
         const navBoxes=await page.locator(BN_ANCHORS[0]).count();
         if(!navBoxes)found.push(`/${locale}${route} painted no ${BN_ANCHORS[0]} — a mounted screen that cannot be swept has to be written into NOT_A_SCREEN with its reason`);
         // The page's own headline is the second anchor: three screens (cash collection, public

@@ -957,7 +957,9 @@ export async function updateLeadBasics(input:{id:string;studentName:string;guard
   const name=input.studentName.trim();
   if(!name||name.length>120)return refuse('BAD_NAME','errors.BAD_NAME');
   const phone=input.phone.trim();
-  if(phone&&!/^01[3-9]\d{8}$/.test(phone))return refuse('BAD_PHONE','errors.BAD_PHONE');
+  /* Its own key, not the search box's `errors.BAD_PHONE`: that sentence answers a number nobody could
+     read, and a field the operator just typed needs the rule instead — eleven digits, starting 01. */
+  if(phone&&!/^01[3-9]\d{8}$/.test(phone))return refuse('BAD_PHONE','errors.PHONE_FORMAT');
   const set:FilterQuery<unknown>={
     'name':undefined,
     studentName:name,

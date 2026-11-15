@@ -196,7 +196,9 @@ async function run(){
     // ── 1. An exam manager creates an exam for two classes, in Bangla digits ────────────────────
     const managerSession=await session('r5-manager@example.test',String(manager._id));
     const page=managerSession.page;
-    await page.goto(origin+'/bn/admin/center-exams',{waitUntil:'domcontentloaded',timeout:180000});
+    /* `?new=1` since R8 slice 2: the list keeps one primary action and the create form opens on
+       demand, so a suite that means to fill the form has to ask for it. */
+    await page.goto(origin+'/bn/admin/center-exams?new=1',{waitUntil:'domcontentloaded',timeout:180000});
     assert.ok(page.url().includes('center-exams'),'an exam manager was not let in; landed on '+page.url());
     await page.locator('h1').filter({hasText:t.list.title}).waitFor({timeout:60000});
     const form=page.locator('[data-exam-form="create"]');
@@ -445,7 +447,7 @@ async function run(){
     await scaleForm.locator('[data-scale-save]').click();
     await scaleForm.locator('[data-scale-saved]').waitFor({timeout:90000});
     assert.equal(await CenterGradingScale.countDocuments({name:'নমুনা কঠোর স্কেল'}),1,'the scale was saved');
-    await ownerPage.goto(origin+'/bn/admin/center-exams',{waitUntil:'domcontentloaded',timeout:180000});
+    await ownerPage.goto(origin+'/bn/admin/center-exams?new=1',{waitUntil:'domcontentloaded',timeout:180000});
     const picker=ownerPage.locator('[data-exam-form="create"] [data-exam-scale]');
     await picker.waitFor({timeout:60000});
     assert.ok((await picker.locator('option').allInnerTexts()).some(option=>option.includes('নমুনা কঠোর স্কেল')),'and the exam form offers the saved scale');
@@ -564,7 +566,7 @@ async function run(){
 
     // ── 13. English chrome, a redirected editor, and the overflow rule ──────────────────────────
     const english=await session('r5-manager@example.test',String(manager._id),'en');
-    await english.page.goto(origin+'/en/admin/center-exams',{waitUntil:'domcontentloaded',timeout:180000});
+    await english.page.goto(origin+'/en/admin/center-exams?new=1',{waitUntil:'domcontentloaded',timeout:180000});
     await english.page.locator('h1').filter({hasText:en_t.list.title}).waitFor({timeout:60000});
     /* The filter form is read one select at a time rather than as a box: its third select lists the
        centre's classes, and a class named in Bangla is data the owner typed, not interface chrome.

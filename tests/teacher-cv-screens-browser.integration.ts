@@ -519,7 +519,10 @@ async function run(){
          on every operator screen, with the table's own column headers added: a column header is chrome
          and never data. A candidate's own Bangla name is data, and an English screen that translated it
          would be lying about a person, so the rows are not part of this assertion. */
-      const chromeParts=await boss.page.locator('.admin-top, .admin-nav, .admin-panel-head, .admin-heading, .admin-pagination, .admin-test-banner, thead').allInnerTexts();
+      /* `.admin-top` is not in this list: since the owner's 2026-11-15 review the header carries the
+         digit and language switcher, whose labels name each language in that language, and the
+         two-language sweep reads the header on every operator screen with those labels set aside. */
+      const chromeParts=await boss.page.locator('.admin-nav, .admin-panel-head, .admin-heading, .admin-pagination, .admin-test-banner, thead').allInnerTexts();
       assert.ok(chromeParts.length>0,`${route}: the screen has chrome of its own to read`);
       assert.ok(!BANGLA.test(chromeParts.join(' ')),`${route}: no Bangla character and no Bangla digit in the screen's own chrome`);
       await noOverflow(boss.page,`${route} at 1440`);

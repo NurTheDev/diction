@@ -166,6 +166,16 @@ async function run(){
     // ---- 1. The reference row: eight visitors, five visible controls, one line, no action cell.
     assert.equal(await rowCount(),8,'all eight seeded visitors are listed');
     const heights=await boss.page.locator('section.list-panel tr[data-visitor-row]').evaluateAll(nodes=>nodes.map(node=>Math.round(node.getBoundingClientRect().height)));
+    if(heights.some(height=>height>72)){
+      /* Name the cell that is tall, not only the row: the budget is a per-cell promise, and a row that
+         breaks it is one cell wrapping something it should have truncated. */
+      const tall=await boss.page.locator('section.list-panel tr[data-visitor-row]').evaluateAll(nodes=>nodes
+        .map(node=>({visitor:node.querySelector('.visitor-name strong')?.textContent||'?',
+          height:Math.round(node.getBoundingClientRect().height),
+          cells:[...node.children].map(cell=>`${(cell as HTMLElement).className}=${Math.round(cell.getBoundingClientRect().height)}px`)}))
+        .filter(row=>row.height>72));
+      console.log('rows over the 72px budget:',JSON.stringify(tall));
+    }
     assert.ok(heights.every(height=>height<=72),`every row is at most 72px tall (tallest ${Math.max(...heights)}px)`);
     for(const name of [FIRST,LONG_NAME,OVERDUE,BLOCKED,NO_PHONE]){
       const row=rowOf(boss.page,name);

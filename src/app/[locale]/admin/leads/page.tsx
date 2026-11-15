@@ -195,8 +195,9 @@ export default async function Leads({params,searchParams}:{params:Promise<{local
               appears the moment one is ticked says what the ticks are for. It exists only where a send
               may happen — for a role with no picker there is nothing to tick and no bulk bar to read. */}
           {sms&&<th className="visitor-check" aria-label={t('row.bulk')}></th>}
-          <th>{t('colVisitor')}</th><th>{t('colContact')}</th><th>{t('colStatus')}</th>
-          <th>{t('colFollowUp')}</th><th>{t('lastNote')}</th><th>{t('colActions')}</th>
+          <th className="visitor-who">{t('colVisitor')}</th><th className="visitor-call">{t('colContact')}</th>
+          <th className="visitor-status">{t('colStatus')}</th><th className="visitor-follow">{t('colFollowUp')}</th>
+          <th className="visitor-note">{t('lastNote')}</th><th className="visitor-act">{t('colActions')}</th>
         </tr></thead>
         <tbody>{result.rows.map(row=>{
           const view=rowView(row);

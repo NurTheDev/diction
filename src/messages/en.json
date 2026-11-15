@@ -2377,7 +2377,8 @@
       "UNMAPPED_SOURCE": "That source was not recognised, so it was left as other.",
       "SAME_LEAD_MERGE": "A lead cannot be merged into itself.",
       "SOURCE_CONVERTED": "{student} was already converted to an admission or a trial, so it cannot be merged away.",
-      "BAD_PHONE": "The number must be 11 digits starting with 01",
+      "BAD_PHONE": "That number could not be read — check how it is written.",
+      "PHONE_FORMAT": "The number must be 11 digits starting with 01.",
       "BAD_NAME": "Write a name (120 characters at most)"
     },
     "actionErrors": {

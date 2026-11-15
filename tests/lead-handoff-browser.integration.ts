@@ -143,7 +143,7 @@ async function run(){
       await page.goto(`${origin}${list}`,{waitUntil:'domcontentloaded',timeout:180000});
       await page.locator('h1',{hasText:t.title}).first().waitFor({timeout:60000});
       await rows(page).filter({hasText:name}).first().waitFor({timeout:90000});
-      await rows(page).filter({hasText:name}).first().locator('button',{hasText:t.detail}).first().click();
+      await rows(page).filter({hasText:name}).first().locator('[data-visitor-open]').first().click();
       const drawer=page.locator('dialog.overview-drawer[open]');
       await drawer.waitFor({state:'visible',timeout:60000});
       // The strip arrives with the detail, so waiting for it is waiting for what the row really holds.
