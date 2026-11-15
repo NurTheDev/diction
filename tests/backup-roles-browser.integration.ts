@@ -120,7 +120,7 @@ async function run(){
     await goto(superBn.page,'/bn/admin/backup');
     assert.equal(await superBn.page.locator('[data-backup-page]').count(),1,'the Super Admin reaches the backup page');
     assert.ok((await superBn.page.locator('[data-backup-last]').innerText()).includes(t.backup.lastNever),'which says no backup exists yet');
-    const backupHead=await superBn.page.locator('[data-backup-page] .admin-heading').innerText();
+    const backupHead=await superBn.page.locator('.admin-heading').innerText();
     assert.ok(BN.test(backupHead),'and the page reads Bangla');
     assert.equal(KEY_PATH.test(await superBn.page.evaluate(()=>document.body.innerText)),false,'with no catalog key path painted');
     await shot(superBn.page,'backup-bn-1440');
