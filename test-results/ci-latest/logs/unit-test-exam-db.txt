@@ -1,7 +1,8 @@
 --- tests/exam-flow.integration.ts (exit 1) ---
-Error: STALE_RESULT
-    at <anonymous> (/home/runner/work/diction/diction/src/lib/center/exam-batch.ts:159:63)
+Error: INVALID_MARKS
+    at calculateExam (/home/runner/work/diction/diction/src/lib/center/exam-marks.ts:6:587)
+    at <anonymous> (/home/runner/work/diction/diction/src/lib/center/exam-batch.ts:137:28)
     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
     at async ClientSession.withTransaction (/home/runner/work/diction/diction/node_modules/mongodb/src/sessions.ts:750:20)
-    at async saveCenterExamMarks (/home/runner/work/diction/diction/src/lib/center/exam-batch.ts:152:5)
-    at async run (/home/runner/work/diction/diction/tests/exam-flow.integration.ts:206:5)
+    at async updateCenterExam (/home/runner/work/diction/diction/src/lib/center/exam-batch.ts:112:5)
+    at async run (/home/runner/work/diction/diction/tests/exam-flow.integration.ts:227:5)

@@ -1,16 +1,9 @@
-AssertionError [ERR_ASSERTION]: the English scale screen paints no Bangla in its chrome
-+ actual - expected
-
-+ [
-+   'Saved scales\n১'
-+ ]
-- []
-
-    at run (/home/runner/work/diction/diction/tests/center-exams-browser.integration.ts:412:12) {
+AssertionError [ERR_ASSERTION]: a teacher's exam screen never says বেতন
+    at run (/home/runner/work/diction/diction/tests/center-exams-browser.integration.ts:449:14) {
   generatedMessage: false,
   code: 'ERR_ASSERTION',
-  actual: [Array],
-  expected: [],
-  operator: 'deepStrictEqual',
+  actual: false,
+  expected: true,
+  operator: '==',
   diff: 'simple'
 }
