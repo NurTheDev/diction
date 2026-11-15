@@ -19,3 +19,10 @@ export const LEDGER_KIND_LABEL_KEYS:Record<string,string>={
   extra:'statement.kinds.extra',
 };
 export const ledgerKindLabelKey=(kind:string)=>LEDGER_KIND_LABEL_KEYS[kind]||'statement.kinds.extra';
+
+export const STUDENT_STATUS_LABEL_KEYS:Record<string,string>={
+  active:'statement.statuses.active',
+  on_hold:'statement.statuses.onHold',
+  removed:'statement.statuses.removed',
+};
+export const studentStatusLabelKey=(status:string)=>STUDENT_STATUS_LABEL_KEYS[status]||'statement.statuses.removed';

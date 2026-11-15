@@ -206,6 +206,8 @@ async function run(){
     const outstanding=await adminBn.page.locator('[data-summary-outstanding]').getAttribute('data-outstanding');
     assert.equal(lastRunning,outstanding,'the walk’s last line and the summary’s outstanding are the same number');
     assert.ok((await adminBn.page.locator('[data-ledger-statement]').innerText()).includes(t.statement.summaryTitle));
+    assert.ok((await adminBn.page.locator('[data-ledger-who]').innerText()).includes(t.statement.statuses.active),
+      'and the child’s status reads as a word, not as the stored code');
     await shot(adminBn.page,'reports-statement-bn-1440');
 
     await adminBn.page.emulateMedia({media:'print'});

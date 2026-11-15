@@ -4651,7 +4651,12 @@
       "waiverDetail": "ছাড়ের কারণ: {reason}",
       "holdDetail": "{month} মাসে বিরতি",
       "paymentDetail": "রশিদ {receipt}",
-      "extraDetail": "{type}{other}"
+      "extraDetail": "{type}{other}",
+      "statuses": {
+        "active": "সক্রিয়",
+        "onHold": "বিরতিতে",
+        "removed": "বিদায়ী"
+      }
     },
     "year": {
       "title": "বছরের সারসংক্ষেপ",

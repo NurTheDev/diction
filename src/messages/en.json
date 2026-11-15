@@ -4651,7 +4651,12 @@
       "waiverDetail": "Waiver reason: {reason}",
       "holdDetail": "On hold in {month}",
       "paymentDetail": "Receipt {receipt}",
-      "extraDetail": "{type}{other}"
+      "extraDetail": "{type}{other}",
+      "statuses": {
+        "active": "Active",
+        "onHold": "On hold",
+        "removed": "Removed"
+      }
     },
     "year": {
       "title": "Year summary",

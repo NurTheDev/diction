@@ -7,7 +7,7 @@ import {dashboardDigits} from '@/lib/admin/digits';
 import {formatDate,formatDigits,formatNumber} from '@/lib/admin/format';
 import {monthNames,type MonthTable} from '@/lib/admin/months';
 import {loadStudentStatement} from '@/lib/reports/ledger-data';
-import {ledgerKindLabelKey,typeLabelKey} from '@/lib/reports/vocab';
+import {ledgerKindLabelKey,studentStatusLabelKey,typeLabelKey} from '@/lib/reports/vocab';
 import {PrintButton} from '@/components/exams/print-button';
 export const dynamic='force-dynamic';
 export default async function StudentStatement({params}:{params:Promise<{locale:string;studentId:string}>}){
@@ -50,7 +50,7 @@ export default async function StudentStatement({params}:{params:Promise<{locale:
     <section className="report-print" data-ledger-statement>
       <p className="report-brand">{common('brand')}</p>
       <p className="report-sheet-title">{t('statement.title')} · {student.name} · {student.studentId}</p>
-      <p data-ledger-who>{student.classLabel} · {t('statement.roll')} {formatDigits(student.roll,digits)||'—'} · {t('statement.statusWord')} {student.status}</p>
+      <p data-ledger-who>{student.classLabel} · {t('statement.roll')} {formatDigits(student.roll,digits)||'—'} · {t('statement.statusWord')} {t(studentStatusLabelKey(student.status))}</p>
       {statement.entries.length?<>
         <div className="admin-table-wrap"><table className="admin-table admin-responsive-table">
           <thead><tr>
