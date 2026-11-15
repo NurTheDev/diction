@@ -575,7 +575,9 @@ async function run(){
        off the screen. So the chrome is swept line by line with that one box subtracted, rather than the
        fixture being renamed to suit the assertion; a Bangla line anywhere else in the chrome still
        fails, which is the whole point of the sweep. */
-    const accountLines=(await english.page.locator('.admin-user-menu summary').innerText()).split('\n').map(line=>line.trim());
+    /* `.first()` since R8 slice 1: the shell paints the same header twice, once in the phone bar and
+       once over the content, so the account box is two elements and only one of them is on screen. */
+    const accountLines=(await english.page.locator('.admin-user-menu summary').first().innerText()).split('\n').map(line=>line.trim());
     const chromeBangla=(await english.page.locator('.admin-top,.admin-nav,.admin-panel-head,.admin-heading,.admin-table thead').allInnerTexts())
       .flatMap(text=>text.split('\n')).map(line=>line.trim()).filter(line=>BN.test(line)&&!accountLines.includes(line));
     assert.deepEqual(chromeBangla,[],'the English exam list paints no Bangla in its chrome');

@@ -22,10 +22,11 @@ import {useTranslations} from 'next-intl';
 import {MessageCircle,MessageSquare,MoreHorizontal,Phone} from 'lucide-react';
 import {useRouter} from '@/i18n/navigation';
 import {
-  bulkLeadFollowUp,bulkLeadStatus,bulkLeadRemove,changeLeadStatus,chooseLeadFollowUp,markLeadUninterested,
+  bulkLeadFollowUp,bulkLeadStatus,bulkLeadRemove,changeLeadStatus,chooseLeadFollowUp,liftContactBlock,
+  markLeadUninterested,
 } from '@/actions/leads';
 import {
-  FOLLOW_UP_KEYS,LEAD_STATUS_OPTIONS,statusBadge,statusLabel,type LeadRowView,
+  FOLLOW_UP_KEYS,LEAD_STATUS_OPTIONS,idleLeadForm,statusBadge,statusLabel,type LeadRowView,
 } from '@/lib/leads/lead-ui';
 import type {LeadSmsKit} from '@/lib/leads/lead-sms';
 import {Popover,DatePopover,shortDate} from './popover';
@@ -116,7 +117,8 @@ export function RowMoreMenu({row,canDelete,canArchive,sms,language,drawer}:{
 }){
   const t=useTranslations('leads');
   const [state,action]=useActionState(markLeadUninterested,null);
-  useToast(state);
+  const [liftState,liftAction]=useActionState(liftContactBlock,idleLeadForm);
+  useToast(state);useToast(liftState);
   /**
    * A visitor has no archive state — `recycleKinds` gives the `lead` kind a bin path and no
    * `archiveSet`, the way a private record with nothing to unpublish has none — so offering Archive
@@ -139,6 +141,14 @@ export function RowMoreMenu({row,canDelete,canArchive,sms,language,drawer}:{
           placeholder={t('row.notInterested')} aria-label={t('row.notInterested')}/>
         <button type="submit" role="menuitem">{t('row.notInterested')}</button>
       </form>
+      {/* Lifting a block is rare, deliberate and only ever on a blocked row, so it is not one of the
+          row's five visible controls — it belongs with the rest of what a row can become. The badge on
+          the row is the warning; this is the way back. */}
+      {row.doNotContact&&<form action={liftAction} className="pop-item" data-more-allow="" onClick={event=>event.stopPropagation()}>
+        <input type="hidden" name="id" value={row.id}/>
+        <input type="hidden" name="allowed" value="true"/>
+        <button type="submit" role="menuitem" onClick={close}>{t('allowContact')}</button>
+      </form>}
       <hr className="pop-sep"/>
       {/* Delete is Admin and Super Admin; Archive is the floor every role that may write here has. */}
       {(archivable||canDelete)&&<div className="pop-item pop-destructive" role="menuitem" data-more-destructive="">

@@ -170,9 +170,17 @@ async function run(){
       /* Name the cell that is tall, not only the row: the budget is a per-cell promise, and a row that
          breaks it is one cell wrapping something it should have truncated. */
       const tall=await boss.page.locator('section.list-panel tr[data-visitor-row]').evaluateAll(nodes=>nodes
-        .map(node=>({visitor:node.querySelector('.visitor-name strong')?.textContent||'?',
+        .map(node=>({
+          visitor:node.querySelector('.visitor-name strong')?.textContent||'?',
           height:Math.round(node.getBoundingClientRect().height),
-          cells:[...node.children].map(cell=>`${(cell as HTMLElement).className}=${Math.round(cell.getBoundingClientRect().height)}px`)}))
+          cells:[...node.children].map(cell=>{
+            const box=cell as HTMLElement;
+            const kids=[...box.children]
+              .map(kid=>`${(kid as HTMLElement).className||kid.tagName}:${Math.round(kid.getBoundingClientRect().height)}`)
+              .join(' ');
+            return `${box.className}=${Math.round(box.getBoundingClientRect().height)}px [${kids}]`;
+          }),
+        }))
         .filter(row=>row.height>72));
       console.log('rows over the 72px budget:',JSON.stringify(tall));
     }
@@ -184,7 +192,9 @@ async function run(){
       assert.equal(await row.locator('.pop-more .pop-anchor').count(),1,`${name}: and a ⋯ menu`);
       assert.ok(await row.locator('[data-visitor-edit]').isVisible(),`${name}: Edit is on screen, not behind another tap`);
       // Five visible controls and no sixth: Open, Edit, ⋯, the status badge and the follow-up chip.
-      const controls=await row.locator('.visitor-act button, .visitor-act .pop-anchor, .visitor-status .pop-anchor, .visitor-follow .pop-anchor').count();
+      /* `:visible` because the row also owns its drawer: a closed <dialog> is still in the document, and
+         the count that matters is the controls an operator can see and reach without opening anything. */
+      const controls=await row.locator('.visitor-act button:visible, .visitor-act .pop-anchor:visible, .visitor-status .pop-anchor:visible, .visitor-follow .pop-anchor:visible').count();
       assert.equal(controls,5,`${name}: exactly five controls in the row (${controls} found) — the long action cell is gone`);
     }
     const longRow=rowOf(boss.page,LONG_NAME);

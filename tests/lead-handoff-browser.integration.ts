@@ -265,12 +265,22 @@ async function run(){
     assert.ok((await dialog.locator('[data-handoff-reason]').inputValue()).length>3,'one tap on a chip writes a reason that means something');
     await noOverflow(desk.page,'the reason hand-off at 360');
     await shot(desk.page,'b3-handoff-reason-360',false);
+    const dialogHtml=await dialog.evaluate(node=>node.outerHTML);
+    assert.ok(!dialogHtml.includes(PH1),'after all three hand-offs the dialog the browser was served carries no digit of the number');
+    assert.ok(!dialogHtml.includes(`fam:${PH1}`),'and no family key reached the dialog at any point');
     await dialog.locator('[data-handoff-close]').click();
     await dialog.waitFor({state:'hidden',timeout:60000});
-    const pageHtml=await desk.page.content();
-    assert.ok(!pageHtml.replace(new RegExp(`tel:\\+88${PH1.slice(1)}`,'g'),'').replace(new RegExp(`https://wa.me/88${PH1.slice(1)}`,'g'),'').includes(PH1),
-      'after all three hand-offs the converted visitor\u2019s number still exists only as a call or WhatsApp destination');
-    assert.ok(!pageHtml.includes(`fam:${PH1}`),'and no family key reached the browser at any point');
+    /* Read off the dialog the browser was served, and off the page's links, fields and address bar —
+       not off the whole served HTML. Since the owner's 2026-11-15 review the list prints the number for
+       the signed-in roles that call, so the digits are in the page by design, in the row's own number
+       cell; the promise that is left is that a hand-off never carries them and that they travel in no
+       link but the two destinations. */
+    const hrefs=await desk.page.locator('a[href]').evaluateAll(nodes=>nodes.map(node=>(node as HTMLAnchorElement).href));
+    assert.ok(hrefs.every(href=>!href.includes(PH1)||href.startsWith('tel:')||href.startsWith('https://wa.me/')),
+      'on the page behind it the number travels in no link but a call or a WhatsApp destination');
+    const fields=await desk.page.locator('input,textarea').evaluateAll(nodes=>nodes.map(node=>(node as HTMLInputElement).value||''));
+    assert.ok(fields.every(value=>!value.includes(PH1)),'no field the browser was served holds it either');
+    assert.ok(!desk.page.url().includes(PH1),'and the address bar does not');
 
     assert.deepEqual(boss.errors,[],`page errors as admin: ${boss.errors.join(' | ')}`);
     assert.deepEqual(desk.errors,[],`page errors as staff: ${desk.errors.join(' | ')}`);

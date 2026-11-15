@@ -19,12 +19,16 @@ Sign in as the demo admin unless a step says otherwise.
 | 8 | **Delete a visitor as Admin** | Sign in as admin; a row's **⋯** → **মুছুন** | A confirmation names the visitor and says "এটি ৩০ দিনের জন্য রিসাইকেল বিনে যাবে…". Confirm and the row leaves the list |
 | 9 | **Undo the delete** | The toast that appears bottom-right, within 10 seconds → **ফিরিয়ে আনুন** | The visitor is back in the list exactly as it was. The toast stays for the full 10 seconds because it carries an Undo |
 | 10 | **Restore from the Recycle Bin** | Sidebar → Recycle Bin (রিসাইকেল বিন) → the visitor's row → Restore | The visitor returns to the list. The bin keeps it for 30 days and then the purge job removes it; "Delete forever" is Super Admin only and asks you to type the name |
+| 11 | **Let a blocked visitor be called again** | A row wearing the red "যোগাযোগ বন্ধ" badge → its **⋯** → "যোগাযোগের অনুমতি ফিরিয়ে দিন" | The menu offers this only on a blocked row — lifting a block is rare and deliberate, so it is not one of the row's five visible controls. One tap lifts it: the badge leaves the row, and the status moves off "do not contact" with it |
 
 ## What to look at while you click
 
 * **One line per visitor, at most five controls:** tick · name (bold) over class · school · V-id ·
   number with **Call** and **WhatsApp** · status badge · follow-up chip · last note (one line) ·
   **Open** **Edit** **⋯**. Rows are 72 px or shorter; the old long action cell is gone.
+* **A blocked visitor says so twice:** the red badge next to the status, and the ⋯ menu's way back.
+  On a desk the two badges are the size of the follow-up chip so the row stays inside its 72 px; on a
+  phone they keep the shell's own size, where a thumb needs the room.
 * **The number is printed** for a signed-in Admin, Super Admin or Staff, because they call visitors.
   It is printed and nothing more: it is in no address bar, in no link except `tel:` and `wa.me`, and
   in no audit row. The drawer, the search results, the funnel and the Overview still show the mask.

@@ -939,8 +939,14 @@ html:lang(bn) .public-motion-root:not(.private-motion-disabled) :is(h1,h2,h3,h4)
   .visitor-table .visitor-act{width:236px}
   .visitor-table tbody td{padding:7px 8px;border-top:1px solid #f1f2f6;vertical-align:middle;overflow:hidden;white-space:nowrap;line-height:1.35}
   /* The status cell keeps its wrap on purpose: a do-not-contact row carries two badges, and a warning
-     an operator cannot see is worse than a row two short badge lines tall — 22px each plus the 14px of
-     padding still lands inside the 72px budget. */
+     an operator cannot see is worse than a row that has to be read twice. Two of them stacked owe the
+     row 72px, so on a desk width they are the size of the follow-up chip beside them instead of the
+     14px badge the shell paints everywhere else, and the menu trigger gives up its 44px minimum —
+     23px + 6px + 23px + the cell's 14px of padding is 66px, inside the budget. A phone keeps the
+     shell's own sizes: below 761px the card layout owns the row and a thumb needs the 44px the
+     responsive section of the suite measures. */
+  .visitor-table .visitor-status-cell .admin-badge{font-size:12px;line-height:1.4;padding:3px 8px}
+  .visitor-table .visitor-status .pop-anchor{min-height:0;padding-block:0}
   .visitor-table .pop-day-field{flex-wrap:nowrap}
   /* The three desk controls and the two destinations have to fit their column on one line, so they are
      a step smaller here than the 15px the shell gives every mini button. */

@@ -456,20 +456,24 @@ async function run(){
     await boss.page.goto(`${origin}${list}`,{waitUntil:'domcontentloaded',timeout:180000});
     await boss.page.locator('table.admin-table tbody tr',{hasText:RAHUL}).first().waitFor({timeout:60000});
     const row=boss.page.locator('table.admin-table tbody tr',{hasText:RAHUL}).first();
-    await row.locator('select[name="status"]').selectOption('called');
-    await row.locator('form:has(select[name="status"]) button[type="submit"]').click();
-    await until(async()=>(await Lead.findOne({studentName:RAHUL}).lean<{status:string}>())!.status==='called','the inline status dropdown to write');
+    /* The reference row has no dropdown and no Save button: the badge IS the control, so a status costs
+       two taps and a toast answers. */
+    await row.locator('[data-status-badge]').click();
+    await row.locator('[data-status-option="called"]').click();
+    await until(async()=>(await Lead.findOne({studentName:RAHUL}).lean<{status:string}>())!.status==='called','the status menu to write');
     await row.locator('.admin-badge',{hasText:statusLabel(lt,'called')}).first().waitFor({timeout:90000});
-    assert.equal((await Lead.findOne({studentName:RAHUL}).lean<{status:string}>())!.status,'called','the inline dropdown really changed the status, and the row re-rendered with it');
+    assert.equal((await Lead.findOne({studentName:RAHUL}).lean<{status:string}>())!.status,'called','two taps on the badge really changed the status, and the row re-rendered with it');
 
     const followUpOf=async()=>(await Lead.findOne({studentName:RAHUL}).lean<{nextFollowUp:string|null}>())!.nextFollowUp;
     for(const [key,offset] of [['today',0],['tomorrow',1],['three_days',3],['next_week',7]] as [string,number][]){
       const label=followUpLabel(lt,key as 'today'),expected=day(offset);
-      await row.locator('form:has(button[name="followUp"]) button',{hasText:label}).first().click();
+      await row.locator('[data-follow-chip]').click();
+      await row.locator(`[data-follow-option="${key}"]`).click();
       await until(async()=>(await followUpOf())===expected,`"${label}" to write ${expected}`);
       assert.equal(await followUpOf(),expected,`"${label}" writes ${expected} — a day in Dhaka, computed by the rule layer and never by the browser`);
     }
-    await row.locator('form:has(button[name="followUp"]) button',{hasText:followUpLabel(lt,'clear')}).first().click();
+    await row.locator('[data-follow-chip]').click();
+    await row.locator('[data-follow-clear]').click();
     await until(async()=>(await followUpOf())===null,'"clear" to take the promise away');
     assert.equal(await followUpOf(),null,'and "clear" leaves no follow-up behind');
 
@@ -479,7 +483,10 @@ async function run(){
     await boss.page.locator('table.admin-table tbody tr',{hasText:BLOCKED}).first().waitFor({timeout:60000});
     assert.equal(await rows(boss.page).count(),1,'the "do not contact" chip shows the one lead that is blocked');
     const blockedRow=boss.page.locator('table.admin-table tbody tr',{hasText:BLOCKED}).first();
-    await blockedRow.locator('button',{hasText:t.allowContact}).first().click();
+    /* Lifting a block is rare and deliberate, so it is not one of the row's five visible controls: it is
+       in the ⋯ menu, and only on a row that is actually blocked. */
+    await blockedRow.locator('.pop-more .pop-anchor').first().click();
+    await blockedRow.locator('[data-more-allow] button',{hasText:t.allowContact}).first().click();
     // The row leaves this filtered list as soon as the page revalidates, so nothing here waits on it.
     await until(async()=>(await Lead.findOne({studentName:BLOCKED}).lean<{doNotContact:boolean}>())!.doNotContact===false,'the contact block to lift');
     const unblocked=await Lead.findOne({studentName:BLOCKED}).lean<{doNotContact:boolean;status:string}>();
