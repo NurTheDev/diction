@@ -42,7 +42,7 @@ export function Popover({label,className='',bodyClass='',children,title}:{label:
   const [open,setOpen]=useState(false);
   const anchor=useRef<HTMLButtonElement>(null);
   const surface=useRef<HTMLDivElement>(null);
-  const [box,setBox]=useState<{top:number;left:number;up:boolean}|null>(null);
+  const [box,setBox]=useState<{top:number;left:number}|null>(null);
   const ref=useOutsideClose(()=>setOpen(false));
   useEffect(()=>{
     if(!open)return;
@@ -51,7 +51,10 @@ export function Popover({label,className='',bodyClass='',children,title}:{label:
        fixed box below the fold is on screen but unreachable: nothing can scroll it into view. So the
        surface is measured, flipped upwards only when it does not fit below and fits better above, and
        clamped inside the window either way — pinned to the edge, over the anchor if it must, rather
-       than off the screen. */
+       than off the screen. The upward flip moves `top` and never uses a transform, because a transformed
+       box becomes the containing block of anything fixed inside it: the calendar opens from inside a
+       menu, and a transform on the menu would place the calendar against the menu instead of the window
+       and drop it off the screen. */
     const place=()=>{
       if(window.innerWidth<=760){setBox(null);return}
       const rect=anchor.current?.getBoundingClientRect();
@@ -63,10 +66,10 @@ export function Popover({label,className='',bodyClass='',children,title}:{label:
       const above=rect.top-gap-edge;
       const up=tall>below&&above>below;
       const top=up
-        ?Math.max(rect.top-gap,edge+tall)
+        ?Math.max(edge,rect.top-gap-tall)
         :Math.min(rect.bottom+gap,Math.max(edge,window.innerHeight-edge-tall));
       const left=Math.max(edge,Math.min(rect.left,window.innerWidth-wide-edge));
-      setBox(previous=>previous&&previous.top===top&&previous.left===left&&previous.up===up?previous:{top,left,up});
+      setBox(previous=>previous&&previous.top===top&&previous.left===left?previous:{top,left});
     };
     place();
     const frame=requestAnimationFrame(place);
@@ -75,7 +78,7 @@ export function Popover({label,className='',bodyClass='',children,title}:{label:
   },[open]);
   return <div className={`pop ${className}`} ref={ref}>
     <button type="button" className="pop-anchor" ref={anchor} aria-expanded={open} aria-label={title} onClick={()=>setOpen(value=>!value)}>{label}</button>
-    {open&&<div className={`pop-body ${bodyClass}`} ref={surface} style={box?{top:box.top,left:box.left,transform:box.up?'translateY(-100%)':undefined}:undefined}>
+    {open&&<div className={`pop-body ${bodyClass}`} ref={surface} style={box?{top:box.top,left:box.left}:undefined}>
       {typeof children==='function'?children(()=>setOpen(false)):children}</div>}
   </div>;
 }

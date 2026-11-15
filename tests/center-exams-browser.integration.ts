@@ -581,7 +581,9 @@ async function run(){
     const headerChrome=await english.page.evaluate(()=>{
       const clone=document.querySelector('.admin-main .admin-top')?.cloneNode(true) as HTMLElement|null;
       if(!clone)return '';
-      for(const node of clone.querySelectorAll('.admin-digit-setting,.admin-user-menu summary,.admin-user-dropdown a[href^="/bn"],.admin-user-dropdown a[href^="/en"]'))node.remove();
+      /* The signed-in person's own name is painted twice — on the closed box and again at the top of the
+         opened one — and it is data, so both copies go; the pickers go for the reason above. */
+      for(const node of clone.querySelectorAll('.admin-digit-setting,.admin-user-menu summary,.admin-user-dropdown strong,.admin-user-dropdown a[href^="/bn"],.admin-user-dropdown a[href^="/en"]'))node.remove();
       return (clone.innerText||clone.textContent||'').trim();
     });
     const chromeBangla=[headerChrome,...await english.page.locator('.admin-nav,.admin-panel-head,.admin-heading,.admin-table thead').allInnerTexts()]
