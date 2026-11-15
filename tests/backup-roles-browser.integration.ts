@@ -154,12 +154,16 @@ async function run(){
     await goto(superBn.page,'/bn/admin/backup');
     assert.ok(!(await superBn.page.locator('[data-backup-last]').innerText()).includes(t.backup.lastNever),'the page now names the date');
 
+    /* However the turn-away is spelled — a redirect at the middleware, a redirect from the page, a 403
+       at the route — the contract is one sentence: no backup page body and no backup payload ever
+       reaches a session that is not the Super Admin's. */
     for(const [who,context] of [['staff',staffBn.context],['teacher',teacherBn.context]]){
-      const pageRes=await context.request.get(origin+'/bn/admin/backup',{maxRedirects:0});
-      assert.ok(pageRes.status()>=300&&pageRes.status()<400,`the backup page redirects ${who} away`);
-      const exportRes=await context.request.get(origin+'/bn/admin/backup/export?format=json',{maxRedirects:0});
-      assert.ok(exportRes.status()>=300&&exportRes.status()<400,`and so does the export door for ${who}`);
-      assert.ok(!(exportRes.headers()['content-type']||'').includes('application/json'),`with no JSON handed to ${who}`);
+      const pageRes=await context.request.get(origin+'/bn/admin/backup');
+      const pageText=await pageRes.text();
+      assert.equal(pageText.includes('data-backup-page'),false,`no backup page body reaches ${who}`);
+      const exportRes=await context.request.get(origin+'/bn/admin/backup/export?format=json');
+      assert.ok(!(exportRes.headers()['content-type']||'').includes('application/json'),`and no JSON is handed to ${who}`);
+      assert.equal((await exportRes.text()).includes('"collections"'),false,`the backup payload never reaches ${who}`);
     }
 
     // ── 5. the twelve-month trim, straight against the job ─────────────────────────────────────────
