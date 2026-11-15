@@ -1,11 +1,11 @@
 --- tests/exam-flow.integration.ts (exit 1) ---
-AssertionError [ERR_ASSERTION]: Missing expected rejection: a student of another class cannot be marked into this exam by accident
+AssertionError [ERR_ASSERTION]: Missing expected rejection: a batch with a mark over the full mark is refused whole, before anything is written
     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
-    at async run (/home/runner/work/diction/diction/tests/exam-flow.integration.ts:109:5) {
+    at async run (/home/runner/work/diction/diction/tests/exam-flow.integration.ts:136:5) {
   generatedMessage: false,
   code: 'ERR_ASSERTION',
   actual: undefined,
-  expected: /STUDENT_UNAVAILABLE/,
+  expected: /INVALID_MARKS/,
   operator: 'rejects',
   diff: 'simple'
 }

@@ -1,9 +1,12 @@
-AssertionError [ERR_ASSERTION]: the refusal names the full mark it broke; got: নমুনা ছাত্র খ · বাংলা: 100 এর বেশি হতে পারে না।
-    at run (/home/runner/work/diction/diction/tests/center-exams-browser.integration.ts:230:12) {
+AssertionError [ERR_ASSERTION]: five students are on the grid
+
+'৪' !== '৫'
+
+    at run (/home/runner/work/diction/diction/tests/center-exams-browser.integration.ts:272:12) {
   generatedMessage: false,
   code: 'ERR_ASSERTION',
-  actual: false,
-  expected: true,
-  operator: '==',
+  actual: '৪',
+  expected: '৫',
+  operator: 'strictEqual',
   diff: 'simple'
 }
