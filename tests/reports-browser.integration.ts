@@ -93,7 +93,7 @@ async function run(){
     pay({student:sa._id,amount:1000,receiptNo:'101',paidOn:'2026-02-10',receivedBy:owner._id}),
     pay({student:sb._id,amount:500,receiptNo:'102',paidOn:'2026-02-10',receivedBy:cashier._id}),
     pay({student:sa._id,type:'admission',month:undefined,amount:300,receiptNo:'103',paidOn:'2026-02-10',receivedBy:cashier._id,note:'=1+1'}),
-    pay({student:sb._id,amount:500,receiptNo:'102',paidOn:'2026-02-12',receivedBy:owner._id}),
+    pay({student:sa._id,amount:500,receiptNo:'102',paidOn:'2026-02-12',receivedBy:owner._id}),
     pay({student:sc._id,amount:1000,receiptNo:'105',paidOn:'2026-02-14',receivedBy:owner._id,classGroupAtPayment:group2._id}),
   ]);
   await CenterFeeWaiver.create({student:sb._id,year:2026,month:3,reason:'নমুনা ছাড়'});
