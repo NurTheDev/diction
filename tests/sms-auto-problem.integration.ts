@@ -214,7 +214,7 @@ async function run(){
     await CenterExamResult.create({
       exam:resultExam._id,student:payer._id,classGroup:group._id,
       marks:[{subject:resultExam.subjects[0]._id,obtained:80,absent:false},{subject:resultExam.subjects[1]._id,obtained:40,absent:false}],
-      total:120,fullTotal:150,percentage:80,grade:'A+',point:5,position:1,
+      total:120,fullTotal:150,percentage:80,grade:'A+',point:5,position:1,recordedBy:actor._id,
     });
     const batchesBefore=await CenterSmsBatch.countDocuments();
     const noBatch=await autoSendClassResults({exam:String(resultExam._id),classGroup:String(group._id)},{now,provider:noBalanceProvider().provider});

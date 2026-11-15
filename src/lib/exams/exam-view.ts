@@ -41,7 +41,7 @@ interface ExamDoc{
 interface ResultDoc{
   _id:mongoose.Types.ObjectId;student:mongoose.Types.ObjectId;classGroup?:mongoose.Types.ObjectId;
   revision?:number;marks:{subject:mongoose.Types.ObjectId;obtained:number|null;absent:boolean}[];
-  total:number;fullTotal:number;percentage:number;grade:string;point?:number;position?:number;absent?:boolean;
+  total:number;fullTotal:number;percentage:number;grade:string;point?:number;position?:number;
 }
 interface StudentDoc{_id:mongoose.Types.ObjectId;studentId:string;name:{bn:string;en?:string};roll?:string;classGroup:mongoose.Types.ObjectId}
 
@@ -188,9 +188,11 @@ export async function resultMessagesForExam(examId:string):Promise<ExamResultMes
     .filter(subject=>!!subject.name);
   const examName=localName(exam.name,'bn');
   const results=await CenterExamResult.find({exam:exam._id})
-    .select('student classGroup marks total fullTotal grade position absent').lean<ResultDoc[]>();
+    .select('student classGroup marks total fullTotal grade position').lean<ResultDoc[]>();
   return results.flatMap(row=>{
-    const absent=!!row.absent||row.grade==='ABSENT';
+    /* Absence is the grade the engine wrote, exactly as `examDetailView` reads it — the result row itself
+       has no absent flag, only its per-subject marks do. */
+    const absent=row.grade==='ABSENT';
     const values=resultMessage({
       examName,subjects,
       marks:(row.marks||[]).map(mark=>({subject:String(mark.subject),obtained:mark.absent?null:mark.obtained,absent:!!mark.absent})),

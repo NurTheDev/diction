@@ -325,7 +325,7 @@ async function run(){
     const resultRow=(student,bangla,math,total,position)=>({
       exam:resultExam._id,student,classGroup:group._id,
       marks:[{subject:resultExam.subjects[0]._id,obtained:bangla,absent:false},{subject:resultExam.subjects[1]._id,obtained:math,absent:false}],
-      total,fullTotal:150,percentage:Math.round((total/150)*100),grade:'A+',point:5,position,
+      total,fullTotal:150,percentage:Math.round((total/150)*100),grade:'A+',point:5,position,recordedBy:actor._id,
     });
     await CenterExamResult.insertMany([
       resultRow(paid._id,90,45,135,1),
@@ -334,7 +334,9 @@ async function run(){
       resultRow(held._id,70,30,100,4),
       resultRow(paidUp._id,50,25,75,5),
       // Absent: both subjects absent, no position — publishing writes exactly this shape.
-      {exam:resultExam._id,student:absentee._id,classGroup:group._id,absent:true,grade:'ABSENT',total:0,fullTotal:150,percentage:0,point:0,
+      // Absent: both subjects absent and the grade the engine writes for that, which is how every reader
+      // of a stored result recognises it — there is no absent flag on the row itself.
+      {exam:resultExam._id,student:absentee._id,classGroup:group._id,grade:'ABSENT',total:0,fullTotal:150,percentage:0,point:0,recordedBy:actor._id,
        marks:[{subject:resultExam.subjects[0]._id,obtained:null,absent:true},{subject:resultExam.subjects[1]._id,obtained:null,absent:true}]},
     ]);
 
