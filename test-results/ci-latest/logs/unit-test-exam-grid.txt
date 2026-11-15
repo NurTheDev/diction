@@ -1,0 +1,2 @@
+--- tests/exam-grid.test.ts (exit 0) ---
+Exam grid: cells, Bangla digits, absence, paste blocks, header mapping, roster matching and CSV plus XLSX previews passed.

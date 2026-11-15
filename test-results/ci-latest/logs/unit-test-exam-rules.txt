@@ -1,0 +1,2 @@
+--- tests/exam-rules.test.ts (exit 0) ---
+Exam rules: bands and points, per-subject failure, absence, tie positions, the class summary and scale validation passed.

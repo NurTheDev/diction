@@ -1,42 +1,6 @@
       "scrollWidth": 1440
     },
     {
-      "path": "/bn/admin/students/removed",
-      "width": 360,
-      "clientWidth": 360,
-      "scrollWidth": 360
-    },
-    {
-      "path": "/bn/admin/students/removed",
-      "width": 1440,
-      "clientWidth": 1440,
-      "scrollWidth": 1440
-    },
-    {
-      "path": "/bn/admin/center-exams",
-      "width": 360,
-      "clientWidth": 360,
-      "scrollWidth": 360
-    },
-    {
-      "path": "/bn/admin/center-exams",
-      "width": 1440,
-      "clientWidth": 1440,
-      "scrollWidth": 1440
-    },
-    {
-      "path": "/bn/admin/admissions",
-      "width": 360,
-      "clientWidth": 360,
-      "scrollWidth": 360
-    },
-    {
-      "path": "/bn/admin/admissions",
-      "width": 1440,
-      "clientWidth": 1440,
-      "scrollWidth": 1440
-    },
-    {
       "path": "/bn/admin/leads",
       "width": 360,
       "clientWidth": 360,
@@ -392,6 +356,42 @@
     },
     {
       "path": "/en/admin/teacher-cvs/import",
+      "width": 1440,
+      "clientWidth": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "path": "/bn/admin/grading-scale",
+      "width": 360,
+      "clientWidth": 360,
+      "scrollWidth": 360
+    },
+    {
+      "path": "/bn/admin/grading-scale",
+      "width": 1440,
+      "clientWidth": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "path": "/bn/admin/students/classes",
+      "width": 360,
+      "clientWidth": 360,
+      "scrollWidth": 360
+    },
+    {
+      "path": "/bn/admin/students/classes",
+      "width": 1440,
+      "clientWidth": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "path": "/en/admin/grading-scale",
+      "width": 360,
+      "clientWidth": 360,
+      "scrollWidth": 360
+    },
+    {
+      "path": "/en/admin/grading-scale",
       "width": 1440,
       "clientWidth": 1440,
       "scrollWidth": 1440
