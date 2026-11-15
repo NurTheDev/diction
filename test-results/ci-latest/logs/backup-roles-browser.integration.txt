@@ -1,9 +1,8 @@
-AssertionError [ERR_ASSERTION]: the export wrote its own line in the activity log
-    at run (/home/runner/work/diction/diction/tests/backup-roles-browser.integration.ts:146:12)
-    at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {
+AssertionError [ERR_ASSERTION]: the backup page redirects staff away
+    at run (/home/runner/work/diction/diction/tests/backup-roles-browser.integration.ts:159:14) {
   generatedMessage: false,
   code: 'ERR_ASSERTION',
-  actual: null,
+  actual: false,
   expected: true,
   operator: '==',
   diff: 'simple'
