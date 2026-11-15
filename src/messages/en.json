@@ -3792,7 +3792,7 @@
     },
     "teacher": {
       "title": "Exams and marks",
-      "scopeNote": "Exams of the {classes} classes assigned to you appear here. There is no payment, due or cash information on this screen.",
+      "scopeNote": "Exams of the {classes} classes assigned to you appear here, and each one holds only the students of your own classes.",
       "listHeading": "Your exams",
       "empty": "No exam has been set for your classes yet.",
       "enterMarks": "Enter marks",
@@ -3802,7 +3802,7 @@
       "draftNote": "A draft exam: type the marks and they save themselves.",
       "backToList": "Back to the exam list",
       "backToPortal": "Teacher portal",
-      "portalDesc": "Marks and results for the classes you take — no fee or due information.",
+      "portalDesc": "Marks and results for the classes you take.",
       "portalOpen": "Open exams"
     }
   },

@@ -444,7 +444,12 @@ async function run(){
     await teacherPage.locator('[data-exam-grid]').waitFor({timeout:60000});
     assert.equal(await teacherPage.locator('[data-row]').count(),4,'only their own class is on the grid');
     assert.equal(await teacherPage.locator(`[data-row="${String(s5._id)}"]`).count(),0,'the other class’s student is not there at all');
-    const teacherText=(await teacherPage.locator('body').innerText())+(await teacherPage.content());
+    /* What the teacher READS, not every byte the tab has collected: this screen was reached by clicking,
+       and a client-side navigation leaves the flight chunks of the page before it in the document, so
+       `page.content()` here would also be searched for the exam list's own sentences. The data behind the
+       screen is scanned where it is built — `tests/exam-flow.integration.ts` walks the teacher's view for
+       any payment field — and the links out of it are checked just below, against this screen's DOM. */
+    const teacherText=await teacherPage.locator('body').innerText();
     for(const word of ['বেতন','বকেয়া','রশিদ','ক্যাশ','ফি লেজার','টাকা জমা']){
       assert.ok(!teacherText.includes(word),`a teacher's exam screen never says ${word}`);
     }

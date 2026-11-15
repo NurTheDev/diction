@@ -132,7 +132,11 @@ export async function updateCenterExam(input:unknown,actor:string){
       let recomputed=0;
       if(bandsChanged&&results.length){
         for(const row of results){
-          const marks=(row.marks||[]).map(m=>({subject:m.subject,obtained:m.absent?null:m.obtained,absent:!!m.absent}));
+          /* `subject` is stored as an ObjectId and the engine compares ids as lowercase hex, so it is read
+             through `String` here exactly as `applyMarks` normalizes it on the way in. Without that, every
+             row looks like a mark for a subject this exam does not have, and tightening a scale on an exam
+             anyone has sat fails with INVALID_MARKS instead of moving the grades. */
+          const marks=(row.marks||[]).map(m=>({subject:String(m.subject).toLowerCase(),obtained:m.absent?null:m.obtained,absent:!!m.absent}));
           if(marks.length!==exam.subjects.length)continue;
           const calculated=calculateExam(exam.subjects.map(s=>({id:String(s._id),full:s.fullMarks,pass:s.passMarks})),bands,marks);
           await CenterExamResult.updateOne({_id:row._id},{$set:{grade:calculated.grade,percentage:calculated.percentage,point:pointFor(bands,calculated.percentage,calculated.grade)}},{session,runValidators:true});
