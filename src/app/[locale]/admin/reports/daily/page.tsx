@@ -71,7 +71,7 @@ export default async function DailyReport({params,searchParams}:{params:Promise<
           </tbody>
         </table></div>
         <p data-daily-total>{t('daily.totalLine',{count:formatNumber(breakdown.count,digits),total:money(breakdown.total)})}</p>
-        {breakdown.operators.length>1&&<ul data-daily-operators>
+        {breakdown.operators.length>0&&<ul data-daily-operators>
           {breakdown.operators.map(entry=><li key={entry.id}>{entry.name}: {formatNumber(entry.count,digits)} · {money(entry.total)}</li>)}
         </ul>}
       </>:<div className="admin-empty">{t('daily.empty')}</div>}

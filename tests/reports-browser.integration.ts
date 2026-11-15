@@ -254,14 +254,14 @@ async function run(){
 
     // ── 8. English reads English, and nothing overflows or leaks a key path ────────────────────────
     await goto(adminEn.page,'/en/admin/reports/daily?date=2026-02-10');
-    const enChrome=await adminEn.page.locator('.admin-heading, .report-filters, [data-daily-report] thead').innerText();
+    const enChrome=(await adminEn.page.locator('.admin-heading, .report-filters, [data-daily-report] thead').allInnerTexts()).join('\n');
     assert.equal(BN.test(enChrome),false,'the English day page’s own words carry no Bangla');
     assert.ok(enChrome.includes(en_t.daily.receipt)&&enChrome.includes(en_t.daily.operator));
     assert.ok((await adminEn.page.locator('[data-daily-total]').innerText()).includes('1800'),'and its digits are English');
     await shot(adminEn.page,'reports-daily-en-1440');
     for(const [page,href] of [[adminEn.page,'/en/admin/reports/monthly?year=2026&month=2'],[adminEn.page,'/en/admin/reports/year?year=2026']]){
       await goto(page,href);
-      assert.equal(BN.test(await page.locator('.admin-heading, .report-filters').innerText()),false,`English chrome at ${href}`);
+      assert.equal(BN.test((await page.locator('.admin-heading, .report-filters').allInnerTexts()).join('\n')),false,`English chrome at ${href}`);
     }
     for(const href of ['/bn/admin/reports/daily?date=2026-02-10','/bn/admin/reports/monthly?year=2026&month=2','/bn/admin/reports/receipt-audit','/bn/admin/reports/year?year=2026',`/bn/admin/reports/statement/${String(sa._id)}`]){
       await goto(adminBn.page,href);
