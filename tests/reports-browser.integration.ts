@@ -71,6 +71,9 @@ async function run(){
   const cashier=await User.create({name:'নমুনা ক্যাশিয়ার',email:'r6-cashier@example.test',passwordHash:hash,role:'staff',active:true});
   const teacher=await User.create({name:'নমুনা শিক্ষক',email:'r6-teacher@example.test',passwordHash:hash,role:'teacher',active:true});
   const group=await CenterClassGroup.create({name:{bn:'নমুনা নবম ক',en:'Sample Nine A'},academicYear:2026,active:true});
+  /* A second class, because a matrix of one row proves nothing about its margins: the last receipt of
+     the month is taken from a child of this class. */
+  const group2=await CenterClassGroup.create({name:{bn:'নমুনা দশম খ',en:'Sample Ten B'},academicYear:2026,active:true});
   const makeStudent=(studentId,name)=>CenterStudent.create({
     studentId,name:{bn:name,en:name},classGroup:group._id,roll:studentId.replace(/\D/g,''),
     guardianName:'নমুনা অভিভাবক',guardianPhone:'01711000011',admissionDate:'2026-01-01',
@@ -91,7 +94,7 @@ async function run(){
     pay({student:sb._id,amount:500,receiptNo:'102',paidOn:'2026-02-10',receivedBy:cashier._id}),
     pay({student:sa._id,type:'admission',month:undefined,amount:300,receiptNo:'103',paidOn:'2026-02-10',receivedBy:cashier._id,note:'=1+1'}),
     pay({student:sb._id,amount:500,receiptNo:'102',paidOn:'2026-02-12',receivedBy:owner._id}),
-    pay({student:sc._id,amount:1000,receiptNo:'105',paidOn:'2026-02-14',receivedBy:owner._id}),
+    pay({student:sc._id,amount:1000,receiptNo:'105',paidOn:'2026-02-14',receivedBy:owner._id,classGroupAtPayment:group2._id}),
   ]);
   await CenterFeeWaiver.create({student:sb._id,year:2026,month:3,reason:'নমুনা ছাড়'});
 
@@ -154,7 +157,10 @@ async function run(){
     const dayTotals=await adminBn.page.locator('[data-mx-day-totals] td').allInnerTexts();
     const classTotals=await adminBn.page.locator('[data-mx-class-total]').allInnerTexts();
     assert.ok(dayTotals.join(' ').replace(/\s/g,'').includes(bnDigits(3300).replace(/\s/g,'')),'the day row ends at the grand total');
-    assert.ok(classTotals.join(' ').includes(bnDigits(1300)),'and each class row carries its own sum: 1000 of fee and 300 of admission');
+    assert.equal(await adminBn.page.locator('[data-monthly-matrix] tbody tr').count(),2,'two classes held money this month');
+    const classLine=classTotals.join(' ');
+    assert.ok(classLine.includes(bnDigits(2300)),'the first class row carries its own sum: 1000 + 500 + 300 + 500');
+    assert.ok(classLine.includes(bnDigits(1000)),'and the second class row carries only its own receipt');
     assert.ok((await adminBn.page.locator('[data-monthly-types]').innerText()).includes(t.types.admission));
     await shot(adminBn.page,'reports-monthly-bn-1440');
 
