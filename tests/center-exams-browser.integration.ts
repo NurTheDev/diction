@@ -53,7 +53,7 @@ import {chromium} from 'playwright';
 import type {Page,BrowserContext} from 'playwright';
 import {preflight,testDbName} from './helpers/env-preflight';
 import {User} from '../src/models/User';
-import {CenterStudent,CenterClassGroup,CenterExam,CenterExamResult,CenterGradingScale,CenterSmsBatch} from '../src/models/CenterRecords';
+import {CenterStudent,CenterClassGroup,CenterExam,CenterExamResult,CenterGradingScale,CenterSmsBatch,CenterSettings} from '../src/models/CenterRecords';
 import bn from '../src/messages/bn.json';
 import en from '../src/messages/en.json';
 
@@ -94,6 +94,11 @@ async function run(){
     }
   }
   await mongoose.connection.collection('ratelimits').deleteMany({}).catch(()=>{});
+  /* The send engine defaults quiet hours to 21:00–07:00 Dhaka, so a publish that lands in CI's evening
+     queues the result messages instead of sending them, and the send-count assertions read zero. A
+     window whose start equals its end is an empty window by design: the suite owns that setting, and
+     the counts it promises stay exactly as strict. */
+  await CenterSettings.updateOne({key:'main'},{$set:{quietStart:'00:00',quietEnd:'00:00'}},{upsert:true});
   await mkdir(SHOTS,{recursive:true});
 
   const pass=randomBytes(20).toString('base64url'),hash=await bcrypt.hash(pass,12);
