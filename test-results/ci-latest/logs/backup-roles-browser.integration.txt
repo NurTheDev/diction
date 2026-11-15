@@ -1,8 +1,10 @@
-locator.innerText: Timeout 30000ms exceeded.
-Call log:
-  - waiting for locator('[data-backup-page] .admin-heading')
-
-    at run (/home/runner/work/diction/diction/tests/backup-roles-browser.integration.ts:123:86) {
-  log: [ "  - waiting for locator('[data-backup-page] .admin-heading')" ],
-  name: 'TimeoutError'
+AssertionError [ERR_ASSERTION]: the export wrote its own line in the activity log
+    at run (/home/runner/work/diction/diction/tests/backup-roles-browser.integration.ts:146:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: null,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
 }
