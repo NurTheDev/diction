@@ -732,7 +732,7 @@ photographs 360 px and 1440 px in Bangla and English into `screenshots/r3/leads-
 
 ---
 
-## 17. R5 slice 1 — exams and results (code complete, awaiting CI verification)
+## 17. R5 slice 1 — exams and results (verified: 55/55, run 43681561293, tag `r5-verified`)
 
 **The gate is gone.** `CENTER_EXAM_WRITE_ENABLED` was the flag that kept the experimental exam code from
 writing in production. R5 retires it: the feature is the feature, and what replaces the flag is
@@ -816,3 +816,39 @@ normalizes on the way in — but the recompute inside `updateCenterExam` read th
 row looked like a mark for a subject the exam did not have and tightening the scale of an exam anyone had
 sat failed with `INVALID_MARKS`, transaction and all. The recompute is the only reason that path exists, so
 this was the one edit guaranteed to be attempted and guaranteed to fail. It reads through `String` now.
+
+**A client component is only as translated as the provider above it.** The marks grid reads `exams` with
+`useTranslations`, and the portal is not inside the admin tree: the public layout ships only the groups the
+public site's own client components read, so on a teacher's screen the grid was handed nothing and painted
+its key paths — `exams.grid.save` where a sentence belongs. That fails no build, no type check and no server
+test; only a browser notices. The teacher's exam page now ships the one group its grid reads, through
+`pickedMessages` in `src/i18n/client-namespaces.ts` — the tightest filter there is, next to `clientMessages`,
+which subtracts what no client can read and is the right answer inside the admin tree where the shell reads
+dozens of groups. `exams` alone, and not the whole client catalog, because the groups a teacher is not given
+include the dues vocabulary that wall is built to keep off that screen.
+
+**And the check that should have existed with it.** `tests/i18n-catalog.test.ts` now walks every page against
+the layouts above it, follows its imports to the client components it renders, and fails when a group they
+read is shipped by no provider in that chain. It found the teacher's grid and **eleven more routes that paint
+key paths today**, none of them R5's: the student and parent fee screens read `center`, the materials and
+notices screens of all three portal trees read `adminWork`, and the two practice screens read `practicePublic`.
+Those twelve are named as debt inside the suite, in both directions — a route that stops being uncovered has
+to be struck off, and a new one fails. The fix is a provider per portal tree and not one line in the public
+layout, because `center` may be shipped to a student and never to a teacher.
+
+**Two responsive faults, both the same CSS fact.** A grid item's automatic minimum size is its content's own
+minimum, so the marks table — deliberately `min-width:max-content` so eight columns of Bangla headings stay
+readable, inside a wrapper that scrolls — held `.center-exam-gridwrap` open at 408px and scrolled the *page*
+sideways at 360px instead of the table; and the import panel took its width from a file input, a form control
+with an intrinsic size of its own, which put the label, the help line and the preview button at right=393 on
+a 360px screen. `min-width:0` on the items hands the shrinking back to the elements that can scroll, which is
+the house fix (`.private-notice`, `.practice-question` and `.editorial-section` carry it for the same reason);
+`max-width` cannot do it, because a maximum does not lower a minimum. The overflow check now names the
+elements that escape the viewport, skipping anything inside a wrapper that scrolls, because "this screen
+overflows by 48px" is a CSS question and a screenshot does not answer it.
+
+**Verified.** Run 43681561293 on commit `0308c16`: 55 requirements PASS, 0 FAIL, 0 NOT TESTED, tag
+`r5-verified`, photographs in `screenshots/r5/`. Seven product defects and six suite defects were found on
+the way there and only in CI, because five of the seven need a browser or a database and the other two need
+both: the scope wall above, digits inside translated sentences, the summary that counted marks and called
+them students, the scale recompute, the missing provider, and the two layout faults.

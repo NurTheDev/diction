@@ -70,3 +70,19 @@ payment-free teacher view) and `tests/center-exams-browser.integration.ts` (driv
 claims nothing else made — the concurrent-save race and the student revision counter — moved into
 `tests/exam-flow.integration.ts`. `tests/center-exam-marks.test.ts` remains, because
 `src/lib/center/exam-marks.ts` is still the engine the new rule layer reads through.
+
+Verified in CI, not only on a workstation: run **43681561293** on commit `0308c16` reports **55 requirements
+PASS, 0 FAIL, 0 NOT TESTED**, tagged `r5-verified`, with the photographs in `screenshots/r5/`. Getting there
+found seven product defects that no local run could reach — a teacher refused marks for the class the screen
+had just shown them, Latin digits inside otherwise Bangla sentences, a class summary that counted marked rows
+and called them students, a grading-scale edit that failed on every exam with stored results because a stored
+subject id is an ObjectId, a marks grid on the portal that painted catalog key paths because no provider above
+it shipped its group, and two screens that scrolled sideways at 360px.
+
+One of those is bigger than R5 and is recorded here so it is not lost: the catalog suite now checks that every
+page hands its client components the group they read, and **twelve portal routes fail that today** — the
+student and parent fee screens (`center`), the materials and notices screens of the student, parent and
+teacher trees (`adminWork`), and the two practice screens (`practicePublic`). Those screens paint key paths
+instead of sentences in production. They are named as debt inside `tests/i18n-catalog.test.ts`, which fails if
+the list grows and fails if a fixed route is left on it. The fix is a provider per portal tree, not one line in
+the public layout: `center` holds the dues vocabulary and may be shipped to a student and never to a teacher.
