@@ -133,7 +133,14 @@ async function run(){
 
     await saveCenterExamMarksBatch({examId:created.id,rows:[{studentId:String(a3._id),version:0,marks:absent()}]},String(teacherA._id));
     assert.equal((await CenterExamResult.findOne({student:a3._id}).lean()).grade,'ABSENT','absence is stored as absence');
-    await assert.rejects(()=>saveCenterExamMarksBatch({examId:created.id,rows:[{studentId:String(a1._id),version:1,marks:[{subject:subjectIds[0],obtained:120,absent:false}]}]},String(teacherA._id)),/INVALID_MARKS/,'a batch with a mark over the full mark is refused whole, before anything is written');
+    /* A mark over the full mark is refused, and the two writers refuse it differently on purpose. The
+       single save throws: one row, one answer. The batch names the row instead, because one bad cell in a
+       paste of forty must not throw away the thirty-nine good ones — but it writes nothing either way. */
+    const overFull=await saveCenterExamMarksBatch({examId:created.id,rows:[{studentId:String(a1._id),version:0,marks:[{subject:subjectIds[0],obtained:120,absent:false}]}]},String(teacherA._id));
+    assert.equal(overFull.saved,0,'a batch with a mark over the full mark saves nothing');
+    assert.deepEqual(overFull.rows.map(row=>[row.status,row.reason]),[['refused','INVALID_MARKS']],'and names the row it refused');
+    await assert.rejects(()=>saveCenterExamMarks({examId:created.id,studentId:String(a1._id),version:0,marks:[{subject:subjectIds[0],obtained:120,absent:false}]},String(teacherA._id)),/INVALID_MARKS/,'the single save refuses it outright');
+    assert.equal((await CenterExamResult.findOne({student:a1._id}).lean()).total,135,'and the mark that was already there is untouched by either refusal');
     assert.equal(await CenterActivityLog.countDocuments({action:'exam.marks'}),5,'every marks write is logged');
 
     // ── Two teachers, one row, one write ─────────────────────────────────────────────────────────

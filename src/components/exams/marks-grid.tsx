@@ -98,7 +98,8 @@ export function liveGrid(students:GridStudent[],subjects:GridSubject[],bands:{mi
   // Position is a class fact: ties share it, the next one skips, and an absent student has none.
   const positions=positionOf(rows.filter(row=>row.complete&&!row.absent).map(row=>({student:row.studentId,total:row.total??0,grade:row.grade})));
   for(const row of rows)row.position=row.absent?null:positions.get(row.studentId)??null;
-  return {rows,summary:classSummary(summaryRows,examSubjects),savedCount:summaryRows.length};
+  // The grid knows every student on it, marked or not, so the summary is about all of them.
+  return {rows,summary:classSummary(summaryRows,examSubjects,students.length),savedCount:summaryRows.length};
 }
 
 /** One cell's refusal, painted under the grid: the subject, the reason, and the full mark it broke. */

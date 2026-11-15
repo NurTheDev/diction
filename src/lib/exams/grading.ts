@@ -143,8 +143,14 @@ const stats=(values:number[]):{average:number|null;highest:number|null;lowest:nu
  *
  * Every average is over the students who were PRESENT and had that subject marked — a blank cell is not
  * a zero and an absent student is not in the denominator.
+ *
+ * `total` is how many students the summary is about, and it is a separate number from the rows on purpose:
+ * a row only reaches this function once every subject of it is marked, so a class of five with one child
+ * not yet marked would otherwise report "Students 4" — a label about the class answered with a count of
+ * the marks. Both callers know the real size of the class they are summarizing, so both pass it, and the
+ * difference between the two numbers is the honest "still to mark".
  */
-export function classSummary(rows:SummaryRow[],subjects:ExamSubject[]):ClassSummary{
+export function classSummary(rows:SummaryRow[],subjects:ExamSubject[],total?:number):ClassSummary{
   const present=rows.filter(row=>row.grade!=='ABSENT');
   const failed=present.filter(row=>row.grade==='FAIL').length;
   const totals=present.map(row=>row.total);
@@ -161,7 +167,7 @@ export function classSummary(rows:SummaryRow[],subjects:ExamSubject[]):ClassSumm
     };
   });
   return {
-    students:rows.length,counted:present.length,absent:rows.length-present.length,failed,
+    students:total??rows.length,counted:present.length,absent:rows.length-present.length,failed,
     passed:present.length-failed,...stats(totals),
     passRate:present.length?round1(((present.length-failed)/present.length)*100):null,
     subjects:subjectSummaries,

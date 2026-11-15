@@ -114,7 +114,7 @@ export async function examDetailView(examId:string,scope:ExamScope,locale:string
     classes:groups.map(group=>({id:String(group._id),name:`${localName(group.name,locale)}${group.shift?` · ${group.shift}`:''} · ${group.academicYear}`})),
     subjects,
     bands:[...exam.gradeBands].sort((a,b)=>b.min-a.min).map(band=>({min:band.min,label:band.label,point:band.point??0})),
-    students:viewStudents,results:viewResults,summary:classSummary(summaryRows,subjects.map(subject=>({id:subject.id,full:subject.full,pass:subject.pass}))),
+    students:viewStudents,results:viewResults,summary:classSummary(summaryRows,subjects.map(subject=>({id:subject.id,full:subject.full,pass:subject.pass})),viewStudents.length),
     tooMany:students.length>MAX_GRID_ROWS||results.length>MAX_GRID_ROWS,
     canWrite:exam.status==='draft',
   };

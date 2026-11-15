@@ -87,6 +87,12 @@ const summary=classSummary([
   {total:0,grade:'ABSENT',marks:[{subject:'bn',obtained:null,absent:true},{subject:'math',obtained:null,absent:true}]},
 ],subjects);
 assert.equal(summary.students,4,'four students are on the sheet');
+/* A row only reaches the summary once every subject of it is marked, so the size of the class is a separate
+   number from the size of the rows — and the label on screen says "Students", so it gets the class. */
+assert.equal(classSummary([{total:120,grade:'A+',marks:[{subject:'bn',obtained:80,absent:false},{subject:'math',obtained:40,absent:false}]}],subjects,5).students,5,
+  'a class of five with one child not yet marked reports five students, not one');
+assert.equal(classSummary([{total:120,grade:'A+',marks:[{subject:'bn',obtained:80,absent:false},{subject:'math',obtained:40,absent:false}]}],subjects,5).counted,1,
+  'and still counts only the marks it was given');
 assert.equal(summary.counted,3,'three of them sat');
 assert.equal(summary.absent,1,'one was not there');
 assert.equal(summary.failed,1,'one failed');
