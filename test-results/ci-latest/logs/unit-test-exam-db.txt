@@ -1,8 +1,14 @@
 --- tests/exam-flow.integration.ts (exit 1) ---
-Error: INVALID_MARKS
-    at calculateExam (/home/runner/work/diction/diction/src/lib/center/exam-marks.ts:6:587)
-    at <anonymous> (/home/runner/work/diction/diction/src/lib/center/exam-batch.ts:137:28)
-    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
-    at async ClientSession.withTransaction (/home/runner/work/diction/diction/node_modules/mongodb/src/sessions.ts:750:20)
-    at async updateCenterExam (/home/runner/work/diction/diction/src/lib/center/exam-batch.ts:112:5)
-    at async run (/home/runner/work/diction/diction/tests/exam-flow.integration.ts:227:5)
+AssertionError [ERR_ASSERTION]: and exactly one is the default
+
+0 !== 1
+
+    at run (/home/runner/work/diction/diction/tests/exam-flow.integration.ts:270:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: 0,
+  expected: 1,
+  operator: 'strictEqual',
+  diff: 'simple'
+}
