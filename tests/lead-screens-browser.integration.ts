@@ -44,6 +44,7 @@ import {maskPhone} from '../src/lib/leads/vocab';
 import {dhakaDay} from '../src/lib/admin/today';
 import {formatNumber} from '../src/lib/admin/format';
 import bn from '../src/messages/bn.json';
+import en from '../src/messages/en.json';
 
 const t=bn.leads;
 /** Resolve a nested leads key the way next-intl does, so the label helpers can be exercised here. */
@@ -932,6 +933,21 @@ async function run(){
     await noOverflow(desk.page,'the staff Overview at 1440');
     await shot(desk.page,'b2-staff-overview-1440');
     await desk.page.setViewportSize({width:360,height:780});
+    // ---- The review pack reads English too: the same drawer and the same send dialog, in en at 1440.
+    await boss.page.setViewportSize({width:1440,height:900});
+    await boss.page.goto(`${origin}/en/admin/leads`,{waitUntil:'domcontentloaded',timeout:180000});
+    const enRow=boss.page.locator('table.admin-table tbody tr').first();
+    await enRow.locator('button',{hasText:en.leads.detail}).first().click();
+    const enDrawer=boss.page.locator('dialog.overview-drawer[open]');
+    await enDrawer.waitFor({state:'visible',timeout:60000});
+    await shot(boss.page,'b2-detail-drawer-en-1440',false);
+    await enDrawer.locator('header button').click();
+    await enDrawer.waitFor({state:'detached',timeout:30000});
+    await enRow.locator('input[name="smsLead"]').check();
+    await boss.page.locator('[data-lead-sms-bar]').locator('button[data-sms-open]').click();
+    await boss.page.locator('.sms-overlay [data-sms-dialog]').waitFor({timeout:60000});
+    await shot(boss.page,'b2-visitor-sms-dialog-en-1440',false);
+
     // Leave the centre as it was found: the ceiling back at its shipped value and the quiet window real.
     await CenterSettings.updateOne({key:'main'},{$set:{dailySmsLimitPerUser:30,quietStart:'21:00',quietEnd:'07:00'}});
 

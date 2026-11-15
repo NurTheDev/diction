@@ -149,3 +149,12 @@ jobs:
             verify-output/logs/
           if-no-files-found: warn
           retention-days: 30
+
+      - name: Upload the review pack
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: review-pack
+          path: review-pack/
+          if-no-files-found: warn
+          retention-days: 90
