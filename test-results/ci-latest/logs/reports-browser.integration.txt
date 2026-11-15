@@ -1,9 +1,12 @@
-AssertionError [ERR_ASSERTION]: both children it was written for
-    at run (/home/runner/work/diction/diction/tests/reports-browser.integration.ts:182:12) {
+AssertionError [ERR_ASSERTION]: and the export door says no to a teacher
+
+200 !== 403
+
+    at run (/home/runner/work/diction/diction/tests/reports-browser.integration.ts:257:12) {
   generatedMessage: false,
   code: 'ERR_ASSERTION',
-  actual: false,
-  expected: true,
-  operator: '==',
+  actual: 200,
+  expected: 403,
+  operator: 'strictEqual',
   diff: 'simple'
 }
