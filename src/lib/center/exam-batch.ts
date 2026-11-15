@@ -22,6 +22,7 @@
  *     produces three 1st places, not one.
  */
 import mongoose from 'mongoose';import {z} from 'zod';import {CenterExam,CenterExamResult,CenterStudent,CenterClassGroup,CenterActivityLog} from '@/models/CenterRecords';import {acquireCenterLocks,studentLock} from './import-locks';import {calculateExam,validateBands} from './exam-marks';import {pointFor} from '@/lib/exams/grading';
+import {positionOf} from '@/lib/exams/grading';
 const id=z.string().regex(/^[a-f0-9]{24}$/i),uuid=z.string().uuid(),validDate=z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(x=>{const d=new Date(x+'T00:00:00Z');return !isNaN(+d)&&d.toISOString().slice(0,10)===x});
 const subjectInput=z.object({name:z.string().trim().min(1).max(100),full:z.number().int().min(1).max(10000),pass:z.number().int().min(0).max(10000)});
 const bandInput=z.object({min:z.number().int().min(0).max(100),label:z.string().trim().min(1).max(20),point:z.number().min(0).max(5).default(0)});
@@ -240,13 +241,13 @@ export async function publishCenterExam(examId:string,actor:string){
       const byClass=new Map<string,Row[]>();
       for(const row of results){const key=String(row.classGroup||'');const list=byClass.get(key)||[];list.push(row);byClass.set(key,list)}
       for(const [,list] of byClass){
-        const positions=new Map<string,number>();
-        [...list].filter(row=>row.grade!=='ABSENT').sort((a,b)=>(b.total??0)-(a.total??0)).forEach((row,index)=>{
-          const ahead=list.filter(other=>other.grade!=='ABSENT'&&(other.total??0)>(row.total??0)).length;
-          positions.set(String(row._id),index===0?1:ahead+1);
-        });
+        /* The ranking is the pure rule R5.1 proves — ties share a position, the next one skips, an absent
+           student is not in the map at all — rather than a second copy of it written here, because the
+           publish prompt counts the messages it would send by ranking a draft with the same function. Two
+           implementations would be two chances for the count and the ranks a family is texted to drift. */
+        const positions=positionOf(list.map(row=>({student:String(row.student),total:row.total??0,grade:String(row.grade||'')})));
         for(const row of list){
-          const position=positions.get(String(row._id));
+          const position=positions.get(String(row.student));
           await CenterExamResult.updateOne({_id:row._id},position?{$set:{position}}:{$unset:{position:1}},{session,runValidators:true});
         }
       }

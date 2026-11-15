@@ -211,8 +211,9 @@ async function run(){
     assert.equal((await row.locator('[data-result-percent]').innerText()).trim(),bnDigits('66.67'));
     assert.equal((await row.locator('[data-result-grade]').innerText()).trim(),'A-','100 of 150 is 66.67 percent');
     assert.equal((await row.locator('[data-result-position]').innerText()).trim(),bnDigits(1),'and it is the position publishing wrote');
-    assert.ok((await row.locator('[data-result-subjects]').innerText()).includes(`বাংলা ${bnDigits(70)}/${bnDigits(100)}`),
-      'each row carries its own subjects with their own full marks');
+    const subjectCell=(await row.locator('[data-result-subjects]').innerText()).replace(/\s+/g,' ');
+    assert.ok(subjectCell.includes(`বাংলা ${bnDigits(70)}/${bnDigits(100)}`),
+      `each row carries its own subjects with their own full marks: ${subjectCell}`);
     assert.equal((await page.locator(`[data-result-row="${february.id}"] [data-result-position]`).innerText()).trim(),bnDigits(1),
       'the first exam keeps its own position, so two rows can both read first');
     assert.equal(await history.locator(`[data-report-link="${february.id}"]`).count(),1,'and every row offers its report card');
@@ -224,7 +225,9 @@ async function run(){
     assert.ok((await textOf(page,'[data-trend-change]')).startsWith(t.results.down),
       '90 percent down to 66.67 is named as a fall, with the size of the step beside it');
     assert.ok((await textOf(page,'[data-trend-change]')).includes(bnDigits('23.33')));
-    const chartText=await trend.locator('[data-trend-chart]').innerText();
+    /* An SVG element is not an HTMLElement, so `innerText` is not the way to read what a chart says: the
+       labels live in <text> nodes and are read as text content. */
+    const chartText=await trend.locator('[data-trend-chart]').textContent();
     assert.ok(chartText.includes(bnDigits(100))&&chartText.includes(bnDigits(0)),
       'the axis prints its own ends, so a small step cannot be read as a collapse');
     assert.ok(chartText.includes(bnDigits(90))&&chartText.includes(bnDigits('66.67')),'and each point is labelled with its percentage');
@@ -324,7 +327,10 @@ async function run(){
     await goto(studentPage,'/bn/dashboard/results');
     assert.ok(studentPage.url().includes('/bn/dashboard/results'),`a student session is let into its own Results tab; landed on ${studentPage.url()}`);
     await studentPage.locator('[data-result-history]').waitFor({timeout:60000});
-    assert.equal((await textOf(studentPage,'.portal-hero h1')).trim(),t.results.portalTitle,'the portal names the tab in the catalog’s own word');
+    /* `PortalHero` spends its h1 on welcoming the child by name, so the tab's own word is the eyebrow above
+       it and the card head below — both catalog text, and the name in the heading is data. */
+    assert.equal((await textOf(studentPage,'.portal-eyebrow')).trim(),t.results.portalTitle,'the portal names the tab in the catalog’s own word');
+    assert.ok((await textOf(studentPage,'.portal-hero h1')).includes('নমুনা ছাত্র ক'),'and its heading welcomes this child by name');
     const whoLine=await textOf(studentPage,'[data-portal-results-who]');
     assert.ok(whoLine.includes('নমুনা ছাত্র ক')&&whoLine.includes(t.results.publishedOnly),
       'and says whose results these are, and that only published ones are shown');
@@ -341,7 +347,7 @@ async function run(){
     assert.equal(MONEY.test(studentResultsText),false,'and no fee, payment, receipt or due word in what the tab paints');
     assert.equal(studentResultsText.includes(bnDigits(1000)),false,'nor the fee this child’s record holds');
     assert.equal(KEY_PATH.test(studentResultsText),false,'and no catalog key path in place of a word');
-    assert.ok((await textOf(studentPage,'[data-trend-chart]')).includes(bnDigits('66.67')),'the trend is the same chart the operator sees');
+    assert.ok((await studentPage.locator('[data-trend-chart]').textContent()).includes(bnDigits('66.67')),'the trend is the same chart the operator sees');
     await shot(studentPage,'portal-results-bn-1440');
     await studentPage.setViewportSize({width:360,height:900});
     await shot(studentPage,'portal-results-bn-360');
@@ -426,11 +432,11 @@ async function run(){
     assert.equal((await enRow.locator('[data-result-total]').innerText()).trim(),'100/150','the digits follow the account, not the address');
     assert.equal((await enRow.locator('[data-result-percent]').innerText()).trim(),'66.67');
     assert.equal((await enRow.locator('[data-result-position]').innerText()).trim(),'1');
-    const enTrendText=await enStaff.page.locator('[data-result-trend]').innerText();
+    const enTrendText=await enStaff.page.locator('[data-result-trend]').textContent();
     assert.equal(enTrendText.includes(en_t.results.trendTitle),true,'the trend names itself in English');
     assert.ok(enTrendText.includes('1 March 2026'),'and its date labels take the page’s language: chrome, not data');
     assert.ok(enTrendText.includes(en_t.results.down),'with the direction word from the English catalog');
-    assert.equal(BN.test(await enStaff.page.locator('[data-result-trend] h2, [data-result-trend] .admin-help, [data-trend-change], [data-trend-caption] .trend-label').first().innerText()),false,
+    assert.equal(BN.test(await enStaff.page.locator('[data-result-trend] h2, [data-result-trend] .admin-help, [data-trend-change]').first().innerText()),false,
       'no Bangla in the trend’s own chrome');
     assert.equal(enTrendText.includes('নমুনা মডেল টেস্ট'),true,
       'while the exam keeps the Bangla name the operator gave it — an exam has one stored name, and inventing an English one would be inventing data');
@@ -460,14 +466,16 @@ async function run(){
     const enStudent=await session(child,'en','/dashboard/results');
     await goto(enStudent.page,'/en/dashboard/results');
     await enStudent.page.locator('[data-result-history]').waitFor({timeout:60000});
-    assert.equal((await textOf(enStudent.page,'.portal-hero h1')).trim(),en_t.results.portalTitle,'the portal tab reads English');
-    assert.equal(BN.test(await enStudent.page.locator('.portal-hero').innerText()),false,'the hero carries no Bangla');
+    assert.equal((await textOf(enStudent.page,'.portal-eyebrow')).trim(),en_t.results.portalTitle,'the portal tab reads English');
+    /* The hero's h1 carries the child's own name, which is data the operator typed and stays Bangla on an
+       English address; what has to be English is every word the portal chose. */
+    assert.equal(BN.test(await enStudent.page.locator('.portal-eyebrow, .portal-hero p').innerText()),false,'the hero’s own words carry no Bangla');
     assert.equal((await textOf(enStudent.page,'.portal-card-head h2')).trim(),en_t.results.portalTitle,'nor does the card head');
     assert.ok((await textOf(enStudent.page,'[data-portal-results-who]')).includes(en_t.results.publishedOnly));
     assert.equal(BN.test(await enStudent.page.locator('[data-result-table] thead').innerText()),false,'and the table headers are English');
     const enPortalRow=enStudent.page.locator(`[data-result-row="${february.id}"]`);
     assert.equal((await enPortalRow.locator('[data-result-total]').innerText()).trim(),'135/150','with English digits');
-    assert.ok((await enStudent.page.locator('[data-trend-chart]').innerText()).includes('1 February 2026'),
+    assert.ok((await enStudent.page.locator('[data-trend-chart]').textContent()).includes('1 February 2026'),
       'the chart under a student’s own tab takes the page’s language as well');
     await shot(enStudent.page,'portal-results-en-1440');
     await enStudent.page.setViewportSize({width:360,height:900});

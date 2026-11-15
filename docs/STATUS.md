@@ -971,6 +971,16 @@ four and a send that writes two has told the operator a lie with their own softw
 never consults it — a test-mode prompt that said "cannot send" would be wrong in the one place its numbers
 are checked.
 
+The first CI run of this slice found the one way that count could be honest-looking and still be zero.
+`resultMessage` refuses a row with no position, because a message that quoted a rank nobody earned would be
+a lie — and **positions are written by publishing**, so every row of a draft exam has none. The prompt asks
+before publishing, so it counted nothing to send for an exam holding two hundred marked rows, and the send
+that followed it wrote four messages. The fix is not to relax the refusal: the ungated reader now ranks a
+draft's rows per class with `positionOf`, the pure rule R5.1 proves, and `publishCenterExam` was changed to
+rank with the same function instead of its own inline copy of the rule — one ranking, used by the publish
+and by the count that promises what the publish will send. A stored position always wins; nothing re-ranks a
+published row.
+
 **The history and its trend.** `studentResultHistory(studentId,locale)` returns the published exams newest
 first, each with the exam's own subjects, marks, full and pass marks, total, percentage, grade and the
 position publishing wrote. Only `status:'published'`: a draft is the operator's working paper, with marks

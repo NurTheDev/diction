@@ -136,6 +136,13 @@ sentence saying nothing has been written yet — no field stores a teacher's rem
 one would forge the part a family reads aloud — and under `@media print` the sidebar, header, tab bar and
 toolbar take no space, which is what makes it printable rather than a screenshot of a screen.
 
+One fault only CI could find: the prompt's count was zero for every draft exam, because `resultMessage`
+refuses a row with no position and positions are written by publishing — so the prompt said "there is no
+result to send" about an exam holding four marked rows, and the send that followed wrote four messages.
+The refusal stayed; the ungated reader now ranks a draft per class with `positionOf`, and
+`publishCenterExam` ranks with the same pure function instead of its own inline copy, so the count and the
+ranks a family is texted come from one rule.
+
 Verified: **59 requirements**, the new rows **R5.6** (the trend and the chart's geometry, pure), **R5.7**
 (the history, the card's two refusals, portal identity and the prompt's count against the disposable
 database, including a real send whose `sentCount` must equal the count the prompt showed) and **R5.8** (all

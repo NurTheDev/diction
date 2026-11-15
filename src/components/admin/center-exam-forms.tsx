@@ -140,6 +140,16 @@ export function PublishCenterExam({exam,published,sms,digits}:{exam:string;publi
   const [backState,backSubmit,backPending]=useActionState(unpublishExamAction,initial);
   const dialog=useRef<HTMLDialogElement|null>(null);
   const [send,setSend]=useState(!!sms?.defaultOn);
+  /* The answer has to outlive the branch it was given in: a successful publish swaps this component into
+     its unpublish form, and an operator who has just consented to a class's worth of messages is exactly
+     the person who must still be told whether they went. It is cleared when they take the publish back. */
+  const [note,setNote]=useState<'sent'|'skipped'|null>(null);
+  /* Two effects, each keyed on its own action's state object rather than on its status string: a second
+     publish answers 'ok' again, and a string that does not change would not re-run anything, so the note
+     from the first publish would be the last word the operator ever read. */
+  useEffect(()=>{if(state.status==='ok')setNote(send?'sent':'skipped')},[state,send]);
+  useEffect(()=>{if(backState.status==='ok')setNote(null)},[backState]);
+  const outcome=note?<p role="status" data-publish-status>{note==='sent'?t('publish.smsSent'):t('publish.smsSkipped')}</p>:null;
   // The question closes when it has an answer, whichever way it went: an error has to be readable.
   useEffect(()=>{if(state.status!=='idle'&&dialog.current?.open)dialog.current.close()},[state.status]);
   const open=():void=>{dialog.current?.showModal()};
@@ -148,6 +158,7 @@ export function PublishCenterExam({exam,published,sms,digits}:{exam:string;publi
     <p>{t('publish.unpublishNote')}</p>
     <label className="admin-check"><input type="checkbox" name="confirm" value="YES" required/> {t('publish.unpublishConfirm')}</label>
     <button className="button button-navy" disabled={backPending}>{t('publish.unpublishButton')}</button>
+    {outcome}
     {backState.status==='ok'&&<p role="status">{t('publish.unpublished')}</p>}
     <ExamError state={backState}/>
   </form>;
@@ -155,7 +166,7 @@ export function PublishCenterExam({exam,published,sms,digits}:{exam:string;publi
   return <div data-exam-publish="publish" className="center-publish">
     <p>{t('publish.note')}</p>
     <button type="button" className="button button-navy" data-publish-open onClick={open} disabled={pending}>{t('publish.openButton')}</button>
-    {state.status==='ok'&&<p role="status" data-publish-status>{send?t('publish.smsSent'):t('publish.smsSkipped')}</p>}
+    {outcome}
     <ExamError state={state}/>
     <dialog ref={dialog} className="admin-dialog center-publish-dialog" data-publish-dialog>
       <form action={submit} method="post" data-publish-form>

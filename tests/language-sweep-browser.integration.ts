@@ -196,9 +196,11 @@ async function run(){
           }
         }
         if(!await page.locator('.portal-hero').count())found.push(`/${locale}${route} painted no .portal-hero — a mounted screen that cannot be swept has to be written off with its reason`);
-        const headline=await page.locator('h1').first().innerText().catch(()=>'');
-        if(locale==='bn'&&!BN.test(headline))found.push(`/bn${route} h1 lost its Bangla: ${headline.slice(0,60)}`);
-        if(locale==='en'&&BN.test(headline))found.push(`/en${route} h1 carries Bangla: ${headline.split('\n').find(l=>BN.test(l))}`);
+        /* `PortalHero` spends its h1 on welcoming the account by name — data, and Bangla for a Bangla
+           account — so the word that proves the tab's language is the eyebrow above the heading. */
+        const headline=await page.locator('.portal-eyebrow').first().innerText().catch(()=>'');
+        if(locale==='bn'&&!BN.test(headline))found.push(`/bn${route} the hero eyebrow lost its Bangla: ${headline.slice(0,60)}`);
+        if(locale==='en'&&BN.test(headline))found.push(`/en${route} the hero eyebrow carries Bangla: ${headline.split('\n').find(l=>BN.test(l))}`);
         const card=await page.locator('.portal-card-head').first().innerText().catch(()=>'');
         if(locale==='bn'&&!BN.test(card))found.push(`/bn${route} the card head lost its Bangla: ${card.slice(0,60)}`);
         if(locale==='en'&&BN.test(card))found.push(`/en${route} the card head carries Bangla: ${card.split('\n').find(l=>BN.test(l))}`);
@@ -208,7 +210,9 @@ async function run(){
         if(!empty)found.push(`/${locale}${route} painted no empty state for an account with no linked student`);
         if(locale==='bn'&&!BN.test(empty))found.push(`/bn${route} the empty state lost its Bangla: ${empty.slice(0,60)}`);
         if(locale==='en'&&BN.test(empty))found.push(`/en${route} the empty state carries Bangla: ${empty.split('\n').find(l=>BN.test(l))}`);
-        const painted=await page.locator('body').innerText().catch(()=>'');
+        /* Scoped to what these two screens paint rather than to the whole body: the public header and
+           footer belong to the marketing site and have never been swept. */
+        const painted=await page.locator('.portal-hero, .portal-area').innerText().catch(()=>'');
         const leaked=painted.match(KEY_PATH);
         if(leaked)found.push(`/${locale}${route} paints a catalog key path instead of a word: ${leaked[0]}`);
         await context.close();

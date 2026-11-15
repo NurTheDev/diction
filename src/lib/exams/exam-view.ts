@@ -14,7 +14,7 @@
 import mongoose from 'mongoose';
 import {CenterClassGroup,CenterExam,CenterExamResult,CenterGradingScale,CenterStudent} from '../../models/CenterRecords';
 import {scopeClasses,scopeCoversClass,type ExamScope} from './exam-scope';
-import {classSummary,type ClassSummary,type SummaryRow} from './grading';
+import {classSummary,positionOf,type ClassSummary,type SummaryRow} from './grading';
 import {resultMessage,type ResultMessageValues} from './result-message';
 
 /** A class group as a screen names it: the name in the page's language plus the session year. */
@@ -203,6 +203,12 @@ async function messageRows(examId:string,publishedOnly:boolean):Promise<ExamResu
   const examName=localName(exam.name,'bn');
   const results=await CenterExamResult.find({exam:exam._id})
     .select('student classGroup marks total fullTotal grade position').lean<ResultDoc[]>();
+  /* A draft holds no positions — publishing writes them — so the ungated reader ranks the draft rows with
+     the same pure rule `publishCenterExam` uses. Without this the publish prompt would count zero messages
+     for every exam it is asking about, because `resultMessage` refuses a row with no position, and a prompt
+     that says "there is nothing to send" about an exam holding 200 marked rows is the exact lie the count
+     exists to prevent. The gated reader never re-ranks: a published row's stored position is the truth. */
+  const draftPositions=publishedOnly?new Map<string,number>():rankByRow(results);
   return results.flatMap(row=>{
     /* Absence is the grade the engine wrote, exactly as `examDetailView` reads it — the result row itself
        has no absent flag, only its per-subject marks do. */
@@ -212,11 +218,31 @@ async function messageRows(examId:string,publishedOnly:boolean):Promise<ExamResu
       marks:(row.marks||[]).map(mark=>({subject:String(mark.subject),obtained:mark.absent?null:mark.obtained,absent:!!mark.absent})),
       // A stored total is quoted, never recomputed here: the message and the result table have to agree.
       total:absent?null:row.total??null,fullTotal:absent?null:row.fullTotal??null,
-      position:absent?null:row.position??null,absent,
+      position:absent?null:row.position??draftPositions.get(String(row._id))??null,absent,
     });
     if(!values)return [];
     return [{classId:String(row.classGroup||''),studentId:String(row.student),values}];
   });
+}
+
+/** Positions publishing will write, per class, keyed by result row — see `messageRows`. */
+function rankByRow(rows:ResultDoc[]):Map<string,number>{
+  const byClass=new Map<string,ResultDoc[]>();
+  for(const row of rows){
+    const key=String(row.classGroup||'');
+    const list=byClass.get(key)||[];
+    list.push(row);
+    byClass.set(key,list);
+  }
+  const out=new Map<string,number>();
+  for(const list of byClass.values()){
+    const positions=positionOf(list.map(row=>({student:String(row.student),total:row.total??0,grade:String(row.grade||'')})));
+    for(const row of list){
+      const at=positions.get(String(row.student));
+      if(at)out.set(String(row._id),at);
+    }
+  }
+  return out;
 }
 
 /** The active saved scales, for the exam form's scale picker. */

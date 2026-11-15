@@ -59,8 +59,8 @@ export async function studentResultHistory(studentId:string,locale:string):Promi
   const rows=await CenterExamResult.find({student:student._id})
     .select('exam classGroup marks total fullTotal percentage grade point position').lean<RowDoc[]>();
   const results=await assembleResults(rows,locale);
-  const group=await CenterClassGroup.findById(student.classGroup).select('name shift academicYear')
-    .lean<{name:{bn:string;en?:string};shift?:string;academicYear?:number}>();
+  const group=await CenterClassGroup.findById(student.classGroup).select('name shift')
+    .lean<{name:{bn:string;en?:string};shift?:string}>();
   const trendExams:TrendExam[]=results.map(result=>({
     id:result.examId,name:result.name,date:result.date,percentage:result.percentage,
     position:result.position,grade:result.grade,absent:result.absent,
@@ -98,8 +98,8 @@ export async function studentReportCard(studentId:string,examId:string,locale:st
   if(!row)return none('NO_RESULT');
   const [result]=await assembleResults([row],locale);
   if(!result)return none('NOT_PUBLISHED');
-  const group=await CenterClassGroup.findById(row.classGroup||student.classGroup).select('name shift academicYear')
-    .lean<{name:{bn:string;en?:string};shift?:string;academicYear?:number}>();
+  const group=await CenterClassGroup.findById(row.classGroup||student.classGroup).select('name shift')
+    .lean<{name:{bn:string;en?:string};shift?:string}>();
   return {card:{result,student:{name:localName(student.name,locale),idLabel:String(student.studentId||''),roll:String(student.roll||''),className:group?className(group,locale):''}},reason:null};
 }
 
@@ -137,8 +137,12 @@ export async function portalResultStudents(user:{id:string;role:string}):Promise
     .map(student=>({id:String(student._id),name:localName(student.name,'bn'),relation:user.role==='student'?'self' as const:'child' as const}));
 }
 
-const className=(group:{name:{bn:string;en?:string};shift?:string;academicYear?:number},locale:string):string=>
-  `${localName(group.name,locale)}${group.shift?` · ${group.shift}`:''}${group.academicYear?` · ${group.academicYear}`:''}`;
+/* The class as the student profile itself writes it: the name and the shift. The academic year is left off
+   on purpose — it is a number, and a number on a Bangla screen belongs in the operator's digits, which this
+   reader does not know (it is handed a locale, not a digit preference). Naming the class is enough for a
+   report card, and the year the exam belongs to is on the exam's own screen. */
+const className=(group:{name:{bn:string;en?:string};shift?:string},locale:string):string=>
+  `${localName(group.name,locale)}${group.shift?` · ${group.shift}`:''}`;
 
 /** Stored rows into the shape every screen prints, keeping only rows whose exam is published. */
 async function assembleResults(rows:RowDoc[],locale:string):Promise<StudentResult[]>{
@@ -148,8 +152,8 @@ async function assembleResults(rows:RowDoc[],locale:string):Promise<StudentResul
     .select('name type date subjects').lean<ExamDoc[]>();
   const byExam=new Map(exams.map(exam=>[String(exam._id),exam]));
   const groupIds=[...new Set(rows.map(row=>String(row.classGroup||'')).filter(Boolean))];
-  const groups=await CenterClassGroup.find({_id:{$in:groupIds}}).select('name shift academicYear')
-    .lean<{_id:mongoose.Types.ObjectId;name:{bn:string;en?:string};shift?:string;academicYear?:number}[]>();
+  const groups=await CenterClassGroup.find({_id:{$in:groupIds}}).select('name shift')
+    .lean<{_id:mongoose.Types.ObjectId;name:{bn:string;en?:string};shift?:string}[]>();
   const byGroup=new Map(groups.map(group=>[String(group._id),group]));
   const out:StudentResult[]=[];
   for(const row of rows){
