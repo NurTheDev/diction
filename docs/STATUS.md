@@ -1105,3 +1105,27 @@ with a bearer secret and watches a thirteen-month-old SmsLog and ActivityLog row
 week's stay. The role matrix is asserted in the same suite: Super Admin reads backup, reports and the
 cash desk; staff read the reports and are refused the cash desk and the backup; a teacher is refused
 all three and never lands in the admin tree at all. Registry rows R6.6–R6.8.
+
+## 22. R7 — deployment papers, go-live and handover
+
+The last milestone ships no feature: it ships the papers that let a non-engineer run the center.
+The root README was rewritten from a milestone log into a working manual — overview, stack, local
+setup (`npm ci`, env, seed, the suite list), architecture overview and a directory map naming all
+ten modules. `docs/DEPLOYMENT.md` gained the three production facts an owner cannot guess: the
+connection pool the code actually opens (`maxPoolSize: 5`, band 5–10, `src/lib/db.ts`), the masking
+rules around the BulkSMSBD key (read in one file, redacted from every string it returns or throws),
+and the segment arithmetic that prices Bangla (GSM-7 160/153, Unicode 70/67).
+
+`docs/GO-LIVE.md` is the owner's launch day: Atlas and the one-time Super Admin bootstrap
+(`npm run seed`), the Vercel environment and the no-banner check, both cron schedules, the live
+balance and the single test SMS to the owner's own phone, the progressive automatic-SMS rollout
+(receipt → due reminder → exam result, a week apart) with the emergency brake taught after it, and
+a ten-line phone smoke test. `docs/OPERATIONS.md` is the rhythm after launch: the monthly backup
+and its two offline copies, the 512 MB watch at 70% and 90% with the paid-cluster path, and the
+Recycle Bin's three verbs — hold thirty days, restore inside the window, purge deliberately.
+
+Every promise on paper is asserted against paper and code together in `tests/r7-docs.test.ts`
+(registry row R7.1): the README's setup and map, the environment template's completeness against
+every variable the source reads, the deployment facts, the go-live order — rollout before brake,
+receipt before due before results — and the operations rhythms. Docs are requirements; requirements
+get proofs.

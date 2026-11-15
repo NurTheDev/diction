@@ -71,6 +71,7 @@
     "test:exam:screens": "tsx tests/center-exams-browser.integration.ts",
     "test:exam:results:browser": "tsx tests/exam-results-browser.integration.ts",
     "test:report:math": "tsx tests/report-math.test.ts",
+    "test:r7:docs": "tsx tests/r7-docs.test.ts",
     "test:report:browser": "tsx tests/reports-browser.integration.ts",
     "test:backup:browser": "tsx --conditions=react-server tests/backup-roles-browser.integration.ts"
   },

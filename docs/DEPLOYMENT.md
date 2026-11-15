@@ -62,6 +62,11 @@ Gemini/OpenAI-compatible key (Study Buddy and the public assistant). All three s
    `@` becomes `%40`, and so on). This string is the value of `MONGODB_URI`.
    The app selects the `dictioncoaching` database itself, and switches to `dictioncoaching_test`
    when `CENTER_DATA_MODE=test`, so a wrong path in the URI is not fatal — a wrong password is.
+   **Connection pooling.** Every Vercel function instance is short-lived and opens its own small
+   pool: the app connects with `maxPoolSize: 5` and `bufferCommands: false` (`src/lib/db.ts`).
+   Five to ten is the right band for serverless — each concurrent function multiplies its pool, and
+   the free cluster's connection ceiling is shared by staging, production and your own `mongodump`.
+   If you ever change it, stay inside 5–10 and watch the Atlas *Connections* chart afterwards.
 8. **Backups.** The M0 tier has no continuous backup. Before any risky operation, take a dump from
    your own machine:
    `mongodump --uri="mongodb+srv://diction_app:<password>@cluster0.xxxxx.mongodb.net/dictioncoaching"`.
@@ -224,6 +229,18 @@ key that is validated, redacted and never returned to a browser or a log line.
 6. Automatic sending stays off: *Auto-send*, *Receipt after a payment*, *After results are
    published* and *Due reminder on the chosen day* are four switches on the SMS settings panel, each
    of which can spend real money. Leave them off until R7.
+
+**Masking rules.** The API key and sender id are read in exactly one file
+(`src/lib/center/sms-provider.ts`) and nowhere else; every string that module returns or throws has
+them redacted. The admin SMS page shows *configured* and the provider's response code — never the
+key — and a failed balance read prints the code (`10xx`), not the credential. Log rows store status,
+segments and cost only, so a leaked log export leaks no way to send on your account.
+
+**Unicode character limits.** GSM-7 messages (English, digits, plain punctuation) fit 160 characters
+in one segment and 153 per segment once joined; anything outside GSM-7 — every Bangla message — is
+Unicode: 70 characters in one segment, 67 per joined segment. The send dialog counts segments before
+anything leaves the building and stores the count and the cost on every log row, so a long Bangla
+notice visibly costs more segments before you press send, and the month's spend is a stored sum.
 
 ---
 

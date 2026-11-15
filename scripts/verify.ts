@@ -383,6 +383,7 @@ async function main():Promise<void>{
     await stepUnitSuites(ctx,'test:exam:results','R5.7','Result history, report card, portal identity and the prompt’s count against the disposable database',
       {needsDb:true,env:{TEST_ORIGIN:ctx.origin,TEST_MONGO_URI:ctx.mongoUri,TEST_MONGO_DB:ctx.mongoDb}});
     await stepUnitSuites(ctx,'test:report:math','R6.1','The four reports\u2019 mathematics and the export engine, without a database');
+    await stepUnitSuites(ctx,'test:r7:docs','R7.1','The handover papers: README, env template, deployment notes, go-live and operations, against the code');
     await stepScreens(ctx);
     await stepBrowserTests(ctx);
     (ctx as Context&{stop?:()=>void}).stop?.();
