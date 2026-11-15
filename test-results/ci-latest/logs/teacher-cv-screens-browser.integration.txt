@@ -1,8 +1,5 @@
 AssertionError [ERR_ASSERTION]: /en/admin/teacher-cvs: no Bangla character and no Bangla digit in the screen's own chrome
-    at run (/home/runner/work/diction/diction/tests/teacher-cv-screens-browser.integration.ts:524:14)
-    at runNextTicks (node:internal/process/task_queues:64:5)
-    at process.processImmediate (node:internal/timers:452:9)
-    at process.callbackTrampoline (node:internal/async_hooks:130:17) {
+    at run (/home/runner/work/diction/diction/tests/teacher-cv-screens-browser.integration.ts:524:14) {
   generatedMessage: false,
   code: 'ERR_ASSERTION',
   actual: false,

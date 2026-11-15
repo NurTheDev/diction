@@ -1,0 +1,3 @@
+visitors-reference-browser: FAIL
+AssertionError [ERR_ASSERTION]: every row is at most 72px tall (tallest 151px)
+    at run (/home/runner/work/diction/diction/tests/visitors-reference-browser.integration.ts:169:12)
