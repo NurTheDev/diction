@@ -1,11 +1,7 @@
 --- tests/exam-flow.integration.ts (exit 1) ---
-AssertionError [ERR_ASSERTION]: Missing expected rejection: a batch with a mark over the full mark is refused whole, before anything is written
+Error: STALE_RESULT
+    at <anonymous> (/home/runner/work/diction/diction/src/lib/center/exam-batch.ts:159:63)
     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
-    at async run (/home/runner/work/diction/diction/tests/exam-flow.integration.ts:136:5) {
-  generatedMessage: false,
-  code: 'ERR_ASSERTION',
-  actual: undefined,
-  expected: /INVALID_MARKS/,
-  operator: 'rejects',
-  diff: 'simple'
-}
+    at async ClientSession.withTransaction (/home/runner/work/diction/diction/node_modules/mongodb/src/sessions.ts:750:20)
+    at async saveCenterExamMarks (/home/runner/work/diction/diction/src/lib/center/exam-batch.ts:152:5)
+    at async run (/home/runner/work/diction/diction/tests/exam-flow.integration.ts:206:5)

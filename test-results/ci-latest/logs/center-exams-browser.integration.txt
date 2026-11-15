@@ -1,12 +1,16 @@
-AssertionError [ERR_ASSERTION]: five students are on the grid
+AssertionError [ERR_ASSERTION]: the English scale screen paints no Bangla in its chrome
++ actual - expected
 
-'৪' !== '৫'
++ [
++   'Saved scales\n১'
++ ]
+- []
 
-    at run (/home/runner/work/diction/diction/tests/center-exams-browser.integration.ts:272:12) {
+    at run (/home/runner/work/diction/diction/tests/center-exams-browser.integration.ts:412:12) {
   generatedMessage: false,
   code: 'ERR_ASSERTION',
-  actual: '৪',
-  expected: '৫',
-  operator: 'strictEqual',
+  actual: [Array],
+  expected: [],
+  operator: 'deepStrictEqual',
   diff: 'simple'
 }
