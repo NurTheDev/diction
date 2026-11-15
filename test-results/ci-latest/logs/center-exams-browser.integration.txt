@@ -2,11 +2,11 @@ AssertionError [ERR_ASSERTION]: the English exam list paints no Bangla in its ch
 + actual - expected
 
 + [
-+   'You are here / Overview / Center examsHelpHow to use this pageFind the information you need in the list.Select the button to view or change it.Save your changes and check the result.View website ▾ Exam managerNumbers বাংলাEnglishবাংলাView websiteChange passwordForgot password?Log out'
++   'You are here / Overview / Center examsHelpHow to use this pageFind the information you need in the list.Select the button to view or change it.Save your changes and check the result.View websiteনমুনা পরীক্ষা পরিচালকExam managerLog out'
 + ]
 - []
 
-    at run (/home/runner/work/diction/diction/tests/center-exams-browser.integration.ts:590:12) {
+    at run (/home/runner/work/diction/diction/tests/center-exams-browser.integration.ts:591:12) {
   generatedMessage: false,
   code: 'ERR_ASSERTION',
   actual: [Array],
