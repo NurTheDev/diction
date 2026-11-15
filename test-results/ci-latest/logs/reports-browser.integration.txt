@@ -1,12 +1,15 @@
-AssertionError [ERR_ASSERTION]: and the export door says no to a teacher
+AssertionError [ERR_ASSERTION]: the English day page’s own words carry no Bangla
 
-200 !== 403
+true !== false
 
-    at run (/home/runner/work/diction/diction/tests/reports-browser.integration.ts:257:12) {
+    at run (/home/runner/work/diction/diction/tests/reports-browser.integration.ts:269:12)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at process.processImmediate (node:internal/timers:452:9)
+    at process.callbackTrampoline (node:internal/async_hooks:130:17) {
   generatedMessage: false,
   code: 'ERR_ASSERTION',
-  actual: 200,
-  expected: 403,
+  actual: true,
+  expected: false,
   operator: 'strictEqual',
   diff: 'simple'
 }
