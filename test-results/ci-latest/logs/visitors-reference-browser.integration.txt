@@ -1,6 +1,30 @@
 visitors-reference-browser: FAIL
-locator.waitFor: Timeout 90000ms exceeded.
+locator.click: Timeout 60000ms exceeded.
 Call log:
-  - waiting for locator('tr[data-visitor-row]').filter({ hasText: 'রাহুল আহমেদ' }).first().locator('[data-follow-chip="tomorrow"]') to be visible
+  - waiting for locator('.pop-calendar').first().locator('[data-cal-day="2026-11-21"]').first()
+    - locator resolved to <button type="button" role="gridcell" class="pop-cal-day" data-cal-day="2026-11-21">২১</button>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is visible, enabled and stable
+      - scrolling into view if needed
+      - done scrolling
+      - element is outside of the viewport
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is visible, enabled and stable
+      - scrolling into view if needed
+      - done scrolling
+      - element is outside of the viewport
+    - retrying click action
+      - waiting 100ms
+    116 × waiting for element to be visible, enabled and stable
+        - element is visible, enabled and stable
+        - scrolling into view if needed
+        - done scrolling
+        - element is outside of the viewport
+      - retrying click action
+        - waiting 500ms
 
-    at run (/home/runner/work/diction/diction/tests/visitors-reference-browser.integration.ts:242:75)
+    at pickDay (/home/runner/work/diction/diction/tests/visitors-reference-browser.integration.ts:125:43)
+    at async run (/home/runner/work/diction/diction/tests/visitors-reference-browser.integration.ts:252:5)
