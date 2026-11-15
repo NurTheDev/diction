@@ -692,6 +692,13 @@ html:lang(bn) .public-motion-root:not(.private-motion-disabled) :is(h1,h2,h3,h4)
 .admin-filters label{display:grid;gap:5px;min-width:150px}
 .center-exam-panel{display:grid;gap:16px}
 .center-exam-gridwrap{display:grid;gap:10px}
+/* A grid item's automatic minimum size is its content's own minimum, and the grid table is deliberately
+   `min-width:max-content` so its columns stay readable — which means the panel's track grows to the table
+   and the PAGE scrolls sideways at 360px instead of the table scrolling inside its own wrapper. `min-width:0`
+   hands the shrinking back to the wrapper that can scroll, and it is the house fix: `.private-notice`,
+   `.practice-question` and `.editorial-section` all carry it for the same reason. */
+.center-exam-panel>*,.center-exam-gridwrap>*,.portal-card .admin-table-wrap,.admin-panel .admin-table-wrap{min-width:0;max-width:100%}
+.center-exam-import input[type="file"]{max-width:100%}
 .center-exam-gridbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:0 2px}
 .center-exam-gridbar .admin-help{margin:0}
 .center-exam-gridwrap .admin-table-wrap{overflow:auto;max-height:70vh;border:1px solid #d7dfed;border-radius:10px}

@@ -144,11 +144,29 @@ async function run(){
       return {context,page};
     }
     const shot=(page,name)=>page.screenshot({path:path.join(SHOTS,`${name}.png`),fullPage:true});
+    /* "This screen overflows" is only half a diagnosis: at 360px the answer is always a table or a
+       control row, and which one is a CSS question that a screenshot cannot settle. So the check names the
+       elements that actually escape the viewport — skipping anything inside a wrapper that scrolls, because
+       a wide table inside `overflow-x:auto` is the design and not the defect. */
     const noOverflow=async(page,name)=>{
       for(const width of [360,768,1440]){
         await page.setViewportSize({width,height:900});
-        const measured=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,client:document.documentElement.clientWidth}));
-        assert.ok(measured.scroll<=measured.client+1,`${name} overflows horizontally at ${width}px (${measured.scroll} > ${measured.client})`);
+        const measured=await page.evaluate(()=>{
+          const client=document.documentElement.clientWidth;
+          const scrolled=element=>{for(let node=element.parentElement;node;node=node.parentElement)if(getComputedStyle(node).overflowX!=='visible')return true;return false};
+          const wide=[];
+          for(const element of document.querySelectorAll('body *')){
+            const box=element.getBoundingClientRect();
+            if(box.right<=client+1||scrolled(element))continue;
+            const hooks=[...element.attributes].filter(entry=>entry.name.startsWith('data-')).map(entry=>entry.name).slice(0,3).join(' ');
+            const classes=(element.getAttribute('class')||'').trim().split(/\s+/).filter(Boolean).join('.');
+            wide.push(`${element.tagName.toLowerCase()}${classes?'.'+classes:''}${hooks?' ['+hooks+']':''} right=${Math.round(box.right)}`);
+            if(wide.length>=6)break;
+          }
+          return {scroll:document.documentElement.scrollWidth,client,wide};
+        });
+        assert.ok(measured.scroll<=measured.client+1,
+          `${name} overflows horizontally at ${width}px (${measured.scroll} > ${measured.client})`+(measured.wide.length?`\n  escaping the viewport: ${measured.wide.join(' | ')}`:''));
       }
       await page.setViewportSize({width:1440,height:900});
     };
