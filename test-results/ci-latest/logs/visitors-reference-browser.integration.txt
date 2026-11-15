@@ -1,3 +1,4 @@
+rows over the 72px budget: [{"visitor":"যোগাযোগ বন্ধ থাকা ভিজিটর","height":92,"cells":["visitor-check=92px","visitor-who=92px","visitor-call=92px","visitor-status=92px","visitor-follow=92px","visitor-note=92px","visitor-act=92px"]}]
 visitors-reference-browser: FAIL
-AssertionError [ERR_ASSERTION]: every row is at most 72px tall (tallest 151px)
-    at run (/home/runner/work/diction/diction/tests/visitors-reference-browser.integration.ts:169:12)
+AssertionError [ERR_ASSERTION]: every row is at most 72px tall (tallest 92px)
+    at run (/home/runner/work/diction/diction/tests/visitors-reference-browser.integration.ts:179:12)

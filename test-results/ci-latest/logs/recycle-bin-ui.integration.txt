@@ -1,10 +1,8 @@
-locator.waitFor: Timeout 60000ms exceeded.
+locator.click: Timeout 30000ms exceeded.
 Call log:
-  - waiting for getByRole('button', { name: 'Archive', exact: true }).first() to be visible
+  - waiting for locator('[data-row-more]').first()
 
-    at run (/home/runner/work/diction/diction/tests/recycle-bin-ui.integration.ts:333:78) {
-  log: [
-    "  - waiting for getByRole('button', { name: 'Archive', exact: true }).first() to be visible"
-  ],
+    at run (/home/runner/work/diction/diction/tests/recycle-bin-ui.integration.ts:335:57) {
+  log: [ "  - waiting for locator('[data-row-more]').first()" ],
   name: 'TimeoutError'
 }

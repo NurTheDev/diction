@@ -1,9 +1,10 @@
-AssertionError [ERR_ASSERTION]: not even the fragment that was typed is echoed back
-    at run (/home/runner/work/diction/diction/tests/lead-screens-browser.integration.ts:405:12) {
-  generatedMessage: false,
-  code: 'ERR_ASSERTION',
-  actual: false,
-  expected: true,
-  operator: '==',
-  diff: 'simple'
+locator.selectOption: Timeout 60000ms exceeded.
+Call log:
+  - waiting for locator('table.admin-table tbody tr').filter({ hasText: 'রাহুল আহমেদ' }).first().locator('select[name="status"]')
+
+    at run (/home/runner/work/diction/diction/tests/lead-screens-browser.integration.ts:459:48) {
+  log: [
+    `  - waiting for locator('table.admin-table tbody tr').filter({ hasText: 'রাহুল আহমেদ' }).first().locator('select[name="status"]')`
+  ],
+  name: 'TimeoutError'
 }
