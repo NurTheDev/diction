@@ -93,7 +93,9 @@ export function WhoCell({kind,label,name,flags,sub}:{kind:string;label:string;na
   return <td className={cls(kind,'who')} data-label={label}>
     {/* Two lines and no third: a flag rides beside the name rather than adding a line, so the row stays
         inside its height budget. */}
-    <span className={cls(kind,'name')}><strong>{name}</strong>
+    {/* A long name is what the row's height budget truncates, so the whole of it rides in the title:
+        the operator reads the name, not an ellipsis, without the row growing a third line. */}
+    <span className={cls(kind,'name')}><strong title={name}>{name}</strong>
       {(flags||[]).slice(0,1).map((flag,index)=><span key={index} className="lead-flag">{flag}</span>)}</span>
     <span className={cls(kind,'sub')}>{sub}</span>
   </td>;

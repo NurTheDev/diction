@@ -953,6 +953,11 @@ html:lang(bn) .public-motion-root:not(.private-motion-disabled) :is(h1,h2,h3,h4)
   .student-table .list-note{width:100px}
   .student-table .list-act{width:150px}
   .list-table tbody td{padding:7px 8px;border-top:1px solid #f1f2f6;vertical-align:middle;overflow:hidden;white-space:nowrap;line-height:1.35}
+  /* The row's own inline edit is a second row rather than a second line of the first, so the display row
+     keeps its 72px budget and its controls while the fields are open. It is the one cell in the table
+     that may wrap and may not clip: it holds a grid of inputs, and a clipped Save button is a write an
+     operator cannot make. */
+  .list-table tbody tr.list-edit-row>td{padding:0 8px;overflow:visible;white-space:normal}
   /* The status cell keeps its wrap on purpose: a do-not-contact row carries two badges, and a warning
      an operator cannot see is worse than a row that has to be read twice. Two of them stacked owe the
      row 72px, so on a desk width they are the size of the follow-up chip beside them instead of the

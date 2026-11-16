@@ -149,3 +149,22 @@ export function DatePopover({onPick,digits,language,label}:{onPick:(iso:string)=
     </>}
   </Popover>;
 }
+
+/**
+ * One day field: the value travels in a hidden input under the name the query or the action already
+ * reads, and what the operator sees is that day in their own format, with Clear beside it rather than a
+ * hunt inside a browser widget. `MonthField` is the same shape for a YYYY-MM value.
+ */
+export function DayField({name,value,placeholder,clearLabel,digits,language,onChange}:{
+  name:string;value:string;placeholder:string;clearLabel:string;digits:Digits;language:Language;
+  onChange?:(value:string)=>void;
+}){
+  const [day,setDay]=useState(value);
+  const pick=(next:string):void=>{setDay(next);onChange?.(next)};
+  return <span className="pop-day-field" data-day-field={name}>
+    <input type="hidden" name={name} value={day}/>
+    <span className="admin-input pop-day-view" aria-live="polite">{day?shortDate(day,digits,language):placeholder}</span>
+    <DatePopover digits={digits} language={language} label={<span className="admin-mini-button" data-day-pick={name}>{placeholder}</span>} onPick={pick}/>
+    {day&&<button type="button" className="admin-mini-button" data-day-clear={name} onClick={()=>pick('')}>{clearLabel}</button>}
+  </span>;
+}

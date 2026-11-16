@@ -57,6 +57,7 @@
     "test:lead:handoff:browser": "tsx tests/lead-handoff-browser.integration.ts",
     "test:lead:screens": "tsx tests/lead-screens-browser.integration.ts",
     "test:visitors:reference": "tsx tests/visitors-reference-browser.integration.ts",
+    "test:students:reference": "tsx tests/students-reference-browser.integration.ts",
     "test:teacher": "npm run test:teacher:rules && npm run test:teacher:sheet",
     "test:teacher:rules": "tsx tests/teacher-cv-rules.test.ts",
     "test:teacher:sheet": "tsx tests/teacher-cv-sheet.test.ts",

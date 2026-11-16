@@ -27,4 +27,10 @@ export const navGroups=[
   /* R6: the backup door sits beside the roles screen — both are the owner's alone (`permitted`). */
   ['/admin/backup','backup',FileUp],['/admin/recycle-bin','recycleBin',History],['/admin/audit','audit',History]]}
 ] as const;
-export function permitted(key:string,role:string){if(key==='teacherCvs')return role==='admin'||role==='superadmin';if(key==='gradingScale')return role==='admin'||role==='superadmin';if(role==='content_editor')return ['blog','sheets'].includes(key);if(role==='exam_manager')return ['centerExams','modelTests','practice'].includes(key);if(key==='roles'||key==='audit'||key==='ai'||key==='backup')return role==='superadmin';if(key==='sms')return role==='admin'||role==='superadmin';return role==='admin'||role==='superadmin'||role==='staff'}
+/* Group 1 · Students: the centre's student screens are the administrator's and the owner's — the list,
+   the cash desk, the fee grid and the dues list are each `requireAdmin`, and `backup-roles-browser` is
+   what keeps "staff are refused the cash desk" true. So the nav must not offer them to a staff account:
+   a door that closes on the person who taps it is worse than no door, and staff keep the money
+   *reports* (R6) rather than the student records behind them. */
+const CENTER_STUDENT_SCREENS=['centerStudents','centerDailyCash','centerSheetView','centerDues'];
+export function permitted(key:string,role:string){if(CENTER_STUDENT_SCREENS.includes(key))return role==='admin'||role==='superadmin';if(key==='teacherCvs')return role==='admin'||role==='superadmin';if(key==='gradingScale')return role==='admin'||role==='superadmin';if(role==='content_editor')return ['blog','sheets'].includes(key);if(role==='exam_manager')return ['centerExams','modelTests','practice'].includes(key);if(key==='roles'||key==='audit'||key==='ai'||key==='backup')return role==='superadmin';if(key==='sms')return role==='admin'||role==='superadmin';return role==='admin'||role==='superadmin'||role==='staff'}

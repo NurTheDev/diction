@@ -1,7 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { monthNames, type MonthTable } from "@/lib/admin/months";
 import { Link } from "@/i18n/navigation";
-import { requireAdmin } from "@/lib/admin/guard";
+import {requireAdminPage} from '@/lib/admin/guard';
 import { CenterClassGroup } from "@/models/CenterRecords";
 import { getCenterSheet } from "@/lib/center/sheet-view";
 import { dhakaCalendar } from "@/lib/center/month-status";
@@ -25,7 +25,7 @@ export default async function Grid({
   params: Promise<{ locale: string }>;
   searchParams: Promise<{ class?: string; year?: string }>;
 }) {
-  await requireAdmin();
+  await requireAdminPage();
   const months = monthNames(
       (await getTranslations("common")).raw("monthsShort") as MonthTable,
     ),
