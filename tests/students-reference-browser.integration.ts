@@ -516,7 +516,17 @@ async function run(){
     await pickMonth(dialog,'leave',ym(lastMonth.year,lastMonth.month));
     await dialog.locator('[name="reason"]').fill('প্রোফাইল থেকে সরানো');
     await dialog.locator('[data-student-remove-submit]').click();
-    await toast(boss.page,row.removeOk).waitFor({state:'visible',timeout:60000});
+    try{
+      await toast(boss.page,row.removeOk).waitFor({state:'visible',timeout:60000});
+    }catch(error){
+      /* A missing toast has two meanings — the write was refused, or it landed and the answer was lost —
+         and the dialog is what tells them apart. Name both halves rather than leaving a bare timeout. */
+      const said=await dialog.locator('.admin-feedback').allInnerTexts().catch(()=>[] as string[]);
+      const now=await stored(FIXTURES.paid);
+      console.error(`DIAG the profile's Remove answered with no toast: dialog said ${JSON.stringify(said)} `+
+        `dialogOpen=${await dialog.isVisible().catch(()=>false)} status=${now?.status} revision=${now?.revision}`);
+      throw error;
+    }
     await until(async()=>(await stored(FIXTURES.paid))?.status==='removed','the profile can remove a student');
     // …and the removed list restores one, with the same picker.
     await boss.page.goto(`${origin}/bn/admin/students/removed`,{waitUntil:'domcontentloaded',timeout:180000});

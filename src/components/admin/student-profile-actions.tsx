@@ -52,7 +52,13 @@ export function StudentRemoveButton({id,digits,language}:{id:string;digits:Digit
         digits={digits} language={language} onChange={setLeave}/></label>
       <label>{t('removeReason')}<textarea className="admin-input" name="reason" required minLength={3} maxLength={500} rows={3}/></label>
       <input type="hidden" name="id" value={id}/>
-      {state.status==='invalid'&&<p className="admin-feedback error">{t('removeInvalid')}</p>}
+      {/* A destructive verb that answers with silence is a lie: the operator clicked Remove, the dialog
+          stayed open, and nothing said why. So every refusal is named — the month or the reason it did
+          not accept, the record somebody else changed first, and the write that simply did not land. */}
+      {state.status==='invalid'&&<p className="admin-feedback error" role="alert">{t('removeInvalid')}</p>}
+      {state.status==='conflict'&&<p className="admin-feedback error" role="alert">{t('conflict')}</p>}
+      {state.status==='duplicate'&&<p className="admin-feedback error" role="alert">{t('duplicate')}</p>}
+      {state.status==='error'&&<p className="admin-feedback error" role="alert">{t('failure')}</p>}
       <div className="overview-drawer-actions">
         <button type="submit" className="admin-mini-button" data-student-remove-submit disabled={pending||!leave}>{t('remove')}</button>
         <button type="button" className="admin-mini-button" onClick={()=>dialog.current?.close()}>{t('back')}</button>
