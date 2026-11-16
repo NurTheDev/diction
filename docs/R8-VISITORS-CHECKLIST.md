@@ -1,7 +1,7 @@
-# R8 · The Visitors page: the owner's ten-click checklist
+# R8 · The Visitors page: the owner's eleven-step checklist
 
 The Visitors list (`/bn/admin/leads`) is the reference implementation of the new list row. Click these
-ten steps in order; each one says what should happen and what to look at. Every step is also asserted
+eleven steps in order; each one says what should happen and what to look at. Every step is also asserted
 by `tests/visitors-reference-browser.integration.ts` (registry row **R8.1**), and every screen it
 mentions is photographed into `screenshots/r8/`.
 
@@ -12,10 +12,10 @@ Sign in as the demo admin unless a step says otherwise.
 | 1 | **Add a visitor** | The bottom bar's "নতুন ভিজিটর" on a phone, or the same button above the list on a desktop; fill name, number, class, school; press Enter | The panel reports the id it wrote (`V-2026-0001`), clears itself for the next visitor, and the new row appears at the top of the list |
 | 2 | **Edit a visitor** | A row's **Edit** (সম্পাদনা) — it is always visible, never inside a menu | The drawer opens in edit mode with every field prefilled, including the full number; change the school, press **Save**; a toast says "সংরক্ষিত হয়েছে" and the row reads the new school back. **Cancel** closes it without writing |
 | 3 | **Change a status** | Tap the **status badge** itself, then tap the new status | Two taps, no dropdown and no Save button. A toast says "অবস্থা বদলেছে।" and the badge changes colour and word |
-| 4 | **Set a follow-up** | Tap the **follow-up chip** ("আজ", "আগামীকাল", "২ দিন বাকি", "ফলো-আপ নেই"), then tap আজ / আগামীকাল / ৩ দিন পরে / পরের সপ্তাহ / **তারিখ বাছুন** / **মুছুন** | Two taps and a toast. "তারিখ বাছুন" opens our own calendar — month name in Bangla, today ringed, `‹ ›` to move months — and the chip then reads `dd/mm/yyyy` in Bangla digits (`১৭/১১/২০২৬`), or `17 Nov 2026` on the English page. There is no browser date box anywhere on this page |
+| 4 | **Set a follow-up** | Tap the **follow-up chip** ("আজ", "আগামীকাল", "২ দিন বাকি", "ফলো-আপ নেই"), then tap আজ / আগামীকাল / ৩ দিন পরে / পরের সপ্তাহ / **তারিখ বাছুন** / **মুছুন** | Two taps and a toast. "তারিখ বাছুন" opens our own calendar — month name in Bangla, today ringed, `‹ ›` to move months — and the chip then reads `dd/mm/yyyy` in Bangla digits (`১৭/১১/২০২৬`), or `17 Nov 2026` on the English page — where the calendar's own head and days also read in English digits, because a date is one sentence. There is no browser date box anywhere on this page |
 | 5 | **Send an SMS to one visitor** | A row's **⋯** → "এসএমএস পাঠান" | The one send dialog every screen uses, already on the visitor thank-you template, aimed at that visitor's first number. Nothing is sent until you walk it to the last step |
-| 6 | **Send an SMS to several** | Tick two or more rows, then the bulk bar's "ধন্যবাদ এসএমএস" | The tick column has no heading; ticking a row raises a bulk bar that counts the ticks and offers thank-you SMS, **স্ট্যাটাস বদলান**, **ফলো-আপ বসান** and (for an admin) **মুছুন**. A visitor who said "do not contact", and one with no number, cannot be ticked — their cell says why |
-| 7 | **Close a visitor as Staff** | Sign in as the staff account; a row's **⋯** | Staff get **Send SMS**, **Book trial**, **Convert to admission** and **Mark not interested** — the last one is the desk's way to close a row. A visitor has no "archive" state in this system (see the note below), so the menu says out loud that moving a visitor to the Recycle Bin is an Admin action instead of showing a button that would fail |
+| 6 | **Send an SMS to several** | Tick two or more rows, then the bulk bar's "ধন্যবাদ এসএমএস" | The tick column has no heading; ticking a row raises a bulk bar that counts the ticks and offers thank-you SMS, **স্ট্যাটাস বদল**, **ফলো-আপ ঠিক করুন** and (for an admin) **মুছুন** — the same word the row's own menu uses for the same act. A visitor who said "do not contact", and one with no number, cannot be ticked — their cell says why |
+| 7 | **Close a visitor as Staff** | Sign in as the staff account; a row's **⋯** | Staff get **Send SMS**, **Book trial**, **Convert to admission** and **Mark not interested** — the last one is the desk's way to close a row; type a reason and the menu closes itself once the write lands, and stays open on a refusal so the reason can be corrected. A visitor has no "archive" state in this system (see the note below), so the menu says out loud that moving a visitor to the Recycle Bin is an Admin action instead of showing a button that would fail |
 | 8 | **Delete a visitor as Admin** | Sign in as admin; a row's **⋯** → **মুছুন** | A confirmation names the visitor and says "এটি ৩০ দিনের জন্য রিসাইকেল বিনে যাবে…". Confirm and the row leaves the list |
 | 9 | **Undo the delete** | The toast that appears bottom-right, within 10 seconds → **ফিরিয়ে আনুন** | The visitor is back in the list exactly as it was. The toast stays for the full 10 seconds because it carries an Undo |
 | 10 | **Restore from the Recycle Bin** | Sidebar → Recycle Bin (রিসাইকেল বিন) → the visitor's row → Restore | The visitor returns to the list. The bin keeps it for 30 days and then the purge job removes it; "Delete forever" is Super Admin only and asks you to type the name |
@@ -34,8 +34,9 @@ Sign in as the demo admin unless a step says otherwise.
   in no audit row. The drawer, the search results, the funnel and the Overview still show the mask.
 * **Filters are open on a desktop** (they collapse themselves on a phone), and both date filters pick
   from the calendar popover.
-* **On a phone (360 px)** each row is a card: name, class, badge, chip, big Call and WhatsApp, then
-  Open, Edit, ⋯ — and nothing scrolls sideways.
+* **On a phone (360 px)** each row is a card carrying all seven of its cells, each under its own
+  label: name, status, follow-up, the number with big Call and WhatsApp, the last note, then Open,
+  Edit, ⋯ — and nothing scrolls sideways. A phone hides none of what a desk sees.
 
 ## One decision this page needs from you
 
