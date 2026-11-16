@@ -26,11 +26,12 @@ import {
   markLeadUninterested,
 } from '@/actions/leads';
 import {
-  FOLLOW_UP_KEYS,FOLLOW_UP_CLEAR,LEAD_STATUS_OPTIONS,idleLeadForm,statusBadge,statusLabel,type LeadRowView,
+  FOLLOW_UP_KEYS,FOLLOW_UP_CLEAR,LEAD_STATUS_OPTIONS,idleLeadForm,statusBadge,statusLabel,type LeadFormState,
+  type LeadRowView,
 } from '@/lib/leads/lead-ui';
 import type {LeadSmsKit} from '@/lib/leads/lead-sms';
 import {Popover,DatePopover,shortDate} from './popover';
-import {showRecycleToast} from './recycle-toast-host';
+import {showRecycleToast,toastOnWrite} from './recycle-toast-host';
 import {useLeadSmsContext,LeadSmsCheck} from './lead-sms';
 import {LeadDetailDrawer,type DrawerApi} from './leads-ui';
 import SmsDialogTrigger from './sms-dialog-trigger';
@@ -43,6 +44,12 @@ import {dhakaDay} from '@/lib/admin/today';
 type Language='bn'|'en';
 
 /** Every write on this row answers with a toast, so a change is never only a re-rendered list. */
+/* Two of them can file this very row away — a closed status, or a close with a reason — and the refresh
+   unmounts the row before an effect could answer, so those raise their toast on the way back from the
+   write instead. A follow-up never removes a row, and the bulk bar lives outside the rows it changes. */
+const statusWrite=toastOnWrite(changeLeadStatus);
+const notInterestedWrite=toastOnWrite(markLeadUninterested);
+const allowContactWrite=toastOnWrite(liftContactBlock);
 function useToast(state:{status:string;message?:string}|null){
   useEffect(()=>{
     if(state&&state.status==='ok'&&state.message)showRecycleToast({state:{status:'ok'},success:state.message,error:''});
@@ -55,8 +62,7 @@ const followWord=(t:(key:string)=>string,key:string):string=>
 /** The status badge is the menu: tap the badge, tap the new status, read the toast. Two taps. */
 export function StatusMenu({row}:{row:LeadRowView}){
   const t=useTranslations('leads');
-  const [state,action]=useActionState(changeLeadStatus,null);
-  useToast(state);
+  const [state,action]=useActionState<LeadFormState|null,FormData>(statusWrite,null);
   return <span className="visitor-status-cell">
     <div className="pop-form">
       <Popover title={t('colStatus')} className="pop-status" label={
@@ -149,9 +155,8 @@ export function RowMoreMenu({row,canDelete,canArchive,sms,language,drawer}:{
   row:LeadRowView;canDelete:boolean;canArchive:boolean;sms:LeadSmsKit|null;language:Language;drawer:MutableRefObject<DrawerApi>;
 }){
   const t=useTranslations('leads');
-  const [state,action]=useActionState(markLeadUninterested,null);
-  const [liftState,liftAction]=useActionState(liftContactBlock,idleLeadForm);
-  useToast(state);useToast(liftState);
+  const [state,action]=useActionState<LeadFormState|null,FormData>(notInterestedWrite,null);
+  const [liftState,liftAction]=useActionState(allowContactWrite,idleLeadForm);
   /**
    * A visitor has no archive state — `recycleKinds` gives the `lead` kind a bin path and no
    * `archiveSet`, the way a private record with nothing to unpublish has none — so offering Archive

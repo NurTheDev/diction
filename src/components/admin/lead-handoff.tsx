@@ -23,8 +23,17 @@ import {loadLeadTrialSlots,submitLeadAdmission,submitLeadNotInterested,submitLea
 import {leadFormMessage,type LeadFormState,type LeadHandoffView} from '@/lib/leads/lead-ui';
 import {HANDOFF_GRADES,NOT_INTERESTED_REASON_MAX,NOT_INTERESTED_REASON_MIN} from '@/lib/leads/lead-handoff';
 import {subjectValues} from '@/schemas/intake';
-import {showRecycleToast} from '@/components/admin/recycle-toast-host';
+import {toastOnWrite} from '@/components/admin/recycle-toast-host';
 import {formatClass,formatDate,formatNumber,formatTime,type Digits} from '@/lib/admin/format';
+
+/* Two of these three writes file the visitor away — an admission makes it admitted, a reason makes it
+   not interested — and the refresh that follows unmounts the row, and this dialog with it, before React
+   commits the answer. So the answer is raised on the way back from the write, onto the admin layout's
+   toast, which outlives every row on the page. The dialog keeps printing its own sentence as well, for
+   the refusals and for the trial booking, where the row stays put. */
+const admissionWrite=toastOnWrite(submitLeadAdmission);
+const trialWrite=toastOnWrite(submitLeadTrial);
+const notInterestedWrite=toastOnWrite(submitLeadNotInterested);
 
 export type TrialSlotOption={id:string;startAt:string;endAt:string;grade:string;subject:string;seatsLeft:number};
 
@@ -126,13 +135,6 @@ function DialogFoot({state,language,pending,onClose}:{
   const t=useTranslations('leads');
   const message=leadFormMessage(state);
   const ok=state?.status==='ok';
-  /* Admitting a visitor, or closing one as not interested, files it away — and the row takes this
-     dialog with it before an operator has read the answer. So the sentence is raised on the layout
-     toast as well, which is the only surface here that outlives the row: the same reason the row's own
-     writes and the Recycle Bin's Undo answer there rather than in place. */
-  useEffect(()=>{
-    if(state&&state.status==='ok'&&message)showRecycleToast({state:{status:'ok'},success:message,error:''});
-  },[state,message]);
   return <>
     {message&&<p className={ok?'admin-feedback':'admin-feedback error'} data-handoff-message={state?.status||'idle'}
       role="status">{message}</p>}
@@ -155,7 +157,7 @@ function AdmissionBody({leadId,handoff,language,digits,subjectLabels,genders,med
   const t=useTranslations('leads');
   const f=useTranslations('forms');
   const prefill=handoff.admission;
-  const [state,action,pending]=useActionState<LeadFormState|null,FormData>(submitLeadAdmission,null);
+  const [state,action,pending]=useActionState<LeadFormState|null,FormData>(admissionWrite,null);
   const [courseType,setCourseType]=useState<typeof COURSE_TYPES[number]>('individual');
   const done=state?.status==='ok';
   useEffect(()=>{if(done&&onDone)onDone()},[done,onDone]);
@@ -223,7 +225,7 @@ function TrialBody({leadId,handoff,language,digits,subjectLabels,onClose,onDone}
   const t=useTranslations('leads');
   const f=useTranslations('forms');
   const prefill=handoff.trial;
-  const [state,action,pending]=useActionState<LeadFormState|null,FormData>(submitLeadTrial,null);
+  const [state,action,pending]=useActionState<LeadFormState|null,FormData>(trialWrite,null);
   const [grade,setGrade]=useState(prefill.grade||HANDOFF_GRADES[0] as string);
   const [subject,setSubject]=useState<string>(subjectValues[0] as string);
   const [slots,setSlots]=useState<TrialSlotOption[]|null>(null);
@@ -294,7 +296,7 @@ function NotInterestedBody({leadId,language,onClose,onDone}:{
 }){
   const t=useTranslations('leads');
   const chips=[t('handoffReasons.elsewhere'),t('handoffReasons.timing'),t('handoffReasons.fee'),t('handoffReasons.notNeeded')];
-  const [state,action,pending]=useActionState<LeadFormState|null,FormData>(submitLeadNotInterested,null);
+  const [state,action,pending]=useActionState<LeadFormState|null,FormData>(notInterestedWrite,null);
   const [reason,setReason]=useState('');
   const boxRef=useRef<HTMLTextAreaElement>(null);
   const done=state?.status==='ok';
