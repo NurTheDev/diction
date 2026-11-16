@@ -103,6 +103,7 @@ export function StudentRow({student,kit}:{student:CenterSearchItem;kit:StudentRo
   const [restoreState,restoreAction,restorePending]=useActionState(restoreWrite,idle);
   const [editState,editAction,editPending]=useActionState(editWrite,idle);
   const [editing,setEditing]=useState(false);
+  const [draft,setDraft]=useState<CenterSearchItem|null>(null);
   const [smsOpen,setSmsOpen]=useState(false);
   /* The month a Remove or a Restore carries is picked, and until it is, the verb is a dead button: a
      hidden input is barred from constraint validation, so `required` cannot do this work. */
@@ -115,7 +116,7 @@ export function StudentRow({student,kit}:{student:CenterSearchItem;kit:StudentRo
   useEffect(()=>{
     if(editState===lastEdit.current)return;
     lastEdit.current=editState;
-    if(editState.status==='ok')setEditing(false);
+    if(editState.status==='ok'){setEditing(false);setDraft(null)}
   },[editState]);
 
   const held=student.status==='on_hold',removed=student.status==='removed';
@@ -187,7 +188,10 @@ export function StudentRow({student,kit}:{student:CenterSearchItem;kit:StudentRo
       </Cell>
       <NoteCell kind={KIND} label={t('row.lastNote')} text={student.notes} empty={t('row.emptyNote')}/>
       <ActCell kind={KIND} label={t('row.actCol')} editLabel={removed?undefined:t('row.edit')}
-        onEdit={removed?undefined:()=>setEditing(current=>!current)}
+        onEdit={removed?undefined:()=>{
+          if(editing)setEditing(false);
+          else{setDraft(student);setEditing(true)}
+        }}
         /* The row's own SMS dialog lives in the action cell, where the visitors row keeps its drawer: a
            `<dialog>` inside a `<tbody>` is not a row, and a browser is allowed to move it out. */
         menu={<RowMenu title={t('row.more')}>{close=><>
@@ -239,7 +243,7 @@ export function StudentRow({student,kit}:{student:CenterSearchItem;kit:StudentRo
     </ListRow>
     {/* The inline edit is its own row: the display row keeps its height budget and its four controls
         while the fields are open, and closing them puts the row back exactly as it was. */}
-    {editing&&!removed&&<tr className="list-edit-row" {...attr(`data-${KIND}-edit-row`)}>
+    {editing&&!removed&&draft&&<tr className="list-edit-row" {...attr(`data-${KIND}-edit-row`)}>
       <td colSpan={7} className="list-edit-cell">
         <RowEditForm kind={KIND} action={editAction} pending={editPending} saveLabel={t('row.save')}
           cancelLabel={t('row.cancel')} onCancel={()=>setEditing(false)}
@@ -251,20 +255,20 @@ export function StudentRow({student,kit}:{student:CenterSearchItem;kit:StudentRo
           <input type="hidden" name="revision" value={student.revision}/>
           <input type="hidden" name="version" value={String(student.version)}/>
           <div className="list-edit-grid">
-            <label>{t('nameBn')}<input className="admin-input" name="nameBn" defaultValue={student.nameBn} required maxLength={120}/></label>
-            <label>{t('nameEn')}<input className="admin-input" name="nameEn" defaultValue={student.nameEn} maxLength={120}/></label>
-            <label>{t('roll')}<input className="admin-input" name="roll" defaultValue={student.roll} maxLength={40} inputMode="numeric"/></label>
-            <label>{t('school')}<input className="admin-input" name="school" defaultValue={student.school} maxLength={160}/></label>
-            <label>{t('guardian')}<input className="admin-input" name="guardianName" defaultValue={student.guardianName} required maxLength={120}/></label>
-            <label>{t('guardianPhone')}<input className="admin-input" name="guardianPhone" defaultValue={student.guardianPhone} required inputMode="tel"/></label>
-            <label>{t('studentPhone')}<input className="admin-input" name="studentPhone" defaultValue={student.studentPhone} inputMode="tel"/></label>
-            <label>{t('altPhone')}<input className="admin-input" name="altPhone" defaultValue={student.altPhone} inputMode="tel"/></label>
-            <label>{t('address')}<input className="admin-input" name="address" defaultValue={student.address} maxLength={500}/></label>
+            <label>{t('nameBn')}<input className="admin-input" name="nameBn" defaultValue={draft.nameBn} required maxLength={120}/></label>
+            <label>{t('nameEn')}<input className="admin-input" name="nameEn" defaultValue={draft.nameEn} maxLength={120}/></label>
+            <label>{t('roll')}<input className="admin-input" name="roll" defaultValue={draft.roll} maxLength={40} inputMode="numeric"/></label>
+            <label>{t('school')}<input className="admin-input" name="school" defaultValue={draft.school} maxLength={160}/></label>
+            <label>{t('guardian')}<input className="admin-input" name="guardianName" defaultValue={draft.guardianName} required maxLength={120}/></label>
+            <label>{t('guardianPhone')}<input className="admin-input" name="guardianPhone" defaultValue={draft.guardianPhone} required inputMode="tel"/></label>
+            <label>{t('studentPhone')}<input className="admin-input" name="studentPhone" defaultValue={draft.studentPhone} inputMode="tel"/></label>
+            <label>{t('altPhone')}<input className="admin-input" name="altPhone" defaultValue={draft.altPhone} inputMode="tel"/></label>
+            <label>{t('address')}<input className="admin-input" name="address" defaultValue={draft.address} maxLength={500}/></label>
             <label>{t('admissionDate')}
-              <DayField name="admissionDate" value={student.admissionDate} placeholder={t('row.pickDay')}
+              <DayField name="admissionDate" value={draft.admissionDate} placeholder={t('row.pickDay')}
                 clearLabel={t('row.clear')} digits={digits} language={language}/></label>
           </div>
-          <label>{t('notes')}<textarea className="admin-input" name="notes" rows={2} defaultValue={student.notes} maxLength={3000}/></label>
+          <label>{t('notes')}<textarea className="admin-input" name="notes" rows={2} defaultValue={draft.notes} maxLength={3000}/></label>
           <p className="admin-help">{t('editHint')}</p>
         </RowEditForm>
       </td>

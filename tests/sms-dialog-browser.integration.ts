@@ -383,6 +383,9 @@ async function run(){
       console.error(`DIAG the sms page did not load for staff: url=${worker.page.url()} (${error})`);
       console.error(`DIAG body=${(await worker.page.locator('body').innerText().catch(()=>'')).slice(0,900)}`);
       console.error(`DIAG pageerrors=${JSON.stringify(worker.errors)}`);
+      const probe=await worker.context.request.get(`${origin}/bn/admin/students/dues?class=${group._id}`,{timeout:45000}).catch(()=>null);
+      const probeHtml=probe?await probe.text().catch(()=>''):'';
+      console.error(`DIAG probe dues-as-staff status=${probe?probe.status():'timeout-or-refused'} bytes=${probeHtml.length} final=${probe?probe.url():''} smsOpen=${probeHtml.includes('data-sms-open')}`);
       throw error;
     }
     assert.equal(await worker.page.locator('[data-sms-open]').count(),0,'and no new-message control on the SMS page');

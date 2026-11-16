@@ -152,6 +152,9 @@ async function run(){
         console.error(`DIAG the leads list did not paint: url=${page.url()}`);
         console.error(`DIAG body=${(await page.locator('body').innerText().catch(()=>'')).slice(0,900)}`);
         console.error(`DIAG pageerrors=${JSON.stringify(errorsOf.get(page)||[])}`);
+        const probe=await page.context().request.get(`${origin}${where}`,{timeout:45000}).catch(()=>null);
+        const probeHtml=probe?await probe.text().catch(()=>''):'';
+        console.error(`DIAG probe status=${probe?probe.status():'timeout-or-refused'} bytes=${probeHtml.length} rows=${probeHtml.includes('data-visitor-row')} h1=${probeHtml.includes(t.title)}`);
         throw error;
       }
       await rows(page).filter({hasText:name}).first().waitFor({timeout:90000});

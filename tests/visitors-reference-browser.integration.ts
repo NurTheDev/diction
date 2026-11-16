@@ -171,6 +171,9 @@ async function run(){
       console.error(`DIAG the leads list did not paint: url=${boss.page.url()}`);
       console.error(`DIAG body=${(await boss.page.locator('body').innerText().catch(()=>'')).slice(0,900)}`);
       console.error(`DIAG pageerrors=${JSON.stringify(boss.errors)}`);
+      const probe=await boss.context.request.get(`${origin}${list}`,{timeout:45000}).catch(()=>null);
+      const probeHtml=probe?await probe.text().catch(()=>''):'';
+      console.error(`DIAG probe status=${probe?probe.status():'timeout-or-refused'} bytes=${probeHtml.length} rows=${probeHtml.includes('data-visitor-row')} h1=${probeHtml.includes(t.title)}`);
       throw error;
     }
     await boss.page.locator('tr[data-visitor-row]').first().waitFor({timeout:90000});
