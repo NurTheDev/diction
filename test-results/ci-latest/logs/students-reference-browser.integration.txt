@@ -1,0 +1,10 @@
+locator.click: Timeout 60000ms exceeded.
+Call log:
+  - waiting for locator('[data-student-filters] button[type="submit"]')
+
+    at run (/home/runner/work/diction/diction/tests/students-reference-browser.integration.ts:312:77) {
+  log: [
+    `  - waiting for locator('[data-student-filters] button[type="submit"]')`
+  ],
+  name: 'TimeoutError'
+}
