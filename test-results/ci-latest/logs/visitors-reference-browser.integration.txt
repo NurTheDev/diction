@@ -1,20 +1,2 @@
-visitors-reference-browser: FAIL
-locator.check: Timeout 60000ms exceeded.
-Call log:
-  - waiting for locator('input[name="closed"]')
-    - locator resolved to <input value="1" name="closed" type="checkbox"/>
-  - attempting click action
-    2 × waiting for element to be visible, enabled and stable
-      - element is not visible
-    - retrying click action
-    - waiting 20ms
-    2 × waiting for element to be visible, enabled and stable
-      - element is not visible
-    - retrying click action
-      - waiting 100ms
-    116 × waiting for element to be visible, enabled and stable
-        - element is not visible
-      - retrying click action
-        - waiting 500ms
-
-    at run (/home/runner/work/diction/diction/tests/visitors-reference-browser.integration.ts:472:53)
+R8 · the Visitors reference row holds: eight visitors in one compact line each, five visible controls, no row taller than 72px, a status and a follow-up changed in two taps with a toast, our own calendar reading dd/mm/yyyy in Bangla and "15 Nov 2026" in English with no native date input on the page, an Edit and a role-correct ⋯ on every row for Admin and Staff, Delete behind a 30-day confirmation and a 10-second Undo, Archive for Staff, a headerless tick column raising a bulk bar of four verbs, the number printed for the roles that call and in no URL, no link but tel: and wa.me, and no audit target, closed visitors filed away behind one show-closed tick and a stale list that only suggests, cards at 360px with big Call and WhatsApp, nothing overflowing at 360/768/1024/1440, and a content editor sent away from all of it.
+visitors-reference-browser: PASS
