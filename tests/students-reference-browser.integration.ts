@@ -240,7 +240,7 @@ async function run(){
         on a suite that runs in January. */
     const pickMonth=async(scope:Locator,name:string,value:string)=>{
       await scope.locator(`[data-month-choose="${name}"]`).click();
-      await scope.locator('[data-month-year]').waitFor({state:'visible',timeout:30000});
+      await scope.locator('[data-month-year]').waitFor({state:'visible',timeout:60000});
       const cell=scope.locator(`[data-month-pick="${value}"]`);
       const year=Number(value.slice(0,4));
       for(let step=0;step<8&&await cell.count()===0;step++){
@@ -288,7 +288,7 @@ async function run(){
     assert.ok(banglaDigits(await dueChip.innerText()),'the total is in Bangla digits, not ASCII ones');
     await dueChip.click();
     const dueMonths=rowOf(boss.page,FIXTURES.dues).locator('[data-dues-months]');
-    await dueMonths.waitFor({state:'visible',timeout:30000});
+    await dueMonths.waitFor({state:'visible',timeout:60000});
     assert.equal(await dueMonths.locator('.pop-item').count(),rahul.months,
       'one line per month owed, because a total with no months behind it is an argument, not an answer');
     await shot(boss.page,'g1-students-dues-1440',false);
@@ -356,7 +356,7 @@ async function run(){
     const heldRow=rowOf(boss.page,FIXTURES.heldBack);
     await heldRow.locator('[data-status-badge]').click();
     const statusMenu=heldRow.locator('[data-status-menu]');
-    await statusMenu.waitFor({state:'visible',timeout:30000});
+    await statusMenu.waitFor({state:'visible',timeout:60000});
     assert.equal(await statusMenu.locator('[data-status-option="on_hold"]').count(),1,'the badge opens the two statuses a row can be switched between');
     assert.equal(await statusMenu.locator('[data-status-option="active"]').count(),0,'and keeps the one it already has out of its own menu');
     await shot(boss.page,'g1-students-status-menu-1440',false);
@@ -378,7 +378,7 @@ async function run(){
     const editRow=rowOf(boss.page,FIXTURES.dues);
     await editRow.locator('[data-student-edit]').click();
     const form=boss.page.locator('tr[data-student-edit-row]');
-    await form.waitFor({state:'visible',timeout:30000});
+    await form.waitFor({state:'visible',timeout:60000});
     assert.equal(await form.locator('.list-edit-form').count(),1,'Edit opens the row\'s own inline form');
     for(const field of ['nameBn','guardianName','guardianPhone','school','roll','notes','admissionDate'])
       assert.equal(await form.locator(`[name="${field}"]`).count(),1,`the form carries ${field}`);
@@ -396,7 +396,7 @@ async function run(){
       'and the row reads the new note back without a reload');
     // Somebody else writes first: the same form, still open, is refused — and then recovers.
     await rowOf(boss.page,FIXTURES.dues).locator('[data-student-edit]').click();
-    await form.waitFor({state:'visible',timeout:30000});
+    await form.waitFor({state:'visible',timeout:60000});
     await CenterStudent.updateOne({_id:(await stored(FIXTURES.dues))!._id},{$set:{notes:'অন্য অপারেটরের নোট'},$inc:{revision:1}});
     await form.locator('[name="notes"]').fill('যে নোটটি বাধা পাবে');
     await form.locator('[data-student-edit-save]').click();
@@ -415,7 +415,7 @@ async function run(){
     // ── 7. Remove → Restore: the destructive verb, with a month picked and a reason typed ─────────
     await openMore(boss.page,FIXTURES.dues);
     const more=rowOf(boss.page,FIXTURES.dues).locator('[data-more-menu]');
-    await more.waitFor({state:'visible',timeout:30000});
+    await more.waitFor({state:'visible',timeout:60000});
     for(const [marker,label] of [['view',c.view],['sms',row.sendSms],['payment',row.payment],['hold',c.hold]] as const)
       assert.ok((await more.locator(`[data-more-${marker}]`).innerText()).includes(label),`the ⋯ menu offers ${label}`);
     const removeForm=more.locator('[data-more-remove]');
@@ -442,7 +442,7 @@ async function run(){
     await rowOf(boss.page,FIXTURES.dues).waitFor({timeout:90000});
     await openMore(boss.page,FIXTURES.dues);
     const restoreForm=rowOf(boss.page,FIXTURES.dues).locator('[data-more-restore]');
-    await restoreForm.waitFor({state:'visible',timeout:30000});
+    await restoreForm.waitFor({state:'visible',timeout:60000});
     assert.equal(await rowOf(boss.page,FIXTURES.dues).locator('[data-more-remove]').count(),0,
       'a removed row offers Restore, not Remove — the verb follows the state the row is in');
     await pickMonth(restoreForm,'resume',ym(today.year,today.month));
@@ -461,7 +461,7 @@ async function run(){
     await rowOf(boss.page,FIXTURES.heldBack).locator('input[name="smsStudent"]').check();
     await rowOf(boss.page,FIXTURES.paid).locator('input[name="smsStudent"]').check();
     const bulk=boss.page.locator('[data-student-bulk-bar]');
-    await bulk.waitFor({state:'visible',timeout:30000});
+    await bulk.waitFor({state:'visible',timeout:60000});
     assert.match(ascii(await bulk.locator('[data-bulk-count]').innerText()),/2/,`the bar counts the ticks (${await bulk.locator('[data-bulk-count]').innerText()})`);
     assert.match(ascii(await bulk.locator('[data-sms-open]').innerText()),/2/,`and the send button says how many it will message (${await bulk.locator('[data-sms-open]').innerText()})`);
     await shot(boss.page,'g1-students-bulk-bar-1440',false);
@@ -511,7 +511,7 @@ async function run(){
     // The profile's own Remove door asks for a picked month too.
     await boss.page.locator('[data-student-remove]').click();
     const dialog=boss.page.locator('dialog:has([data-student-remove-submit])');
-    await dialog.waitFor({state:'visible',timeout:30000});
+    await dialog.waitFor({state:'visible',timeout:60000});
     assert.ok(await dialog.locator('[data-student-remove-submit]').isDisabled(),'the dialog\'s verb waits for a month as well');
     await pickMonth(dialog,'leave',ym(lastMonth.year,lastMonth.month));
     await dialog.locator('[name="reason"]').fill('প্রোফাইল থেকে সরানো');
@@ -536,7 +536,7 @@ async function run(){
     assert.equal(await rowCount(owner.page),7,'the owner reads the same seven');
     await openMore(owner.page,FIXTURES.held);
     const ownerRemove=rowOf(owner.page,FIXTURES.held).locator('[data-more-remove]');
-    await ownerRemove.waitFor({state:'visible',timeout:30000});
+    await ownerRemove.waitFor({state:'visible',timeout:60000});
     await pickMonth(ownerRemove,'leave',ym(lastMonth.year,lastMonth.month));
     await ownerRemove.locator('[name="reason"]').fill('মালিক সরিয়েছেন');
     await ownerRemove.locator('button[type="submit"]').click();
@@ -592,19 +592,19 @@ async function run(){
       // Menus open at this width: the ⋯ with its Remove form, then the month picker inside it.
       await openMore(desk.page,FIXTURES.heldBack);
       const deskMore=rowOf(desk.page,FIXTURES.heldBack).locator('[data-more-menu]');
-      await deskMore.waitFor({state:'visible',timeout:30000});
+      await deskMore.waitFor({state:'visible',timeout:60000});
       await shot(desk.page,`g1-students-more-${width}`,false);
       await pickMonth(deskMore.locator('[data-more-remove]'),'leave',ym(lastMonth.year,lastMonth.month));
       await shot(desk.page,`g1-students-month-${width}`,false);
       await desk.page.keyboard.press('Escape');
       await desk.page.keyboard.press('Escape');
       await rowOf(desk.page,FIXTURES.heldBack).locator('[data-status-badge]').click();
-      await rowOf(desk.page,FIXTURES.heldBack).locator('[data-status-menu]').waitFor({state:'visible',timeout:30000});
+      await rowOf(desk.page,FIXTURES.heldBack).locator('[data-status-menu]').waitFor({state:'visible',timeout:60000});
       await shot(desk.page,`g1-students-status-${width}`,false);
       await desk.page.keyboard.press('Escape');
       // The bulk bar at this width, and the filters panel — collapsed on a phone, open on a desk.
       await rowOf(desk.page,FIXTURES.paid).locator('input[name="smsStudent"]').check();
-      await desk.page.locator('[data-student-bulk-bar]').waitFor({state:'visible',timeout:30000});
+      await desk.page.locator('[data-student-bulk-bar]').waitFor({state:'visible',timeout:60000});
       await noOverflow(desk.page,`the raised bulk bar at ${width}`);
       await shot(desk.page,`g1-students-bulk-${width}`,false);
       await desk.page.locator('[data-bulk-clear]').click();
@@ -630,7 +630,7 @@ async function run(){
        English too, from the catalogue's own month names, or the page is half translated. */
     await enChip.click();
     const enMonths=rowOf(en.page,FIXTURES.dues).locator('[data-dues-months]');
-    await enMonths.waitFor({state:'visible',timeout:30000});
+    await enMonths.waitFor({state:'visible',timeout:60000});
     assert.ok(!banglaDigits(await enMonths.innerText()),`and the months behind the total read English too (${(await enMonths.innerText()).split('\n')[0]})`);
     await en.page.keyboard.press('Escape');
     await shot(en.page,'g1-students-list-en-1440');

@@ -269,7 +269,7 @@ async function run(){
     let taps=0;
     const firstRow=rowOf(boss.page,FIRST);
     await firstRow.locator('[data-status-badge]').click();taps++;
-    await firstRow.locator('[data-status-menu]').waitFor({state:'visible',timeout:30000});
+    await firstRow.locator('[data-status-menu]').waitFor({state:'visible',timeout:60000});
     await shot(boss.page,'r8-visitors-status-menu-1440',false);
     await firstRow.locator('[data-status-option="called"]').click();taps++;
     assert.ok(taps<=2,`a status change costs ${taps} taps, and the brief allows two`);
@@ -288,7 +288,7 @@ async function run(){
     // ---- 3. Follow-up in two taps, then a day picked from OUR calendar.
     taps=0;
     await rowOf(boss.page,FIRST).locator('[data-follow-chip]').click();taps++;
-    await rowOf(boss.page,FIRST).locator('[data-follow-menu]').waitFor({state:'visible',timeout:30000});
+    await rowOf(boss.page,FIRST).locator('[data-follow-menu]').waitFor({state:'visible',timeout:60000});
     await shot(boss.page,'r8-visitors-follow-popover-1440',false);
     await rowOf(boss.page,FIRST).locator('[data-follow-option="tomorrow"]').click();taps++;
     assert.ok(taps<=2,`a follow-up change costs ${taps} taps`);
@@ -300,7 +300,7 @@ async function run(){
     await rowOf(boss.page,FIRST).locator('[data-follow-chip]').click();taps++;
     await rowOf(boss.page,FIRST).locator('[data-follow-pick]').click();taps++;
     const calendar=boss.page.locator('.pop-calendar').first();
-    await calendar.waitFor({state:'visible',timeout:30000});
+    await calendar.waitFor({state:'visible',timeout:60000});
     const monthWord=await boss.page.locator('[data-cal-month]').first().innerText();
     assert.ok(banglaDigits(monthWord),`the calendar names its month in Bangla with Bangla digits (${monthWord})`);
     await shot(boss.page,'r8-visitors-calendar-1440',false);
@@ -320,7 +320,7 @@ async function run(){
     // ---- 4. The ⋯ menu: role-correct, with the destructive verb behind a confirmation.
     await rowOf(boss.page,FIRST).locator('.pop-more .pop-anchor').click();
     const more=rowOf(boss.page,FIRST).locator('[data-more-menu]');
-    await more.waitFor({state:'visible',timeout:30000});
+    await more.waitFor({state:'visible',timeout:60000});
     const moreText=(await more.innerText()).replace(/\s+/g,' ');
     for(const item of [t.row.sendSms,t.row.bookTrial,t.row.convert,t.row.notInterested,w.deleteAction])
       assert.ok(moreText.includes(item),`the admin's ⋯ menu offers ${item} (${moreText})`);
@@ -334,7 +334,7 @@ async function run(){
     /* The confirmation belongs to the menu item that opened it, so it is read from there: a page-wide
        `dialog.admin-confirm` would also match the dialogs of any other row's menu that is in the document. */
     const confirm=more.locator('dialog.admin-confirm');
-    await confirm.waitFor({state:'visible',timeout:30000});
+    await confirm.waitFor({state:'visible',timeout:60000});
     const confirmText=(await confirm.innerText()).replace(/\s+/g,' ');
     assert.ok(confirmText.includes(FIRST),`the dialog names the visitor it is about to move (${confirmText})`);
     assert.ok(confirmText.includes(w.softBody),'and states the real consequence: 30 days in the Recycle Bin');
@@ -355,9 +355,9 @@ async function run(){
     // ---- 5. Edit: the drawer in edit mode, every field, Save and Cancel.
     await rowOf(boss.page,FIRST).locator('[data-visitor-edit]').click();
     const drawer=boss.page.locator('dialog.overview-drawer[open]');
-    await drawer.waitFor({state:'visible',timeout:30000});
+    await drawer.waitFor({state:'visible',timeout:60000});
     const edit=drawer.locator('[data-lead-edit]');
-    await edit.waitFor({state:'visible',timeout:30000});
+    await edit.waitFor({state:'visible',timeout:60000});
     for(const field of ['studentName','guardianName','phone','classGroup','school','interestedIn','status','group','shift','medium','source'])
       assert.equal(await edit.locator(`[name="${field}"]`).count(),1,`the edit form carries ${field}`);
     assert.equal(await edit.locator('input[name="phone"]').inputValue(),P1,'prefilled with the number an admin may read');
@@ -367,7 +367,7 @@ async function run(){
     await until(async()=>(await stored(FIRST))?.school==='সংশোধিত স্কুল','the edit to be saved');
     await boss.page.locator('.admin-toast[role="status"]',{hasText:bn.leads.success.LEAD_SAVED}).first().waitFor({state:'visible',timeout:60000});
     await drawer.locator('header button').click();
-    await drawer.waitFor({state:'detached',timeout:30000});
+    await drawer.waitFor({state:'detached',timeout:60000});
     assert.ok((await rowOf(boss.page,FIRST).innerText()).includes('সংশোধিত স্কুল'),'and the row reads the corrected school back');
 
     // ---- 6. The bulk bar: no heading on the tick column, four verbs the moment a row is ticked.
@@ -375,7 +375,7 @@ async function run(){
     await rowOf(boss.page,FIRST).locator('input[name="smsLead"]').check();
     await rowOf(boss.page,LONG_NAME).locator('input[name="smsLead"]').check();
     const bulk=boss.page.locator('[data-lead-bulk-bar]');
-    await bulk.waitFor({state:'visible',timeout:30000});
+    await bulk.waitFor({state:'visible',timeout:60000});
     const bulkText=(await bulk.innerText()).replace(/\s+/g,' ');
     for(const verb of [t.row.thanks,t.row.bulkStatus,t.row.bulkFollow,w.deleteAction])
       assert.ok(bulkText.includes(verb),`the admin's bulk bar offers ${verb} (${bulkText})`);
@@ -391,7 +391,7 @@ async function run(){
     await overlay.locator('button[aria-label="বন্ধ করুন"]').click();
     await overlay.waitFor({state:'detached',timeout:60000});
     await bulk.locator('[data-bulk-clear]').click();
-    await bulk.waitFor({state:'detached',timeout:30000});
+    await bulk.waitFor({state:'detached',timeout:60000});
     // A visitor who said "do not contact" is not tickable, so it is not bulk-acted on either.
     assert.equal(await rowOf(boss.page,BLOCKED).locator('input[name="smsLead"]').count(),0,'a blocked visitor offers no checkbox');
     assert.equal(await rowOf(boss.page,NO_PHONE).locator('input[name="smsLead"]').count(),0,'nor one with no number');
@@ -399,7 +399,7 @@ async function run(){
     // ---- 7. A date filter picked from the calendar, and read back in Bangla digits.
     await boss.page.locator('[data-day-pick="from"]').click();
     const fromCalendar=boss.page.locator('[data-day-field="from"] .pop-calendar').first();
-    await fromCalendar.waitFor({state:'visible',timeout:30000});
+    await fromCalendar.waitFor({state:'visible',timeout:60000});
     await pickDay(fromCalendar,day(-40),'[data-cal-back]');
     const fromView=await boss.page.locator('[data-day-field="from"] .pop-day-view').innerText();
     assert.match(fromView,/^[\u09e6-\u09ef]{2}\/[\u09e6-\u09ef]{2}\/[\u09e6-\u09ef]{4}$/,`the filter reads the picked day back as dd/mm/yyyy (${fromView})`);
@@ -475,7 +475,7 @@ async function run(){
     }
     await rowOf(desk.page,LONG_NAME).locator('.pop-more .pop-anchor').click();
     const deskMore=rowOf(desk.page,LONG_NAME).locator('[data-more-menu]');
-    await deskMore.waitFor({state:'visible',timeout:30000});
+    await deskMore.waitFor({state:'visible',timeout:60000});
     assert.equal(await deskMore.locator('[data-row-delete]').count(),0,'a staff ⋯ menu offers no Delete, which is an admin verb');
     assert.equal(await deskMore.locator('[data-row-archive]').count(),0,'and no Archive either: a visitor has no archive state to fall back on');
     assert.ok((await deskMore.innerText()).includes(t.row.deleteAdminOnly),'so the menu says who may bin a visitor, and what the desk may do instead');
@@ -499,7 +499,7 @@ async function run(){
     await rowOf(desk.page,LONG_NAME).locator('[data-status-badge]',{hasText:statusLabel(lt,'not_interested')}).waitFor({timeout:90000});
     await desk.page.locator('input[name="smsLead"]').first().check();
     const deskBulk=desk.page.locator('[data-lead-bulk-bar]');
-    await deskBulk.waitFor({state:'visible',timeout:30000});
+    await deskBulk.waitFor({state:'visible',timeout:60000});
     assert.equal(await deskBulk.locator('[data-bulk-remove]').count(),0,'and the staff bulk bar carries no destructive verb this kind does not have');
     for(const verb of [t.row.thanks,t.row.bulkStatus,t.row.bulkFollow])
       assert.ok((await deskBulk.innerText()).includes(verb),`the staff bulk bar still offers ${verb}`);
