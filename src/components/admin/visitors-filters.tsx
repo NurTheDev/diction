@@ -9,19 +9,15 @@
  * this page has no native date input at all — a day is picked from our calendar popover and read back
  * as dd/mm/yyyy or "15 Nov 2026".
  */
-import {useEffect,useState,type ReactNode} from 'react';
+import {useState,type ReactNode} from 'react';
 import {DatePopover,shortDate} from './popover';
+import {ListFilters} from './list-pattern';
 import type {Digits} from '@/lib/admin/format';
 
-/** The filter panel: expanded on a desktop, collapsed on a phone, and never hiding an active filter. */
+/** The filter panel: expanded on a desktop, collapsed on a phone, and never hiding an active filter.
+    It is the shared one — this page's own name is what makes it `data-lead-filters` in a test. */
 export function LeadFilters({label,active,children}:{label:string;active:string;children:ReactNode}){
-  const [open,setOpen]=useState(true);
-  useEffect(()=>{if(window.innerWidth<900)setOpen(false)},[]);
-  return <details className="admin-help-panel lead-filters" data-lead-filters="" open={open||undefined}
-    onToggle={event=>setOpen(event.currentTarget.open)}>
-    <summary className="admin-mini-button">{label}{active?` · ${active}`:''}</summary>
-    {children}
-  </details>;
+  return <ListFilters kind="lead" label={label} active={active}>{children}</ListFilters>;
 }
 
 /**

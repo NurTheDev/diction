@@ -17,6 +17,7 @@ import {LeadQuickAdd,LeadSearch} from '@/components/admin/leads-ui';
 import {LeadSmsBar,LeadSmsPicker} from '@/components/admin/lead-sms';
 import {LeadBulkBar,VisitorRow} from '@/components/admin/visitors-row';
 import {FilterDayField,LeadFilters} from '@/components/admin/visitors-filters';
+import {FilterToggle,listTableClass} from '@/components/admin/list-pattern';
 
 type Query={q?:string;status?:string;classGroup?:string;group?:string;shift?:string;medium?:string;source?:string;
   followUp?:string;from?:string;to?:string;page?:string;new?:string;closed?:string;stale?:string};
@@ -168,10 +169,8 @@ export default async function Leads({params,searchParams}:{params:Promise<{local
           <option value="">{t('all')}</option>
           {LEAD_SOURCES.map(option=><option key={option} value={option}>{sourceLabel(t,option)}</option>)}
         </select></label>
-        <label className="lead-filter-toggle"><input type="checkbox" name="closed" value="1" defaultChecked={showClosed}/>
-          <span>{t('showClosed')}</span></label>
-        <label className="lead-filter-toggle"><input type="checkbox" name="stale" value="1" defaultChecked={stale}/>
-          <span>{t('staleOnly')}</span></label>
+        <FilterToggle name="closed" label={t('showClosed')} defaultChecked={showClosed}/>
+        <FilterToggle name="stale" label={t('staleOnly')} defaultChecked={stale}/>
         <label>{t('colFollowUp')}<select className="admin-select" name="followUp" defaultValue={followUp}>
           <option value="">{t('all')}</option>
           <option value="today">{t('dueToday')}</option>
@@ -197,15 +196,15 @@ export default async function Leads({params,searchParams}:{params:Promise<{local
         <LeadSmsBar digits={digits}/>
         <LeadBulkBar canDelete={canDelete} canArchive={canArchive} digits={digits} language={language}/>
       </div>
-      {result.rows.length?<div className="admin-table-wrap visitor-wrap"><table className="admin-table admin-responsive-table visitor-table">
+      {result.rows.length?<div className="admin-table-wrap visitor-wrap"><table className={`${listTableClass('visitor')} admin-responsive-table`}>
         <thead><tr>
           {/* The tick column carries no heading: a checkbox needs no name, and the bulk bar that
               appears the moment one is ticked says what the ticks are for. It exists only where a send
               may happen — for a role with no picker there is nothing to tick and no bulk bar to read. */}
-          {sms&&<th className="visitor-check" aria-label={t('row.bulk')}></th>}
-          <th className="visitor-who">{t('colVisitor')}</th><th className="visitor-call">{t('colContact')}</th>
-          <th className="visitor-status">{t('colStatus')}</th><th className="visitor-follow">{t('colFollowUp')}</th>
-          <th className="visitor-note">{t('lastNote')}</th><th className="visitor-act">{t('colActions')}</th>
+          {sms&&<th className="visitor-check list-check" aria-label={t('row.bulk')}></th>}
+          <th className="visitor-who list-who">{t('colVisitor')}</th><th className="visitor-call list-call">{t('colContact')}</th>
+          <th className="visitor-status list-status">{t('colStatus')}</th><th className="visitor-follow list-follow">{t('colFollowUp')}</th>
+          <th className="visitor-note list-note">{t('lastNote')}</th><th className="visitor-act list-act">{t('colActions')}</th>
         </tr></thead>
         <tbody>{result.rows.map(row=>{
           const view=rowView(row);

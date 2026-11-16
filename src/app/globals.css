@@ -447,7 +447,7 @@ html:lang(bn) .public-motion-root:not(.private-motion-disabled) :is(h1,h2,h3,h4)
 .admin-shell :is(.admin-panel,.admin-kpi,.button,.admin-mini-button){box-shadow:none}.admin-shell .button:hover{transform:none;box-shadow:none}
 .overview-columns .admin-mini-button{white-space:normal;max-width:100%;line-height:1.35}.overview-row-actions form{max-width:100%}
 /* Approved list and form pattern for editorial, admissions and trial bookings. */
-.list-filter{display:flex;align-items:end;gap:12px;flex-wrap:wrap;background:#fff;padding:16px;border:1px solid #d9deee;border-radius:8px}.list-filter label{display:grid;gap:5px;min-width:200px;color:#1a1d3a;font-size:15px;font-weight:600}.list-filter label:first-of-type{flex:1 1 260px}.list-filter :is(input,select){width:100%;min-height:44px}.list-filter .lead-filter-toggle{display:flex;align-items:center;gap:10px;min-width:0;font-weight:600;color:#1a1d3a}.lead-filter-toggle input{width:22px;height:22px;accent-color:#2e3192;flex:none}.list-filter>a{display:inline-flex;align-items:center;justify-content:center}.list-panel .admin-panel-head{margin:0}.list-panel .admin-empty{padding:24px}.list-row-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.list-export-help{margin:8px 0 16px}.list-panel .admin-table :is(th,td){white-space:normal}.list-panel .admin-table td{font-size:16px}.list-panel .admin-pagination{gap:12px;flex-wrap:wrap}.editorial-form{max-width:880px;margin-inline:auto}.editorial-section h2{margin:0 0 4px}.editorial-section label{display:grid;gap:6px;margin-top:14px}.editorial-section .admin-check{display:flex}.editorial-form :is(input[aria-invalid=true]){border-color:#b12229;outline:2px solid #f8c7c7}.editorial-actions{box-shadow:none}.admin-shell .overview-drawer{overflow-y:auto}.admin-shell .admin-mini-button:focus-visible,.admin-shell .button:focus-visible{outline:3px solid #00aeef;outline-offset:2px}
+.list-filter{display:flex;align-items:end;gap:12px;flex-wrap:wrap;background:#fff;padding:16px;border:1px solid #d9deee;border-radius:8px}.list-filter label{display:grid;gap:5px;min-width:200px;color:#1a1d3a;font-size:15px;font-weight:600}.list-filter label:first-of-type{flex:1 1 260px}.list-filter :is(input,select){width:100%;min-height:44px}.list-filter .list-filter-toggle{display:flex;align-items:center;gap:10px;min-width:0;font-weight:600;color:#1a1d3a}.list-filter-toggle input{width:22px;height:22px;accent-color:#2e3192;flex:none}.list-filter>a{display:inline-flex;align-items:center;justify-content:center}.list-panel .admin-panel-head{margin:0}.list-panel .admin-empty{padding:24px}.list-row-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.list-export-help{margin:8px 0 16px}.list-panel .admin-table :is(th,td){white-space:normal}.list-panel .admin-table td{font-size:16px}.list-panel .admin-pagination{gap:12px;flex-wrap:wrap}.editorial-form{max-width:880px;margin-inline:auto}.editorial-section h2{margin:0 0 4px}.editorial-section label{display:grid;gap:6px;margin-top:14px}.editorial-section .admin-check{display:flex}.editorial-form :is(input[aria-invalid=true]){border-color:#b12229;outline:2px solid #f8c7c7}.editorial-actions{box-shadow:none}.admin-shell .overview-drawer{overflow-y:auto}.admin-shell .admin-mini-button:focus-visible,.admin-shell .button:focus-visible{outline:3px solid #00aeef;outline-offset:2px}
 @media(max-width:760px){.list-filter{padding:12px}.list-filter label{min-width:0;flex:1 1 100%}.list-filter button{flex:1}.list-panel .admin-responsive-table td{font-size:15px}.list-panel .admin-responsive-table td>div{min-width:0;overflow-wrap:anywhere}.list-row-actions{justify-content:flex-end}.editorial-actions{padding:8px}.editorial-actions button{min-width:calc(50% - 8px)}.editorial-actions .button{width:auto}.admin-shell .overview-drawer{width:100%;max-width:100%}}
 .admin-shell .editorial-form label .editorial-field-heading{font-size:15px;font-weight:600;color:#1a1d3a}.admin-shell .editorial-form label .required-mark{font-size:15px;font-weight:700;color:#b12229}
 .center-class-box>summary{padding:14px 20px;cursor:pointer;color:#2e3192}.center-class-form,.center-student-form{padding:20px;max-width:760px;margin:auto}.center-student-form{display:grid;gap:14px}.center-class-form label,.center-student-form label{display:grid;gap:5px;font-weight:600;color:#1a1d3a}.center-student-form input[aria-invalid=true]{border-color:#b12229;outline:2px solid #f8c7c7}.center-student-form label.admin-check{display:flex}.center-student-form button{justify-self:start}.center-profile{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 24px;margin:0}.center-profile dt{font-weight:700;color:#1a1d3a}.center-profile dd{margin:0;overflow-wrap:anywhere}.center-fees{margin:0;padding-left:22px}@media(max-width:760px){.center-profile{grid-template-columns:1fr}.center-class-form,.center-student-form{padding:8px}.center-student-form button{width:100%}}
@@ -876,8 +876,8 @@ html:lang(bn) .public-motion-root:not(.private-motion-disabled) :is(h1,h2,h3,h4)
   /* The visitor list is the one admin table with its OWN phone layout a few rules below: seven cells as
      a card, each labelled, in an order the row chose. Collapsing its fourth-to-last cells here would hide
      the status, the follow-up and the note on every phone — the three cells a desk actually works from. */
-  .admin-table:not(.visitor-table) tbody td:nth-child(n+4):not(:last-child){display:none}
-  .admin-table:not(.visitor-table) tbody td:last-child{display:flex;gap:8px;justify-content:flex-end;align-items:center;padding-top:8px}
+  .admin-table:not(.list-table) tbody td:nth-child(n+4):not(:last-child){display:none}
+  .admin-table:not(.list-table) tbody td:last-child{display:flex;gap:8px;justify-content:flex-end;align-items:center;padding-top:8px}
   .admin-row-direct{display:none}
   .admin-more-row{display:inline-block}
   .admin-more-row .admin-more-body{position:static;box-shadow:none;margin-top:6px}
@@ -932,15 +932,27 @@ html:lang(bn) .public-motion-root:not(.private-motion-disabled) :is(h1,h2,h3,h4)
    brief is written for without scrolling the wrap; where a screen is narrower, the wrap scrolls the
    table and the page itself never overflows. */
 @media(min-width:761px){
-  .visitor-table{min-width:1066px;table-layout:fixed}
-  .visitor-table .visitor-check{width:44px}
-  .visitor-table .visitor-who{width:156px}
-  .visitor-table .visitor-call{width:292px}
-  .visitor-table .visitor-status{width:130px}
-  .visitor-table .visitor-follow{width:116px}
-  .visitor-table .visitor-note{width:92px}
-  .visitor-table .visitor-act{width:236px}
-  .visitor-table tbody td{padding:7px 8px;border-top:1px solid #f1f2f6;vertical-align:middle;overflow:hidden;white-space:nowrap;line-height:1.35}
+  .list-table{table-layout:fixed}
+  .visitor-table{min-width:1066px}
+  .visitor-table .list-check{width:44px}
+  .visitor-table .list-who{width:156px}
+  .visitor-table .list-call{width:292px}
+  .visitor-table .list-status{width:130px}
+  .visitor-table .list-follow{width:116px}
+  .visitor-table .list-note{width:92px}
+  .visitor-table .list-act{width:236px}
+  /* Group 1 · Students: the same seven cells, with what a student owes where a visitor carries a
+     follow-up, and an action column that holds two controls instead of three — a student's profile is
+     reached from the row's own ⋯ and from its name, so the desk budget goes to the number instead. */
+  .student-table{min-width:1016px}
+  .student-table .list-check{width:44px}
+  .student-table .list-who{width:180px}
+  .student-table .list-call{width:292px}
+  .student-table .list-status{width:120px}
+  .student-table .list-dues{width:130px}
+  .student-table .list-note{width:100px}
+  .student-table .list-act{width:150px}
+  .list-table tbody td{padding:7px 8px;border-top:1px solid #f1f2f6;vertical-align:middle;overflow:hidden;white-space:nowrap;line-height:1.35}
   /* The status cell keeps its wrap on purpose: a do-not-contact row carries two badges, and a warning
      an operator cannot see is worse than a row that has to be read twice. Two of them stacked owe the
      row 72px, so on a desk width they are the size of the follow-up chip beside them instead of the
@@ -948,52 +960,66 @@ html:lang(bn) .public-motion-root:not(.private-motion-disabled) :is(h1,h2,h3,h4)
      23px + 6px + 23px + the cell's 14px of padding is 66px, inside the budget. A phone keeps the
      shell's own sizes: below 761px the card layout owns the row and a thumb needs the 44px the
      responsive section of the suite measures. */
-  .visitor-table .visitor-status-cell .admin-badge{font-size:12px;line-height:1.4;padding:3px 8px}
-  .visitor-table .visitor-status .pop-anchor{min-height:0;padding-block:0}
-  .visitor-table .pop-day-field{flex-wrap:nowrap}
+  .list-table .list-status-cell .admin-badge{font-size:12px;line-height:1.4;padding:3px 8px}
+  .list-table .list-status .pop-anchor{min-height:0;padding-block:0}
+  .list-table .pop-day-field{flex-wrap:nowrap}
   /* The three desk controls and the two destinations have to fit their column on one line, so they are
      a step smaller here than the 15px the shell gives every mini button. */
-  .visitor-table .visitor-act>.admin-mini-button,.visitor-table .visitor-act .pop-anchor,.visitor-table .visitor-dial{padding-inline:9px;font-size:14px}
+  .list-table .list-act>.admin-mini-button,.list-table .list-act .pop-anchor,.list-table .list-dial{padding-inline:9px;font-size:14px}
 }
-.visitor-check{width:46px;text-align:center}
-.visitor-check input[type=checkbox]{width:22px;height:22px;accent-color:#2e3192}
-.visitor-who{min-width:170px;max-width:270px}
-.visitor-name{display:flex;align-items:center;gap:6px;min-width:0}
-.visitor-name strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px}
-.visitor-name .lead-flag{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}
-.visitor-sub{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#4a5072;font-size:12px}
-.visitor-phone{display:inline-flex;align-items:center;gap:6px;flex-wrap:nowrap}
-.visitor-number{font-weight:700;color:#25295f;font-size:13px;white-space:nowrap}
-.visitor-note{min-width:110px;max-width:250px}
-.visitor-note-text{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#4a5072;font-size:13px}
-.visitor-act{white-space:nowrap;text-align:right}
-.visitor-act>.admin-mini-button{min-height:44px}
-.visitor-status-cell{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}
+.list-check{width:46px;text-align:center}
+.list-check input[type=checkbox]{width:22px;height:22px;accent-color:#2e3192}
+.list-who{min-width:170px;max-width:270px}
+.list-name{display:flex;align-items:center;gap:6px;min-width:0}
+.list-name strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px}
+.list-name .lead-flag{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}
+.list-sub{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#4a5072;font-size:12px}
+.list-phone{display:inline-flex;align-items:center;gap:6px;flex-wrap:nowrap}
+.list-number{font-weight:700;color:#25295f;font-size:13px;white-space:nowrap}
+.list-note{min-width:110px;max-width:250px}
+.list-note-text{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#4a5072;font-size:13px}
+.list-act{white-space:nowrap;text-align:right}
+.list-act>.admin-mini-button{min-height:44px}
+.list-status-cell{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}
 /* The follow-up chip reads like a promise: today, tomorrow, overdue by days, a later day, or none. */
-.lead-chip{display:inline-flex;align-items:center;min-height:30px;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;white-space:nowrap;border:1px solid transparent}
-.lead-chip.none{background:#f1f3f9;color:#4a5072}
-.lead-chip.today{background:#e5f0ff;color:#1c58a2}
-.lead-chip.later{background:#e1f6e8;color:#006b34}
-.lead-chip.overdue{background:#fff0ed;color:#a63325}
+.list-chip{display:inline-flex;align-items:center;min-height:30px;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;white-space:nowrap;border:1px solid transparent}
+.list-chip.none,.list-chip.clear{background:#f1f3f9;color:#4a5072}
+.list-chip.today,.list-chip.paid{background:#e5f0ff;color:#1c58a2}
+.list-chip.later,.list-chip.ok{background:#e1f6e8;color:#006b34}
+.list-chip.overdue,.list-chip.due{background:#fff0ed;color:#a63325}
+.list-chip.held{background:#fff6e0;color:#8a5b00}
 /* The bulk bar: it exists only while rows are ticked, and it says how many. */
-.lead-bulk-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;width:100%;padding:10px 12px;margin-top:10px;background:#eef0ff;border:1px solid #c9cdf2;border-radius:10px}
-.lead-bulk-bar strong{font-size:13px;color:#2e3192}
-.lead-bulk-bar .admin-mini-button{min-height:44px}
-.lead-bulk-bar .pop-form{margin:0}
-.lead-filters[open]>form{margin-top:12px}
+.list-bulk-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;width:100%;padding:10px 12px;margin-top:10px;background:#eef0ff;border:1px solid #c9cdf2;border-radius:10px}
+.list-bulk-bar strong{font-size:13px;color:#2e3192}
+.list-bulk-bar .admin-mini-button{min-height:44px}
+.list-bulk-bar .pop-form{margin:0}
+.list-filters[open]>form{margin-top:12px}
+/* The month picker: twelve cells of one year, each a thumb target, on the calendar's own surface. */
+.pop-month-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+.pop-month-cell{min-height:44px;background:transparent;border:1px solid transparent;border-radius:8px;cursor:pointer;font:inherit;color:#1a1d3a}
+.pop-month-cell:hover:not(:disabled){background:#eef0ff}
+.pop-month-cell.now{border-color:#2e3192;font-weight:700;background:#f4f6ff}
+.pop-month-cell:disabled{color:#9aa0b5;cursor:not-allowed}
+/* The inline edit a row opens: the fields, then Save and Cancel, then the refusal in its own words. */
+.list-edit-form{display:grid;gap:12px;padding:14px;margin:8px 0 16px;border:1px solid #d9deee;border-radius:12px;background:#fbfcff}
+.list-edit-form label{display:grid;gap:5px;font-size:14px;font-weight:600;color:#1a1d3a;min-width:0}
+.list-edit-form .admin-input,.list-edit-form .admin-select{min-width:0;width:100%}
+.list-edit-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(190px,100%),1fr));gap:12px}
+.list-edit-actions{display:flex;gap:10px;flex-wrap:wrap}
+.list-edit-actions button{min-height:44px}
 /* Phone width: the row is a card — name, class, badge, chip, big Call and WhatsApp, then the three. */
 @media(max-width:760px){
-  .visitor-table{min-width:0!important}
-  .visitor-table tbody tr{display:grid;grid-template-columns:minmax(0,1fr);gap:0;padding:12px;border:1px solid #d9deee;border-radius:12px;background:#fff}
-  .visitor-table tbody td{display:flex;justify-content:space-between;align-items:center;gap:12px;border:0!important;padding:6px 0;text-align:right;min-width:0}
-  .visitor-table tbody td:before{content:attr(data-label);color:#4a5072;font-weight:600;text-align:left;flex:none;max-width:38%}
-  .visitor-check{order:1;justify-content:flex-start}.visitor-check:before{content:''}
-  .visitor-who{order:2;display:block;text-align:left;max-width:none}.visitor-who:before{display:none}
-  .visitor-status{order:3}.visitor-follow{order:4}
-  .visitor-call{order:5;flex-wrap:wrap;white-space:normal}.visitor-phone{width:100%;justify-content:space-between;flex-wrap:wrap}
-  .visitor-dial{flex:1 1 44%;min-height:52px;justify-content:center;font-size:15px}
-  .visitor-note{order:6}.visitor-note-text{white-space:normal;text-align:right}
-  .visitor-act{order:7;justify-content:flex-end;gap:6px}
+  .list-table{min-width:0!important}
+  .list-table tbody tr{display:grid;grid-template-columns:minmax(0,1fr);gap:0;padding:12px;border:1px solid #d9deee;border-radius:12px;background:#fff}
+  .list-table tbody td{display:flex;justify-content:space-between;align-items:center;gap:12px;border:0!important;padding:6px 0;text-align:right;min-width:0}
+  .list-table tbody td:before{content:attr(data-label);color:#4a5072;font-weight:600;text-align:left;flex:none;max-width:38%}
+  .list-check{order:1;justify-content:flex-start}.list-check:before{content:''}
+  .list-who{order:2;display:block;text-align:left;max-width:none}.list-who:before{display:none}
+  .list-status{order:3}.list-follow,.list-dues{order:4}
+  .list-call{order:5;flex-wrap:wrap;white-space:normal}.list-phone{width:100%;justify-content:space-between;flex-wrap:wrap}
+  .list-dial{flex:1 1 44%;min-height:52px;justify-content:center;font-size:15px}
+  .list-note{order:6}.list-note-text{white-space:normal;text-align:right}
+  .list-act{order:7;justify-content:flex-end;gap:6px}
   .pop-body{position:fixed;top:auto;bottom:calc(76px + env(safe-area-inset-bottom));left:12px;right:12px;max-width:none;min-width:0}
   .pop-calendar{width:100%}
 }
