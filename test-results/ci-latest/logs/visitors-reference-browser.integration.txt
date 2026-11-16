@@ -1,3 +1,7 @@
 visitors-reference-browser: FAIL
-AssertionError [ERR_ASSERTION]: the English calendar names its month in English (November ২০২৬)
-    at run (/home/runner/work/diction/diction/tests/visitors-reference-browser.integration.ts:366:12)
+locator.waitFor: Timeout 90000ms exceeded.
+Call log:
+  - waiting for locator('tr[data-visitor-row]').filter({ hasText: 'মোঃ আব্দুল্লাহ আল মামুন চৌধুরী হাসান' }).first().locator('[data-status-badge]').filter({ hasText: 'আগ্রহী নন' }) to be visible
+    183 × locator resolved to hidden <span data-status-badge="" class="admin-badge cancelled">আগ্রহী নন</span>
+
+    at run (/home/runner/work/diction/diction/tests/visitors-reference-browser.integration.ts:422:112)
