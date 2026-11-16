@@ -1,8 +1,41 @@
+DIAG the leads list did not paint: url=http://localhost:3111/bn/admin/leads
+DIAG body=মূল বিষয়বস্তুতে যান
+ডিকশন কোচিং সেন্টার
+ম্যানেজমেন্ট প্যানেল
+আজকের কাজ
+＋
+ভিজিটর
+−
+ভিজিটর
+ফলো-আপ
+৪
+ভিজিটর ইমপোর্ট
+ভিজিটর ফানেল
+শিক্ষক সিভি
+ওয়েবসাইট কনটেন্ট
+＋
+একাডেমিক
+＋
+শিক্ষার্থী ও হিসাব
+＋
+রিপোর্ট
+＋
+সেটিংস
+＋
+আপনি এখানে / ওভারভিউ / ভিজিটর
+সাহায্য
+ওয়েবসাইট দেখুন
+লিড বস
+▾
+টেস্ট মোড — আলাদা dictioncoaching_test ডাটাবেস
+তথ্য লোড করা যায়নি। ডাটাবেস সংযোগ ও অনুমতি যাচাই করুন।
+ফিরে যান
+DIAG pageerrors=[]
 locator.waitFor: Timeout 60000ms exceeded.
 Call log:
   - waiting for locator('h1').filter({ hasText: 'ভিজিটর' }).first() to be visible
 
-    at run (/home/runner/work/diction/diction/tests/lead-screens-browser.integration.ts:202:61) {
+    at run (/home/runner/work/diction/diction/tests/lead-screens-browser.integration.ts:203:63) {
   log: [
     "  - waiting for locator('h1').filter({ hasText: 'ভিজিটর' }).first() to be visible"
   ],

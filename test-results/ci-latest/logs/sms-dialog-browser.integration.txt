@@ -1,8 +1,48 @@
+DIAG the sms page did not load for staff: url=http://localhost:3111/bn/admin/students/dues?class=6afaa6e770a3caf02b404df2 (Error: page.goto: net::ERR_ABORTED at http://localhost:3111/bn/admin/sms
+Call log:
+  - navigating to "http://localhost:3111/bn/admin/sms", waiting until "domcontentloaded"
+)
+DIAG body=মূল বিষয়বস্তুতে যান
+ডিকশন কোচিং সেন্টার
+ম্যানেজমেন্ট প্যানেল
+আজকের কাজ
+−
+ওভারভিউ
+ভর্তি আবেদন
+ট্রায়াল বুকিং
+যোগাযোগ বার্তা
+ভিজিটর
+＋
+ওয়েবসাইট কনটেন্ট
+＋
+একাডেমিক
+＋
+শিক্ষার্থী ও হিসাব
+＋
+রিপোর্ট
+＋
+সেটিংস
+＋
+আপনি এখানে / ওভারভিউ
+সাহায্য
+ওয়েবসাইট দেখুন
+Synthetic staff
+▾
+টেস্ট মোড — আলাদা dictioncoaching_test ডাটাবেস
+আজকের ফলো-আপ
+সব দেখুন →
+
+আজ ০
+বকেয়া ০
+আজ কল করার কথা, আর যাদের দিন পেরিয়ে গেছে।
+
+আজ কল করার মতো কিছু নেই।
+DIAG pageerrors=[]
 page.goto: net::ERR_ABORTED at http://localhost:3111/bn/admin/sms
 Call log:
   - navigating to "http://localhost:3111/bn/admin/sms", waiting until "domcontentloaded"
 
-    at run (/home/runner/work/diction/diction/tests/sms-dialog-browser.integration.ts:380:23) {
+    at run (/home/runner/work/diction/diction/tests/sms-dialog-browser.integration.ts:381:25) {
   log: [
     '  - navigating to "http://localhost:3111/bn/admin/sms", waiting until "domcontentloaded"'
   ],

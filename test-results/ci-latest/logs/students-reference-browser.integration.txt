@@ -1,10 +1,14 @@
-locator.click: Timeout 60000ms exceeded.
-Call log:
-  - waiting for locator('[data-student-filters] button[type="submit"]')
+AssertionError [ERR_ASSERTION]: and what they typed survived the refusal
++ actual - expected
 
-    at run (/home/runner/work/diction/diction/tests/students-reference-browser.integration.ts:312:77) {
-  log: [
-    `  - waiting for locator('[data-student-filters] button[type="submit"]')`
-  ],
-  name: 'TimeoutError'
++ 'অন্য অপারেটরের নোট'
+- 'যে নোটটি বাধা পাবে'
+
+    at run (/home/runner/work/diction/diction/tests/students-reference-browser.integration.ts:409:12) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: 'অন্য অপারেটরের নোট',
+  expected: 'যে নোটটি বাধা পাবে',
+  operator: 'strictEqual',
+  diff: 'simple'
 }
