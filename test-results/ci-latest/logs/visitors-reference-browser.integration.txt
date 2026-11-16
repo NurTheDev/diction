@@ -1,6 +1,6 @@
 visitors-reference-browser: FAIL
-locator.waitFor: Timeout 60000ms exceeded.
-Call log:
-  - waiting for locator('.admin-toast[role="status"]').filter({ hasText: 'আগ্রহী নন হিসেবে চিহ্নিত' }).first() to be visible
+AssertionError [ERR_ASSERTION]: the badge now reads the new status, with no Save button anywhere
 
-    at run (/home/runner/work/diction/diction/tests/visitors-reference-browser.integration.ts:462:110)
+0 !== 1
+
+    at run (/home/runner/work/diction/diction/tests/visitors-reference-browser.integration.ts:259:12)
