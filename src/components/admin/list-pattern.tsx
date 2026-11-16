@@ -21,15 +21,13 @@
  * without guessing at another's (`data-visitor-open`, `data-student-open`), and every class is painted
  * twice, in the pattern's own name and the list's, so a list keeps the CSS it already had.
  */
-import {useEffect,useRef,useState,type ReactNode} from 'react';
+import {useEffect,useRef,useState,type FormEventHandler,type ReactNode} from 'react';
 import {MessageCircle,MoreHorizontal,Phone} from 'lucide-react';
 import {Popover} from './popover';
 import {showRecycleToast} from './recycle-toast-host';
+import {attr} from './list-class';
 
 export type Language='bn'|'en';
-
-/** A `data-*` marker with nothing in it, or with the value that names the option. */
-export const attr=(name:string,value=''):Record<string,string>=>({[name]:value});
 
 /** The pattern's class and the list's own, so existing CSS keeps applying while the pattern is shared. */
 const cls=(kind:string,part:string):string=>`list-${part} ${kind}-${part}`;
@@ -84,9 +82,6 @@ export function ListRow({kind,children}:{kind:string;children:ReactNode}){
 export function Cell({kind,part,label,children}:{kind:string;part:string;label:string;children:ReactNode}){
   return <td className={cls(kind,part)} data-label={label}>{children}</td>;
 }
-
-/** The class list a pattern table carries: the shell's, the pattern's, and the list's own widths. */
-export const listTableClass=(kind:string):string=>`admin-table list-table ${kind}-table`;
 
 /** The identity cell: the name on one line with a flag beside it, then class · school · id on a second. */
 export function WhoCell({kind,label,name,flags,sub}:{kind:string;label:string;name:string;flags?:string[];sub:string}){
@@ -248,11 +243,12 @@ export function BulkMenu({marker,title,label,children}:{marker:string;title:stri
  * words. It is a form with a real submit, so the browser's own validation and the action's own state are
  * the same thing the operator sees.
  */
-export function RowEditForm({kind,action,pending,onCancel,saveLabel,cancelLabel,error,children}:{
+export function RowEditForm({kind,action,pending,onCancel,saveLabel,cancelLabel,error,onChange,children}:{
   kind:string;action:(form:FormData)=>void;pending?:boolean;onCancel:()=>void;saveLabel:string;cancelLabel:string;
-  error?:string;children:ReactNode;
+  error?:string;/** Where a list keeps what its operator typed; see `StudentRow`. */
+  onChange?:FormEventHandler<HTMLFormElement>;children:ReactNode;
 }){
-  return <form action={action} className={`list-edit-form ${kind}-edit-form`}>
+  return <form action={action} onChange={onChange} className={`list-edit-form ${kind}-edit-form`}>
     {children}
     {error&&<p className="admin-feedback error" role="alert">{error}</p>}
     <div className="list-edit-actions">

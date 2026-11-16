@@ -45,9 +45,35 @@ another's (`data-visitor-open`, `data-student-edit`), and every class is painted
 pattern's and the list's — so a list keeps the CSS it already had:
 
 ```ts
-cls('student','who')      // "list-who student-who"
+cls('student','who')      // "list-who student-who"      — inside list-pattern.tsx
 listTableClass('student') // "admin-table list-table student-table"
 ```
+
+### Which module a helper lives in
+
+`list-pattern.tsx` carries `'use client'`, and that is a border, not a hint: on the server side of it a
+page does not receive the module it imported but a *client reference* standing in for each export.
+Rendering a reference as a component is what the border is for. **Calling** one is not — it fails while
+React renders the tree the page returned, after every `await` in the page has resolved, so no
+`try`/`catch` around the page's data work catches it, no error boundary is reached, and the page's own
+segment never fills: the shell paints and the screen stays empty with nothing in the app to say why.
+`listTableClass('visitor')` called from the leads page did exactly that, inside the branch that runs only
+when the list has rows — so an empty Visitors list painted and a list with anybody in it did not, for
+eleven verification runs.
+
+So the pattern's homes are three, and the rule for a new helper is which side of the border it may be
+called from:
+
+| Module | Directive | Holds |
+|---|---|---|
+| `list-class.ts` | none | `attr`, `listTableClass` — the classes and markers, which a page paints |
+| `list-dates.ts` | none | `monthWord`, `dayHeaders`, `shortDate`, `shortMonth` — the words a date is read in |
+| `list-pattern.tsx`, `popover.tsx`, `month-popover.tsx`, `*-row.tsx` | `'use client'` | components and hooks only |
+
+Anything a Server Component may call is declared in a module **without** the directive, and the client
+modules import those words rather than the other way round. `tests/rsc-boundary.test.ts` sweeps all of
+`src/` for the mistake and names the file, the symbol and the module — a lowercase import from a
+`'use client'` module fails the core unit suite before it can blank a screen.
 
 | Piece | What it renders | Markers it owns |
 |---|---|---|
@@ -63,7 +89,7 @@ listTableClass('student') // "admin-table list-table student-table"
 | `MenuItem`-shaped buttons | `type="button"`, their own `FormData`, then `close()` — the same reason | `[data-more-{verb}]` |
 | `MenuHint` | the sentence at the foot of a menu naming who may use the verb this role may not | `[data-more-admin-only]` |
 | `ActCell` | the row's visible controls, then its ⋯, then anything the list owns (a drawer, a dialog) | `[data-{kind}-open]`, `[data-{kind}-edit]` |
-| `RowEditForm` | the inline edit a row opens, in its own `<tr>` so the display row keeps its budget | `.list-edit-form`, `[data-{kind}-edit-save]`, `[data-{kind}-edit-cancel]` |
+| `RowEditForm` | the inline edit a row opens, in its own `<tr>` so the display row keeps its budget. It takes an `onChange` so the list can keep what the operator typed in state: a refused write re-reads the row, and a field whose only copy of the typing was the DOM hands back the seed it was opened with | `.list-edit-form`, `[data-{kind}-edit-save]`, `[data-{kind}-edit-cancel]` |
 | `BulkBar` + `BulkMenu` | raised only while rows are ticked, and it says how many | `[data-{kind}-bulk-bar]`, `[data-bulk-count]`, `[data-bulk-clear]`, `[data-bulk-{verb}]` |
 | `ListFilters` + `FilterToggle` | the filter panel: open on a desk, collapsed on a phone, and its summary says what is on so a collapsed panel is never the only sign a filter is active. A toggle is uncontrolled inside a GET form, or controlled by a list that searches by POST and keeps names out of the address bar | `[data-{kind}-filters]`, `summary`, `.list-filter-toggle` |
 
@@ -132,6 +158,9 @@ cell.
 |---|---|---|---|
 | Visitors | `tests/visitors-reference-browser.integration.ts` (`npm run test:visitors:reference`) | R8.1 | `screenshots/r8/` |
 | Students + profile | `tests/students-reference-browser.integration.ts` (`npm run test:students:reference`) | G1.1, G1.2 | `screenshots/g1/` |
+
+`tests/rsc-boundary.test.ts` (inside `npm run test:unit:core`, row R0.7) is the sweep that keeps a page
+from calling a value across the client border — see §2.
 
 `docs/R8-VISITORS-CHECKLIST.md` is the Visitors click checklist;
 `docs/G1-STUDENTS-CHECKLIST.md` is the Students one. Both are written to be clicked, in order, by a

@@ -17,7 +17,8 @@ import {LeadQuickAdd,LeadSearch} from '@/components/admin/leads-ui';
 import {LeadSmsBar,LeadSmsPicker} from '@/components/admin/lead-sms';
 import {LeadBulkBar,VisitorRows} from '@/components/admin/visitors-row';
 import {FilterDayField,LeadFilters} from '@/components/admin/visitors-filters';
-import {FilterToggle,listTableClass} from '@/components/admin/list-pattern';
+import {FilterToggle} from '@/components/admin/list-pattern';
+import {listTableClass} from '@/components/admin/list-class';
 
 type Query={q?:string;status?:string;classGroup?:string;group?:string;shift?:string;medium?:string;source?:string;
   followUp?:string;from?:string;to?:string;page?:string;new?:string;closed?:string;stale?:string};
@@ -35,7 +36,7 @@ const day=(value:string|undefined):string=>(value&&/^\d{4}-\d{2}-\d{2}$/.test(va
  * Nothing here queries `Lead`: the rows, the counts and the refusals all come from `src/lib/leads/leads.ts`,
  * so this page cannot disagree with the rule layer, the importer or the cron job.
  */
-async function leadsBody(params:Promise<{locale:string}>,searchParams:Promise<Query>){
+export default async function Leads({params,searchParams}:{params:Promise<{locale:string}>;searchParams:Promise<Query>}){
   const {locale}=await params;
   /**
    * A role that may not see visitors is sent away rather than shown an error panel. `requireArchiver()`
@@ -70,7 +71,6 @@ async function leadsBody(params:Promise<{locale:string}>,searchParams:Promise<Qu
   const openQuickAdd=query.new==='1';
 
   const now=new Date();
-  console.error('LEADS render start',user.role);
   const [result,counts]=await Promise.all([
     listLeads({q,status,classGroup,group,shift,medium,source,followUp:followUp||undefined,from,to,page,perPage:20,showClosed,stale},now),
     leadStatusCounts(),
@@ -106,21 +106,7 @@ async function leadsBody(params:Promise<{locale:string}>,searchParams:Promise<Qu
    * from the rule layer (`canContact()`), so a lead marked "do not contact" is not selectable here and is
    * counted as excluded by the bar — and it is checked a third time when the plan is built.
    */
-  console.error('LEADS rows',result.rows.length);
   const items=result.rows.map(row=>({row:rowView(row),fullPhone:seesNumbers?(row.phones?.[0]?.normalized||''):''}));
-  const exotic=(value:unknown,path:string):string[]=>{
-    if(value===null||value===undefined)return[];
-    if(value instanceof Date)return[`${path}:date`];
-    if(Array.isArray(value))return value.flatMap((entry,index)=>exotic(entry,`${path}[${index}]`));
-    if(typeof value==='object')return Object.entries(value as Record<string,unknown>).flatMap(([key,entry])=>exotic(entry,`${path}.${key}`));
-    return[];
-  };
-  const shapeProbe={
-    count:items.length,
-    rowKinds:[...new Set(items.flatMap(item=>exotic(item.row,'row')))],
-    kitKinds:sms?exotic(sms,'kit'):[],
-    createdTypes:items.map(item=>typeof (item.row as {createdAt?:unknown}).createdAt),
-  };
   const smsRows=result.rows.map(row=>({id:row.id,studentName:row.studentName,contactable:row.contactable,hasPhone:(row.phones||[]).length>0}));
   const current:LeadListFiltersShape={q:q||undefined,status:status||undefined,classGroup:classGroup||undefined,group:group||undefined,shift:shift||undefined,medium:medium||undefined,source:source||undefined,followUp:followUp||undefined,from:from||undefined,to:to||undefined,
     closed:showClosed||undefined,stale:stale||undefined};
@@ -224,9 +210,6 @@ async function leadsBody(params:Promise<{locale:string}>,searchParams:Promise<Qu
         </tr></thead>
         <tbody><VisitorRows items={items}
           canDelete={canDelete} canArchive={canArchive} sms={sms} language={language} digits={digits} hasCheck={Boolean(sms)}/></tbody>
-        {/* CI diagnostic: what shape each row view carries, named where a probe request can read it. */}
-        <span hidden data-items-diag={JSON.stringify(shapeProbe)}/>
-
       </table></div>:<div className="admin-empty">
         <p>{activeFilters||q?t('emptyFilter'):t('empty')}</p>
         <span className="admin-help">{t('emptyHelp')}</span>
@@ -241,13 +224,4 @@ async function leadsBody(params:Promise<{locale:string}>,searchParams:Promise<Qu
     </section>
     </LeadSmsPicker>
   </>;
-}
-
-/** CI diagnostic: an await that throws here used to arrive as an opaque digest and an empty
-    main; the catch paints the error where every suite and screenshot can read it. */
-export default async function Leads({params,searchParams}:{params:Promise<{locale:string}>;searchParams:Promise<Query>}){
-  try{return await leadsBody(params,searchParams)}catch(error){
-    const text=error instanceof Error?`${error.message} :: ${(error.stack||'').split('\n').slice(0,4).join(' | ')}`:String(error);
-    return <div data-page-diag="" className="admin-panel"><h1>Visitors</h1><pre className="admin-feedback error">{text}</pre></div>;
-  }
 }

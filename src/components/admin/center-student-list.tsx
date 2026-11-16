@@ -27,7 +27,8 @@ import {useLocale,useTranslations} from 'next-intl';
 import {searchCenterStudents,type CenterSearchResult} from '@/actions/center-students';
 import {formatNumber,type Digits} from '@/lib/admin/format';
 import type {ClassChoice} from './center-forms';
-import {BulkBar,FilterToggle,ListFilters,listTableClass} from './list-pattern';
+import {BulkBar,FilterToggle,ListFilters} from './list-pattern';
+import {listTableClass} from './list-class';
 import {StudentRow,type StudentRowKit} from './students-row';
 import SendSmsDialog,{type SmsTemplateOption} from './send-sms-dialog';
 

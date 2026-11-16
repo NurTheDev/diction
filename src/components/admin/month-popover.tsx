@@ -10,12 +10,12 @@
  * `monthWord` gives the calendar its head.
  */
 import {useState,type ReactNode} from 'react';
-import {Popover,monthWord} from './popover';
+import {Popover} from './popover';
+import {monthWord,shortMonth,type Language} from './list-dates';
 import {dhakaCalendar} from '@/lib/center/month-status';
 import {formatNumber,type Digits} from '@/lib/admin/format';
 
-export type Language='bn'|'en';
-
+export type {Language} from './list-dates';
 /** English screens count in English digits; Bangla screens count in the operator's own setting. */
 const monthDigits=(digits:Digits,language:Language):Digits=>language==='en'?'en':digits;
 const monthKey=(year:number,month:number):string=>`${year}-${String(month).padStart(2,'0')}`;
@@ -27,17 +27,6 @@ const shortNames=(language:Language):string[]=>{
   const format=new Intl.DateTimeFormat(language==='bn'?'bn-BD':'en-GB',{month:'short',timeZone:'UTC'});
   return Array.from({length:12},(_,index)=>format.format(new Date(Date.UTC(2024,index,1))));
 };
-
-/** "নভেম্বর ২০২৬" / "Nov 2026" — a picked month read back in the operator's own words. */
-export function shortMonth(value:string,digits:Digits,language:Language):string{
-  const [year,month]=String(value).split('-').map(Number);
-  if(!year||!month)return String(value||'');
-  if(language==='en'){
-    const name=new Intl.DateTimeFormat('en-GB',{month:'short',timeZone:'UTC'}).format(new Date(Date.UTC(year,month-1,1)));
-    return `${name} ${formatNumber(year,'en')}`;
-  }
-  return monthWord(year,month,digits,language);
-}
 
 /**
  * Twelve months of one year, with `‹ ›` for the years and Dhaka's own month ringed. `notBefore` and

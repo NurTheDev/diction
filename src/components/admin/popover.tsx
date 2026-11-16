@@ -13,18 +13,13 @@
 import {useEffect,useRef,useState,type ReactNode} from 'react';
 import {dhakaDay} from '@/lib/admin/today';
 import {formatDigits,formatNumber,type Digits} from '@/lib/admin/format';
-
-type Language='bn'|'en';
-const intl=(language:Language)=>language==='bn'?'bn-BD':'en-GB';
-
+import {dateDigits,dayHeaders,monthWord,shortDate,type Language} from './list-dates';
 /**
  * The digits a date is read in. A Bangla screen uses the digits the operator chose; an English screen
  * uses English digits, because that is what the rest of an English date already does — `shortDate`
  * writes "15 Nov 2026" there whatever the account's digit setting says. Without this the calendar head
  * announced "November 2026" in Bangla digits over cells that read back in English ones.
  */
-const dateDigits=(digits:Digits,language:Language):Digits=>language==='en'?'en':digits;
-
 export function useOutsideClose(onClose:()=>void){
   const ref=useRef<HTMLDivElement>(null);
   useEffect(()=>{
@@ -89,30 +84,6 @@ export function Popover({label,className='',bodyClass='',children,title}:{label:
     {open&&<div className={`pop-body ${bodyClass}`} ref={surface} style={box?{top:box.top,left:box.left}:undefined}>
       {typeof children==='function'?children(()=>setOpen(false)):children}</div>}
   </div>;
-}
-
-/** The month's own name, in the account's language, with the year in the operator's digits. */
-export function monthWord(year:number,month:number,digits:Digits,language:Language):string{
-  const at=new Date(Date.UTC(year,month-1,1));
-  const name=new Intl.DateTimeFormat(intl(language),{month:'long',timeZone:'UTC'}).format(at);
-  return `${name} ${formatNumber(year,dateDigits(digits,language))}`;
-}
-
-/** Seven weekday headers starting on Sunday, from `Intl` — the same source the month name comes from. */
-export function dayHeaders(language:Language):string[]{
-  const format=new Intl.DateTimeFormat(intl(language),{weekday:'short',timeZone:'UTC'});
-  return Array.from({length:7},(_,index)=>format.format(new Date(Date.UTC(2024,0,7+index))));
-}
-
-/** dd/mm/yyyy in the operator's digits, or "15 Nov 2026" on an English screen. Never mm/dd/yyyy. */
-export function shortDate(iso:string,digits:Digits,language:Language):string{
-  const [year,month,day]=String(iso).split('-').map(Number);
-  if(!year||!month||!day)return String(iso);
-  if(language==='en'){
-    const name=new Intl.DateTimeFormat('en-GB',{month:'short',timeZone:'UTC'}).format(new Date(Date.UTC(year,month-1,day)));
-    return `${formatNumber(day,'en')} ${name} ${formatNumber(year,'en')}`;
-  }
-  return formatDigits(`${String(day).padStart(2,'0')}/${String(month).padStart(2,'0')}/${year}`,digits);
 }
 
 /** The calendar popover: month grid, today ringed, `‹ ›` for the months, one tap picks a day. */

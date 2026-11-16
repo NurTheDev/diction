@@ -31,12 +31,14 @@ import {
   type LeadRowView,
 } from '@/lib/leads/lead-ui';
 import type {LeadSmsKit} from '@/lib/leads/lead-sms';
-import {DatePopover,shortDate} from './popover';
+import {DatePopover} from './popover';
+import {shortDate} from './list-dates';
 import {toastOnWrite} from './recycle-toast-host';
 import {
   ActCell,BulkBar,BulkMenu,Cell,ChipPopover,ListChip,ListRow,MenuForm,MenuHint,NoteCell,PhoneCell,RowMenu,
-  StatusChipMenu,WhoCell,attr,useRowToast,
+  StatusChipMenu,WhoCell,useRowToast,
 } from './list-pattern';
+import {attr} from './list-class';
 import {useLeadSmsContext,LeadSmsCheck} from './lead-sms';
 import {LeadDetailDrawer,type DrawerApi} from './leads-ui';
 import SmsDialogTrigger from './sms-dialog-trigger';
