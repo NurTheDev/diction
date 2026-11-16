@@ -1,11 +1,47 @@
-locator.waitFor: Timeout 90000ms exceeded.
+DIAG the leads list did not paint: url=http://localhost:3111/bn/admin/leads
+DIAG body=মূল বিষয়বস্তুতে যান
+Diction
+সাহায্য
+হ্যান্ড-অফ ডেস্ক
+▾
+মেনু
+ডিকশন কোচিং সেন্টার
+ম্যানেজমেন্ট প্যানেল
+আজকের কাজ
+＋
+ভিজিটর
+−
+ভিজিটর
+ফলো-আপ
+ভিজিটর ইমপোর্ট
+ভিজিটর ফানেল
+ওয়েবসাইট কনটেন্ট
+＋
+একাডেমিক
+＋
+শিক্ষার্থী ও হিসাব
+＋
+রিপোর্ট
+＋
+সেটিংস
+＋
+ওভারভিউ
+ভর্তি আবেদন
+নতুন ভিজিটর
+মেনু
+টেস্ট মোড
+Visitors
+Attempted to call listTableClass() from the server but listTableClass is on the client. It's not possible to invoke a client function from the server, it can only be rendered as a Component or passed to props of a Client Component. :: Error: Attempted to call listTableClass() from the server but listTableClass is on the client. It's not possible to invoke a client function from the server, it can only be rendered as a Component or passed to props of a Client Component. |     at /home/runner/work/diction/diction/.next/server/app/[locale]/admin/leads/page.js:1:9197 |     at x (/home/runner/work/diction/
+DIAG pageerrors=[]
+DIAG probe status=200 bytes=239541 rows=false h1=true
+locator.waitFor: Timeout 60000ms exceeded.
 Call log:
-  - waiting for locator('section.list-panel table.admin-table tbody tr').filter({ hasText: 'হ্যান্ড-অফ ভর্তি ভিজিটর' }).first() to be visible
+  - waiting for locator('h1').filter({ hasText: 'ভিজিটর' }).first() to be visible
 
-    at openDrawer (/home/runner/work/diction/diction/tests/lead-handoff-browser.integration.ts:160:55)
+    at openDrawer (/home/runner/work/diction/diction/tests/lead-handoff-browser.integration.ts:150:60)
     at async run (/home/runner/work/diction/diction/tests/lead-handoff-browser.integration.ts:182:16) {
   log: [
-    "  - waiting for locator('section.list-panel table.admin-table tbody tr').filter({ hasText: 'হ্যান্ড-অফ ভর্তি ভিজিটর' }).first() to be visible"
+    "  - waiting for locator('h1').filter({ hasText: 'ভিজিটর' }).first() to be visible"
   ],
   name: 'TimeoutError'
 }
