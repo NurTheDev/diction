@@ -1,9 +1,14 @@
-AssertionError [ERR_ASSERTION]: and the row reads the new note back without a reload
-    at run (/home/runner/work/diction/diction/tests/students-reference-browser.integration.ts:394:12) {
+AssertionError [ERR_ASSERTION]: and what they typed survived the refusal
++ actual - expected
+
++ 'দ্বিতীয় নোট — তালিকা থেকেই বদলানো'
+- 'যে নোটটি বাধা পাবে'
+
+    at run (/home/runner/work/diction/diction/tests/students-reference-browser.integration.ts:409:12) {
   generatedMessage: false,
   code: 'ERR_ASSERTION',
-  actual: false,
-  expected: true,
-  operator: '==',
+  actual: 'দ্বিতীয় নোট — তালিকা থেকেই বদলানো',
+  expected: 'যে নোটটি বাধা পাবে',
+  operator: 'strictEqual',
   diff: 'simple'
 }

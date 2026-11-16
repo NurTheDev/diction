@@ -33,7 +33,7 @@ Diction
 তথ্য লোড করা যায়নি। ডাটাবেস সংযোগ ও অনুমতি যাচাই করুন।
 ফিরে যান
 DIAG pageerrors=[]
-DIAG probe status=200 bytes=236756 rows=false h1=true
+DIAG probe status=200 bytes=236758 rows=false h1=true
 locator.waitFor: Timeout 60000ms exceeded.
 Call log:
   - waiting for locator('h1').filter({ hasText: 'ভিজিটর' }).first() to be visible
