@@ -228,6 +228,10 @@ export function VisitorRow({row,fullPhone,canDelete,canArchive,sms,language,digi
  */
 export function LeadBulkBar({canDelete,canArchive,digits,language}:{canDelete:boolean;canArchive:boolean;digits:Digits;language:Language}){
   const t=useTranslations('leads');
+  /* The destructive verbs come from the recycle engine's own vocabulary rather than a second copy of it:
+     the row's menu names the same act with `adminWork.deleteAction`, and one screen needs one word for
+     one verb — the bar used to say a transliteration of the English while the menu said the Bangla verb. */
+  const w=useTranslations('adminWork');
   const sms=useLeadSmsContext();
   const [statusState,statusAction]=useActionState(bulkLeadStatus,null);
   const [followState,followAction]=useActionState(bulkLeadFollowUp,null);
@@ -270,7 +274,7 @@ export function LeadBulkBar({canDelete,canArchive,digits,language}:{canDelete:bo
         form and its hidden ids carry the selection the way a form should. */}
     {(canDelete||canArchiveKind('lead'))&&<form action={removeAction} className="pop-form">
       {ids.map(id=><input key={id} type="hidden" name="ids" value={id}/>)}
-      <button type="submit" className="admin-mini-button admin-danger-text" data-bulk-remove="">{canDelete?t('row.delete'):t('row.archive')}</button>
+      <button type="submit" className="admin-mini-button admin-danger-text" data-bulk-remove="">{canDelete?w('deleteAction'):w('archive')}</button>
     </form>}
     <button type="button" className="admin-mini-button" data-bulk-clear="" onClick={()=>sms.selectPage(false)}>{t('row.clearSelection')}</button>
   </div>;
