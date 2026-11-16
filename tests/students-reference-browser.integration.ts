@@ -468,13 +468,21 @@ async function run(){
     await until(async()=>await boss.page.locator('[data-student-bulk-bar]').count()===0,'and Clear takes the bar away');
 
     // ── 9. the pattern is one implementation: the same markers still paint the Visitors list ──────
+    /* The filter panel is the section's sibling on both lists, not its child — it is a `details` the
+       operator folds away, and the list it filters keeps its own head. So the panel is read by its own
+       marker, and what it must carry is the pattern's class beside the list's. */
+    const studentFilters=boss.page.locator('[data-student-filters]');
+    for(const klass of ['list-filters','student-filters'])
+      assert.ok(((await studentFilters.getAttribute('class'))||'').includes(klass),
+        `the students filters carry ${klass} — one pattern, two lists`);
     await boss.page.goto(`${origin}/bn/admin/leads`,{waitUntil:'domcontentloaded',timeout:180000});
     await boss.page.locator('tr[data-visitor-row]').first().waitFor({timeout:90000});
     const leadTable=boss.page.locator('section.list-panel table.admin-table').first();
     for(const klass of ['list-table','visitor-table'])
       assert.ok(((await leadTable.getAttribute('class'))||'').includes(klass),`the visitors table still carries ${klass} — one pattern, two lists`);
-    assert.ok(((await boss.page.locator('section.list-panel [data-lead-filters]').getAttribute('class'))||'').includes('list-filters'),
-      'and so do its filters');
+    for(const klass of ['list-filters','lead-filters'])
+      assert.ok(((await boss.page.locator('[data-lead-filters]').getAttribute('class'))||'').includes(klass),
+        `and the visitors filters carry ${klass}`);
     for(const part of ['who','call','status','note','act'])
       assert.equal(await boss.page.locator(`section.list-panel tr[data-visitor-row] .visitor-${part}.list-${part}`).first().count(),1,
         `a visitors cell still carries both names — .visitor-${part} and the pattern's .list-${part}`);
