@@ -107,6 +107,20 @@ async function leadsBody(params:Promise<{locale:string}>,searchParams:Promise<Qu
    * counted as excluded by the bar — and it is checked a third time when the plan is built.
    */
   console.error('LEADS rows',result.rows.length);
+  const items=result.rows.map(row=>({row:rowView(row),fullPhone:seesNumbers?(row.phones?.[0]?.normalized||''):''}));
+  const exotic=(value:unknown,path:string):string[]=>{
+    if(value===null||value===undefined)return[];
+    if(value instanceof Date)return[`${path}:date`];
+    if(Array.isArray(value))return value.flatMap((entry,index)=>exotic(entry,`${path}[${index}]`));
+    if(typeof value==='object')return Object.entries(value as Record<string,unknown>).flatMap(([key,entry])=>exotic(entry,`${path}.${key}`));
+    return[];
+  };
+  const shapeProbe={
+    count:items.length,
+    rowKinds:[...new Set(items.flatMap(item=>exotic(item.row,'row')))],
+    kitKinds:sms?exotic(sms,'kit'):[],
+    createdTypes:items.map(item=>typeof (item.row as {createdAt?:unknown}).createdAt),
+  };
   const smsRows=result.rows.map(row=>({id:row.id,studentName:row.studentName,contactable:row.contactable,hasPhone:(row.phones||[]).length>0}));
   const current:LeadListFiltersShape={q:q||undefined,status:status||undefined,classGroup:classGroup||undefined,group:group||undefined,shift:shift||undefined,medium:medium||undefined,source:source||undefined,followUp:followUp||undefined,from:from||undefined,to:to||undefined,
     closed:showClosed||undefined,stale:stale||undefined};
@@ -208,8 +222,10 @@ async function leadsBody(params:Promise<{locale:string}>,searchParams:Promise<Qu
           <th className="visitor-status list-status">{t('colStatus')}</th><th className="visitor-follow list-follow">{t('colFollowUp')}</th>
           <th className="visitor-note list-note">{t('lastNote')}</th><th className="visitor-act list-act">{t('colActions')}</th>
         </tr></thead>
-        <tbody><VisitorRows items={(()=>{try{const items=result.rows.map(row=>({row:rowView(row),fullPhone:seesNumbers?(row.phones?.[0]?.normalized||''):''}));console.error('LEADS items ok',items.length);return items}catch(error){console.error('LEADS ROWMAP THREW',error);throw error}})()}
+        <tbody><VisitorRows items={items}
           canDelete={canDelete} canArchive={canArchive} sms={sms} language={language} digits={digits} hasCheck={Boolean(sms)}/></tbody>
+        {/* CI diagnostic: what shape each row view carries, named where a probe request can read it. */}
+        <span hidden data-items-diag={JSON.stringify(shapeProbe)}/>
 
       </table></div>:<div className="admin-empty">
         <p>{activeFilters||q?t('emptyFilter'):t('empty')}</p>
@@ -232,6 +248,6 @@ async function leadsBody(params:Promise<{locale:string}>,searchParams:Promise<Qu
 export default async function Leads({params,searchParams}:{params:Promise<{locale:string}>;searchParams:Promise<Query>}){
   try{return await leadsBody(params,searchParams)}catch(error){
     const text=error instanceof Error?`${error.message} :: ${(error.stack||'').split('\n').slice(0,4).join(' | ')}`:String(error);
-    return <div data-page-diag="" className="admin-panel"><h1>ভিজিটর</h1><pre className="admin-feedback error">{text}</pre></div>;
+    return <div data-page-diag="" className="admin-panel"><h1>Visitors</h1><pre className="admin-feedback error">{text}</pre></div>;
   }
 }
