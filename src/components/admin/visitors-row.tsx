@@ -120,6 +120,31 @@ export function FollowUpChip({row,digits,language}:{row:LeadRowView;digits:Digit
 }
 
 /** The ⋯ menu: the four things a row can become, a separator, then the destructive pair the role allows. */
+/**
+ * Closing a visitor as not interested is a typed reason, required and validated by the rule layer, so it
+ * is a real submit rather than a button that builds its own FormData — and a submit cannot close its menu
+ * on click, because closing detaches the form before the browser runs the click's activation behaviour.
+ * So the menu closes when the write lands instead. A menu left open over a row it has just changed is a
+ * sheet left across the operator's work: on a phone it covers the list, and the next tap lands on the
+ * menu rather than on the row. On a refusal it stays open, so the reason can be corrected.
+ */
+function NotInterestedForm({id,label,action,state,onDone}:{
+  id:string;label:string;action:(form:FormData)=>void;state:{status:string}|null;onDone:()=>void;
+}){
+  const last=useRef(state);
+  useEffect(()=>{
+    if(state===last.current)return;
+    last.current=state;
+    if(state?.status==='ok')onDone();
+  },[state,onDone]);
+  return <form action={action} className="pop-inline" data-more-notinterested="" onClick={event=>event.stopPropagation()}>
+    <input type="hidden" name="id" value={id}/>
+    <input className="admin-input" name="reason" required minLength={3} maxLength={200}
+      placeholder={label} aria-label={label}/>
+    <button type="submit" role="menuitem">{label}</button>
+  </form>;
+}
+
 export function RowMoreMenu({row,canDelete,canArchive,sms,language,drawer}:{
   row:LeadRowView;canDelete:boolean;canArchive:boolean;sms:LeadSmsKit|null;language:Language;drawer:MutableRefObject<DrawerApi>;
 }){
@@ -143,12 +168,7 @@ export function RowMoreMenu({row,canDelete,canArchive,sms,language,drawer}:{
         en={language==='en'} lockedText={sms.allowTextEdit===false}/></div>}
       <button type="button" role="menuitem" data-more-trial="" onClick={()=>{close();drawer.current?.open('handoff')}}>{t('row.bookTrial')}</button>
       <button type="button" role="menuitem" data-more-convert="" onClick={()=>{close();drawer.current?.open('handoff')}}>{t('row.convert')}</button>
-      <form action={action} className="pop-inline" data-more-notinterested="" onClick={event=>event.stopPropagation()}>
-        <input type="hidden" name="id" value={row.id}/>
-        <input className="admin-input" name="reason" required minLength={3} maxLength={200}
-          placeholder={t('row.notInterested')} aria-label={t('row.notInterested')}/>
-        <button type="submit" role="menuitem">{t('row.notInterested')}</button>
-      </form>
+      <NotInterestedForm id={row.id} label={t('row.notInterested')} action={action} state={state} onDone={close}/>
       {/* Lifting a block is rare, deliberate and only ever on a blocked row, so it is not one of the
           row's five visible controls — it belongs with the rest of what a row can become. The badge on
           the row is the warning; this is the way back. */}
