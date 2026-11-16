@@ -1,7 +1,84 @@
 visitors-reference-browser: FAIL
-locator.waitFor: Timeout 90000ms exceeded.
+locator.check: Timeout 60000ms exceeded.
 Call log:
-  - waiting for locator('tr[data-visitor-row]').filter({ hasText: 'মোঃ আব্দুল্লাহ আল মামুন চৌধুরী হাসান' }).first().locator('[data-status-badge]').filter({ hasText: 'আগ্রহী নন' }) to be visible
-    183 × locator resolved to hidden <span data-status-badge="" class="admin-badge cancelled">আগ্রহী নন</span>
+  - waiting for locator('input[name="smsLead"]').first()
+    - locator resolved to <input name="smsLead" type="checkbox" data-sms-row="" class="lead-sms-check" value="6afa5c7308f1dec50bd71720" aria-label="অনিহা জানিয়েছে যে ভিজিটর-কে এসএমএসের জন্য বাছুন"/>
+  - attempting click action
+    - waiting for element to be visible, enabled and stable
+    - element is visible, enabled and stable
+    - scrolling into view if needed
+    - done scrolling
+    - <button type="button" data-sms-open="" class="admin-mini-button">…</button> from <tr class="visitor-row" data-visitor-row="">…</tr> subtree intercepts pointer events
+  - retrying click action
+    - waiting for element to be visible, enabled and stable
+    - element is visible, enabled and stable
+    - scrolling into view if needed
+    - done scrolling
+    - <a href="/bn/admin">…</a> from <nav aria-label="মেনু" class="admin-bottom-nav">…</nav> subtree intercepts pointer events
+  - retrying click action
+    - waiting 20ms
+    - waiting for element to be visible, enabled and stable
+    - element is visible, enabled and stable
+    - scrolling into view if needed
+    - done scrolling
+    - <button type="button" data-sms-open="" class="admin-mini-button">…</button> from <tr class="visitor-row" data-visitor-row="">…</tr> subtree intercepts pointer events
+  2 × retrying click action
+      - waiting 100ms
+      - waiting for element to be visible, enabled and stable
+      - element is visible, enabled and stable
+      - scrolling into view if needed
+      - done scrolling
+      - <div class="admin-mobilebar">…</div> intercepts pointer events
+  28 × retrying click action
+       - waiting 500ms
+       - waiting for element to be visible, enabled and stable
+       - element is visible, enabled and stable
+       - scrolling into view if needed
+       - done scrolling
+       - <a href="/bn/admin">…</a> from <nav aria-label="মেনু" class="admin-bottom-nav">…</nav> subtree intercepts pointer events
+     - retrying click action
+       - waiting 500ms
+       - waiting for element to be visible, enabled and stable
+       - element is visible, enabled and stable
+       - scrolling into view if needed
+       - done scrolling
+       - <button type="button" data-sms-open="" class="admin-mini-button">…</button> from <tr class="visitor-row" data-visitor-row="">…</tr> subtree intercepts pointer events
+     - retrying click action
+       - waiting 500ms
+       - waiting for element to be visible, enabled and stable
+       - element is visible, enabled and stable
+       - scrolling into view if needed
+       - done scrolling
+       - <div class="admin-mobilebar">…</div> intercepts pointer events
+     - retrying click action
+       - waiting 500ms
+       - waiting for element to be visible, enabled and stable
+       - element is visible, enabled and stable
+       - scrolling into view if needed
+       - done scrolling
+       - <div class="admin-mobilebar">…</div> intercepts pointer events
+  - retrying click action
+    - waiting 500ms
+    - waiting for element to be visible, enabled and stable
+    - element is visible, enabled and stable
+    - scrolling into view if needed
+    - done scrolling
+    - <a href="/bn/admin">…</a> from <nav aria-label="মেনু" class="admin-bottom-nav">…</nav> subtree intercepts pointer events
+  - retrying click action
+    - waiting 500ms
+    - waiting for element to be visible, enabled and stable
+    - element is visible, enabled and stable
+    - scrolling into view if needed
+    - done scrolling
+    - <button type="button" data-sms-open="" class="admin-mini-button">…</button> from <tr class="visitor-row" data-visitor-row="">…</tr> subtree intercepts pointer events
+  - retrying click action
+    - waiting 500ms
+    - waiting for element to be visible, enabled and stable
+    - element is visible, enabled and stable
+    - scrolling into view if needed
+    - done scrolling
+    - <div class="admin-mobilebar">…</div> intercepts pointer events
+  - retrying click action
+    - waiting 500ms
 
-    at run (/home/runner/work/diction/diction/tests/visitors-reference-browser.integration.ts:422:112)
+    at run (/home/runner/work/diction/diction/tests/visitors-reference-browser.integration.ts:423:62)
