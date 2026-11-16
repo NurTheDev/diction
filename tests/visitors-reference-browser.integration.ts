@@ -469,8 +469,12 @@ async function run(){
     /* Closing a visitor files the row away: it leaves the list the desk works from, and the show-closed
        tick is where it went. The badge is read there, with the new status on it. */
     await until(async()=>await rowOf(desk.page,LONG_NAME).count()===0,'a closed visitor to leave the default list');
-    await desk.page.locator('input[name="closed"]').check();
-    await desk.page.locator('[data-lead-filters] button[type="submit"]').click();
+    /* On a phone the Filters panel arrives collapsed and the tick lives inside it, so the desk opens
+       the panel first — the same one tap it would cost a person standing at the counter. */
+    const deskFilters=desk.page.locator('[data-lead-filters]');
+    if(await deskFilters.getAttribute('open')===null)await deskFilters.locator('summary').click();
+    await deskFilters.locator('input[name="closed"]').check();
+    await deskFilters.locator('button[type="submit"]').click();
     await rowOf(desk.page,LONG_NAME).locator('[data-status-badge]',{hasText:statusLabel(lt,'not_interested')}).waitFor({timeout:90000});
     await desk.page.locator('input[name="smsLead"]').first().check();
     const deskBulk=desk.page.locator('[data-lead-bulk-bar]');
