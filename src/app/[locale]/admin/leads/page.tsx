@@ -70,6 +70,7 @@ export default async function Leads({params,searchParams}:{params:Promise<{local
   const openQuickAdd=query.new==='1';
 
   const now=new Date();
+  console.error('LEADS render start',user.role);
   const [result,counts]=await Promise.all([
     listLeads({q,status,classGroup,group,shift,medium,source,followUp:followUp||undefined,from,to,page,perPage:20,showClosed,stale},now),
     leadStatusCounts(),
@@ -105,6 +106,7 @@ export default async function Leads({params,searchParams}:{params:Promise<{local
    * from the rule layer (`canContact()`), so a lead marked "do not contact" is not selectable here and is
    * counted as excluded by the bar — and it is checked a third time when the plan is built.
    */
+  console.error('LEADS rows',result.rows.length);
   const smsRows=result.rows.map(row=>({id:row.id,studentName:row.studentName,contactable:row.contactable,hasPhone:(row.phones||[]).length>0}));
   const current:LeadListFiltersShape={q:q||undefined,status:status||undefined,classGroup:classGroup||undefined,group:group||undefined,shift:shift||undefined,medium:medium||undefined,source:source||undefined,followUp:followUp||undefined,from:from||undefined,to:to||undefined,
     closed:showClosed||undefined,stale:stale||undefined};
@@ -206,7 +208,7 @@ export default async function Leads({params,searchParams}:{params:Promise<{local
           <th className="visitor-status list-status">{t('colStatus')}</th><th className="visitor-follow list-follow">{t('colFollowUp')}</th>
           <th className="visitor-note list-note">{t('lastNote')}</th><th className="visitor-act list-act">{t('colActions')}</th>
         </tr></thead>
-        <tbody><VisitorRows items={result.rows.map(row=>({row:rowView(row),fullPhone:seesNumbers?(row.phones?.[0]?.normalized||''):''}))}
+        <tbody><VisitorRows items={(()=>{try{const items=result.rows.map(row=>({row:rowView(row),fullPhone:seesNumbers?(row.phones?.[0]?.normalized||''):''}));console.error('LEADS items ok',items.length);return items}catch(error){console.error('LEADS ROWMAP THREW',error);throw error}})()}
           canDelete={canDelete} canArchive={canArchive} sms={sms} language={language} digits={digits} hasCheck={Boolean(sms)}/></tbody>
 
       </table></div>:<div className="admin-empty">
