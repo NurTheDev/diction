@@ -64,6 +64,7 @@ const FIXTURES=[
   {name:'অনিহা জানিয়েছে যে ভিজিটর',phone:'01333444555',classLabel:'6',school:'সাভার ক্যান্টনমেন্ট স্কুল',status:'not_interested',note:'এখন প্রয়োজন নেই'},
 ] as const;
 const LONG_NAME=FIXTURES[1].name,OVERDUE=FIXTURES[2].name,BLOCKED=FIXTURES[3].name,NO_PHONE=FIXTURES[4].name;
+const ADMITTED=FIXTURES[6].name,CLOSED_OFF=FIXTURES[7].name;
 const FIRST=FIXTURES[0].name,P1=FIXTURES[0].phone,P2=FIXTURES[1].phone;
 
 async function run(){
@@ -98,6 +99,11 @@ async function run(){
     assert.equal(made.ok,true,`the fixture visitor ${fixture.name} is written`);
   }
   assert.equal(await Lead.countDocuments(),8,'eight visitors, one per status, and nothing else in the collection');
+  /* The stale filter needs a visitor who has genuinely gone quiet, so the "old" one is made old in both
+     facts the rule reads: the day they came and the only note anybody wrote. Six hundred days is well
+     past the eighteen-month cut whatever day the suite runs on. */
+  await Lead.updateOne({studentName:OVERDUE},{$set:{date:day(-600),'notes.$[note].at':new Date(Date.now()-600*86400000)}},
+    {arrayFilters:[{'note.at':{$exists:true}}]});
   // A send dialog must not meet quiet hours, and the shipped catalogue is what the picker offers.
   await CenterSettings.updateOne({key:'main'},{$set:{key:'main',quietStart:'00:00',quietEnd:'00:00'}},{upsert:true});
   await CenterSmsTemplate.deleteMany({});
@@ -163,8 +169,10 @@ async function run(){
     await boss.page.locator('tr[data-visitor-row]').first().waitFor({timeout:90000});
     const rowCount=()=>boss.page.locator('section.list-panel tr[data-visitor-row]').count();
 
-    // ---- 1. The reference row: eight visitors, five visible controls, one line, no action cell.
-    assert.equal(await rowCount(),8,'all eight seeded visitors are listed');
+    // ---- 1. The reference row: the open visitors, five visible controls, one line, no action cell.
+    assert.equal(await rowCount(),5,'the five open visitors are listed — admitted, not interested and do-not-contact are filed away');
+    for(const name of [BLOCKED,ADMITTED,CLOSED_OFF])
+      assert.equal(await rowOf(boss.page,name).count(),0,`${name} is a closed visitor, so the default list leaves the row out`);
     const heights=await boss.page.locator('section.list-panel tr[data-visitor-row]').evaluateAll(nodes=>nodes.map(node=>Math.round(node.getBoundingClientRect().height)));
     if(heights.some(height=>height>72)){
       /* Name the cell that is tall, not only the row: the budget is a per-cell promise, and a row that
@@ -185,7 +193,7 @@ async function run(){
       console.log('rows over the 72px budget:',JSON.stringify(tall));
     }
     assert.ok(heights.every(height=>height<=72),`every row is at most 72px tall (tallest ${Math.max(...heights)}px)`);
-    for(const name of [FIRST,LONG_NAME,OVERDUE,BLOCKED,NO_PHONE]){
+    for(const name of [FIRST,LONG_NAME,OVERDUE,NO_PHONE]){
       const row=rowOf(boss.page,name);
       assert.equal(await row.locator('[data-visitor-edit]').count(),1,`${name}: the row has a visible Edit`);
       assert.equal(await row.locator('[data-visitor-open]').count(),1,`${name}: a visible Open`);
@@ -197,6 +205,25 @@ async function run(){
       const controls=await row.locator('.visitor-act button:visible, .visitor-act .pop-anchor:visible, .visitor-status .pop-anchor:visible, .visitor-follow .pop-anchor:visible').count();
       assert.equal(controls,5,`${name}: exactly five controls in the row (${controls} found) — the long action cell is gone`);
     }
+    // ---- 1b. Closed visitors are filed away, not deleted: one tick brings them back, and asking for a
+    // closed status by name needs no tick at all.
+    await boss.page.locator('.lead-chips a',{hasText:statusLabel(lt,'do_not_contact')}).click();
+    await rowOf(boss.page,BLOCKED).waitFor({timeout:90000});
+    assert.equal(await rowCount(),1,'asking for a closed status by name shows it without the tick');
+    await boss.page.locator('.lead-chips a',{hasText:t.all}).first().click();
+    await rowOf(boss.page,FIRST).waitFor({timeout:90000});
+    assert.equal(await rowCount(),5,'and the list returns to the open five');
+    await boss.page.locator('input[name="closed"]').check();
+    await boss.page.locator('[data-lead-filters] button[type="submit"]').click();
+    await rowOf(boss.page,BLOCKED).waitFor({timeout:90000});
+    assert.equal(await rowCount(),8,'the show-closed tick brings all eight back');
+    const closedRow=rowOf(boss.page,BLOCKED);
+    for(const part of ['[data-visitor-open]','[data-visitor-edit]','.pop-more .pop-anchor','[data-status-badge]','[data-dnc]'])
+      assert.equal(await closedRow.locator(part).count(),1,`a closed row keeps ${part} too`);
+    await shot(boss.page,'r8-visitors-show-closed-1440');
+    await boss.page.locator('input[name="closed"]').uncheck();
+    await boss.page.locator('[data-lead-filters] button[type="submit"]').click();
+    await until(async()=>await rowCount()===5,'unticking show-closed to file the closed three away again');
     const longRow=rowOf(boss.page,LONG_NAME);
     const longBox=await longRow.locator('.visitor-who').boundingBox();
     assert.ok(longBox&&longBox.width<420,`the long Bangla name truncates inside its cell instead of widening the row (${Math.round(longBox?longBox.width:0)}px)`);
@@ -356,6 +383,19 @@ async function run(){
     await boss.page.goto(`${origin}${list}`,{waitUntil:'domcontentloaded',timeout:180000});
     await rowOf(boss.page,FIRST).waitFor({timeout:90000});
 
+    // ---- 7b. The stale list: the eighteen-month notice became a question an operator asks. It names the
+    // quiet visitor, says it is only a suggestion, and changes nothing by itself.
+    await boss.page.locator('input[name="stale"]').check();
+    await boss.page.locator('[data-lead-filters] button[type="submit"]').click();
+    await rowOf(boss.page,OVERDUE).waitFor({timeout:90000});
+    assert.equal(await rowCount(),1,'the stale filter names exactly the visitor whose newest fact is over eighteen months old');
+    assert.ok(await boss.page.locator('[data-stale-hint]').isVisible(),'and the list says out loud that it is only a suggestion');
+    assert.equal(await Lead.countDocuments(),8,'asking the question removed nobody');
+    await shot(boss.page,'r8-visitors-stale-1440');
+    await boss.page.locator('input[name="stale"]').uncheck();
+    await boss.page.locator('[data-lead-filters] button[type="submit"]').click();
+    await until(async()=>await rowCount()===5,'the list to return to the open five');
+
     // ---- 8. English: month names instead of dd/mm/yyyy, and still no native date box.
     await boss.page.goto(`${origin}/en/admin/leads`,{waitUntil:'domcontentloaded',timeout:180000});
     await boss.page.locator('tr[data-visitor-row]').first().waitFor({timeout:90000});
@@ -398,7 +438,7 @@ async function run(){
     await desk.page.setViewportSize({width:360,height:780});
     await desk.page.goto(`${origin}${list}`,{waitUntil:'domcontentloaded',timeout:180000});
     await desk.page.locator('tr[data-visitor-row]').first().waitFor({timeout:90000});
-    assert.equal(await desk.page.locator('section.list-panel tr[data-visitor-row]').count(),8,'a staff account sees the same eight visitors — this is their screen');
+    assert.equal(await desk.page.locator('section.list-panel tr[data-visitor-row]').count(),5,'a staff account sees the same five open visitors — this is their screen');
     assert.ok((await desk.page.locator('body').innerText()).includes(P2),'and the same printed number, because staff are the ones who call');
     for(const name of [FIRST,LONG_NAME]){
       const row=rowOf(desk.page,name);
@@ -419,6 +459,11 @@ async function run(){
     await deskMore.locator('[data-more-notinterested] button[type="submit"]').click();
     await until(async()=>(await stored(LONG_NAME))?.status==='not_interested','the staff write to land');
     await desk.page.locator('.admin-toast[role="status"]',{hasText:bn.leads.success.NOT_INTERESTED}).first().waitFor({state:'visible',timeout:60000});
+    /* Closing a visitor files the row away: it leaves the list the desk works from, and the show-closed
+       tick is where it went. The badge is read there, with the new status on it. */
+    await until(async()=>await rowOf(desk.page,LONG_NAME).count()===0,'a closed visitor to leave the default list');
+    await desk.page.locator('input[name="closed"]').check();
+    await desk.page.locator('[data-lead-filters] button[type="submit"]').click();
     await rowOf(desk.page,LONG_NAME).locator('[data-status-badge]',{hasText:statusLabel(lt,'not_interested')}).waitFor({timeout:90000});
     await desk.page.locator('input[name="smsLead"]').first().check();
     const deskBulk=desk.page.locator('[data-lead-bulk-bar]');
@@ -446,7 +491,7 @@ async function run(){
       assert.ok(actions.includes(expected),`driving the reference row audited ${expected} (saw: ${actions.join(', ')||'nothing'})`);
     assert.ok(audits.every(row=>!/01[3-9]\d{8}/.test(row.target)),'and no audit target anywhere holds a number');
 
-    console.log('R8 · the Visitors reference row holds: eight visitors in one compact line each, five visible controls, no row taller than 72px, a status and a follow-up changed in two taps with a toast, our own calendar reading dd/mm/yyyy in Bangla and "15 Nov 2026" in English with no native date input on the page, an Edit and a role-correct ⋯ on every row for Admin and Staff, Delete behind a 30-day confirmation and a 10-second Undo, Archive for Staff, a headerless tick column raising a bulk bar of four verbs, the number printed for the roles that call and in no URL, no link but tel: and wa.me, and no audit target, cards at 360px with big Call and WhatsApp, nothing overflowing at 360/768/1024/1440, and a content editor sent away from all of it.');
+    console.log('R8 · the Visitors reference row holds: eight visitors in one compact line each, five visible controls, no row taller than 72px, a status and a follow-up changed in two taps with a toast, our own calendar reading dd/mm/yyyy in Bangla and "15 Nov 2026" in English with no native date input on the page, an Edit and a role-correct ⋯ on every row for Admin and Staff, Delete behind a 30-day confirmation and a 10-second Undo, Archive for Staff, a headerless tick column raising a bulk bar of four verbs, the number printed for the roles that call and in no URL, no link but tel: and wa.me, and no audit target, closed visitors filed away behind one show-closed tick and a stale list that only suggests, cards at 360px with big Call and WhatsApp, nothing overflowing at 360/768/1024/1440, and a content editor sent away from all of it.');
   }finally{
     await browser.close();
     await mongoose.disconnect();

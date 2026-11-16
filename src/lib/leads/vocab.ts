@@ -27,6 +27,12 @@ import {dhakaDay,dhakaToday} from '@/lib/admin/today';
 import {isNumberAttempt,PHONE_SEARCH_MIN_DIGITS} from './lead-phone';
 
 export const LEAD_STATUSES=['new','called','interested','trial_booked','admitted','not_interested','no_answer','do_not_contact'] as const;
+/**
+ * The three statuses that mean a visitor is finished: admitted, not interested, do not contact. They are
+ * filed away rather than deleted — out of the default list, one tick back in — so the screen an operator
+ * works from holds the rows that still need a call, and nobody's record is hidden by accident.
+ */
+export const LEAD_CLOSED_STATUSES=['admitted','not_interested','do_not_contact'] as const;
 export type LeadStatus=typeof LEAD_STATUSES[number];
 
 /** Message-catalog keys: the words live in bn.json / en.json under leads.statusLabels. */
@@ -158,6 +164,7 @@ export const LEAD_LIST_PATH='/admin/leads';
 export function leadListQuery(params:{
   locale?:'bn'|'en';q?:string;status?:string;classGroup?:string;group?:string;shift?:string;medium?:string;
   source?:string;from?:string;to?:string;followUp?:'today'|'overdue'|'none';page?:number;
+  closed?:boolean;stale?:boolean;
 }):{href:string;refusedPhone:boolean;numberShaped:boolean}{
   const locale=params.locale==='en'?'en':'bn';
   const search=new URLSearchParams();
@@ -187,6 +194,8 @@ export function leadListQuery(params:{
     status:params.status,classGroup:params.classGroup,group:params.group,shift:params.shift,
     medium:params.medium,source:params.source,from:params.from,to:params.to,followUp:params.followUp,
   }))if(value)search.set(key,String(value));
+  if(params.closed)search.set('closed','1');
+  if(params.stale)search.set('stale','1');
   if(params.page&&params.page>1)search.set('page',String(params.page));
   const query=search.toString();
   return {href:`/${locale}${LEAD_LIST_PATH}${query?`?${query}`:''}`,refusedPhone,numberShaped};

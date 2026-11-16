@@ -38,7 +38,7 @@ import {
   type HandoffRefusal,
 } from './lead-handoff';
 import {
-  CONTACTABLE_LEAD_FILTER,LEAD_STATUSES,LEAD_SOURCES,LEAD_GROUPS,LEAD_SHIFTS,LEAD_MEDIUMS,
+  CONTACTABLE_LEAD_FILTER,LEAD_CLOSED_STATUSES,LEAD_STATUSES,LEAD_SOURCES,LEAD_GROUPS,LEAD_SHIFTS,LEAD_MEDIUMS,
   familyKeyFromPhones,followUpState,leadListQuery,maskPhone,nextFollowUpDay,statusToFlags,
   type FollowUpKey,type LeadGroup,type LeadMedium,type LeadShift,type LeadSource,type LeadStatus,
 } from './vocab';
@@ -505,6 +505,7 @@ export async function searchLeadsByPhone(raw:unknown,now:Date=new Date(),limit=2
 export interface LeadListParams{
   q?:string;status?:string;classGroup?:string;group?:string;shift?:string;medium?:string;source?:string;
   followUp?:'today'|'overdue'|'none';familyKey?:string;from?:string;to?:string;page?:number;perPage?:number;
+  showClosed?:boolean;stale?:boolean;
 }
 export interface LeadListResult{rows:LeadRow[];total:number;page:number;pages:number;perPage:number;refusedPhone:boolean}
 /**
@@ -536,7 +537,27 @@ export function leadListFilter(params:LeadListParams,now:Date=new Date()):Filter
   else if(params.followUp==='none')filter.nextFollowUp=null;
   if(params.from&&/^\d{4}-\d{2}-\d{2}$/.test(params.from))filter.date={...(filter.date as object||{}),$gte:params.from};
   if(params.to&&/^\d{4}-\d{2}-\d{2}$/.test(params.to))filter.date={...(filter.date as object||{}),$lte:params.to};
+  /* Closed visitors are filed away, not deleted: with no status asked for and no "show closed" tick, the
+     three finished statuses stay out of the list. An explicit status wins — an operator who asks for the
+     admitted rows must get them, not an empty list and a riddle. */
+  if(!filter.status&&!params.showClosed)filter.status={$nin:[...LEAD_CLOSED_STATUSES]};
+  /* The eighteen-month notice became a filter. A visitor is stale when their newest fact — the day they
+     came, or the last note anybody wrote — is older than the cut, and listing them is a suggestion:
+     nothing is archived, removed or re-dated by asking the question. */
+  if(params.stale){
+    const cut=staleCutDay(now);
+    filter.date={...(filter.date as object||{}),$lt:cut};
+    filter.notes={$not:{$elemMatch:{at:{$gte:new Date(`${cut}T00:00:00+06:00`)}}}};
+  }
   return filter;
+}
+
+/** Eighteen months before today's Dhaka day, as a day: the age at which a visitor counts as stale. */
+export function staleCutDay(now:Date=new Date()):string{
+  const [year,month,day]=dhakaDay(now).split('-').map(Number);
+  const total=month-1-18,yearPart=Math.floor(total/12),monthPart=((total%12)+12)%12+1;
+  const length=new Date(Date.UTC(year+yearPart,monthPart,0)).getUTCDate();
+  return `${year+yearPart}-${String(monthPart).padStart(2,'0')}-${String(Math.min(day,length)).padStart(2,'0')}`;
 }
 
 /**
