@@ -1,7 +1,10 @@
-page.evaluate: ReferenceError: __name is not defined
-    at eval (eval at evaluate (:370:30), <anonymous>:1:309)
-    at UtilityScript.evaluate (<anonymous>:372:16)
-    at UtilityScript.<anonymous> (<anonymous>:1:44)
-    at run (/home/runner/work/diction/diction/tests/dashboard-ops-browser.integration.ts:271:28) {
-  log: []
+locator.innerText: Error: strict mode violation: locator('[data-site-fold]').locator('summary') resolved to 2 elements:
+    1) <summary>…</summary> aka getByText('সেন্টার ও ওয়েবসাইটব্যানার, প্রশংসাপত্র, ক্লাস শিট আর ব্লগ — সপ্তাহে একবারের কাজ')
+    2) <summary>…</summary> aka getByText('শুরু করার তালিকা০/৪ সম্পন্ন')
+
+Call log:
+  - waiting for locator('[data-site-fold]').locator('summary')
+
+    at run (/home/runner/work/diction/diction/tests/dashboard-ops-browser.integration.ts:355:46) {
+  log: [ "  - waiting for locator('[data-site-fold]').locator('summary')" ]
 }
