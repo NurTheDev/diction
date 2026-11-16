@@ -1,0 +1,13 @@
+--- tests/i18n-catalog.test.ts (exit 0) ---
+No mis-nested keys, no empty values, no leftover template literals.
+Used keys: 3041 distinct across 4307 call sites, all present in both catalogs.
+  (28 computed keys are not checked statically: r(`fieldNames.${key}`), r(`fieldNames.${key}`), c(`dayPeriod.${k}`), t(`fieldNames.${k}`), c(`dayPeriod.${k}`), ts(`statuses.${value}`), t(`sourceLabels.${option}`), t(`typeLabels.${type}`), t(`override.${key}`), t(`codes.${e.code}`), t(`issueNames.${issue}`), t(`errors.${state.error}`), t(`warnings.${w}`), t(`issues.${i}`), h(`status.${m.status}`), t(`options.${type}.${value}`), t(`labels.${type}`), t(`labels.${type}`), c(`dayPeriod.${k}`), c(`dayPeriod.${k}`), t(`items.${key}`), t(`groups.${g.key}`), t(`items.${key}`), t(`items.${key}`), t(`examDesc.${key}`), roleNames(`role.${r}`), t(`items.${key}`), t(`role.${role}`))
+Browser exposure: 55 groups are read by client components, 12 stay on the server, and no shipped value names a variable — 0 allowances, 5 secret names watched for.
+Provider chain: 105 pages walked against the layouts above them; every group a client component reads is shipped by the route that renders it, apart from 10 named as debt.
+A.7 · the catalogs are whole: parity both ways, no mis-nested keys, no leftover templates, every key src/ asks for resolves in both languages, and Bangla inside an English value only where a language names itself, and the browser receives no secret and no group only a server reads.
+
+
+--- tests/i18n-bangla-scan.test.ts (exit 0) ---
+Bangla scan: 0 lines in 0 files (535 walked).
+  most: 
+Bangla scan: 535 files walked, nothing left outside the allow blocks.
