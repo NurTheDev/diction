@@ -117,5 +117,6 @@ zip and the screenshots under `screenshots/`.
 - `docs/DEPLOYMENT.md` — staging deployment, Atlas, Vercel, cron, BulkSMSBD, troubleshooting.
 - `docs/GO-LIVE.md` — the owner's production launch checklist, step by step.
 - `docs/OPERATIONS.md` — monthly backups, storage monitoring, recycle bin, handover.
+- `docs/G2-OPERATOR-SCREENS.md` — the operator's screens after the group 2 pass: the dashboard's two tiers, the SMS centre's three cards, the five menu groups, the phone rules, and a ten-step click checklist.
 - `docs/STATUS.md` — milestone-by-milestone engineering record.
 - `docs/VERIFY.md` — how the verification harness reads and writes evidence.
