@@ -7,16 +7,70 @@ Provider chain: 105 pages walked against the layouts above them; every group a c
 A.7 · the catalogs are whole: parity both ways, no mis-nested keys, no leftover templates, every key src/ asks for resolves in both languages, and Bangla inside an English value only where a language names itself, and the browser receives no secret and no group only a server reads.
 
 
---- tests/i18n-routes.test.ts (exit 0) ---
+--- tests/i18n-routes.test.ts (exit 1) ---
 Language ternaries: 0 in 0 files (baseline 0).
   most: 
   allowed: layout.tsx — og:locale is a metadata code (bn_BD), not a painted word; route.ts — the language is named to the model as an instruction, in English; route.ts — the language is named to the model as an instruction, in English; top-header.tsx — a switcher names the language it switches to; header-nav.tsx — the ternary picks a class name, not a word
-Bangla in route files: 0 lines in 0 files (baseline 0).
-  most: 
-A.6 · the route sweep holds: no page reached for a new hardcoded pair, and every count moved only down.
+Bangla in route files: 1 lines in 1 files (baseline 0).
+  most: 1 src/app/[locale]/admin/leads/page.tsx
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: 1 Bangla lines in route files, above the 0 baseline:
+  1 src/app/[locale]/admin/leads/page.tsx
+    at assert (/home/runner/work/diction/diction/tests/i18n-routes.test.ts:104:8)
+    at Object.<anonymous> (/home/runner/work/diction/diction/tests/i18n-routes.test.ts:107:118)
+    at Module._compile (node:internal/modules/cjs/loader:1781:14)
+    at Object.transformer (/home/runner/work/diction/diction/node_modules/tsx/dist/register-B1c7OH6V.cjs:22:2188)
+    at Module.load (node:internal/modules/cjs/loader:1505:32)
+    at Function._load (node:internal/modules/cjs/loader:1309:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:254:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:335:3)
+    at ModuleWrap.<anonymous> (node:internal/modules/esm/translators:235:7)
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}
+
+Node.js v22.23.4
 
 
---- tests/i18n-bangla-scan.test.ts (exit 0) ---
-Bangla scan: 0 lines in 0 files (530 walked).
-  most: 
-Bangla scan: 530 files walked, nothing left outside the allow blocks.
+--- tests/i18n-bangla-scan.test.ts (exit 1) ---
+Bangla scan: 1 lines in 1 files (530 walked).
+  most: 1 src/app/[locale]/admin/leads/page.tsx
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: no Bangla interface text is left in src/ outside an i18n-scan-allow block
++ actual - expected
+
++ [
++   'src/app/[locale]/admin/leads/page.tsx:235: ভিজিটর'
++ ]
+- []
+
+    at assert (/home/runner/work/diction/diction/tests/i18n-bangla-scan.test.ts:67:8)
+    at Object.<anonymous> (/home/runner/work/diction/diction/tests/i18n-bangla-scan.test.ts:69:96)
+    at Module._compile (node:internal/modules/cjs/loader:1781:14)
+    at Object.transformer (/home/runner/work/diction/diction/node_modules/tsx/dist/register-B1c7OH6V.cjs:22:2188)
+    at Module.load (node:internal/modules/cjs/loader:1505:32)
+    at Function._load (node:internal/modules/cjs/loader:1309:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:254:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:335:3)
+    at ModuleWrap.<anonymous> (node:internal/modules/esm/translators:235:7)
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: [ 'src/app/[locale]/admin/leads/page.tsx:235: ভিজিটর' ],
+  expected: [],
+  operator: 'deepStrictEqual',
+  diff: 'simple'
+}
+
+Node.js v22.23.4
