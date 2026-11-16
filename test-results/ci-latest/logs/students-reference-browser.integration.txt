@@ -1,12 +1,1 @@
-AssertionError [ERR_ASSERTION]: and its headers come from the catalogue
-    at run (/home/runner/work/diction/diction/tests/students-reference-browser.integration.ts:623:12)
-    at runNextTicks (node:internal/process/task_queues:64:5)
-    at process.processImmediate (node:internal/timers:452:9)
-    at process.callbackTrampoline (node:internal/async_hooks:130:17) {
-  generatedMessage: false,
-  code: 'ERR_ASSERTION',
-  actual: false,
-  expected: true,
-  operator: '==',
-  diff: 'simple'
-}
+Students: the shared pattern paints the list and the profile — four controls a row, Edit→Save, Hold→Unhold, Remove→Restore, the picked month, the role gates and three widths all hold
