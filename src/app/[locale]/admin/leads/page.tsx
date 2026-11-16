@@ -35,7 +35,7 @@ const day=(value:string|undefined):string=>(value&&/^\d{4}-\d{2}-\d{2}$/.test(va
  * Nothing here queries `Lead`: the rows, the counts and the refusals all come from `src/lib/leads/leads.ts`,
  * so this page cannot disagree with the rule layer, the importer or the cron job.
  */
-export default async function Leads({params,searchParams}:{params:Promise<{locale:string}>;searchParams:Promise<Query>}){
+async function leadsBody(params:Promise<{locale:string}>,searchParams:Promise<Query>){
   const {locale}=await params;
   /**
    * A role that may not see visitors is sent away rather than shown an error panel. `requireArchiver()`
@@ -225,4 +225,13 @@ export default async function Leads({params,searchParams}:{params:Promise<{local
     </section>
     </LeadSmsPicker>
   </>;
+}
+
+/** CI diagnostic: an await that throws here used to arrive as an opaque digest and an empty
+    main; the catch paints the error where every suite and screenshot can read it. */
+export default async function Leads({params,searchParams}:{params:Promise<{locale:string}>;searchParams:Promise<Query>}){
+  try{return await leadsBody(params,searchParams)}catch(error){
+    const text=error instanceof Error?`${error.message} :: ${(error.stack||'').split('\n').slice(0,4).join(' | ')}`:String(error);
+    return <div data-page-diag="" className="admin-panel"><h1>ভিজিটর</h1><pre className="admin-feedback error">{text}</pre></div>;
+  }
 }
