@@ -400,6 +400,11 @@ async function main():Promise<void>{
       {needsDb:true,env:{TEST_ORIGIN:ctx.origin,TEST_MONGO_URI:ctx.mongoUri,TEST_MONGO_DB:ctx.mongoDb}});
     await stepUnitSuites(ctx,'test:report:math','R6.1','The four reports\u2019 mathematics and the export engine, without a database');
     await stepUnitSuites(ctx,'test:r7:docs','R7.1','The handover papers: README, env template, deployment notes, go-live and operations, against the code');
+    /* Group 2 is a layout and a wording pass, so its unit proofs are the two things a browser cannot
+       settle on its own: that regrouping the menu moved nobody's permission, and that no sentence the
+       browser receives names a variable instead of telling its reader what to do. */
+    await stepUnitSuites(ctx,'test:g2:menu','G2.5','The menu contract: five operator groups, one place per screen, a real route behind each, both catalogues complete, every role\u2019s visible set frozen');
+    await stepUnitSuites(ctx,'test:g2:copy','G2.6','The copy safeguards: no shipped value names a variable, both catalogues whole, no hardcoded pair in a route file');
     await stepScreens(ctx);
     await stepBrowserTests(ctx);
     (ctx as Context&{stop?:()=>void}).stop?.();

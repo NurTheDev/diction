@@ -281,7 +281,17 @@ async function run(){
       assert.match(text.messageEn,/not configured/);
       assert.equal(text.code,'SMS_NOT_CONFIGURED');
     }
-    assert.match(autoProblemText('auto_receipt','SMS_DISABLED').messageBn,/CENTER_SMS_WRITE_ENABLED/,'the gate is named, because that one is a setting the operator controls');
+    /* A closed gate is reported in the operator's own words, not in the name of the variable that is
+       closed. It used to read `CENTER_SMS_WRITE_ENABLED=true নয়`, which is a sentence for whoever
+       deploys the site — and that person still gets it, in docs/GO-LIVE.md, where the knob lives. What
+       the operator needs from the card is that sending is off and who can turn it on, so the value names
+       no variable, and tests/i18n-catalog.test.ts now fails ANY shipped value that does. */
+    const gateClosed=autoProblemText('auto_receipt','SMS_DISABLED');
+    assert.match(gateClosed.messageBn,/পাঠানো বন্ধ/,'a closed gate says sending is off');
+    assert.match(gateClosed.messageBn,/চালু করতে বলুন/,'and says who can turn it back on');
+    assert.match(gateClosed.messageEn,/switched off/,'in both languages');
+    for(const [language,sentence] of [['bn',gateClosed.messageBn],['en',gateClosed.messageEn]] as const)
+      assert.equal(/\b[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+\b/.test(sentence),false,`the ${language} sentence names no variable`);
     assert.match(autoProblemText('auto_receipt','NO_RECIPIENTS').messageBn,/নম্বর/,'a missing number says so');
     assert.match(autoProblemText('auto_receipt','UNRENDERED_VARIABLE:{subject}').messageBn,/মান নেই/,'an unfilled chip says so');
     assert.equal(autoProblemText('auto_receipt',null).messageBn.includes('কারণ জানা যায়নি'),true,'an unknown cause is admitted, not invented');

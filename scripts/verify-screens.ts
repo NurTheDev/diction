@@ -79,6 +79,13 @@ export function screenPlan(_milestone:string):ScreenTarget[]{
        that list, and it is written nowhere else. */
     {path:'/bn/admin/students/classes',label:'classes-bn'},
     {path:'/en/admin/grading-scale',label:'grading-scale-en'},
+    /* Group 2 · the two screens the redesign rearranged, photographed in both languages: the dashboard
+       whose day's work now comes first, and the SMS centre's three cards. The cash desk and the dues
+       list are already here in Bangla and English, and the browser suite adds the same screens with a
+       student chosen and with the site tier open — what this pass proves is the honest first look at
+       360px and 1440px, which is the owner's evidence bar for this group. */
+    {path:'/en/admin',label:'admin-overview-en'},
+    {path:'/bn/admin/sms',label:'sms-centre-bn'},
   ];
 }
 

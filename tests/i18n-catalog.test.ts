@@ -202,14 +202,20 @@ assert.deepEqual(banglaInEn,[...ALLOWED_IN_EN].sort(),'English values carry Bang
    · a group no client component reads is server-only, and `src/i18n/client-namespaces.ts` says so —
      if a `'use client'` file starts reading one of those groups, the layouts would have to ship it
      and the list is wrong, so fail here instead of painting a raw key in production;
-   · a shipped value names a variable only if the variable is a setting the operator flips. Two kinds
-     of name, two rules: a SECRET is never named in interface text at all — the credential check in
-     tests/sms-dialog-browser.integration.ts has always said so — while a setting IS named on purpose,
-     because the message is the only place the operator learns which knob is off. That is an owner
-     decision, and tests/sms-auto-problem.integration.ts:247 requires `sms.problems.disabled` to say
-     CENTER_SMS_WRITE_ENABLED. A group no client component reads may name whatever it likes: it is
-     rendered only on the page that is about it, which is why `aiSetup` staying server-side is what
-     keeps GEMINI_API_KEY out of the HTML of every unrelated admin page. */
+   · a shipped value names NO variable at all — neither a secret nor a setting. Two kinds of name used
+     to be treated differently: a SECRET was never named in interface text (the credential check in
+     tests/sms-dialog-browser.integration.ts has always said so), while four settings were named on
+     purpose, on the argument that the message was the only place the operator learned which knob was
+     off. Group 2 retired that argument by writing the four sentences for the person reading them
+     instead — "sending is switched off, ask whoever set up this site to turn it on" tells an operator
+     what to do, and `CENTER_SMS_WRITE_ENABLED` tells them nothing they can act on, because the knob is
+     in a deployment file and not in any screen they can open. The knob is still named, to the audience
+     that can turn it: docs/GO-LIVE.md and docs/DEPLOYMENT.md, which tests/r7-docs.test.ts holds.
+     So `NAMED_SETTINGS` is now empty and the check is the strict one — a value the browser receives
+     that names an ALL_CAPS_UNDERSCORED token fails, whoever thought it was helpful. A group no client
+     component reads may still name whatever it likes: it is rendered only on the page that is about it,
+     which is why `aiSetup` staying server-side is what keeps GEMINI_API_KEY out of the HTML of every
+     unrelated admin page. */
 const shipped=(namespace:string):boolean=>!SERVER_ONLY_NAMESPACES.includes(namespace as typeof SERVER_ONLY_NAMESPACES[number]);
 const readByClient=new Set<string>();
 const notFiltered:string[]=[];
@@ -224,12 +230,11 @@ for(const file of sourceFiles('src')){
 assert.deepEqual([...readByClient].filter(ns=>!shipped(ns)).sort(),[],'no client component reads a group the layouts keep on the server');
 assert.deepEqual(notFiltered.sort(),[],'every layout that ships messages to the client filters them first');
 const SECRETS=['BULKSMSBD_API_KEY','GEMINI_API_KEY','AI_API_KEY','NEXTAUTH_SECRET','MONGODB_URI'];
-const NAMED_SETTINGS:Record<string,string>={
-  'sms.problems.disabled':'CENTER_SMS_WRITE_ENABLED is the gate the operator opens, and the problem message is where they learn which knob is off',
-  'aiTest.forbidden':'NEXTAUTH_URL is the address of the site itself, which the operator sets — not a secret',
-  'admin.aiPage.needsSetting':'PUBLIC_AI_ENABLED is the switch the operator turns on, and this line is where the admin learns it is off',
-  'importCommit.writesDisabled':'CENTER_IMPORT_WRITE_ENABLED is the gate that keeps the paysheet import read-only, and this line is where the admin learns which knob to open',
-};
+/* Empty on purpose, and kept as the door it is: an entry here is a written reason why one shipped
+   sentence may name a variable, and today there is no such sentence. Adding one is a deliberate act
+   that has to be argued in this file, and `rotten` below fails the moment the value stops naming what
+   the entry allowed — an excuse outliving the thing it excused. */
+const NAMED_SETTINGS:Record<string,string>={};
 const ENV_NAME=/\b[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+\b/g;
 const leakedSecrets:string[]=[],unnamedSettings:string[]=[],rotten:string[]=[];
 for(const [loc,catalog] of [['bn',bnMessages],['en',enMessages]] as const){
@@ -245,7 +250,7 @@ for(const [loc,catalog] of [['bn',bnMessages],['en',enMessages]] as const){
 assert.deepEqual(leakedSecrets.sort(),[],'no value the browser receives names a secret');
 assert.deepEqual(unnamedSettings.sort(),[],'a shipped value names a setting only where the reason is written down');
 assert.deepEqual([...new Set(rotten)].sort(),[],'every allowed name is still in the value it was allowed for');
-console.log(`Browser exposure: ${readByClient.size} groups are read by client components, ${SERVER_ONLY_NAMESPACES.length} stay on the server, ${Object.keys(NAMED_SETTINGS).length} shipped values name an operator setting and none names a secret.`);
+console.log(`Browser exposure: ${readByClient.size} groups are read by client components, ${SERVER_ONLY_NAMESPACES.length} stay on the server, and no shipped value names a variable — ${Object.keys(NAMED_SETTINGS).length} allowances, ${SECRETS.length} secret names watched for.`);
 
 // ── 6. A client component is given the group it reads, on the route that renders it ───────────────
 /* Rule 5 knows which groups may travel to the browser. It cannot see WHERE: a page is served the

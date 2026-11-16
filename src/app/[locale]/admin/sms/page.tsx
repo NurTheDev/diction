@@ -21,11 +21,29 @@ type LogRow={_id:mongoose.Types.ObjectId;phone:string;message:string;status:stri
 const STATUSES=['sent','failed','skipped','queued'] as const;
 
 /**
- * The SMS centre (R2): connection status, live balance, this month's stored cost, the settings the
- * spec lists, the editable templates, and the history with filters and an explicit retry.
+ * The SMS centre (R2), in three cards — and the split is by *who is reading*, not by topic.
  *
- * Nothing here exposes a credential — only the provider's NAME and whether it is configured. The
- * balance is fetched server-side and rendered as a number.
+ * **Send & balance** is the daily card: what is left to send with, what this month cost, the message to
+ * a class, a test to the operator's own number, the template bodies and the settings that shape a send.
+ * **History** is the audit card: who was sent what, whether it arrived, and what each one cost.
+ * **Connection** is the mechanic's card: which provider answers, whether its credentials are present,
+ * whether sending is switched on at all, the automatic sends that did not go out and the retry for them.
+ *
+ * The old page was one flat stack of eight panels in the order the code happened to be written, so the
+ * connection diagnostic — a thing looked at once, when something is wrong — was the first panel an
+ * operator met every morning, and the message they actually came to send was four screens down. Nothing
+ * moved out of the page and nothing was renamed: the same headings, forms, filters, tables and retry are
+ * here, grouped so the everyday work is on top and the technical detail is at the bottom.
+ *
+ * Two rules the cards obey:
+ * · **They are cards, not hidden tabs.** Every panel stays painted, because the credential check and the
+ *   connection proof (R2.6, R2.7) read these headings and definitions from the served page, and a panel
+ *   that only exists after a click is a panel a test — or an operator with a broken send — can miss.
+ * · **The only `dl` on the page is the diagnostic one.** The balance in the daily card is a number a
+ *   person reads, not a definition row, which keeps the machine-readable block in the machine's card.
+ *
+ * Nothing here exposes a credential — only the provider's NAME and whether it is configured. The balance
+ * is fetched server-side and rendered as a number.
  */
 export default async function SmsPage({params,searchParams}:{params:Promise<{locale:string}>;searchParams:Promise<{status?:string;template?:string;q?:string}>}){
   const actor=await requireAdmin();
@@ -84,6 +102,16 @@ export default async function SmsPage({params,searchParams}:{params:Promise<{loc
   const language:'bn'|'en'=bn?'bn':'en';
   const currency=await (await getTranslations('common'))('currency');
   const cost=(value:number)=>`${currency}${formatNumber(Math.round(value*100)/100,digits)}`;
+  /* This month's totals, as six tiles rather than six definition rows: they are a summary a person
+     glances at, and the page's one `dl` belongs to the connection card that reads it aloud. */
+  const monthTiles:[string,string][]=[
+    [ts('page.sent'),formatNumber(totals.sent,digits)],
+    [ts('page.failed'),formatNumber(totals.failed,digits)],
+    [ts('page.queued'),formatNumber(totals.queued,digits)],
+    [ts('page.skipped'),formatNumber(totals.skipped,digits)],
+    [ts('page.segments'),formatNumber(totals.segments,digits)],
+    [ts('page.cost'),cost(totals.cost)],
+  ];
 
   return <>
     <div className="admin-heading"><div>
@@ -91,94 +119,114 @@ export default async function SmsPage({params,searchParams}:{params:Promise<{loc
       <p>{ts('page.lede')}</p>
     </div></div>
 
-    {/* Above the connection panel on purpose: an automatic send that did not go out is the one thing
-        on this page the operator must act on, and it is invisible everywhere else. */}
-    <SmsAutoProblems digits={digits}/>
+    {/* ── Card 1 · the daily work: what is left to send with, and the sending itself ───────────── */}
+    <section className="admin-panel sms-card" data-sms-card="send">
+      <div className="admin-panel-head sms-card-head"><h2>{ts('page.cardSend')}</h2><p className="admin-help">{ts('page.cardSendNote')}</p></div>
+      <div className="admin-panel-body sms-card-body">
+        <div className={`sms-credit tone-${balance.ok?'good':'warn'}`} data-sms-credit="">
+          <span>{ts('page.creditLeft')}</span>
+          <strong>{balance.ok?formatNumber(balance.balance,digits):ts('page.balanceUnreadable')}</strong>
+          <small>{ts('page.creditNote')}</small>
+        </div>
 
-    <section className="admin-panel"><div className="admin-panel-head"><h2>{ts('page.connection')}</h2></div><div className="admin-panel-body">
-      <dl className="admin-defs">
-        <div><dt>{ts('page.provider')}</dt><dd><code>{providerName}</code> {providerName==='mock'&&<span className="admin-badge">{ts('page.mockSendsNothing')}</span>}</dd></div>
-        <div><dt>{ts('page.credentials')}</dt><dd>{credentials.ok
-          ? <span className="admin-badge enabled">{ts('page.configured')}</span>
-          : <span className="admin-badge disabled">{ts('page.missing')}: {credentials.missing.join(', ')}</span>}</dd></div>
-        <div><dt>{ts('page.sendingGate')}</dt><dd>{writeGate
-          ? <span className="admin-badge enabled">CENTER_SMS_WRITE_ENABLED=true</span>
-          : <span className="admin-badge disabled">{ts('page.gateOff')}</span>}</dd></div>
-        <div><dt>{ts('page.balance')}</dt><dd>{balance.ok?formatNumber(balance.balance,digits):ts('page.balanceUnreadable')}{balance.ok===false&&'code' in balance&&balance.code?` (${balance.code})`:''}</dd></div>
-      </dl>
-      <p className="admin-help">{ts('page.credentialsNote')}</p>
-    </div></section>
+        <section className="admin-panel"><div className="admin-panel-head"><h2>{ts('page.month')}</h2></div><div className="admin-panel-body">
+          <ul className="sms-tiles">
+            {monthTiles.map(([label,value])=><li key={label}><span>{label}</span><strong>{value}</strong></li>)}
+          </ul>
+          <p className="admin-help">{ts('page.costNote')}</p>
+        </div></section>
 
-    <section className="admin-panel"><div className="admin-panel-head"><h2>{ts('page.month')}</h2></div><div className="admin-panel-body">
-      <dl className="admin-defs">
-        <div><dt>{ts('page.sent')}</dt><dd>{formatNumber(totals.sent,digits)}</dd></div>
-        <div><dt>{ts('page.failed')}</dt><dd>{formatNumber(totals.failed,digits)}</dd></div>
-        <div><dt>{ts('page.queued')}</dt><dd>{formatNumber(totals.queued,digits)}</dd></div>
-        <div><dt>{ts('page.skipped')}</dt><dd>{formatNumber(totals.skipped,digits)}</dd></div>
-        <div><dt>{ts('page.segments')}</dt><dd>{formatNumber(totals.segments,digits)}</dd></div>
-        <div><dt>{ts('page.cost')}</dt><dd>{cost(totals.cost)}</dd></div>
-      </dl>
-      <p className="admin-help">{ts('page.costNote')}</p>
-    </div></section>
+        <section className="admin-panel"><div className="admin-panel-head"><h2>{ts('page.newMessage')}</h2></div><div className="admin-panel-body">
+          <SmsNewMessage en={!bn} institutePhone={settings.institutePhone}
+            classes={groups.map(group=>({id:String(group._id),name:(bn?group.name.bn:group.name.en)||group.name.bn}))}
+            templates={templates.filter(row=>row.active||row.key==='custom')} />
+        </div></section>
 
-    <SmsSettingsForm locale={locale} settings={settings} providerName={providerName} balanceOk={balance.ok} balance={balance.ok?balance.balance:null}/>
-    <SmsTestForm locale={locale} ownPhone={me?.phone||''}/>
+        <SmsTestForm locale={locale} ownPhone={me?.phone||''}/>
 
-    <section className="admin-panel"><div className="admin-panel-head"><h2>{ts('page.newMessage')}</h2></div><div className="admin-panel-body">
-      <SmsNewMessage en={!bn} institutePhone={settings.institutePhone}
-        classes={groups.map(group=>({id:String(group._id),name:(bn?group.name.bn:group.name.en)||group.name.bn}))}
-        templates={templates.filter(row=>row.active||row.key==='custom')} />
-    </div></section>
+        <section className="admin-panel"><div className="admin-panel-head"><h2>{ts('page.templates')}</h2></div><div className="admin-panel-body">
+          <p className="admin-help">{ts('page.chipsNote')} <code>{[...SMS_VARIABLES].map(v=>`{${v}}`).join(' ')}</code></p>
+          {templates.map(template=><SmsTemplateEditor key={template.key} locale={locale} template={template}/>)}
+        </div></section>
 
-    <section className="admin-panel"><div className="admin-panel-head"><h2>{ts('page.templates')}</h2></div><div className="admin-panel-body">
-      <p className="admin-help">{ts('page.chipsNote')} <code>{[...SMS_VARIABLES].map(v=>`{${v}}`).join(' ')}</code></p>
-      {templates.map(template=><SmsTemplateEditor key={template.key} locale={locale} template={template}/>)}
-    </div></section>
+        <SmsSettingsForm locale={locale} settings={settings} providerName={providerName} balanceOk={balance.ok} balance={balance.ok?balance.balance:null}/>
+      </div>
+    </section>
 
-    <section className="admin-panel"><div className="admin-panel-head"><h2>{ts('page.batches')}</h2></div><div className="admin-panel-body">
-      {batches.length===0&&<p className="admin-empty">{ts('page.noBatches')}</p>}
-      {batches.length>0&&<div className="admin-table-wrap"><table className="admin-table">
-        <thead><tr><th>{ts('page.when')}</th><th>{ts('page.purpose')}</th><th>{ts('page.status')}</th><th>{ts('page.recipients')}</th><th>{ts('page.sentFailed')}</th><th>{ts('page.cost')}</th><th/></tr></thead>
-        <tbody>{batches.map(batch=><tr key={String(batch._id)}>
-          <td>{formatDate(batch.createdAt,digits,language)}<br/><small>{formatTime(batch.createdAt,digits,language)}</small>{batch.quiet&&<><br/><small>{ts('page.queuedByQuietHours')}</small></>}{batch.scheduledFor&&<><br/><small>{ts('page.scheduled')}: {formatTime(batch.scheduledFor,digits,language)}</small></>}</td>
-          <td>{purposeLabel(batch.templateKey||batch.purpose)}</td>
-          <td><span className={`admin-badge ${batch.status==='done'?'enabled':batch.status==='failed'?'disabled':''}`}>{statusLabel(BATCH_STATUS_NAMES,batch.status)}</span></td>
-          <td>{formatNumber(batch.recipientCount,digits)}</td>
-          <td>{formatNumber(batch.sentCount,digits)} / {formatNumber(batch.failedCount,digits)}{batch.skippedCount>0&&<small> · {formatNumber(batch.skippedCount,digits)} {ts('page.skippedUnit')}</small>}</td>
-          <td>{cost(batch.estimatedCost)}</td>
-          <td>{batch.failedCount>0&&<SmsRetryButton locale={locale} batchId={String(batch._id)} failed={batch.failedCount}/>}</td>
-        </tr>)}</tbody>
-      </table></div>}
-    </div></section>
+    {/* ── Card 2 · what went out, to whom, and whether it arrived ─────────────────────────────── */}
+    <section className="admin-panel sms-card" data-sms-card="history">
+      <div className="admin-panel-head sms-card-head"><h2>{ts('page.cardHistory')}</h2><p className="admin-help">{ts('page.cardHistoryNote')}</p></div>
+      <div className="admin-panel-body sms-card-body">
+        <section className="admin-panel"><div className="admin-panel-head"><h2>{ts('page.history')}</h2></div><div className="admin-panel-body">
+          <form method="get" className="admin-filter">
+            <label>{ts('page.status')} <select name="status" className="admin-select" defaultValue={status||''}>
+              <option value="">{ts('page.all')}</option>
+              {STATUSES.map(value=><option key={value} value={value}>{ts(`statuses.${value}`)}</option>)}
+            </select></label>
+            <label>{ts('page.template')} <select name="template" className="admin-select" defaultValue={template||''}>
+              <option value="">{ts('page.all')}</option>
+              {templates.map(row=><option key={row.key} value={row.key}>{smsTemplateName(TEMPLATE_NAMES,row.name)}</option>)}
+              <option value="test">{ts('page.test')}</option>
+            </select></label>
+            <label>{ts('page.search')} <input name="q" defaultValue={search} maxLength={80} placeholder={ts('page.searchPlaceholder')}/></label>
+            <button className="button button-navy">{ts('page.filter')}</button>
+          </form>
+          {logs.length===0&&<p className="admin-empty">{ts('page.noRecords')}</p>}
+          {logs.length>0&&<p className="admin-help">{ts('page.costColumnNote')}</p>}
+          {logs.length>0&&<div className="admin-table-wrap"><table className="admin-table">
+            <thead><tr><th>{ts('page.when')}</th><th>{ts('page.student')}</th><th>{ts('page.number')}</th><th>{ts('page.message')}</th><th>{ts('page.status')}</th><th>{ts('page.segmentsShort')}</th><th>{ts('page.cost')}</th></tr></thead>
+            <tbody>{logs.map(log=><tr key={String(log._id)}>
+              <td>{formatDate(log.sentAt||log.createdAt,digits,language)}<br/><small>{formatTime(log.sentAt||log.createdAt,digits,language)}</small></td>
+              <td>{log.student?`${log.student.name.bn} · ${log.student.studentId}`:'—'}</td>
+              <td>{formatDigits(log.phone,digits)}</td>
+              <td className="admin-cell-message"><span title={log.message}>{log.message.slice(0,90)}{log.message.length>90?'…':''}</span>{log.providerMessage&&<><br/><small>{log.providerMessage}</small></>}{log.reason&&<><br/><small>{ts('page.reason')}: {reasonLabel(log.reason)}</small></>}</td>
+              <td><span className={`admin-badge ${log.status==='sent'?'enabled':log.status==='failed'?'disabled':''}`}>{statusLabel(LOG_STATUS_NAMES,log.status)}</span></td>
+              <td>{formatNumber(log.segments,digits)}</td>
+              <td>{cost(log.cost)}</td>
+            </tr>)}</tbody>
+          </table></div>}
+        </div></section>
+      </div>
+    </section>
 
-    <section className="admin-panel"><div className="admin-panel-head"><h2>{ts('page.history')}</h2></div><div className="admin-panel-body">
-      <form method="get" className="admin-filter">
-        <label>{ts('page.status')} <select name="status" className="admin-select" defaultValue={status||''}>
-          <option value="">{ts('page.all')}</option>
-          {STATUSES.map(value=><option key={value} value={value}>{ts(`statuses.${value}`)}</option>)}
-        </select></label>
-        <label>{ts('page.template')} <select name="template" className="admin-select" defaultValue={template||''}>
-          <option value="">{ts('page.all')}</option>
-          {templates.map(row=><option key={row.key} value={row.key}>{smsTemplateName(TEMPLATE_NAMES,row.name)}</option>)}
-          <option value="test">{ts('page.test')}</option>
-        </select></label>
-        <label>{ts('page.search')} <input name="q" defaultValue={search} maxLength={80} placeholder={ts('page.searchPlaceholder')}/></label>
-        <button className="button button-navy">{ts('page.filter')}</button>
-      </form>
-      {logs.length===0&&<p className="admin-empty">{ts('page.noRecords')}</p>}
-      {logs.length>0&&<p className="admin-help">{ts('page.costColumnNote')}</p>}
-      {logs.length>0&&<div className="admin-table-wrap"><table className="admin-table">
-        <thead><tr><th>{ts('page.when')}</th><th>{ts('page.student')}</th><th>{ts('page.number')}</th><th>{ts('page.message')}</th><th>{ts('page.status')}</th><th>{ts('page.segmentsShort')}</th><th>{ts('page.cost')}</th></tr></thead>
-        <tbody>{logs.map(log=><tr key={String(log._id)}>
-          <td>{formatDate(log.sentAt||log.createdAt,digits,language)}<br/><small>{formatTime(log.sentAt||log.createdAt,digits,language)}</small></td>
-          <td>{log.student?`${log.student.name.bn} · ${log.student.studentId}`:'—'}</td>
-          <td>{formatDigits(log.phone,digits)}</td>
-          <td className="admin-cell-message"><span title={log.message}>{log.message.slice(0,90)}{log.message.length>90?'…':''}</span>{log.providerMessage&&<><br/><small>{log.providerMessage}</small></>}{log.reason&&<><br/><small>{ts('page.reason')}: {reasonLabel(log.reason)}</small></>}</td>
-          <td><span className={`admin-badge ${log.status==='sent'?'enabled':log.status==='failed'?'disabled':''}`}>{statusLabel(LOG_STATUS_NAMES,log.status)}</span></td>
-          <td>{formatNumber(log.segments,digits)}</td>
-          <td>{cost(log.cost)}</td>
-        </tr>)}</tbody>
-      </table></div>}
-    </div></section>
+    {/* ── Card 3 · the mechanic's card: the connection, the sends that did not go out, the retry ──
+        An automatic send that did not go out leads this card on purpose: it is the one thing here the
+        operator must act on, and the retry beside it is the action. */}
+    <section className="admin-panel sms-card" data-sms-card="diagnostic">
+      <div className="admin-panel-head sms-card-head"><h2>{ts('page.cardDiagnostic')}</h2><p className="admin-help">{ts('page.cardDiagnosticNote')}</p></div>
+      <div className="admin-panel-body sms-card-body">
+        <SmsAutoProblems digits={digits}/>
+
+        <section className="admin-panel"><div className="admin-panel-head"><h2>{ts('page.connection')}</h2></div><div className="admin-panel-body">
+          <dl className="admin-defs">
+            <div><dt>{ts('page.provider')}</dt><dd><code>{providerName}</code> {providerName==='mock'&&<span className="admin-badge">{ts('page.mockSendsNothing')}</span>}</dd></div>
+            <div><dt>{ts('page.credentials')}</dt><dd>{credentials.ok
+              ? <span className="admin-badge enabled">{ts('page.configured')}</span>
+              : <span className="admin-badge disabled">{ts('page.missing')}: {credentials.missing.join(', ')}</span>}</dd></div>
+            <div><dt>{ts('page.sendingGate')}</dt><dd>{writeGate
+              ? <span className="admin-badge enabled">{ts('page.gateOn')}</span>
+              : <span className="admin-badge disabled">{ts('page.gateOff')}</span>}</dd></div>
+            <div><dt>{ts('page.balance')}</dt><dd>{balance.ok?formatNumber(balance.balance,digits):ts('page.balanceUnreadable')}{balance.ok===false&&'code' in balance&&balance.code?` (${balance.code})`:''}</dd></div>
+          </dl>
+          <p className="admin-help">{ts('page.credentialsNote')}</p>
+        </div></section>
+
+        <section className="admin-panel"><div className="admin-panel-head"><h2>{ts('page.batches')}</h2></div><div className="admin-panel-body">
+          {batches.length===0&&<p className="admin-empty">{ts('page.noBatches')}</p>}
+          {batches.length>0&&<div className="admin-table-wrap"><table className="admin-table">
+            <thead><tr><th>{ts('page.when')}</th><th>{ts('page.purpose')}</th><th>{ts('page.status')}</th><th>{ts('page.recipients')}</th><th>{ts('page.sentFailed')}</th><th>{ts('page.cost')}</th><th/></tr></thead>
+            <tbody>{batches.map(batch=><tr key={String(batch._id)}>
+              <td>{formatDate(batch.createdAt,digits,language)}<br/><small>{formatTime(batch.createdAt,digits,language)}</small>{batch.quiet&&<><br/><small>{ts('page.queuedByQuietHours')}</small></>}{batch.scheduledFor&&<><br/><small>{ts('page.scheduled')}: {formatTime(batch.scheduledFor,digits,language)}</small></>}</td>
+              <td>{purposeLabel(batch.templateKey||batch.purpose)}</td>
+              <td><span className={`admin-badge ${batch.status==='done'?'enabled':batch.status==='failed'?'disabled':''}`}>{statusLabel(BATCH_STATUS_NAMES,batch.status)}</span></td>
+              <td>{formatNumber(batch.recipientCount,digits)}</td>
+              <td>{formatNumber(batch.sentCount,digits)} / {formatNumber(batch.failedCount,digits)}{batch.skippedCount>0&&<small> · {formatNumber(batch.skippedCount,digits)} {ts('page.skippedUnit')}</small>}</td>
+              <td>{cost(batch.estimatedCost)}</td>
+              <td>{batch.failedCount>0&&<SmsRetryButton locale={locale} batchId={String(batch._id)} failed={batch.failedCount}/>}</td>
+            </tr>)}</tbody>
+          </table></div>}
+        </div></section>
+      </div>
+    </section>
   </>;
 }

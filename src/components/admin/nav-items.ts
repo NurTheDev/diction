@@ -1,29 +1,70 @@
 import {LayoutDashboard,ClipboardList,CalendarCheck,CalendarClock,Contact,CalendarDays,Inbox,BookOpenCheck,GraduationCap,FilePenLine,Images,ClipboardCheck,ListChecks,Settings,BookOpen,UsersRound,History,PanelsTopLeft,CalendarRange,FileText,Wallet,Bell,Bot,ShieldCheck,Award,Video,Newspaper,MessageSquare,FileUp,TrendingUp,FolderSearch,Scale} from 'lucide-react';
+/**
+ * The menu, in the order the day happens.
+ *
+ * Five groups, and the order is the owner's decision (operations first): what a centre manager does
+ * every day sits at the top and is open on arrival — take the money, call the visitors promised a call,
+ * admit the ones who walked in — while the things done once a term, or once by whoever built the site,
+ * sit below. The old menu led with "Today's work" and then put the cash desk under "Students and
+ * accounts" beside the website's blog, so the two screens a front desk lives in were six items apart and
+ * neither was first.
+ *
+ * Two rules this file does not break:
+ *
+ * · **Grouping is presentation, permission is not.** `permitted()` below is the whole of who may see
+ *   what, and moving an item between groups must never change its answer — `tests/nav-groups.test.ts`
+ *   holds the visible set of every role against a frozen table for exactly that reason.
+ * · **Screens that belong together stay in one group.** A collapsed group hides its items from the
+ *   sidebar's text, and the funnel report is proved to sit beside the visitor list it counts (R3.18), so
+ *   Visitors, its follow-up queue, its import and its funnel are one group — the daily one.
+ */
 export const navGroups=[
- {key:'today',items:[['/admin','overview',LayoutDashboard],['/admin/admissions','admissions',ClipboardList],['/admin/bookings','bookings',CalendarCheck],['/admin/messages','messages',Inbox]]},
- // R3: the owner's visitor sheet, as its own group so the two screens that replace it sit together.
- // Follow-ups is the same list with the day filter already applied — one route, one row of code.
- {key:'visitors',items:[['/admin/leads','leads',Contact],['/admin/leads?followUp=today','followUps',CalendarClock],['/admin/leads/import','importLeads',FileUp],
-  // R3 wave C: the funnel report the spec owes beside the list it counts — same group, one tap away.
-  ['/admin/leads/funnel','leadsFunnel',TrendingUp],
-  /* R4: the teacher CV bank sits in the same group as the visitor screens, because it is the same job —
-     a list of people the centre has met, with a number to call and a note of what was said. It is the
-     one item here that STAFF may not see (`permitted` below): a CV is a private record about a person
-     who has not been hired, and hiring is the owner's decision, not the front desk's. */
+ /* Money in, people called, people admitted: the day's own work, in that order. */
+ {key:'daily',items:[['/admin','overview',LayoutDashboard],
+  // The cash desk is the second door in the building: it is where a fee is taken, and it is used far
+  // more often than anything below it. Only an administrator may open it (`permitted`).
+  ['/admin/students/collect','centerDailyCash',Wallet],
+  /* R3: the owner's visitor sheet. Follow-ups is the same list with the day filter already applied —
+     one route, one row of code — and the funnel (R3 wave C) is the report the spec owes beside the list
+     it counts, so all three sit together, one tap apart. */
+  ['/admin/leads','leads',Contact],['/admin/leads?followUp=today','followUps',CalendarClock],
+  ['/admin/leads/funnel','leadsFunnel',TrendingUp],['/admin/leads/import','importLeads',FileUp],
+  ['/admin/admissions','admissions',ClipboardList],['/admin/bookings','bookings',CalendarCheck],
+  /* R4: the teacher CV bank belongs with the visitor screens, because it is the same job — a list of
+     people the centre has met, with a number to call and a note of what was said. It is the one item
+     here that STAFF may not see (`permitted` below): a CV is a private record about a person who has
+     not been hired, and hiring is the owner's decision, not the front desk's. */
   ['/admin/teacher-cvs','teacherCvs',FolderSearch]]},
- {key:'content',items:[['/admin/content?kind=blog','blog',FilePenLine],['/admin/content?kind=notice','notice',Newspaper],['/admin/content?kind=video','video',Video],['/admin/content?kind=gallery','gallery',Images],['/admin/content?kind=other','otherContent',FileText],['/admin/achievements','achievements',Award],['/admin/faculty','faculty',GraduationCap],['/admin/site-content','siteContent',ListChecks],['/admin/media','media',Images]]},
- {key:'academic',items:[['/admin/courses','courses',BookOpen],['/admin/batches','batches',CalendarRange],['/admin/slots','slots',CalendarDays],['/admin/portal-notices','portalNotices',Bell],['/admin/materials','materials',FileText],['/admin/public-sheets','sheets',FileText],['/admin/academics','academics',BookOpenCheck],['/admin/center-exams','centerExams',ClipboardCheck],
+ /* Who is enrolled, what they owe, and the timetable and exams they are enrolled into. */
+ {key:'students',items:[['/admin/students','centerStudents',UsersRound],['/admin/students/dues','centerDues',Wallet],
+  ['/admin/students/fees-grid','centerSheetView',FileText],
+  ['/admin/courses','courses',BookOpen],['/admin/batches','batches',CalendarRange],['/admin/slots','slots',CalendarDays],
+  ['/admin/materials','materials',FileText],['/admin/faculty','faculty',GraduationCap],
+  /* The exam screens fold into one `details` inside this group (the sidebar does that by item key), so
+     they read as one subject rather than as four neighbours of the fee grid. */
+  ['/admin/academics','academics',BookOpenCheck],['/admin/center-exams','centerExams',ClipboardCheck],
   /* R5: the grading scale sits beside the exams it grades, and is the owner's alone — an exam manager
      runs exams but does not decide what an A+ is worth centre-wide, and a teacher marks one class. */
-  ['/admin/grading-scale','gradingScale',Scale],['/admin/model-tests','modelTests',ClipboardCheck],['/admin/practice-tests','practice',ClipboardCheck]]},
- {key:'people',items:[['/admin/students','centerStudents',UsersRound],['/admin/students/collect','centerDailyCash',Wallet],['/admin/students/fees-grid','centerSheetView',FileText],
-  ['/admin/students/dues','centerDues',Wallet],['/admin/accounts','accounts',UsersRound],['/admin/fees','fees',Wallet],['/admin/sms','sms',MessageSquare]]},
- /* R6: the money questions the owner asks at month's end, as their own group: what came in by day and
-    by operator, what a month's cells add up to, whether the receipt book has a hole in it, and what the
-    year expected against what it got. Staff sits at the cash desk, so staff may read all of it; a
-    teacher may not, and slice 2's role tests are what keeps that true. */
- {key:'reports',items:[['/admin/reports','reportsHub',TrendingUp],['/admin/reports/daily','reportsDaily',Wallet],['/admin/reports/monthly','reportsMonthly',CalendarRange],['/admin/reports/receipt-audit','reportsAudit',ClipboardCheck],['/admin/reports/year','reportsYear',FileText]]},
- {key:'settings',items:[['/admin/site-settings','siteSettings',Settings],['/admin/hero','hero',PanelsTopLeft],['/admin/intake-setup','intake',ShieldCheck],['/admin/ai','ai',Bot],['/admin/roles','roles',ShieldCheck],
+  ['/admin/grading-scale','gradingScale',Scale],['/admin/model-tests','modelTests',ClipboardCheck],
+  ['/admin/practice-tests','practice',ClipboardCheck]]},
+ /* Everything the centre sends: to a phone, to the inbox, to the students' portal, to the public. */
+ {key:'communication',items:[['/admin/sms','sms',MessageSquare],['/admin/messages','messages',Inbox],
+  ['/admin/portal-notices','portalNotices',Bell],['/admin/content?kind=notice','notice',Newspaper]]},
+ /* R6: the money questions the owner asks at month's end — what came in by day and by operator, what a
+    month's cells add up to, whether the receipt book has a hole in it, what the year expected against
+    what it got — with the fee structure and the staff accounts beside them. Staff sits at the cash desk,
+    so staff may read all of it; a teacher may not, and slice 2's role tests are what keeps that true. */
+ {key:'reports',items:[['/admin/reports','reportsHub',TrendingUp],['/admin/reports/daily','reportsDaily',Wallet],
+  ['/admin/reports/monthly','reportsMonthly',CalendarRange],['/admin/reports/receipt-audit','reportsAudit',ClipboardCheck],
+  ['/admin/reports/year','reportsYear',FileText],['/admin/fees','fees',Wallet],['/admin/accounts','accounts',UsersRound]]},
+ /* The public site and the room itself: what a visitor to the website sees, who may do what here, and
+    the doors that are opened once and then left alone. Last, because it is not the day's work. */
+ {key:'settings',items:[['/admin/site-settings','siteSettings',Settings],['/admin/hero','hero',PanelsTopLeft],
+  ['/admin/content?kind=blog','blog',FilePenLine],['/admin/content?kind=video','video',Video],
+  ['/admin/content?kind=gallery','gallery',Images],['/admin/content?kind=other','otherContent',FileText],
+  ['/admin/achievements','achievements',Award],['/admin/site-content','siteContent',ListChecks],
+  ['/admin/public-sheets','sheets',FileText],['/admin/media','media',Images],
+  ['/admin/intake-setup','intake',ShieldCheck],['/admin/ai','ai',Bot],['/admin/roles','roles',ShieldCheck],
   /* R6: the backup door sits beside the roles screen — both are the owner's alone (`permitted`). */
   ['/admin/backup','backup',FileUp],['/admin/recycle-bin','recycleBin',History],['/admin/audit','audit',History]]}
 ] as const;
