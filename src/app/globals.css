@@ -873,8 +873,11 @@ html:lang(bn) .public-motion-root:not(.private-motion-disabled) :is(h1,h2,h3,h4)
   .admin-table thead{display:none}
   .admin-table tbody tr{display:block;border:1px solid #d9deee;border-radius:10px;background:#fff;padding:10px 12px;margin:0 0 10px}
   .admin-table tbody td{display:block;border:0;padding:2px 0}
-  .admin-table tbody td:nth-child(n+4):not(:last-child){display:none}
-  .admin-table tbody td:last-child{display:flex;gap:8px;justify-content:flex-end;align-items:center;padding-top:8px}
+  /* The visitor list is the one admin table with its OWN phone layout a few rules below: seven cells as
+     a card, each labelled, in an order the row chose. Collapsing its fourth-to-last cells here would hide
+     the status, the follow-up and the note on every phone — the three cells a desk actually works from. */
+  .admin-table:not(.visitor-table) tbody td:nth-child(n+4):not(:last-child){display:none}
+  .admin-table:not(.visitor-table) tbody td:last-child{display:flex;gap:8px;justify-content:flex-end;align-items:center;padding-top:8px}
   .admin-row-direct{display:none}
   .admin-more-row{display:inline-block}
   .admin-more-row .admin-more-body{position:static;box-shadow:none;margin-top:6px}
