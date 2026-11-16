@@ -202,10 +202,13 @@ async function run(){
     await boss.page.locator('h1',{hasText:t.title}).first().waitFor({timeout:60000});
     await rows(boss.page).first().waitFor({timeout:60000});
     const body=await boss.page.locator('body').innerText();
-    for(const name of [RAHUL,SISTER,OLD,NO_PHONE,BLOCKED,NEXT_WEEK])assert.ok(body.includes(name),`the list shows ${name}`);
+    for(const name of [RAHUL,SISTER,OLD,NO_PHONE,NEXT_WEEK])assert.ok(body.includes(name),`the list shows ${name}`);
+    // A closed visitor is filed away rather than deleted, so it is NOT on the desk's default list — and
+    // everything this suite still wants to prove about it is proved where it can be seen: behind a
+    // closed status chip, or behind the show-closed tick.
+    assert.ok(!body.includes(BLOCKED),`a closed visitor is filed away off the default list (${BLOCKED})`);
     assert.ok(body.includes(P1),`the list prints the number itself for a signed-in admin, who calls from it (${P1})`);
     assert.ok(body.includes(statusLabel(lt,'new')),'with its status');
-    assert.ok(body.includes(statusLabel(lt,'do_not_contact')),'including the do-not-contact one');
     assert.ok(body.includes(t.noPhone),'a lead with no number says so instead of leaving an empty cell');
     assert.ok(body.includes('প্রথম কল'),'the last note is on the row, so the queue can be read without opening anything');
     assert.ok(await boss.page.locator(`a[href="tel:+88${P1.slice(1)}"]`).count()>0,'the call destination is a real link');
@@ -481,6 +484,8 @@ async function run(){
     // below moves this lead off the chip it is filtered by.
     await boss.page.goto(`${origin}${list}?status=do_not_contact`,{waitUntil:'domcontentloaded',timeout:180000});
     await boss.page.locator('table.admin-table tbody tr',{hasText:BLOCKED}).first().waitFor({timeout:60000});
+    assert.ok((await boss.page.locator('body').innerText()).includes(statusLabel(lt,'do_not_contact')),
+      'a closed visitor still carries its own status word where it is shown');
     assert.equal(await rows(boss.page).count(),1,'the "do not contact" chip shows the one lead that is blocked');
     const blockedRow=boss.page.locator('table.admin-table tbody tr',{hasText:BLOCKED}).first();
     /* Lifting a block is rare and deliberate, so it is not one of the row's five visible controls: it is
@@ -625,7 +630,9 @@ async function run(){
 
     for(const width of [360,1440]){
       await boss.page.setViewportSize({width,height:900});
-      await boss.page.goto(`${origin}${list}`,{waitUntil:'domcontentloaded',timeout:180000});
+      // With the show-closed tick on: the blocked visitor this section is about is filed away from the
+      // default list, and a picker that cannot pick it has to be proven where it is on screen.
+      await boss.page.goto(`${origin}${list}?closed=1`,{waitUntil:'domcontentloaded',timeout:180000});
       await rows(boss.page).first().waitFor({timeout:60000});
       const bar=boss.page.locator('[data-lead-sms-bar]');
       await bar.waitFor({timeout:60000}).catch(async error=>{
@@ -871,7 +878,9 @@ async function run(){
 
     // (b) The picker a staff account gets: rows to tick, a hint about what they may send, and no page-pick.
     await desk.page.setViewportSize({width:360,height:780});
-    await desk.page.goto(`${origin}${list}`,{waitUntil:'domcontentloaded',timeout:180000});
+    // The show-closed tick again, so the blocked visitor below is a row on screen and not an empty
+    // locator that would pass by finding nothing.
+    await desk.page.goto(`${origin}${list}?closed=1`,{waitUntil:'domcontentloaded',timeout:180000});
     await rows(desk.page).filter({hasText:STAFF_THANKS}).first().waitFor({timeout:90000});
     const staffBar=desk.page.locator('[data-lead-sms-bar]');
     await staffBar.waitFor({timeout:60000});

@@ -219,7 +219,8 @@ async function run(){
     assert.equal(await rowCount(),8,'the show-closed tick brings all eight back');
     const closedRow=rowOf(boss.page,BLOCKED);
     for(const part of ['[data-visitor-open]','[data-visitor-edit]','.pop-more .pop-anchor','[data-status-badge]','[data-dnc]'])
-      assert.equal(await closedRow.locator(part).count(),1,`a closed row keeps ${part} too`);
+      assert.equal(await closedRow.locator(part).count(),1,
+        `a closed row keeps ${part} too${part==='[data-dnc]'?' — a do-not-contact visitor keeps its warning badge':''}`);
     await shot(boss.page,'r8-visitors-show-closed-1440');
     await boss.page.locator('input[name="closed"]').uncheck();
     await boss.page.locator('[data-lead-filters] button[type="submit"]').click();
@@ -229,7 +230,7 @@ async function run(){
     assert.ok(longBox&&longBox.width<420,`the long Bangla name truncates inside its cell instead of widening the row (${Math.round(longBox?longBox.width:0)}px)`);
     assert.ok((await rowOf(boss.page,OVERDUE).locator('[data-follow-chip="overdue"]').count())===1,'an overdue follow-up says so on the row');
     assert.ok(banglaDigits(await rowOf(boss.page,OVERDUE).locator('[data-follow-chip="overdue"]').innerText()),'and counts the days in Bangla digits');
-    assert.equal(await rowOf(boss.page,BLOCKED).locator('[data-dnc]').count(),1,'a do-not-contact visitor keeps its warning badge');
+    // (The do-not-contact badge on a filed-away row is proved in 1b, where that row is on screen.)
     // Filters are expanded on a desktop, and there is no native date input anywhere on the page.
     assert.notEqual(await boss.page.locator('[data-lead-filters]').getAttribute('open'),null,'the Filters panel is expanded on a desktop');
     assert.equal(await boss.page.locator('input[type="date"]').count(),0,'no native date input anywhere on the page');

@@ -23,6 +23,7 @@ import {loadLeadTrialSlots,submitLeadAdmission,submitLeadNotInterested,submitLea
 import {leadFormMessage,type LeadFormState,type LeadHandoffView} from '@/lib/leads/lead-ui';
 import {HANDOFF_GRADES,NOT_INTERESTED_REASON_MAX,NOT_INTERESTED_REASON_MIN} from '@/lib/leads/lead-handoff';
 import {subjectValues} from '@/schemas/intake';
+import {showRecycleToast} from '@/components/admin/recycle-toast-host';
 import {formatClass,formatDate,formatNumber,formatTime,type Digits} from '@/lib/admin/format';
 
 export type TrialSlotOption={id:string;startAt:string;endAt:string;grade:string;subject:string;seatsLeft:number};
@@ -125,6 +126,13 @@ function DialogFoot({state,language,pending,onClose}:{
   const t=useTranslations('leads');
   const message=leadFormMessage(state);
   const ok=state?.status==='ok';
+  /* Admitting a visitor, or closing one as not interested, files it away — and the row takes this
+     dialog with it before an operator has read the answer. So the sentence is raised on the layout
+     toast as well, which is the only surface here that outlives the row: the same reason the row's own
+     writes and the Recycle Bin's Undo answer there rather than in place. */
+  useEffect(()=>{
+    if(state&&state.status==='ok'&&message)showRecycleToast({state:{status:'ok'},success:message,error:''});
+  },[state,message]);
   return <>
     {message&&<p className={ok?'admin-feedback':'admin-feedback error'} data-handoff-message={state?.status||'idle'}
       role="status">{message}</p>}

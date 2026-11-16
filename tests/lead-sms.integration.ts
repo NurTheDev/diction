@@ -134,12 +134,18 @@ async function run(){
 
     // ── 2. The bulk selection: the same filter as the list, and no filter can widen it.
     const selection=await contactableLeadSelection({},now);
-    assert.equal(selection.matched,5,'the list shows five live leads');
+    assert.equal(selection.matched,4,'the default list shows four live leads — a closed visitor is filed away from it');
     assert.equal(selection.recipients.length,2,'two of them may be texted');
     assert.deepEqual(selection.recipients.map(row=>row.phone).sort(),[P1,P1],'the family shares one number, which the pipeline folds into one message');
-    assert.equal(selection.excludedDoNotContact,2,'two are excluded by "do not contact" — the mark and the status');
+    assert.equal(selection.excludedDoNotContact,1,'the sticky mark still excludes its lead; the do-not-contact STATUS is filed away with its row');
     assert.equal(selection.withoutPhone,1,'one has no number');
     assert.ok(!selection.recipients.some(row=>[P3,P4,P5].includes(row.phone)),'no blocked or binned number is in it');
+    // The show-closed tick is the only thing that brings the filed-away rows back — and they come back
+    // exactly as the list shows them: on screen, counted as left out, and still not textable.
+    const withClosed=await contactableLeadSelection({showClosed:true},now);
+    assert.equal(withClosed.matched,5,'with closed visitors shown the list is five again');
+    assert.equal(withClosed.excludedDoNotContact,2,'and both blocked ones are counted as left out');
+    assert.deepEqual(withClosed.recipients.map(row=>row.phone).sort(),[P1,P1],'while the send itself never grows');
     // What the list drew and what the send covers are the same set of people, filters included.
     const named=await contactableLeadSelection({q:'রাহুলের বোন'},now);
     const listed=await listLeads({q:'রাহুলের বোন',page:1,perPage:100},now);

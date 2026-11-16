@@ -138,9 +138,12 @@ async function run(){
     const desk=await signIn('staff');
     await desk.page.setViewportSize({width:360,height:780});
     const list='/bn/admin/leads';
+    // Where a visitor goes once a hand-off closes it: filed away from the desk's default list, and
+    // brought back by the show-closed tick — which is where the "cannot be done twice" proof now lives.
+    const closedList='/bn/admin/leads?closed=1';
 
-    const openDrawer=async(page:Page,name:string)=>{
-      await page.goto(`${origin}${list}`,{waitUntil:'domcontentloaded',timeout:180000});
+    const openDrawer=async(page:Page,name:string,where:string=list)=>{
+      await page.goto(`${origin}${where}`,{waitUntil:'domcontentloaded',timeout:180000});
       await page.locator('h1',{hasText:t.title}).first().waitFor({timeout:60000});
       await rows(page).filter({hasText:name}).first().waitFor({timeout:90000});
       await rows(page).filter({hasText:name}).first().locator('[data-visitor-open]').first().click();
@@ -198,11 +201,15 @@ async function run(){
     assert.equal(admissionRow.grade,'9','the class it was prefilled with');
     assert.equal(admissionRow.status,'pending','a hand-off opens an application; it does not decide it');
     assert.equal((await Lead.findById(admLead.id).lean()).status,'admitted','and the lead moved to the status the vocabulary has');
-    await until(async()=>(await dialog.locator('[data-handoff-message]').innerText().catch(()=>'')).includes(admissionRow.reference),
-      'the dialog reports the reference it made');
-    // Done means off: the same hand-off cannot be opened a second time, and the strip says why.
-    await dialog.locator('[data-handoff-close]').click();
-    await until(async()=>await drawer.locator('[data-handoff-open="admission"]').isDisabled().catch(()=>false),
+    // The admitted visitor leaves the desk's list the moment the write lands, and its row takes this
+    // dialog with it — so the answer is read off the admin layout's toast, the one surface here that
+    // outlives the row that made it (the same reason the Recycle Bin's Undo lives there).
+    await until(async()=>await boss.page.locator('.admin-toast[role="status"]',{hasText:admissionRow.reference}).count()>0,
+      'the operator is told the reference the hand-off made, on a surface that survives the row');
+    // Done means off: the same hand-off cannot be opened a second time, and the strip says why. Read
+    // from where the visitor went — behind the show-closed tick.
+    drawer=await openDrawer(boss.page,H_ADM,closedList);
+    assert.equal(await drawer.locator('[data-handoff-open="admission"]').isDisabled(),true,
       'the strip switches the admission hand-off off once it is done');
     assert.ok(await drawer.locator('[data-handoff-blocked]').isVisible(),'and says what closed it');
     await shot(boss.page,'b3-handoff-blocked-1440',false);
@@ -253,13 +260,16 @@ async function run(){
     assert.equal(closedRow.notes.length,1,'with exactly one note behind it');
     assert.equal(closedRow.notes[0].text,REASON,'which is the reason the operator wrote, word for word');
     assert.equal(closedRow.notes[0].outcome,'not_interested','tagged so the timeline can say why it closed');
+    // The closed visitor is filed away, and its drawer went with the row — so the reason is read back
+    // from the show-closed view, which is also the proof that filing a visitor away loses nothing.
+    drawer=await openDrawer(boss.page,H_CLOSED,closedList);
     await until(async()=>(await drawer.locator('.lead-notes').innerText().catch(()=>'')).includes(REASON),
-      'the reason is readable in the drawer\u2019s own timeline');
+      'the reason is readable in the drawer\u2019s own timeline, behind the show-closed tick');
     assert.equal((await AdminAudit.findOne({action:'lead.not_interested'}).lean()).target,closedRow.leadId,
       'and the audit names the readable id, not a number');
 
     // ---- 6. The same dialog on the phone, and a number that never leaves its two destinations.
-    drawer=await openDrawer(desk.page,H_CLOSED);
+    drawer=await openDrawer(desk.page,H_CLOSED,closedList);
     dialog=await openHandoff(desk.page,drawer,'not-interested');
     await dialog.locator('[data-handoff-chip]').first().click();
     assert.ok((await dialog.locator('[data-handoff-reason]').inputValue()).length>3,'one tap on a chip writes a reason that means something');
