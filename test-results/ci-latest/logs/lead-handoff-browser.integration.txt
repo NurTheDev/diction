@@ -1,3 +1,3 @@
-Error: timed out after 120000ms waiting for the dialog reports the reference it made
+Error: timed out after 120000ms waiting for the operator is told the reference the hand-off made, on a surface that survives the row
     at until (/home/runner/work/diction/diction/tests/lead-handoff-browser.integration.ts:108:36)
-    at async run (/home/runner/work/diction/diction/tests/lead-handoff-browser.integration.ts:201:5)
+    at async run (/home/runner/work/diction/diction/tests/lead-handoff-browser.integration.ts:207:5)
