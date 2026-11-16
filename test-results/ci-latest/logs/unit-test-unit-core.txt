@@ -111,3 +111,7 @@ Verify harness: report never claims PASS without evidence, one line per requirem
 
 --- tests/deployment-doc.test.ts (exit 0) ---
 Deployment guide: the proxy matcher leaves /api/*, /_next/* and file names out of locale routing; vercel.json ships exactly the two daily jobs the guide names at 01:00 and 07:05 Asia/Dhaka; §9 is a ten-line phone checklist; .env.example documents every required variable and marks the test-only ones.
+
+
+--- tests/rsc-boundary.test.ts (exit 0) ---
+Client-boundary sweep passed: 532 modules read, 123 of them 'use client', no server module reaches a plain value across the border.

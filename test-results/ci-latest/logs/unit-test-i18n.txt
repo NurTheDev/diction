@@ -17,6 +17,6 @@ A.6 · the route sweep holds: no page reached for a new hardcoded pair, and ever
 
 
 --- tests/i18n-bangla-scan.test.ts (exit 0) ---
-Bangla scan: 0 lines in 0 files (530 walked).
+Bangla scan: 0 lines in 0 files (532 walked).
   most: 
-Bangla scan: 530 files walked, nothing left outside the allow blocks.
+Bangla scan: 532 files walked, nothing left outside the allow blocks.
