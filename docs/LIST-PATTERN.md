@@ -67,6 +67,8 @@ listTableClass('student') // "admin-table list-table student-table"
 | `BulkBar` + `BulkMenu` | raised only while rows are ticked, and it says how many | `[data-{kind}-bulk-bar]`, `[data-bulk-count]`, `[data-bulk-clear]`, `[data-bulk-{verb}]` |
 | `ListFilters` + `FilterToggle` | the filter panel: open on a desk, collapsed on a phone, and its summary says what is on so a collapsed panel is never the only sign a filter is active. A toggle is uncontrolled inside a GET form, or controlled by a list that searches by POST and keeps names out of the address bar | `[data-{kind}-filters]`, `summary`, `.list-filter-toggle` |
 
+A list's search verb inside the panel is an explicit `type="submit"` button: the verb a test and a screen reader reach for has to be findable without guessing at an implicit one.
+
 ### The pickers
 
 | Piece | Reads back as | Markers |

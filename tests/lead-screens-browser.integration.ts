@@ -199,7 +199,14 @@ async function run(){
 
     // ---- 1. The list, at both widths, in the language the owner reads.
     await boss.page.goto(`${origin}${list}`,{waitUntil:'domcontentloaded',timeout:180000});
-    await boss.page.locator('h1',{hasText:t.title}).first().waitFor({timeout:60000});
+    try{
+      await boss.page.locator('h1',{hasText:t.title}).first().waitFor({timeout:60000});
+    }catch(error){
+      console.error(`DIAG the leads list did not paint: url=${boss.page.url()}`);
+      console.error(`DIAG body=${(await boss.page.locator('body').innerText().catch(()=>'')).slice(0,900)}`);
+      console.error(`DIAG pageerrors=${JSON.stringify(boss.errors)}`);
+      throw error;
+    }
     await rows(boss.page).first().waitFor({timeout:60000});
     const body=await boss.page.locator('body').innerText();
     for(const name of [RAHUL,SISTER,OLD,NO_PHONE,NEXT_WEEK])assert.ok(body.includes(name),`the list shows ${name}`);
@@ -219,7 +226,14 @@ async function run(){
     await shot(boss.page,'b2-visitors-list-1440');
 
     await desk.page.goto(`${origin}${list}`,{waitUntil:'domcontentloaded',timeout:180000});
-    await desk.page.locator('h1',{hasText:t.title}).first().waitFor({timeout:60000});
+    try{
+      await desk.page.locator('h1',{hasText:t.title}).first().waitFor({timeout:60000});
+    }catch(error){
+      console.error(`DIAG the leads list did not paint: url=${desk.page.url()}`);
+      console.error(`DIAG body=${(await desk.page.locator('body').innerText().catch(()=>'')).slice(0,900)}`);
+      console.error(`DIAG pageerrors=${JSON.stringify(desk.errors)}`);
+      throw error;
+    }
     await rows(desk.page).first().waitFor({timeout:60000});
     await noOverflow(desk.page,'the list at 360');
     await shot(desk.page,'b2-visitors-list-360');
@@ -545,7 +559,14 @@ async function run(){
     await boss.page.locator('table.admin-table tbody tr',{hasText:OLD}).first().waitFor({timeout:60000});
     assert.equal(await rows(boss.page).count(),1,'and a second chip filters the same way — one interested lead, and only it');
     await boss.page.goto(`${origin}${list}?q=${P1}`,{waitUntil:'domcontentloaded',timeout:180000});
-    await boss.page.locator('h1',{hasText:t.title}).first().waitFor({timeout:60000});
+    try{
+      await boss.page.locator('h1',{hasText:t.title}).first().waitFor({timeout:60000});
+    }catch(error){
+      console.error(`DIAG the leads list did not paint: url=${boss.page.url()}`);
+      console.error(`DIAG body=${(await boss.page.locator('body').innerText().catch(()=>'')).slice(0,900)}`);
+      console.error(`DIAG pageerrors=${JSON.stringify(boss.errors)}`);
+      throw error;
+    }
     await boss.page.locator('p.admin-feedback.error').first().waitFor({state:'visible',timeout:60000});
     assert.equal(await rows(boss.page).count(),7,'a number typed straight into the address bar is refused as a search, so the whole list is rendered instead of being quietly searched by number');
     assert.ok((await boss.page.locator('p.admin-feedback.error').first().innerText()).length>10,'and the page says why');

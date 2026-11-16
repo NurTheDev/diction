@@ -84,7 +84,7 @@ export function FollowUpChip({row,digits,language}:{row:LeadRowView;digits:Digit
   const chip=()=>{
     if(!row.nextFollowUp)return <ListChip marker="follow" value="none" tone="none">{t('row.noFollow')}</ListChip>;
     if(row.followUp==='today')return <ListChip marker="follow" value="today" tone="today">{t('row.today')}</ListChip>;
-    if(row.followUp==='overdue'){
+    if(row.followUp==='overdue'&&row.nextFollowUp){
       /* Noon in Dhaka anchors the count to the operator's own day, the day the record was written in. */
       const days=Math.max(1,Math.round((Date.now()-new Date(`${row.nextFollowUp}T12:00:00+06:00`).getTime())/86400000));
       return <ListChip marker="follow" value="overdue" tone="overdue">{t('row.overdueDays',inDigits(digits)({count:days}))}</ListChip>;

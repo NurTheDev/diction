@@ -377,7 +377,14 @@ async function run(){
        the values it does ship name no secret — both checked statically in tests/i18n-catalog.test.ts. */
     const duesHtml=await worker.page.content();
     for(const needle of [...SERVER_ONLY_NAMES,...SECRET_NAMES])assert.ok(!duesHtml.includes(needle),`a staff member’s due list never mentions ${needle}`);
-    await worker.page.goto(`${origin}/bn/admin/sms`,{waitUntil:'domcontentloaded',timeout:180000});
+    try{
+      await worker.page.goto(`${origin}/bn/admin/sms`,{waitUntil:'domcontentloaded',timeout:180000});
+    }catch(error){
+      console.error(`DIAG the sms page did not load for staff: url=${worker.page.url()} (${error})`);
+      console.error(`DIAG body=${(await worker.page.locator('body').innerText().catch(()=>'')).slice(0,900)}`);
+      console.error(`DIAG pageerrors=${JSON.stringify(worker.errors)}`);
+      throw error;
+    }
     assert.equal(await worker.page.locator('[data-sms-open]').count(),0,'and no new-message control on the SMS page');
     await worker.context.close();
 

@@ -165,7 +165,14 @@ async function run(){
     const boss=await signIn('admin');
     const list='/bn/admin/leads';
     await boss.page.goto(`${origin}${list}`,{waitUntil:'domcontentloaded',timeout:180000});
-    await boss.page.locator('h1',{hasText:t.title}).first().waitFor({timeout:60000});
+    try{
+      await boss.page.locator('h1',{hasText:t.title}).first().waitFor({timeout:60000});
+    }catch(error){
+      console.error(`DIAG the leads list did not paint: url=${boss.page.url()}`);
+      console.error(`DIAG body=${(await boss.page.locator('body').innerText().catch(()=>'')).slice(0,900)}`);
+      console.error(`DIAG pageerrors=${JSON.stringify(boss.errors)}`);
+      throw error;
+    }
     await boss.page.locator('tr[data-visitor-row]').first().waitFor({timeout:90000});
     const rowCount=()=>boss.page.locator('section.list-panel tr[data-visitor-row]').count();
 

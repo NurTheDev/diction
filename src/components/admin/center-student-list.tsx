@@ -93,7 +93,7 @@ export function CenterStudentList({initial,classes,digits,sms,canManage,maySendS
         {/* The third filter is a tick rather than a select, because it is not one status among others:
             it widens the list to the students the centre stopped running. */}
         <FilterToggle name="removed" label={t('row.showRemoved')} checked={removed} onChange={setRemoved}/>
-        <button className="button button-navy" disabled={busy}>{t('searchLabel')}</button>
+        <button type="submit" className="button button-navy" disabled={busy}>{t('searchLabel')}</button>
       </form>
     </ListFilters>
 
