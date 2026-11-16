@@ -17,6 +17,14 @@ import {formatDigits,formatNumber,type Digits} from '@/lib/admin/format';
 type Language='bn'|'en';
 const intl=(language:Language)=>language==='bn'?'bn-BD':'en-GB';
 
+/**
+ * The digits a date is read in. A Bangla screen uses the digits the operator chose; an English screen
+ * uses English digits, because that is what the rest of an English date already does — `shortDate`
+ * writes "15 Nov 2026" there whatever the account's digit setting says. Without this the calendar head
+ * announced "November 2026" in Bangla digits over cells that read back in English ones.
+ */
+const dateDigits=(digits:Digits,language:Language):Digits=>language==='en'?'en':digits;
+
 export function useOutsideClose(onClose:()=>void){
   const ref=useRef<HTMLDivElement>(null);
   useEffect(()=>{
@@ -86,7 +94,8 @@ export function Popover({label,className='',bodyClass='',children,title}:{label:
 /** The month's own name, in the account's language, with the year in the operator's digits. */
 export function monthWord(year:number,month:number,digits:Digits,language:Language):string{
   const at=new Date(Date.UTC(year,month-1,1));
-  return `${new Intl.DateTimeFormat(intl(language),{month:'long',timeZone:'UTC'}).format(at)} ${formatNumber(year,digits)}`;
+  const name=new Intl.DateTimeFormat(intl(language),{month:'long',timeZone:'UTC'}).format(at);
+  return `${name} ${formatNumber(year,dateDigits(digits,language))}`;
 }
 
 /** Seven weekday headers starting on Sunday, from `Intl` — the same source the month name comes from. */
@@ -134,7 +143,7 @@ export function DatePopover({onPick,digits,language,label}:{onPick:(iso:string)=
           const isToday=day===todayDay&&cursor.month===todayMonth&&cursor.year===todayYear;
           return <button key={day} type="button" role="gridcell" data-cal-day={iso(day)}
             className={isToday?'pop-cal-day today':'pop-cal-day'} aria-current={isToday?'date':undefined}
-            onClick={()=>{onPick(iso(day));close()}}>{formatNumber(day,digits)}</button>;
+            onClick={()=>{onPick(iso(day));close()}}>{formatNumber(day,dateDigits(digits,language))}</button>;
         })}
       </div>
     </>}
