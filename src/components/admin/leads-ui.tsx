@@ -33,6 +33,7 @@ import {
 } from '@/lib/leads/lead-ui';
 import {leadListQuery} from '@/lib/leads/vocab';
 import SmsDialogTrigger from './sms-dialog-trigger';
+import {LeadEditForm} from './lead-edit-form';
 import {LeadHandoff} from './lead-handoff';
 import type {LeadSmsKit} from '@/lib/leads/lead-sms';
 import {formatClass,formatDate,formatNumber,formatTime,type Digits} from '@/lib/admin/format';
@@ -409,19 +410,41 @@ function useLeadDetail(seed:LeadDrawerSeed,initial:LeadDetailView|null){
 }
 
 /** The detail drawer: the same `<dialog>` sheet the admissions and bookings rows already open. */
-export function LeadDetailDrawer({seed,initial=null,autoOpen=false,language='bn',digits='bn',sms=null}:{
+export type DrawerMode='view'|'edit'|'handoff';
+export type DrawerApi={open:(mode:DrawerMode)=>void}|null;
+
+/**
+ * The visitor drawer, in the three modes the reference row opens it in: `view` lands on the notes
+ * timeline, `edit` puts the edit form with every field at the top, and `handoff` scrolls to the
+ * three hand-offs. `apiRef` lets the row's own Open / Edit / ⋯ buttons open it, and `triggerless`
+ * hides the drawer's internal button so the row keeps exactly its five controls.
+ */
+export function LeadDetailDrawer({seed,initial=null,autoOpen=false,language='bn',digits='bn',sms=null,triggerless=false,apiRef=null,editRow=null,fullPhone='',onEditSaved}:{
   seed:LeadDrawerSeed;initial?:LeadDetailView|null;autoOpen?:boolean;language?:'bn'|'en';digits?:Digits;sms?:LeadSmsKit|null;
+  triggerless?:boolean;apiRef?:import('react').MutableRefObject<DrawerApi>|null;editRow?:LeadRowView|null;fullPhone?:string;onEditSaved?:()=>void;
 }){
   const t=useTranslations('leads');
   const dialog=useRef<HTMLDialogElement>(null),trigger=useRef<HTMLButtonElement>(null);
+  const [mode,setMode]=useState<DrawerMode>('view');
   const {detail,loading,load,reload,noteState,noteAction,notePending}=useLeadDetail(seed,initial);
-  function openDialog(){dialog.current?.showModal();void load()}
-  useEffect(()=>{if(autoOpen)openDialog()},[]);// eslint-disable-line react-hooks/exhaustive-deps
+  function openDialog(how:DrawerMode='view'){setMode(how);dialog.current?.showModal();void load()}
+  /* No dependency list on purpose: the row re-renders after every write, and the api the row's own
+     buttons hold must open THIS render's drawer — a stale one would load the detail of a row that has
+     already changed, which is the same lie a stale list is. */
+  useEffect(()=>{if(apiRef)apiRef.current={open:openDialog}});
+  useEffect(()=>{if(autoOpen)openDialog('view')},[]);// eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(()=>{
+    if(mode!=='handoff'||!dialog.current)return;
+    const timer=setTimeout(()=>dialog.current?.querySelector('[data-lead-handoff]')?.scrollIntoView({block:'start'}),120);
+    return ()=>clearTimeout(timer);
+  },[mode,loading]);
   return <>
-    <button ref={trigger} type="button" className="admin-mini-button" onClick={openDialog}>{t('detail')}</button>
+    {!triggerless&&<button ref={trigger} type="button" className="admin-mini-button" onClick={()=>openDialog('view')}>{t('detail')}</button>}
     <dialog className="overview-drawer" ref={dialog} aria-label={t('fields')} onClose={()=>trigger.current?.focus()}>
       <header><h2>{seed.studentName}</h2><button type="button" className="admin-mini-button" onClick={()=>dialog.current?.close()}>{t('close')}</button></header>
       <p className="admin-help">{t('leadId')} {seed.leadId}</p>
+      {mode==='edit'&&editRow&&<LeadEditForm row={editRow} fullPhone={fullPhone} language={language} digits={digits}
+        onDone={()=>{setMode('view');onEditSaved?.()}}/>}
       <LeadDetailBody seed={seed} detail={detail} loading={loading} noteState={noteState} noteAction={noteAction} notePending={notePending} reload={reload} language={language} digits={digits} sms={sms}/>
     </dialog>
   </>;

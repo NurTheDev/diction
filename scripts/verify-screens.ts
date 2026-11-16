@@ -48,6 +48,37 @@ export function screenPlan(_milestone:string):ScreenTarget[]{
     {path:'/en/admin/public-sheets',label:'public-sheets-en'},
     {path:'/en/admin/practice-tests',label:'practice-tests-en'},
     {path:'/en/admin/students/removed',label:'removed-students-en'},
+    /* The paysheet import screen in English: it was Bangla-only in both languages until the
+       workbook cluster moved into the catalogs, and no proof ever showed the English side. */
+    {path:'/en/admin/students/import',label:'workbook-import-en'},
+    /* The Visitor import wizard with nothing uploaded yet, in both languages: the sweep proves its
+       chrome, these prove the empty state an operator first meets, at both widths. */
+    {path:'/bn/admin/leads/import',label:'visitor-import-bn'},
+    {path:'/en/admin/leads/import',label:'visitor-import-en'},
+    // R3 wave C: the funnel report beside the list it counts, in both languages. The screens pass
+    // runs before the browser suites, so what it photographs is the honest empty report.
+    {path:'/bn/admin/leads/funnel',label:'leads-funnel-bn'},
+    {path:'/en/admin/leads/funnel',label:'leads-funnel-en'},
+    /* R4: the teacher CV bank — the list, "find a teacher" and the import wizard, in both languages.
+       The screens pass runs before the browser suites, so what it photographs is the honest empty bank;
+       the R4 browser suite photographs the same three screens with CVs in them into screenshots/r4. */
+    {path:'/bn/admin/teacher-cvs',label:'teacher-cvs-bn'},
+    {path:'/bn/admin/teacher-cvs?new=1',label:'teacher-cvs-quick-add-bn'},
+    {path:'/bn/admin/teacher-cvs/find',label:'teacher-cvs-find-bn'},
+    {path:'/bn/admin/teacher-cvs/import',label:'teacher-cvs-import-bn'},
+    {path:'/en/admin/teacher-cvs',label:'teacher-cvs-en'},
+    {path:'/en/admin/teacher-cvs/find',label:'teacher-cvs-find-en'},
+    {path:'/en/admin/teacher-cvs/import',label:'teacher-cvs-import-en'},
+    /* R5: the grading scale, the owner's screen for what a grade is worth centre-wide, beside the exam
+       list it feeds. The screens pass signs in as the demo admin and runs before the browser suites, so
+       what it photographs is the honest scale screen with only the standard bands; the R5 browser suite
+       photographs the same screen after a scale is saved, and the marks grid and the teacher portal —
+       which this pass cannot reach, because the demo admin is not a teacher — into screenshots/r5. */
+    {path:'/bn/admin/grading-scale',label:'grading-scale-bn'},
+    /* R5: the classes screen, where the owner says who takes a class — a teacher's whole exam scope is
+       that list, and it is written nowhere else. */
+    {path:'/bn/admin/students/classes',label:'classes-bn'},
+    {path:'/en/admin/grading-scale',label:'grading-scale-en'},
   ];
 }
 

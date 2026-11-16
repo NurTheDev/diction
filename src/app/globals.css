@@ -447,7 +447,7 @@ html:lang(bn) .public-motion-root:not(.private-motion-disabled) :is(h1,h2,h3,h4)
 .admin-shell :is(.admin-panel,.admin-kpi,.button,.admin-mini-button){box-shadow:none}.admin-shell .button:hover{transform:none;box-shadow:none}
 .overview-columns .admin-mini-button{white-space:normal;max-width:100%;line-height:1.35}.overview-row-actions form{max-width:100%}
 /* Approved list and form pattern for editorial, admissions and trial bookings. */
-.list-filter{display:flex;align-items:end;gap:12px;flex-wrap:wrap;background:#fff;padding:16px;border:1px solid #d9deee;border-radius:8px}.list-filter label{display:grid;gap:5px;min-width:200px;color:#1a1d3a;font-size:15px;font-weight:600}.list-filter label:first-of-type{flex:1 1 260px}.list-filter :is(input,select){width:100%;min-height:44px}.list-filter>a{display:inline-flex;align-items:center;justify-content:center}.list-panel .admin-panel-head{margin:0}.list-panel .admin-empty{padding:24px}.list-row-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.list-export-help{margin:8px 0 16px}.list-panel .admin-table :is(th,td){white-space:normal}.list-panel .admin-table td{font-size:16px}.list-panel .admin-pagination{gap:12px;flex-wrap:wrap}.editorial-form{max-width:880px;margin-inline:auto}.editorial-section h2{margin:0 0 4px}.editorial-section label{display:grid;gap:6px;margin-top:14px}.editorial-section .admin-check{display:flex}.editorial-form :is(input[aria-invalid=true]){border-color:#b12229;outline:2px solid #f8c7c7}.editorial-actions{box-shadow:none}.admin-shell .overview-drawer{overflow-y:auto}.admin-shell .admin-mini-button:focus-visible,.admin-shell .button:focus-visible{outline:3px solid #00aeef;outline-offset:2px}
+.list-filter{display:flex;align-items:end;gap:12px;flex-wrap:wrap;background:#fff;padding:16px;border:1px solid #d9deee;border-radius:8px}.list-filter label{display:grid;gap:5px;min-width:200px;color:#1a1d3a;font-size:15px;font-weight:600}.list-filter label:first-of-type{flex:1 1 260px}.list-filter :is(input,select){width:100%;min-height:44px}.list-filter .lead-filter-toggle{display:flex;align-items:center;gap:10px;min-width:0;font-weight:600;color:#1a1d3a}.lead-filter-toggle input{width:22px;height:22px;accent-color:#2e3192;flex:none}.list-filter>a{display:inline-flex;align-items:center;justify-content:center}.list-panel .admin-panel-head{margin:0}.list-panel .admin-empty{padding:24px}.list-row-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.list-export-help{margin:8px 0 16px}.list-panel .admin-table :is(th,td){white-space:normal}.list-panel .admin-table td{font-size:16px}.list-panel .admin-pagination{gap:12px;flex-wrap:wrap}.editorial-form{max-width:880px;margin-inline:auto}.editorial-section h2{margin:0 0 4px}.editorial-section label{display:grid;gap:6px;margin-top:14px}.editorial-section .admin-check{display:flex}.editorial-form :is(input[aria-invalid=true]){border-color:#b12229;outline:2px solid #f8c7c7}.editorial-actions{box-shadow:none}.admin-shell .overview-drawer{overflow-y:auto}.admin-shell .admin-mini-button:focus-visible,.admin-shell .button:focus-visible{outline:3px solid #00aeef;outline-offset:2px}
 @media(max-width:760px){.list-filter{padding:12px}.list-filter label{min-width:0;flex:1 1 100%}.list-filter button{flex:1}.list-panel .admin-responsive-table td{font-size:15px}.list-panel .admin-responsive-table td>div{min-width:0;overflow-wrap:anywhere}.list-row-actions{justify-content:flex-end}.editorial-actions{padding:8px}.editorial-actions button{min-width:calc(50% - 8px)}.editorial-actions .button{width:auto}.admin-shell .overview-drawer{width:100%;max-width:100%}}
 .admin-shell .editorial-form label .editorial-field-heading{font-size:15px;font-weight:600;color:#1a1d3a}.admin-shell .editorial-form label .required-mark{font-size:15px;font-weight:700;color:#b12229}
 .center-class-box>summary{padding:14px 20px;cursor:pointer;color:#2e3192}.center-class-form,.center-student-form{padding:20px;max-width:760px;margin:auto}.center-student-form{display:grid;gap:14px}.center-class-form label,.center-student-form label{display:grid;gap:5px;font-weight:600;color:#1a1d3a}.center-student-form input[aria-invalid=true]{border-color:#b12229;outline:2px solid #f8c7c7}.center-student-form label.admin-check{display:flex}.center-student-form button{justify-self:start}.center-profile{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 24px;margin:0}.center-profile dt{font-weight:700;color:#1a1d3a}.center-profile dd{margin:0;overflow-wrap:anywhere}.center-fees{margin:0;padding-left:22px}@media(max-width:760px){.center-profile{grid-template-columns:1fr}.center-class-form,.center-student-form{padding:8px}.center-student-form button{width:100%}}
@@ -463,7 +463,7 @@ html:lang(bn) .public-motion-root:not(.private-motion-disabled) :is(h1,h2,h3,h4)
 .center-cash-months{grid-template-columns:repeat(6,minmax(0,1fr))}.center-cash-months label{min-width:0}@media(max-width:1050px){.center-cash-months{grid-template-columns:repeat(4,minmax(0,1fr))}}@media(max-width:600px){.center-cash-months{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .center-fee-grid{min-width:1550px}.center-fee-grid th:first-child,.center-fee-grid td:first-child{position:sticky;left:0;background:#fff;min-width:170px;z-index:1}.center-fee-grid th:first-child{background:#f1f5fc;z-index:2}.center-fee-grid td{vertical-align:top;min-width:110px}.center-fee-grid td small{display:block;white-space:nowrap;margin-top:5px}.center-month-status{display:inline-block;border-radius:7px;padding:3px 7px;font-size:.78rem;background:#eef1f7;color:#30405d}.center-month-paid{background:#e1f6e8;color:#13663c}.center-month-due,.center-month-partial{background:#fff0ed;color:#a63325}.center-month-pending{background:#e5f0ff;color:#1c58a2}.center-month-held{background:#e8e9eb;color:#4b5563}.center-month-waived{background:#f2ecfd;color:#6f43a8}
 .center-month-partial-notdue{background:#e5f0ff;color:#1c58a2}
-.center-exam-subject{display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px;margin-bottom:12px}.center-exam-markrow{display:flex;gap:10px;align-items:end;padding:12px;border-bottom:1px solid #e4e9f5;min-width:max-content}.center-exam-markrow strong{width:180px;white-space:normal}.center-exam-markrow label{width:125px}.center-exam-markrow .admin-input{width:100%}@media(max-width:600px){.center-exam-subject{grid-template-columns:1fr}.center-exam-markrow strong{width:145px}}
+.center-exam-subject{display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px;margin-bottom:12px}@media(max-width:600px){.center-exam-subject{grid-template-columns:1fr}}
 .admin-test-banner{background:#fff0c2;color:#603d00;padding:12px 22px;font-weight:800;border-bottom:2px solid #d99b00}
 /* Keep the existing cash grid inside the card while the new tile workflow is built. */
 .center-cash-months{min-width:0;grid-template-columns:repeat(6,minmax(0,1fr))}.center-cash-months label,.center-cash-months .admin-input{min-width:0!important;width:100%;max-width:100%}.center-cash-columns>label{min-width:0}@media(max-width:600px){.center-cash-months{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:10px}}
@@ -473,6 +473,16 @@ html:lang(bn) .public-motion-root:not(.private-motion-disabled) :is(h1,h2,h3,h4)
 /* Milestone 2 daily cash workflow */
 .daily-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(250px,320px);gap:18px}.daily-search-label{display:block;font-weight:700}.daily-search{font-size:1.15rem!important;min-height:52px}.daily-results{padding:0;list-style:none}.daily-results button{display:block;width:100%;text-align:left;padding:12px;background:white;border:1px solid #d8e1ee}.daily-student{display:grid;gap:4px;background:#edf5ff;padding:14px;border-radius:12px;margin:15px 0}.daily-months{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin:16px 0}.daily-month{min-width:0;min-height:76px;border:1px solid #cbd5e1;border-radius:9px;text-align:left;padding:8px;background:#f3f4f6;overflow-wrap:anywhere}.daily-month small{display:block}.daily-paid{background:#dcfce7;color:#14532d}.daily-partial{background:#fef3c7;color:#78350f}.daily-due{background:#fee2e2;color:#991b1b}.daily-pending{background:#dbeafe;color:#1e40af}.daily-month.chosen{outline:3px solid #1d4ed8}.daily-chips{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.daily-chips button,.daily-chips span{padding:5px 8px;border:1px solid #cad5e2;border-radius:8px;background:#f8fafc}.daily-entry form label{display:block;margin:12px 0}.daily-year{width:110px}.daily-save{background:#16834b;color:white;width:100%;margin-top:14px}.daily-today-line{display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid #e5e7eb}.daily-print{display:none}.daily-success{padding:16px;background:#dcfce7;border-radius:10px}.daily-success button{margin:6px;padding:8px}@media(max-width:760px){.daily-layout{grid-template-columns:minmax(0,1fr)}.daily-months{grid-template-columns:repeat(3,minmax(0,1fr))}.daily-entry .admin-panel-body{padding:12px}}@media print{body *{visibility:hidden!important}.daily-print,.daily-print *{visibility:visible!important}.daily-print{display:block;position:absolute;inset:0;background:white;color:black}.daily-print img{width:90px}}
 .sheet-scroll{overflow:auto;max-height:75vh}.sheet-table{border-collapse:separate;border-spacing:0}.sheet-table th{position:sticky;top:0;z-index:3;background:#f1f5fc}.sheet-table th:first-child,.sheet-table td:first-child{position:sticky;left:0;min-width:45px;width:45px;background:#fff;z-index:4}.sheet-table th:nth-child(2),.sheet-table td:nth-child(2){position:sticky;left:45px;min-width:170px;background:#fff;z-index:4}.sheet-table th:first-child,.sheet-table th:nth-child(2){background:#f1f5fc;z-index:5}.sheet-table td small,.sheet-table td strong{display:block}.sheet-paid{background:#dcfce7}.sheet-partial{background:#fef3c7}.sheet-due{background:#fee2e2}.sheet-pending{background:#dbeafe}.sheet-held,.sheet-waived,.sheet-upcoming{background:#f3f4f6}@media print{.sheet-print,.sheet-print *{visibility:visible!important}.sheet-print{position:absolute;inset:0}.sheet-scroll{overflow:visible;max-height:none}}
+/* R6 slice 1 — the report screens: filters and toolbar are screen furniture, the sheet is the report.
+   Printing follows the house convention set by the daily receipt and the class sheet: everything is
+   hidden by visibility, and the subtree the screen means to print is whitelisted back — a report that
+   forgets to join that list prints a blank page, which is exactly how the R5 report card was caught. */
+.report-filters{display:flex;flex-wrap:wrap;gap:10px;align-items:end;margin:10px 0}.report-filters label{display:flex;flex-direction:column;gap:4px;font-size:13px}
+.report-toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}
+.report-brand{font-weight:700;margin:0 0 4px}.report-sheet-title{margin:0 0 8px}
+.matrix-table th,.matrix-table td{padding:4px 6px;font-size:12px;text-align:right;white-space:nowrap}
+.matrix-table th:first-child,.matrix-table td:first-child{text-align:left;position:static;min-width:120px}
+@media print{.report-print,.report-print *{visibility:visible!important}.report-print{position:static}.report-filters,.report-toolbar{display:none!important}.matrix-table th,.matrix-table td{font-size:10px;padding:2px 4px}}
 /* R1 §E4 — Recycle Bin, row delete, bulk select (360 px and 1440 px). */
 .admin-danger-text{color:#b51222}
 .admin-toast .admin-mini-button{min-width:0;min-height:0;padding:8px 12px;font-size:15px;border:1px solid currentColor;border-radius:6px;background:#fff;text-decoration:underline}
@@ -619,3 +629,378 @@ html:lang(bn) .public-motion-root:not(.private-motion-disabled) :is(h1,h2,h3,h4)
 .lead-dup{display:grid;gap:10px;padding:12px;border:1px solid #e7c9c9;border-radius:12px;background:#fff8f8;flex:1 1 100%}
 .lead-dup .lead-family{gap:8px}
 .lead-dup .admin-feedback{margin:0}
+
+/* R3 wave C · the visitor funnel report. Three stage tiles and three rate tiles read as two rows of
+   three on a desk and one column on a phone; the numbers keep to the right on a wide table, where a
+   column of counts is easier to compare, and drop back to the left once the responsive table turns
+   each row into a labelled card. */
+.funnel-kpis{grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:12px}
+.funnel-rate strong{font-size:24px}
+.lead-funnel-export{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-left:auto}
+.funnel-notes{border-top:1px solid #e8eaf2;padding-top:12px;display:grid;gap:6px}
+.funnel-table td:nth-child(n+2),.funnel-table th:nth-child(n+2){text-align:right;white-space:nowrap}
+@media(max-width:760px){
+  .funnel-kpis{grid-template-columns:1fr 1fr}
+  .funnel-table td:nth-child(n+2),.funnel-table th:nth-child(n+2){text-align:left;white-space:normal}
+  .funnel-table tfoot{display:block;padding:0 12px 12px}
+}
+@media(max-width:420px){.funnel-kpis{grid-template-columns:1fr}}
+
+/* R4 · the teacher CV bank. Everything here reuses the surfaces the admin already has — .admin-panel,
+   .list-filter, .admin-table, .admin-badge, .overview-drawer — and adds only what a CV screen needs on
+   top: the reading printed beside the words as written, the timeline, the chips a filter or a subject
+   picker wraps through at 360px, and the picker bar that says out loud how many CVs a send will cover.
+   Light theme only, 44px targets, one column below 760px. */
+.cv-form-hint{margin:0 0 4px}
+.cv-form-foot{display:flex;align-items:center;gap:10px;flex-wrap:wrap;flex:1 1 100%}
+.cv-read{display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex:1 1 100%}
+.cv-file{display:grid;gap:6px;flex:1 1 100%;color:#1a1d3a;font-size:15px;font-weight:600}
+.cv-file input[type=file]{min-height:44px;padding:8px;border:1px solid #c5cce0;border-radius:8px;background:#fff}
+.cv-chips{display:flex;gap:8px;flex-wrap:wrap;flex:1 1 100%}
+.cv-chips .admin-check{gap:6px;min-height:44px;padding:6px 10px;border:1px solid #dfe3ee;border-radius:30px;background:#fff}
+.cv-class-picker{display:grid;gap:6px;flex:1 1 100%}
+.cv-search{flex:1 1 320px}
+.cv-review{margin-bottom:12px}
+.cv-dup{display:grid;gap:10px;padding:12px;border:1px solid #e7c9c9;border-radius:12px;background:#fff8f8;flex:1 1 100%}
+.cv-notes{display:grid;gap:10px;margin:0;padding:0;list-style:none}
+.cv-notes li{border-bottom:1px solid #e8eaf2;padding-bottom:8px;overflow-wrap:anywhere}
+.cv-drawer-badges{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.cv-drawer-form{margin-bottom:12px}
+.cv-fields{margin:0 0 12px}
+.cv-fields>div{border-bottom:1px solid #e8eaf2;padding:8px 0}
+.cv-fields dt{font-weight:700}
+.cv-fields dd{margin:0;overflow-wrap:anywhere}
+.cv-photo{max-width:160px;border-radius:12px;border:1px solid #d9deee}
+.cv-hired{display:grid;gap:6px;padding:12px;border:1px solid #cfe6d8;border-radius:12px;background:#f6fbf8}
+.cv-sms-bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;flex:1 1 100%}
+.cv-sms-bar .admin-check{gap:8px;font-weight:600}
+.cv-sms-check{width:22px;height:22px;min-width:22px;accent-color:#2e3192}
+.cv-sms-excluded{color:#865000}
+.cv-sms-host{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.cv-needs{display:grid;gap:10px;margin:0;padding:0;list-style:none}
+.cv-need{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;border-bottom:1px solid #e8eaf2;padding-bottom:10px}
+.cv-subpanel{border:1px solid #e8eaf2;border-radius:12px;padding:12px;margin:12px 0;display:grid;gap:8px}
+.cv-field{display:grid;gap:6px;color:#1a1d3a;font-size:15px;font-weight:600}
+.cv-columns{display:flex;gap:10px;flex-wrap:wrap;margin:0;padding:0;list-style:none}
+.cv-columns li{border:1px solid #dfe3ee;border-radius:8px;padding:4px 8px;background:#fff}
+.cv-flag-list{margin:4px 0 0;padding-left:18px;color:#865000}
+.cv-decide{display:grid;gap:4px;margin-top:6px}
+.cv-decide label{display:flex;align-items:center;gap:6px;font-weight:500}
+@media(max-width:760px){
+  .cv-search{flex:1 1 100%}
+  .cv-need{flex-direction:column}
+  .cv-chips .admin-check{flex:1 1 auto;justify-content:center}
+  .cv-photo{max-width:120px}
+}
+
+/* ── R5 · Exams: the marks grid, its import, the class summary and the grading scale ───────────────
+   The grid is a table a teacher types through, so it behaves like one: the name column and the header
+   stay put while the numbers scroll, a cell that refuses a mark says so on itself, and a row that
+   another person has changed is marked rather than silently overwritten. At 360px the grid scrolls
+   sideways instead of shrinking the cells — a number that is too narrow to read is worse than a swipe. */
+.admin-filters{display:flex;flex-wrap:wrap;gap:12px;align-items:end;padding:12px 16px;border-bottom:1px solid #e4e9f5}
+.admin-filters label{display:grid;gap:5px;min-width:150px}
+.center-exam-panel{display:grid;gap:16px}
+.center-exam-gridwrap{display:grid;gap:10px}
+/* A grid item's automatic minimum size is its content's own minimum, and the grid table is deliberately
+   `min-width:max-content` so its columns stay readable — which means the panel's track grows to the table
+   and the PAGE scrolls sideways at 360px instead of the table scrolling inside its own wrapper. `min-width:0`
+   hands the shrinking back to the wrapper that can scroll, and it is the house fix: `.private-notice`,
+   `.practice-question` and `.editorial-section` all carry it for the same reason. */
+.center-exam-panel>*,.center-exam-gridwrap>*,.portal-card .admin-table-wrap,.admin-panel .admin-table-wrap{min-width:0;max-width:100%}
+/* The import panel decides its own width the same way, from the one child that has an intrinsic size:
+   a file input is a form control, and as a grid item its automatic minimum IS that intrinsic width, so at
+   360px the input — not the panel, not the page — chose 393px, and the label, the help line and the
+   preview button all stretched to the input's edge and off the screen. `max-width` cannot fix this, because
+   a maximum does not lower a minimum; `min-width:0` does, and `width:100%` then lets the control fill the
+   track it is given instead of insisting on the one it was born with. */
+.center-exam-import>*,.center-exam-import label>*{min-width:0}
+.center-exam-import input[type="file"]{width:100%;min-width:0;max-width:100%}
+.center-exam-import .admin-mini-button,.center-exam-import .button{max-width:100%}
+.center-exam-gridbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:0 2px}
+.center-exam-gridbar .admin-help{margin:0}
+.center-exam-gridwrap .admin-table-wrap{overflow:auto;max-height:70vh;border:1px solid #d7dfed;border-radius:10px}
+.center-exam-grid{border-collapse:separate;border-spacing:0;min-width:max-content}
+.center-exam-grid caption{text-align:left;padding:10px 12px;font-weight:700;color:#30405d}
+.center-exam-grid thead th{position:sticky;top:0;z-index:3;background:#f1f5fc;border-bottom:1px solid #d7dfed;padding:8px 10px;white-space:nowrap;text-align:left}
+.center-exam-grid thead th small{display:block;font-weight:400;color:#5a6b8c}
+.center-exam-grid tbody th{position:sticky;left:0;z-index:2;background:#fff;border-bottom:1px solid #eef1f7;padding:6px 10px;min-width:170px;max-width:220px;text-align:left;white-space:normal}
+.center-exam-grid tbody th small{display:block;font-weight:400;color:#5a6b8c}
+.center-exam-grid tfoot th{position:sticky;left:0;z-index:2;background:#f7f9fd;text-align:left;padding:8px 10px}
+.center-exam-grid tfoot td{background:#f7f9fd;padding:8px 10px;border-top:1px solid #d7dfed;font-weight:700}
+.center-exam-grid td{border-bottom:1px solid #eef1f7;padding:4px 6px;vertical-align:middle;text-align:center}
+.center-exam-cell{width:78px;min-width:78px;padding:6px 8px;text-align:center}
+.center-exam-cell[data-absent="true"]{background:#fff6e6;color:#8a5a00;font-weight:700}
+.center-exam-cell[aria-invalid="true"]{border-color:#c9331f;background:#fff4f2}
+.center-exam-cell:focus{outline:2px solid #1c58a2;outline-offset:1px}
+.center-exam-grid tr[data-row-dirty="true"] th{box-shadow:inset 3px 0 0 #d99b00}
+.center-exam-grid tr[data-row-stale="true"] th{box-shadow:inset 3px 0 0 #c9331f}
+.center-exam-grid tr[data-row-stale="true"] td{background:#fff8f7}
+.center-exam-cellerrors{margin:0;padding-left:1.2rem;color:#a63325;display:grid;gap:3px}
+.center-exam-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(150px,100%),1fr));gap:10px;margin:0;padding:12px 16px;border-top:1px solid #e4e9f5}
+.center-exam-summary div{display:grid;gap:2px}
+.center-exam-summary dt{font-size:.8rem;color:#5a6b8c}
+.center-exam-summary dd{margin:0;font-weight:800;color:#1d2b4f}
+.center-exam-import{display:grid;gap:10px;border:1px dashed #c5cce0;border-radius:10px;padding:14px}
+.center-exam-import label{display:grid;gap:5px}
+.center-exam-importpreview{min-width:max-content}
+.center-exam-importpreview td{padding:5px 8px;border-bottom:1px solid #eef1f7;text-align:left}
+.center-exam-importpreview tr[data-import-status="ready"] td{background:#f2fbf5}
+.center-exam-importpreview tr[data-import-status="unmatched"],.center-exam-importpreview tr[data-import-status="ambiguous"],.center-exam-importpreview tr[data-import-status="invalid"] td{background:#fff6f5}
+.center-exam-importpreview tr[data-import-status="incomplete"] td{background:#fffbf0}
+.center-scale-editor,.center-scale-preview{min-width:max-content}
+.center-scale-editor td,.center-scale-preview td{padding:5px 8px;border-bottom:1px solid #eef1f7;text-align:left}
+.center-scale-editor .admin-input{width:110px}
+.center-exam-edit summary{cursor:pointer;font-weight:700;color:#1c58a2;padding:4px 0}
+@media(max-width:600px){
+  .admin-filters{padding:10px 12px;gap:8px}
+  .admin-filters label{min-width:0;flex:1 1 100%}
+  .center-exam-grid tbody th,.center-exam-grid tfoot th{min-width:130px;max-width:150px}
+  .center-exam-cell{width:64px;min-width:64px}
+  .center-exam-summary{grid-template-columns:repeat(2,minmax(0,1fr));padding:10px 12px}
+  .center-exam-gridwrap .admin-table-wrap{max-height:60vh}
+}
+
+/* ── R5 slice 2 · the result history, its trend, the publish prompt and the report card ─────────────
+   Every class below is one a component in `src/components/exams/` actually renders: an unstyled class
+   ships as unstyled markup, so the list is written from the components rather than from taste. */
+.result-subjects{list-style:none;margin:0;padding:0;display:grid;gap:2px;min-width:170px}
+.result-subjects li{display:flex;gap:8px;justify-content:space-between;font-size:.82rem;color:#33405e}
+.result-subjects li b{font-weight:700;color:#1d2b4f}
+.result-subjects li em{font-style:normal;color:#8a5a00}
+.result-trend-figure{margin:0;padding:0 16px 16px}
+.result-trend{display:block;width:100%;height:auto;max-width:720px}
+.trend-axis{stroke:#c3cbdd;stroke-width:1}
+.trend-grid{stroke:#e6eaf4;stroke-width:1;stroke-dasharray:3 4}
+.trend-line{stroke:#1c58a2;stroke-width:2}
+.trend-dot{fill:#1c58a2}
+.trend-value{font-size:11px;fill:#1d2b4f;font-weight:700}
+.trend-label{font-size:10px;fill:#5a6b8c}
+.trend-tick{font-size:10px;fill:#5a6b8c}
+/* The publish prompt is a native dialog, centred the way the CV drawer is: Tailwind resets dialog margins,
+   so the centring is written down rather than assumed. */
+.center-publish{display:grid;gap:10px}
+.center-publish-dialog{position:fixed;inset:0;margin:auto;width:min(520px,calc(100% - 32px));max-width:520px;max-height:calc(100dvh - 32px);overflow:auto;overscroll-behavior:contain;padding:0;background:#fff;border:1px solid #d7dfed;border-radius:12px;text-align:left}
+.center-publish-dialog::backdrop{background:#10153066}
+.center-publish-dialog form{display:grid;gap:10px;padding:18px}
+.center-publish-dialog h2{margin:0;font-size:1.05rem;color:#1d2b4f}
+.admin-dialog-actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+/* The report card is a sheet rather than a panel, because it has to survive a printer. */
+.report-toolbar{display:flex;justify-content:flex-end;padding:0 0 10px}
+.report-card{background:#fff;border:1px solid #d7dfed;border-radius:12px;padding:22px;max-width:820px;margin:0 auto}
+.report-head{text-align:center;border-bottom:2px solid #222568;padding-bottom:12px;margin-bottom:14px}
+.report-head strong{display:block;letter-spacing:.02em;color:#222568;font-size:1.1rem}
+.report-head h1{font-size:1.25rem;margin:4px 0}
+.report-head p{margin:0;font-size:.78rem;color:#5a6b8c}
+.report-who,.report-total{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(180px,100%),1fr));gap:8px 16px;margin:0 0 14px}
+.report-who div,.report-total div{display:grid;gap:2px;border-bottom:1px dotted #dfe4ef;padding-bottom:4px;min-width:0}
+.report-who dt,.report-total dt{font-size:.75rem;color:#5a6b8c}
+.report-who dd,.report-total dd{margin:0;font-weight:700;color:#1d2b4f}
+.report-card h2{font-size:.95rem;margin:14px 0 6px}
+.report-card .admin-table-wrap{min-width:0;overflow-x:auto}
+.report-remarks .report-rule,.report-sign .report-rule{display:block;border-bottom:1px solid #9aa4bd;height:26px;margin:10px 0 4px}
+.report-sign{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:26px}
+.report-sign small{color:#5a6b8c;font-size:.75rem}
+@media(max-width:600px){
+  /* The subject cell is the one child of a history row with an intrinsic width of its own, so it gets the
+     house fix rather than a maximum: a maximum does not lower a minimum. */
+  .result-subjects{min-width:0}
+  .result-trend-figure{padding:0 10px 10px}
+  .report-card{padding:14px;border-radius:8px}
+  .report-who,.report-total{grid-template-columns:1fr 1fr}
+  .report-sign{grid-template-columns:1fr;gap:14px}
+  .center-publish-dialog form{padding:14px}
+  .admin-dialog-actions{justify-content:stretch}
+  .admin-dialog-actions>*{flex:1 1 auto}
+}
+/* Print: the card is the page. The shell around it — the admin bar, the sidebar, the portal hero, the tabs
+   that got you here — is hidden rather than shrunk, because a report card with a navigation bar on it is a
+   report card nobody pins to a wall. */
+@media print{
+  /* The house print convention, two blocks above this one, hides every box on the page —
+     `body *{visibility:hidden}` — and whitelists only the subtree a screen means to print: `.daily-print`
+     for the daily collection, `.sheet-print` for the class sheet. A report card that forgets to join that
+     whitelist prints a blank page, so the card joins it. `visibility` is not `display`: the hidden chrome
+     would still take its space, so the display rules below take the shell out of the flow as well, and the
+     card starts at the top of the sheet instead of after a page of invisible bars. */
+  .report-card,.report-card *{visibility:visible!important}
+  .no-print,.admin-top,.admin-nav,.admin-sidebar,.topbar,.footer,.portal-hero,.study-entry,.admin-dialog,
+  .center-publish-dialog,.daily-chips,.admin-heading,.admin-test-banner,.portal-area>.wrap>.portal-card,
+  .admin-panel[data-result-trend] .admin-help{display:none!important}
+  body{background:#fff}
+  /* The admin shell is a grid with a column for the sidebar; hiding the sidebar is not enough, because the
+     empty track would still push the card to the right of a page that has nothing on it. */
+  .admin-shell,.admin-main,.admin-content{display:block;padding:0;margin:0;max-width:none}
+  .portal-area{background:#fff;padding:0;min-height:0}
+  .report-card{border:0;border-radius:0;max-width:none;margin:0;padding:0;box-shadow:none}
+  .report-card .admin-table-wrap{overflow:visible;max-height:none}
+  .report-head{border-bottom-color:#000}
+  a[href]:after{content:""}
+}
+
+/* ── R8 usability pass: one design system, phone-first rows ─────────────────
+   The phone header is one compact row; the test banner collapses to a pill;
+   every admin table becomes a card of its first three fields plus the row's
+   Edit button and a labelled More menu; tap targets stay at 44px or taller. */
+.admin-sidebar{align-self:stretch}
+.admin-more{position:relative;display:inline-block}
+.admin-more>summary{list-style:none;cursor:pointer;border:1px solid #c5cce0;border-radius:8px;padding:8px 14px;background:#fff;color:#2e3192;font-weight:600;display:inline-flex;align-items:center;min-height:44px}
+.admin-more>summary::-webkit-details-marker{display:none}
+.admin-more>summary::after{content:' ▾'}
+.admin-more[open]>summary::after{content:' ▴'}
+.admin-more-body{position:absolute;right:0;top:calc(100% + 4px);z-index:25;background:#fff;border:1px solid #d9deee;border-radius:10px;box-shadow:0 8px 24px #1a1d3a20;padding:8px;min-width:200px;display:grid;gap:4px}
+.admin-more-body a,.admin-more-body button,.admin-more-body summary{width:100%;text-align:left;min-height:44px;display:flex;align-items:center;padding:0 12px;border-radius:8px;border:0;background:none;color:#1a1d3a;font-weight:600}
+.admin-more-body a:hover,.admin-more-body button:hover{background:#f1f3fb}
+.admin-page-more .admin-more-body{right:auto;left:0}
+.admin-test-short{display:none}
+@media(min-width:761px){
+  .admin-mobilebar .admin-top{display:none}
+  .admin-more-row{display:none}
+}
+@media(max-width:760px){
+  .admin-main>.admin-top{display:none}
+  .admin-mobilebar{height:56px;min-height:56px;padding:0 10px;gap:6px;position:sticky;top:0;z-index:45}
+  .admin-mobilebar-spacer{flex:1}
+  .admin-mobilebar .admin-top{display:contents}
+  .admin-mobilebar .admin-top-page,.admin-mobilebar .admin-top-right>.admin-mini-button,.admin-mobilebar .admin-help,.admin-mobilebar .admin-site-mobile{display:none}
+  .admin-mobilebar .admin-top-right{display:contents}
+  .admin-mobilebar .admin-user-menu>summary{min-height:44px;display:flex;align-items:center;max-width:120px;overflow:hidden}
+  .admin-test-banner{width:max-content;max-width:calc(100vw - 32px);margin:8px 16px 0;padding:2px 12px;font-size:12px;border-radius:999px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .admin-test-full{display:none}
+  .admin-test-short{display:inline}
+  .admin-shell :is(.admin-table button,.admin-table a,.admin-bin-actions button,.admin-bin-actions a,.admin-more>summary,.list-filter button,.admin-panel-head button){min-height:44px}
+  .admin-table{min-width:0}
+  .admin-table thead{display:none}
+  .admin-table tbody tr{display:block;border:1px solid #d9deee;border-radius:10px;background:#fff;padding:10px 12px;margin:0 0 10px}
+  .admin-table tbody td{display:block;border:0;padding:2px 0}
+  /* The visitor list is the one admin table with its OWN phone layout a few rules below: seven cells as
+     a card, each labelled, in an order the row chose. Collapsing its fourth-to-last cells here would hide
+     the status, the follow-up and the note on every phone — the three cells a desk actually works from. */
+  .admin-table:not(.visitor-table) tbody td:nth-child(n+4):not(:last-child){display:none}
+  .admin-table:not(.visitor-table) tbody td:last-child{display:flex;gap:8px;justify-content:flex-end;align-items:center;padding-top:8px}
+  .admin-row-direct{display:none}
+  .admin-more-row{display:inline-block}
+  .admin-more-row .admin-more-body{position:static;box-shadow:none;margin-top:6px}
+}
+.admin-section{border:1px solid #d9deee;border-radius:10px;background:#fff;margin:12px 0}
+.admin-section>summary{cursor:pointer;font-weight:700;padding:12px 16px;min-height:44px;display:flex;align-items:center}
+.admin-section-body{padding:0 16px 16px}
+.admin-dialog{border:0;border-radius:12px;padding:20px;width:min(440px,92vw);box-shadow:0 12px 40px #1a1d3a30}
+.admin-dialog::backdrop{background:#11132d99}
+.admin-dialog h2{font-size:18px;margin:0 0 10px}
+.admin-dialog label{display:grid;gap:6px;margin:10px 0;font-weight:600}
+/* R8 · the reference list row (owner review, 2026-11-15). Visitors is the pattern every other admin
+   list copies: a popover where an inline control used to be, one compact line per row, a bulk bar that
+   appears the moment a row is ticked, our own calendar instead of the browser's date box, and a card
+   at phone width. Nothing here is visitor-specific except the names — the classes are the pattern. */
+.pop{position:relative;display:inline-flex;min-width:0}
+.pop-anchor{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:2px 8px;background:transparent;border:0;border-radius:8px;cursor:pointer;color:inherit;font:inherit;min-width:0}
+.pop-anchor:hover{background:#eef0ff}
+.pop-anchor[aria-expanded=true]{background:#e8ebff;outline:2px solid #bec3ee;outline-offset:1px}
+.pop-body{position:fixed;z-index:60;min-width:212px;max-width:min(330px,calc(100vw - 24px));padding:8px;background:#fff;border:1px solid #d9deee;border-radius:12px;box-shadow:0 12px 32px #1a1d3a2e}
+.pop-menu{display:grid;gap:2px}
+.pop-menu button{display:flex;align-items:center;gap:8px;width:100%;min-height:44px;padding:8px 10px;background:transparent;border:0;border-radius:8px;text-align:left;cursor:pointer;font:inherit;color:#1a1d3a}
+.pop-menu button:hover{background:#eef0ff}
+.pop-item{display:block;padding:2px}
+.pop-item>.admin-mini-button,.pop-item button{width:100%;min-height:44px;justify-content:flex-start;text-align:left}
+.pop-destructive{display:flex;gap:6px;flex-wrap:wrap;padding:4px 2px 2px}
+.pop-destructive>.admin-mini-button,.pop-destructive button{flex:1 1 auto}
+.pop-inline{display:grid;gap:6px;padding:8px 10px}
+.pop-inline .admin-input{min-width:0;width:100%}
+.pop-inline button{min-height:44px}
+.pop-sep{border:0;border-top:1px solid #e6e9f4;margin:6px 0}
+.pop-hint{display:block;padding:0 10px 6px}
+.pop-dots{display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px}
+.pop-calendar{min-width:268px;padding:10px}
+.pop-cal-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.pop-cal-head strong{font-size:14px;color:#1a1d3a}
+.pop-cal-head button{min-width:44px;min-height:44px;background:#f4f6fd;border:1px solid #d9deee;border-radius:8px;font-size:18px;line-height:1;cursor:pointer;color:#2e3192}
+.pop-cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:2px}
+.pop-cal-dayhead{font-size:12px;font-weight:700;color:#4a5072;text-align:center;padding:4px 0}
+.pop-cal-day{min-width:32px;min-height:40px;background:transparent;border:1px solid transparent;border-radius:8px;cursor:pointer;font:inherit;color:#1a1d3a}
+.pop-cal-day:hover{background:#eef0ff}
+.pop-cal-day.today{border-color:#2e3192;font-weight:700;background:#f4f6ff}
+.pop-day-field{display:inline-flex;align-items:center;gap:6px;min-width:0;flex-wrap:wrap}
+.pop-day-view{display:inline-flex;align-items:center;min-height:44px;min-width:0;padding:8px 10px;background:#f8f9fe;border:1px dashed #c5cce0;border-radius:8px;color:#1a1d3a;overflow-wrap:anywhere}
+/* The row: two lines of text, five visible controls, and no cell taller than the rest. */
+/* The row height budget, 72px, is met by construction and only on desk widths — below 761px the card
+   layout below owns the row and none of this applies. `table-layout:fixed` is the same choice
+   `.overview-columns .admin-table` already makes: with the columns owning their widths, a long Bangla
+   name, a school, a printed number and a last note truncate inside their cell instead of stacking, and
+   `white-space:nowrap` on every cell means nothing in a row can ever wrap to a second line except the
+   visitor's own two-line identity cell. The widths add up to 1066px, which fits the 1440px screen the
+   brief is written for without scrolling the wrap; where a screen is narrower, the wrap scrolls the
+   table and the page itself never overflows. */
+@media(min-width:761px){
+  .visitor-table{min-width:1066px;table-layout:fixed}
+  .visitor-table .visitor-check{width:44px}
+  .visitor-table .visitor-who{width:156px}
+  .visitor-table .visitor-call{width:292px}
+  .visitor-table .visitor-status{width:130px}
+  .visitor-table .visitor-follow{width:116px}
+  .visitor-table .visitor-note{width:92px}
+  .visitor-table .visitor-act{width:236px}
+  .visitor-table tbody td{padding:7px 8px;border-top:1px solid #f1f2f6;vertical-align:middle;overflow:hidden;white-space:nowrap;line-height:1.35}
+  /* The status cell keeps its wrap on purpose: a do-not-contact row carries two badges, and a warning
+     an operator cannot see is worse than a row that has to be read twice. Two of them stacked owe the
+     row 72px, so on a desk width they are the size of the follow-up chip beside them instead of the
+     14px badge the shell paints everywhere else, and the menu trigger gives up its 44px minimum —
+     23px + 6px + 23px + the cell's 14px of padding is 66px, inside the budget. A phone keeps the
+     shell's own sizes: below 761px the card layout owns the row and a thumb needs the 44px the
+     responsive section of the suite measures. */
+  .visitor-table .visitor-status-cell .admin-badge{font-size:12px;line-height:1.4;padding:3px 8px}
+  .visitor-table .visitor-status .pop-anchor{min-height:0;padding-block:0}
+  .visitor-table .pop-day-field{flex-wrap:nowrap}
+  /* The three desk controls and the two destinations have to fit their column on one line, so they are
+     a step smaller here than the 15px the shell gives every mini button. */
+  .visitor-table .visitor-act>.admin-mini-button,.visitor-table .visitor-act .pop-anchor,.visitor-table .visitor-dial{padding-inline:9px;font-size:14px}
+}
+.visitor-check{width:46px;text-align:center}
+.visitor-check input[type=checkbox]{width:22px;height:22px;accent-color:#2e3192}
+.visitor-who{min-width:170px;max-width:270px}
+.visitor-name{display:flex;align-items:center;gap:6px;min-width:0}
+.visitor-name strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px}
+.visitor-name .lead-flag{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}
+.visitor-sub{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#4a5072;font-size:12px}
+.visitor-phone{display:inline-flex;align-items:center;gap:6px;flex-wrap:nowrap}
+.visitor-number{font-weight:700;color:#25295f;font-size:13px;white-space:nowrap}
+.visitor-note{min-width:110px;max-width:250px}
+.visitor-note-text{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#4a5072;font-size:13px}
+.visitor-act{white-space:nowrap;text-align:right}
+.visitor-act>.admin-mini-button{min-height:44px}
+.visitor-status-cell{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}
+/* The follow-up chip reads like a promise: today, tomorrow, overdue by days, a later day, or none. */
+.lead-chip{display:inline-flex;align-items:center;min-height:30px;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;white-space:nowrap;border:1px solid transparent}
+.lead-chip.none{background:#f1f3f9;color:#4a5072}
+.lead-chip.today{background:#e5f0ff;color:#1c58a2}
+.lead-chip.later{background:#e1f6e8;color:#006b34}
+.lead-chip.overdue{background:#fff0ed;color:#a63325}
+/* The bulk bar: it exists only while rows are ticked, and it says how many. */
+.lead-bulk-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;width:100%;padding:10px 12px;margin-top:10px;background:#eef0ff;border:1px solid #c9cdf2;border-radius:10px}
+.lead-bulk-bar strong{font-size:13px;color:#2e3192}
+.lead-bulk-bar .admin-mini-button{min-height:44px}
+.lead-bulk-bar .pop-form{margin:0}
+.lead-filters[open]>form{margin-top:12px}
+/* Phone width: the row is a card — name, class, badge, chip, big Call and WhatsApp, then the three. */
+@media(max-width:760px){
+  .visitor-table{min-width:0!important}
+  .visitor-table tbody tr{display:grid;grid-template-columns:minmax(0,1fr);gap:0;padding:12px;border:1px solid #d9deee;border-radius:12px;background:#fff}
+  .visitor-table tbody td{display:flex;justify-content:space-between;align-items:center;gap:12px;border:0!important;padding:6px 0;text-align:right;min-width:0}
+  .visitor-table tbody td:before{content:attr(data-label);color:#4a5072;font-weight:600;text-align:left;flex:none;max-width:38%}
+  .visitor-check{order:1;justify-content:flex-start}.visitor-check:before{content:''}
+  .visitor-who{order:2;display:block;text-align:left;max-width:none}.visitor-who:before{display:none}
+  .visitor-status{order:3}.visitor-follow{order:4}
+  .visitor-call{order:5;flex-wrap:wrap;white-space:normal}.visitor-phone{width:100%;justify-content:space-between;flex-wrap:wrap}
+  .visitor-dial{flex:1 1 44%;min-height:52px;justify-content:center;font-size:15px}
+  .visitor-note{order:6}.visitor-note-text{white-space:normal;text-align:right}
+  .visitor-act{order:7;justify-content:flex-end;gap:6px}
+  .pop-body{position:fixed;top:auto;bottom:calc(76px + env(safe-area-inset-bottom));left:12px;right:12px;max-width:none;min-width:0}
+  .pop-calendar{width:100%}
+}
+/* The drawer's edit mode: every field, two columns where there is room, Save and Cancel at the foot. */
+.lead-edit-form{display:grid;gap:12px;padding:14px;margin:8px 0 16px;border:1px solid #d9deee;border-radius:12px;background:#fbfcff}
+.lead-edit-form label{display:grid;gap:5px;font-size:14px;font-weight:600;color:#1a1d3a;min-width:0}
+.lead-edit-form .admin-input,.lead-edit-form .admin-select{min-width:0;width:100%}
+.lead-edit-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(190px,100%),1fr));gap:12px}
+.lead-edit-foot{display:flex;gap:10px;flex-wrap:wrap}
+.lead-edit-foot button{min-height:44px}

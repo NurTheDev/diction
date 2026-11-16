@@ -27,8 +27,11 @@ import {requireArchiver} from '@/lib/admin/guard';
 import {
   addLeadNote,bookLeadTrial,convertLeadToAdmission,createQuickLead,leadDetailByKey,markLeadNotInterested,
   mergeLeads,searchLeadsByPhone,setContactPermission,setLeadFollowUp,tieLeadFamily,trialSlotsForLead,
-  updateLeadStatus,
+  updateLeadBasics,updateLeadStatus,
 } from '@/lib/leads/leads';
+import {archiveItem,softDeleteItem} from '@/actions/recycle';
+import type {ActionState} from '@/actions/admin';
+const IDLE_ACTION:ActionState={status:'idle'};
 import {
   detailView,FOLLOW_UP_CLEAR,searchHitViews,
   type LeadDetailView,type LeadFormState,type LeadSearchActionState,
@@ -288,4 +291,84 @@ export async function loadLeadTrialSlots(grade:string,subject:string):Promise<{i
 /** Admissions and trials both change when a lead is handed over, in either locale. */
 function refreshIntake():void{
   for(const locale of ['bn','en']){revalidatePath(`/${locale}/admin/admissions`);revalidatePath(`/${locale}/admin/trials`)}
+}
+
+/** The Edit drawer's Save: every field, one write, the rule layer validating each. */
+export async function updateLeadBasicsAction(_:LeadFormState|null,form:FormData):Promise<LeadFormState>{
+  try{
+    const staff=await requireArchiver();
+    const digits=await leadDigits(String(staff.id));
+    const result=await updateLeadBasics({
+      id:text(form,'id'),studentName:text(form,'studentName'),guardianName:text(form,'guardianName'),
+      phone:text(form,'phone'),school:text(form,'school'),interestedIn:text(form,'interestedIn'),
+      classGroup:text(form,'classGroup'),group:text(form,'group'),shift:text(form,'shift'),
+      medium:text(form,'medium'),source:text(form,'source'),status:text(form,'status'),
+    },String(staff.id));
+    if(result.ok===false)return {status:'error',message:await leadMsg(result,digits),field:result.code};
+    refreshLeads();
+    return {status:'ok',message:await leadMsg({messageKey:'success.LEAD_SAVED',messageParams:{}},digits)};
+  }catch(error){return await refused(error)}
+}
+
+/** One tap on a status in a row's badge menu, or one tap in the bulk bar: same rule layer. */
+export async function bulkLeadStatus(_:LeadFormState|null,form:FormData):Promise<LeadFormState>{
+  try{
+    const staff=await requireArchiver();
+    const digits=await leadDigits(String(staff.id));
+    const ids=form.getAll('ids').map(String),status=text(form,'status');
+    let done=0;
+    for(const id of ids){const result=await updateLeadStatus(id,status,String(staff.id),new Date());if(result.ok!==false)done++}
+    if(!done)return {status:'error',message:await leadMsg({messageKey:'errors.MISSING',messageParams:{}},digits)};
+    refreshLeads();
+    return {status:'ok',message:await leadMsg({messageKey:'success.BULK_STATUS',messageParams:{count:done}},digits)};
+  }catch(error){return await refused(error)}
+}
+
+/** The bulk bar's follow-up: a key or a picked day, for every ticked row. */
+export async function bulkLeadFollowUp(_:LeadFormState|null,form:FormData):Promise<LeadFormState>{
+  try{
+    const staff=await requireArchiver();
+    const digits=await leadDigits(String(staff.id));
+    const ids=form.getAll('ids').map(String),key=text(form,'followUp')||FOLLOW_UP_CLEAR,custom=text(form,'customDay')||undefined;
+    let done=0;
+    for(const id of ids){const result=await setLeadFollowUp(id,key as FollowUpKey|typeof FOLLOW_UP_CLEAR,String(staff.id),new Date(),custom);if(result.ok!==false)done++}
+    if(!done)return {status:'error',message:await leadMsg({messageKey:'errors.MISSING',messageParams:{}},digits)};
+    refreshLeads();
+    return {status:'ok',message:await leadMsg({messageKey:'success.BULK_FOLLOW',messageParams:{count:done}},digits)};
+  }catch(error){return await refused(error)}
+}
+
+/**
+ * The bulk bar's destructive end, and the row menu's: staff archive, admin and super admin move to
+ * the Recycle Bin for 30 days with the Undo toast — the same two server actions the single rows use,
+ * composed here so a ticked list costs one tap, not one per row.
+ */
+export async function bulkLeadRemove(_:LeadFormState|null,form:FormData):Promise<LeadFormState>{
+  try{
+    const staff=await requireArchiver();
+    const digits=await leadDigits(String(staff.id));
+    const ids=form.getAll('ids').map(String);
+    const canDelete=staff.role==='admin'||staff.role==='superadmin';
+    let done=0;
+    for(const id of ids){
+      const row=new FormData();row.set('kind','lead');row.set('id',id);
+      const result=canDelete?await softDeleteItem(IDLE_ACTION,row):await archiveItem(IDLE_ACTION,row);
+      if(result.status==='ok')done++;
+    }
+    if(!done)return {status:'error',message:await leadMsg({messageKey:'errors.MISSING',messageParams:{}},digits)};
+    refreshLeads();
+    return {status:'ok',message:await leadMsg({messageKey:canDelete?'success.BULK_DELETED':'success.BULK_ARCHIVED',messageParams:{count:done}},digits)};
+  }catch(error){return await refused(error)}
+}
+
+/** "Mark not interested" from the row menu: a reason, then the status the vocabulary owns. */
+export async function markLeadUninterested(_:LeadFormState|null,form:FormData):Promise<LeadFormState>{
+  try{
+    const staff=await requireArchiver();
+    const digits=await leadDigits(String(staff.id));
+    const result=await markLeadNotInterested(text(form,'id'),text(form,'reason'),String(staff.id));
+    if(result.ok===false)return {status:'error',message:await leadMsg(result,digits),field:result.code};
+    refreshLeads();
+    return {status:'ok',message:await leadMsg({messageKey:'success.NOT_INTERESTED',messageParams:{}},digits)};
+  }catch(error){return await refused(error)}
 }

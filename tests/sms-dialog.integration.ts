@@ -24,7 +24,7 @@ const bothLabels=(key:string):boolean=>!!smsLabel(bnMessages.sms,key).trim()&&!!
 import {randomUUID} from 'node:crypto';
 import {preflight,testDbName} from './helpers/env-preflight';
 import {User} from '../src/models/User';
-import {CenterClassGroup,CenterStudent,CenterSettings,CenterPayment,CenterSmsBatch,CenterSmsLog} from '../src/models/CenterRecords';
+import {CenterClassGroup,CenterStudent,CenterSettings,CenterPayment,CenterExam,CenterExamResult,CenterSmsBatch,CenterSmsLog} from '../src/models/CenterRecords';
 import {runSmsDialog,autoSendReceipt,autoSendClassDues,autoSendClassResults,runAutoDue,autoRequestId} from '../src/lib/center/sms-dialog';
 import {flushQueuedSms} from '../src/lib/center/sms-send';
 import {SMS_SKIP_REASONS} from '../src/lib/center/sms-recipients';
@@ -311,17 +311,65 @@ async function run(){
     assert.equal(dueTwice.ran,true);
     assert.equal(await CenterSmsBatch.countDocuments(),afterAutoDue,'re-running the job on the same day sends nothing new');
 
-    const resultOff=await autoSendClassResults({exam:'synthetic-exam',classGroup:classId},{now});
+    /* A result message is per child, so it needs a published exam with rows in it: `autoSendClassResults`
+       reads what publishing wrote and attaches {exam}/{marks}/{total}/{rank} to the candidate they belong
+       to. Seeded here rather than at the top so the fee phases above keep counting the class they were
+       written for. One child is absent on purpose — the point of the refusal is that no family is texted a
+       total of ০ about a child who never sat, and the skip is counted on the batch instead. */
+    const absentee=await make(6,{guardianPhone:'01711000006'});
+    const resultExam=await CenterExam.create({
+      name:{bn:'মাসিক পরীক্ষা'},type:'monthly',date:'2026-03-15',status:'published',classGroups:[group._id],
+      subjects:[{name:{bn:'বাংলা'},fullMarks:100,passMarks:33},{name:{bn:'গণিত'},fullMarks:50,passMarks:25}],
+      gradeBands:[{min:80,label:'A+',point:5},{min:70,label:'A',point:4},{min:60,label:'A-',point:3.5},{min:50,label:'B',point:3.25},{min:40,label:'C',point:2},{min:33,label:'D',point:1},{min:0,label:'F',point:0}],
+    });
+    const resultRow=(student,bangla,math,total,position)=>({
+      exam:resultExam._id,student,classGroup:group._id,
+      marks:[{subject:resultExam.subjects[0]._id,obtained:bangla,absent:false},{subject:resultExam.subjects[1]._id,obtained:math,absent:false}],
+      total,fullTotal:150,percentage:Math.round((total/150)*100),grade:'A+',point:5,position,recordedBy:actor._id,
+    });
+    await CenterExamResult.insertMany([
+      resultRow(paid._id,90,45,135,1),
+      resultRow(siblingA._id,80,40,120,2),
+      resultRow(siblingB._id,60,20,80,3),
+      resultRow(held._id,70,30,100,4),
+      resultRow(paidUp._id,50,25,75,5),
+      // Absent: both subjects absent, no position — publishing writes exactly this shape.
+      // Absent: both subjects absent and the grade the engine writes for that, which is how every reader
+      // of a stored result recognises it — there is no absent flag on the row itself.
+      {exam:resultExam._id,student:absentee._id,classGroup:group._id,grade:'ABSENT',total:0,fullTotal:150,percentage:0,point:0,recordedBy:actor._id,
+       marks:[{subject:resultExam.subjects[0]._id,obtained:null,absent:true},{subject:resultExam.subjects[1]._id,obtained:null,absent:true}]},
+    ]);
+
+    const resultOff=await autoSendClassResults({exam:idOf(resultExam),classGroup:classId},{now});
     assert.equal(resultOff.attempted,false,'autoResult ships OFF');
     await CenterSettings.updateOne({key:'main'},{$set:{autoResult:true}});
-    const resultOn=await autoSendClassResults({exam:'synthetic-exam',classGroup:classId},{now});
+    const resultOn=await autoSendClassResults({exam:idOf(resultExam),classGroup:classId},{now});
     assert.equal(resultOn.attempted,true);
     assert.ok(resultOn.batchId);
     assert.equal((await CenterSmsBatch.findById(resultOn.batchId).lean()).trigger,'auto_result','and a published result says so too');
+    assert.equal((await CenterSmsBatch.findById(resultOn.batchId).lean()).purpose,'exam_result');
     const resultRows=await CenterSmsLog.countDocuments({batch:resultOn.batchId,status:'sent'});
-    assert.ok(resultRows>=3,'a result message is not about fees, so held and paid-up students get it too');
+    assert.equal(resultRows,5,'a result message is not about fees, so held and paid-up students get it too');
+    assert.equal(await CenterSmsLog.countDocuments({batch:resultOn.batchId,status:'sent',phone:'01711000002'}),2,'and two siblings on one number get one each, because their marks are not the same sentence');
     assert.equal(await CenterSmsLog.countDocuments({batch:resultOn.batchId,phone:'01711000005'}),0,'but an opted-out number is never used');
     assert.equal(await CenterSmsLog.countDocuments({phone:'01711000004'}),0,'and a removed student is never contacted by any path');
+
+    // The absent child is counted, never messaged — and the reason is the one the operator reads.
+    const absenteeRow=await CenterSmsLog.findOne({batch:resultOn.batchId,student:absentee._id}).lean();
+    assert.ok(absenteeRow,'the child with nothing to report is on the batch as a skip');
+    assert.equal(absenteeRow.status,'skipped');
+    assert.equal(absenteeRow.reason,'missing_value','so the family is not told their child scored ০');
+    assert.equal(await CenterSmsLog.countDocuments({batch:resultOn.batchId,status:'sent',student:absentee._id}),0);
+
+    // The sentence each family reads. Quoted whole, because it is the one message here that cannot be re-sent.
+    const messageOf=async student=>(await CenterSmsLog.findOne({batch:resultOn.batchId,status:'sent',student}).lean()).message;
+    assert.equal(await messageOf(paid._id),'ডিকশন কোচিং: শিক্ষার্থী 1 এর মাসিক পরীক্ষা ফলাফল: বাংলা ৯০, গণিত ৪৫। মোট ১৩৫/১৫০, অবস্থান ১।','the top of the class is quoted with their own marks, total and position, in Bangla digits');
+    assert.equal(await messageOf(siblingB._id),'ডিকশন কোচিং: শিক্ষার্থী 3 এর মাসিক পরীক্ষা ফলাফল: বাংলা ৬০, গণিত ২০। মোট ৮০/১৫০, অবস্থান ৩।','and a sibling sharing that number is quoted with theirs, not the other child’s');
+    assert.match(await messageOf(held._id),/অবস্থান ৪/,'a held family still learns where their child stood');
+    for(const row of await CenterSmsLog.find({batch:resultOn.batchId,status:'sent'}).lean()){
+      assert.equal(/\{\w+\}/.test(row.message),false,'no chip survives into a result message');
+      assert.equal(/টাকা|বেতন|বকেয়া|রশিদ/.test(row.message),false,'and a result says nothing about money');
+    }
 
     // ---- 10. Requests are validated before anything is read.
     for(const [label,input] of [

@@ -42,6 +42,15 @@ interface LeadSmsContextValue{
 
 const LeadSmsContext=createContext<LeadSmsContextValue|null>(null);
 
+/**
+ * The one selection on this list, read by whoever needs it. The visitor bulk bar (owner review,
+ * 2026-11-15) answers the same ticks the SMS picker owns, so a row is never picked twice in two places
+ * that could disagree: the picker decides who may be ticked at all — a visitor who said "do not
+ * contact" and one with no number get a reason instead of a checkbox — and the bar reads the result.
+ * `null` means there is no picker here, so there is nothing to bulk-act on either.
+ */
+export function useLeadSmsContext():LeadSmsContextValue|null{return useContext(LeadSmsContext)}
+
 export function LeadSmsPicker({rows,kit,digits='bn',language='bn',children}:{
   rows:LeadSmsPick[];kit:LeadSmsKit|null;digits?:Digits;language?:'bn'|'en';children:ReactNode;
 }){

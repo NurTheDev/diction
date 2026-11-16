@@ -78,7 +78,7 @@ function run(){
   assert.deepEqual([...VISITOR_SMS_CHIPS],['institute_phone','subject']);
   for(const chip of VISITOR_SMS_CHIPS){
     assert.ok((SMS_VARIABLES as readonly string[]).includes(chip),`${chip} must be a real chip`);
-    assert.ok(!['student_name','class','month','due_amount','amount','receipt_no','due_date'].includes(chip),`${chip} is per-student and a lead cannot fill it`);
+    assert.ok(!['student_name','class','month','due_amount','amount','receipt_no','due_date','exam','marks','total','rank'].includes(chip),`${chip} is per-student and a lead cannot fill it`);
   }
   const fits=(key:string):boolean=>visitorTemplateFits(defaultTemplate(key)?.variables||[]);
   assert.equal(fits('visitor_thanks'),true,'the spec’s visitor template is always offered');
@@ -88,7 +88,7 @@ function run(){
   assert.equal(fits('due_reminder'),false,'a due reminder to somebody who owes nothing is not offered');
   assert.equal(fits('payment_receipt'),false);
   assert.equal(fits('pending_reminder'),false);
-  assert.equal(fits('exam_result'),false);
+  assert.equal(fits('exam_result'),false,'and a result names one child’s marks, total and position — none of which a visitor has');
   const offered=SMS_TEMPLATE_DEFAULTS.filter(template=>visitorTemplateFits(template.variables)).map(template=>template.key);
   assert.ok(offered.includes('visitor_thanks')&&!offered.includes('due_reminder'),`the narrowed catalog is ${offered.join(',')}`);
   assert.equal(visitorTemplateFits([]),true,'a template with no chips fits');

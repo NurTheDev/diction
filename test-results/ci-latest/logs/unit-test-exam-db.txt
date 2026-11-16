@@ -1,0 +1,2 @@
+--- tests/exam-flow.integration.ts (exit 0) ---
+Exam flow: teacher class scope with no payment field anywhere, one exam over two classes, batched marks with a stale row named, per-class positions with ties and absence, publish and unpublish, what an edit may change, and the saved grading scales passed.

@@ -1,0 +1,6 @@
+visitors-reference-browser: FAIL
+AssertionError [ERR_ASSERTION]: a do-not-contact visitor keeps its warning badge
+
+0 !== 1
+
+    at run (/home/runner/work/diction/diction/tests/visitors-reference-browser.integration.ts:232:12)

@@ -38,7 +38,7 @@ import {
   type HandoffRefusal,
 } from './lead-handoff';
 import {
-  CONTACTABLE_LEAD_FILTER,LEAD_STATUSES,LEAD_SOURCES,LEAD_GROUPS,LEAD_SHIFTS,LEAD_MEDIUMS,
+  CONTACTABLE_LEAD_FILTER,LEAD_CLOSED_STATUSES,LEAD_STATUSES,LEAD_SOURCES,LEAD_GROUPS,LEAD_SHIFTS,LEAD_MEDIUMS,
   familyKeyFromPhones,followUpState,leadListQuery,maskPhone,nextFollowUpDay,statusToFlags,
   type FollowUpKey,type LeadGroup,type LeadMedium,type LeadShift,type LeadSource,type LeadStatus,
 } from './vocab';
@@ -505,6 +505,7 @@ export async function searchLeadsByPhone(raw:unknown,now:Date=new Date(),limit=2
 export interface LeadListParams{
   q?:string;status?:string;classGroup?:string;group?:string;shift?:string;medium?:string;source?:string;
   followUp?:'today'|'overdue'|'none';familyKey?:string;from?:string;to?:string;page?:number;perPage?:number;
+  showClosed?:boolean;stale?:boolean;
 }
 export interface LeadListResult{rows:LeadRow[];total:number;page:number;pages:number;perPage:number;refusedPhone:boolean}
 /**
@@ -536,7 +537,27 @@ export function leadListFilter(params:LeadListParams,now:Date=new Date()):Filter
   else if(params.followUp==='none')filter.nextFollowUp=null;
   if(params.from&&/^\d{4}-\d{2}-\d{2}$/.test(params.from))filter.date={...(filter.date as object||{}),$gte:params.from};
   if(params.to&&/^\d{4}-\d{2}-\d{2}$/.test(params.to))filter.date={...(filter.date as object||{}),$lte:params.to};
+  /* Closed visitors are filed away, not deleted: with no status asked for and no "show closed" tick, the
+     three finished statuses stay out of the list. An explicit status wins — an operator who asks for the
+     admitted rows must get them, not an empty list and a riddle. */
+  if(!filter.status&&!params.showClosed)filter.status={$nin:[...LEAD_CLOSED_STATUSES]};
+  /* The eighteen-month notice became a filter. A visitor is stale when their newest fact — the day they
+     came, or the last note anybody wrote — is older than the cut, and listing them is a suggestion:
+     nothing is archived, removed or re-dated by asking the question. */
+  if(params.stale){
+    const cut=staleCutDay(now);
+    filter.date={...(filter.date as object||{}),$lt:cut};
+    filter.notes={$not:{$elemMatch:{at:{$gte:new Date(`${cut}T00:00:00+06:00`)}}}};
+  }
   return filter;
+}
+
+/** Eighteen months before today's Dhaka day, as a day: the age at which a visitor counts as stale. */
+export function staleCutDay(now:Date=new Date()):string{
+  const [year,month,day]=dhakaDay(now).split('-').map(Number);
+  const total=month-1-18,yearPart=Math.floor(total/12),monthPart=((total%12)+12)%12+1;
+  const length=new Date(Date.UTC(year+yearPart,monthPart,0)).getUTCDate();
+  return `${year+yearPart}-${String(monthPart).padStart(2,'0')}-${String(Math.min(day,length)).padStart(2,'0')}`;
 }
 
 /**
@@ -627,9 +648,15 @@ export async function leadStatusCounts():Promise<{status:LeadStatus;count:number
 
 export type LeadUpdateResult={ok:true;id:string;status:LeadStatus;doNotContact:boolean;nextFollowUp:string|null}|Refusal;
 
-async function findLive(id:string):Promise<LeadDoc|null>{
+/* A projection is a promise, so it is written as one: the type says exactly which fields a write may
+   read, and the compiler refuses any field the query does not carry. `phones` is here because correcting
+   one number must keep the rest of the list — the edit path replaces the first entry and re-attaches
+   whatever else the family was reached on. When this projection did not name `phones`, that read threw on
+   every Edit → Save, and the operator got a generic "did not go through" with the reason hidden. */
+type LiveLead=Pick<LeadDoc,'leadId'|'phones'|'status'|'doNotContact'|'nextFollowUp'|'familyKey'>;
+async function findLive(id:string):Promise<LiveLead|null>{
   if(!id)return null;
-  return Lead.findById(id).select('leadId status doNotContact nextFollowUp familyKey').lean<LeadDoc>()||null;
+  return Lead.findById(id).select('leadId phones status doNotContact nextFollowUp familyKey').lean<LiveLead>()||null;
 }
 
 /**
@@ -943,4 +970,39 @@ export async function trialSlotsForLead(grade:string,subject:string,now:Date=new
     grade:String(row.grade||''),subject:String(row.subject||''),
     seatsLeft:Math.max(0,(Number(row.capacity)||0)-(Number(row.booked)||0)),
   }));
+}
+
+/**
+ * The reference row's Edit drawer: every field a person wrote, behind one Save. The phone is
+ * validated the way quick-add validates it — the dialed digits or nothing — and the family key stays
+ * with the row it was assigned to: replacing a number here never re-inherits a family.
+ */
+export async function updateLeadBasics(input:{id:string;studentName:string;guardianName:string;phone:string;school:string;interestedIn:string;classGroup:string;group:string;shift:string;medium:string;source:string;status:string},actorId:string):Promise<{ok:true}|Refusal>{
+  if(!isValidObjectId(input.id))return refuse('BAD_ID','errors.MISSING');
+  const current=await findLive(input.id);
+  if(!current)return refuse('MISSING','errors.MISSING');
+  const name=input.studentName.trim();
+  if(!name||name.length>120)return refuse('BAD_NAME','errors.BAD_NAME');
+  const phone=input.phone.trim();
+  /* Its own key, not the search box's `errors.BAD_PHONE`: that sentence answers a number nobody could
+     read, and a field the operator just typed needs the rule instead — eleven digits, starting 01. */
+  if(phone&&!/^01[3-9]\d{8}$/.test(phone))return refuse('BAD_PHONE','errors.PHONE_FORMAT');
+  const set:FilterQuery<unknown>={
+    'name':undefined,
+    studentName:name,
+    guardianName:input.guardianName.trim().slice(0,120),
+    school:input.school.trim().slice(0,160),
+    interestedIn:input.interestedIn.trim().slice(0,200),
+    classGroup:input.classGroup?Math.min(12,Math.max(1,Number(input.classGroup))):null,
+    group:(LEAD_GROUPS as readonly string[]).includes(input.group)?input.group:'unknown',
+    shift:(LEAD_SHIFTS as readonly string[]).includes(input.shift)?input.shift:'any',
+    medium:(LEAD_MEDIUMS as readonly string[]).includes(input.medium)?input.medium:'unknown',
+    source:(LEAD_SOURCES as readonly string[]).includes(input.source)?input.source:'walk_in',
+  };
+  delete set.name;
+  if((LEAD_STATUSES as readonly string[]).includes(input.status))set.status=input.status;
+  if(phone)set.phones=[{normalized:phone,original:phone},...(current.phones||[]).slice(1)];
+  await Lead.updateOne({_id:input.id},{$set:set},{runValidators:true});
+  await audit(actorId,'lead.update',current.leadId);
+  return {ok:true};
 }

@@ -32,9 +32,10 @@ What was stale:
    → Runs against an external app (`TEST_ORIGIN` / `TEST_MONGO_URI`) and clears the persistent
    login rate-limit row before authenticating.
 
-Substance unchanged: role scoping (`exam_manager` in, `content_editor` out), the write gate staying
-closed when `CENTER_EXAM_WRITE_ENABLED` is not `true`, two subjects, mark entry, A+ ranking and
-publication.
+Substance unchanged at that point: role scoping (`exam_manager` in, `content_editor` out), the write
+gate staying closed when `CENTER_EXAM_WRITE_ENABLED` was not `true`, two subjects, mark entry, A+
+ranking and publication. **R5 retired the gate**, so the suite no longer asserts a disabled button —
+it asserts the flow the owner actually gets (see §R5 below).
 
 **Verified statically on 2026-11-12** (every literal the test touches was located in the source):
 

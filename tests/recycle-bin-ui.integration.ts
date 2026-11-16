@@ -330,6 +330,10 @@ async function run(){
     assert.ok(staff.page.url().includes('/admin/content'),`staff must reach the content list; landed on ${staff.page.url()}`);
     // The list streams in after the shell, so wait for a rendered control BEFORE asserting
     // absence — an absence check on a still-loading page would pass for the wrong reason.
+    /* Staff's one verb sits inside the row's labelled More menu since R8 slice 1, and this session is a
+       360px phone, where the direct pair is hidden and the More menu is what a thumb gets — so the wait
+       starts by opening it. */
+    await staff.page.locator('.admin-more-row summary').first().click();
     await staff.page.getByRole('button',{name:'Archive',exact:true}).first().waitFor({state:'visible',timeout:60000});
     assert.equal(await staff.page.getByRole('button',{name:'Delete',exact:true}).count(),0,'staff sees no Delete anywhere on the list');
     assert.equal(await staff.page.locator('.admin-bulk-bar').count(),0,'staff gets no bulk delete bar');
@@ -340,9 +344,11 @@ async function run(){
     assert.ok(await staff.page.getByRole('button',{name:'Restore',exact:true}).first().isVisible(),'staff can restore');
     assert.equal(await staff.page.getByRole('button',{name:'Delete forever',exact:true}).count(),0,'Delete forever is Super Admin only');
     await staff.page.goto(`${origin}/en/admin/students/classes`,{waitUntil:'domcontentloaded',timeout:180000});
+    await staff.page.locator('.admin-more-row summary').first().click();
     await staff.page.getByRole('button',{name:'Archive',exact:true}).first().waitFor({state:'visible',timeout:60000});
     assert.equal(await staff.page.getByRole('button',{name:'Delete',exact:true}).count(),0,'staff sees no Delete on class management either');
     await staff.page.goto(`${origin}/en/admin/slots`,{waitUntil:'domcontentloaded',timeout:180000});
+    await staff.page.locator('.admin-more-row summary').first().click();
     await staff.page.getByRole('button',{name:'Archive',exact:true}).first().waitFor({state:'visible',timeout:60000});
     assert.equal(await staff.page.getByRole('button',{name:'Delete',exact:true}).count(),0,'staff sees no Delete on trial slots either');
     assert.deepEqual(staff.errors,[],`page errors as staff: ${staff.errors.join(' | ')}`);

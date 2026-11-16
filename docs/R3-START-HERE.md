@@ -158,5 +158,8 @@ into an artifact, dispatch the workflow with `publish_screenshots` (see
   already written and proven (R3.2–R3.4); nothing reads a spreadsheet yet.
 - **Duplicate-phone "add as sibling / merge these two"** as a dialog — the detection and the family key
   are live, the two-record decision is wave C's.
-- **Convert to a student** (a hand-off that makes a Centre student rather than an application),
-  **funnel reports and CSV export** — still owed, in the owner's order after the import wizard.
+- **Convert to a student** (a hand-off that makes a Centre student rather than an application) — still
+  owed. The **funnel reports and CSV export** the owner put after the import wizard are delivered:
+  `/admin/leads/funnel` counts visitors → trial booked → admitted by month, source and class with the
+  three conversion rates beside the counts, and the table on screen downloads as a CSV (R3.17 and
+  R3.18; `docs/STATUS.md` records the definitions).

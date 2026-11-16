@@ -33,6 +33,10 @@ for(const key of ['leads','followUps']){
 assert.equal(permitted('blog','content_editor'),true);
 assert.equal(permitted('students','content_editor'),false);
 assert.equal(permitted('centerExams','exam_manager'),true);
+// R5: the grading scale decides what a grade is worth centre-wide, so it is the owner's screen alone —
+// the roles that run exams and the front desk can see exams but not the scale behind them.
+for(const role of ['admin','superadmin'])assert.equal(permitted('gradingScale',role),true,`${role} can open the grading scale`);
+for(const role of ['staff','exam_manager','content_editor'])assert.equal(permitted('gradingScale',role),false,`${role} cannot open the grading scale`);
 assert.equal(permitted('blog','exam_manager'),false);
 assert.equal(permitted('students','staff'),true,'staff see student lists to archive, never to delete');
 

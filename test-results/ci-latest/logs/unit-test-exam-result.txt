@@ -1,0 +1,2 @@
+--- tests/exam-result-message.test.ts (exit 0) ---
+Result SMS: the spec sentence renders byte-for-byte in Bangla digits with no chip left in it, the values cover exactly the chips the template asks for, an absent subject is a dash rather than a zero, an absent or unranked child is sent nothing at all, subjects are listed in the exam’s own order, and a tie reads as the position publishing wrote.

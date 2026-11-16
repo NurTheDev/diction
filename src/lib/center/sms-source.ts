@@ -24,13 +24,15 @@ import mongoose from 'mongoose';
 import {CenterClassGroup,CenterSettings,CenterStudent} from '@/models/CenterRecords';
 import {leadsForSms} from '@/lib/leads/leads';
 import {leadCandidates} from '@/lib/leads/lead-sms';
+import {candidatesForSms} from '@/lib/teachers/candidates';
+import {teacherCandidates} from '@/lib/teachers/cv-sms';
 import {formatDate,formatNumber} from '@/lib/admin/format';
 import {dhakaCalendar} from './month-status';
 import {liveClassDues} from './dues-query';
 import type {SmsCandidateStudent,SmsHoldPeriod} from './sms-recipients';
 import type {SmsVariable} from './sms-templates';
 
-export type SmsSource='dues'|'class'|'students'|'student'|'receipt'|'lead'|'leads';
+export type SmsSource='dues'|'class'|'students'|'student'|'receipt'|'lead'|'leads'|'teacherCandidates';
 
 // i18n-scan-allow-start: SMS message content (Bangla script data), not interface text.
 // i18n-scan-allow-start: Bangla month names go INSIDE the SMS body, which stays Bangla by the owner's rule.
@@ -253,6 +255,25 @@ async function candidatesFromLeads(ids:string[],now:Date):Promise<SmsSourceResul
   };
 }
 
+/**
+ * Teacher candidates (R4): the CVs an admin picked on the Find-a-teacher screen or the CV list.
+ *
+ * A candidate is not a student and not a visitor either — no fee states, no do-not-contact mark, one
+ * number each — so the translation lives in its own pure module (`lib/teachers/cv-sms`) and this
+ * resolver only reads the ids it was given. With no ids it resolves to NOBODY: an entry point that
+ * meant "the CVs on screen" and lost its ids must not become "every applicant we have ever met".
+ */
+async function candidatesFromTeacherCvs(ids:string[],now:Date):Promise<SmsSourceResult>{
+  const rows=await candidatesForSms(ids,SMS_SOURCE_LIMIT);
+  return {
+    candidates:teacherCandidates(rows),
+    className:'',
+    monthKey:monthKey([],now),
+    monthLabel:'',
+    subjectKind:'lead',
+  };
+}
+
 /** Route a source request to its resolver. An unknown source resolves to nobody, never to everybody. */
 export async function resolveSmsSource(request:{
   source:SmsSource;classGroup?:string;ids?:string[];id?:string;
@@ -265,5 +286,6 @@ export async function resolveSmsSource(request:{
   if(request.source==='students'&&request.ids?.length)return candidatesFromIds(request.ids,now);
   if(request.source==='lead'&&request.id)return candidatesFromLeads([request.id],now);
   if(request.source==='leads'&&request.ids?.length)return candidatesFromLeads(request.ids,now);
+  if(request.source==='teacherCandidates'&&request.ids?.length)return candidatesFromTeacherCvs(request.ids,now);
   return EMPTY;
 }

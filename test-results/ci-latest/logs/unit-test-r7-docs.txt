@@ -1,0 +1,2 @@
+--- tests/r7-docs.test.ts (exit 0) ---
+R7 papers hold: README setup and map, env template complete against the source, Atlas and BulkSMSBD production notes, go-live a–f with the brake after the rollout, operations rhythms.

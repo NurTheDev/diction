@@ -30,6 +30,7 @@ import {CenterClassGroup,CenterStudent,CenterSettings,CenterSmsBatch,CenterSmsLo
 import {dhakaCalendar} from '../src/lib/center/month-status';
 import {liveClassDues} from '../src/lib/center/dues-query';
 import {formatNumber} from '../src/lib/admin/format';
+import {SMS_VARIABLES} from '../src/lib/center/sms-templates';
 
 /** Phones and amounts are rendered in the account's digit preference, Bangla by default. */
 const ascii=(text:string):string=>text.replace(/[০-৯]/g,c=>String('০১২৩৪৫৬৭৮৯'.indexOf(c)));
@@ -186,7 +187,10 @@ async function run(){
     assert.match(body,/ডিকশন কোচিং/,'the Bangla body is shown even on a Bangla screen');
     assert.match(body,/\{student_name\}/,'with its chips unrendered, so the operator sees what will be substituted');
     const chips=page.locator('[data-sms-chip]');
-    assert.equal(await chips.count(),9,'all nine spec variables are offered as chips');
+    assert.equal(await chips.count(),SMS_VARIABLES.length,'every spec variable is offered as a chip — read off the list the dialog itself renders, so adding one cannot leave the screen behind');
+    // Named, because a count alone would also pass if the four a result message needs were swapped for
+    // four nobody asked for: these are the per-student chips R5 slice 2 added.
+    for(const chip of ['exam','marks','total','rank'])assert.equal(await page.locator(`[data-sms-chip="${chip}"]`).count(),1,`{${chip}} is one of them`);
     await page.locator('[data-sms-chip="receipt_no"]').click();
     assert.match(await page.locator('#sms-custom-text').inputValue(),/\{receipt_no\}/,'a chip is inserted into the text');
     assert.equal(await page.locator('input[name="smsTemplate"][value="custom"]').isChecked(),true,'and typing or chipping switches to the custom template');

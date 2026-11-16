@@ -79,9 +79,9 @@ stack trace (`tests/helpers/env-preflight.ts`).
 | Month-end due snapshots — **scheduled endpoint** | **missing** | No `/api/admin/center/month-end-scheduler` route exists; `CRON_SECRET` and `DUE_SNAPSHOT_START_MONTH` appear only in `MILESTONE-3-4-START-HERE.md`, never in `src/`. No `vercel.json` either. |
 | Legacy fee **review** (read-only suggestions) | working | code read: `admin/students/legacy-review/page.tsx`. |
 | Legacy fee **conversion/migration** | **missing** | No conversion code (searched `poisha`, `convertLegacy`, `LegacyFee`). Only the experimental identity link (`CENTER_LEGACY_LINK_ENABLED`, off by default). |
-| Portal linking for Center students/guardians | **missing** | `/parent/*` reads the legacy `Student`/`FeeInvoice`/`FeePayment` models only. No page outside `/admin` reads `CenterStudent` or `CenterPayment`. |
+| Portal linking for Center students/guardians | **partial (R5 slice 2)** | There is still no stored link: `/dashboard/results` and `/parent/results` match the signed-in account's own `User.phone` against a `CenterStudent`'s `studentPhone`, `guardianPhone` or `altPhone`, exactly and never as a pattern, and read only published exam results (§19). Fees are still the legacy `Student`/`FeeInvoice`/`FeePayment` models, and no page outside `/admin` reads `CenterPayment`. |
 | "ভর্তি সম্পন্ন" creates a student | **missing** | `ভর্তি সম্পন্ন` is only a status **label** (`admin.enrolled`, `forms.statusEnrolled`). `CenterStudent` is created by the student form, the import batch or the workbook batch — never from an admission. |
-| Exams (create, subjects, marks, ranking, publish) | partial | ran today (grading/ranking unit) + **browser flow proven on GitHub Actions** (§11): create with two subjects → marks 80+40 → total 120/150 → A+ → rank → publish, plus role scope and 360/768/1440 layout. Writes gated by `CENTER_EXAM_WRITE_ENABLED` (off in production; `npm run verify` turns it on for the disposable database). Single class per screen, ≤500 students, no unpublish/correction, no teacher scoping, no SMS/portal/PDF → R5. |
+| Exams (create, subjects, marks, ranking, publish) | **working (R5 slice 1 + slice 2's result SMS)** | ran today (`tests/exam-rules.test.ts`, `tests/exam-grid.test.ts`, `tests/exam-result-message.test.ts`, `tests/staff-role.test.ts`, catalog) + the browser flow and the database flow are CI-proven (§17): one exam over several classes, a keyboard-first marks grid with autosave, Excel paste, CSV/XLSX import with a preview, absence, per-class positions with ties, publish **and unpublish**, saved grading scales with GPA points, teacher scoping by assigned class, and a teacher screen with no payment data in it. The write gate is **retired** — exam writes are a normal feature (§17). Slice 2's result SMS now sends the spec's own sentence with each child's own marks, total and position, and sends nothing at all to a family whose child was absent (§18). Slice 2 is **finished** (§19): publishing asks first, with a count computed the way the send counts; the student profile has a Results tab with the published exams and an SVG improvement trend that leaves an absence out of the line; the portal has `/dashboard/results` and `/parent/results`; and the report card is printable under `@media print`. |
 | SMS | partial | A low-level BulkSMSBD adapter + segment estimator exist and are unit-tested, gated off. **No** queue, UI, templates UI, opt-out/quiet-hours, idempotency, logs page or balance → R2. Models `CenterSmsTemplate/Batch/Log` and `CenterSettings` already exist. |
 | Visitor leads | **missing** | → R3. |
 | Teacher CV bank | **missing** | → R4. |
@@ -120,7 +120,7 @@ older files are left in place as history, and this table is the authority.
 
 ## 5. Feature flags (all off by default)
 
-`CENTER_DATA_MODE` (`test` = disposable DB) · `CENTER_EXAM_WRITE_ENABLED` ·
+`CENTER_DATA_MODE` (`test` = disposable DB) ·
 `CENTER_DUE_SNAPSHOT_WRITE_ENABLED` · `CENTER_LEGACY_LINK_ENABLED` · `CENTER_SMS_WRITE_ENABLED` ·
 `ACHIEVEMENTS_ENABLED` · `DATA_COLLECTION_ENABLED` · `PASSWORD_RESET_ENABLED` · `PUBLIC_AI_ENABLED` ·
 `PREVIEW_WITHOUT_SERVICES`. Secrets: `MONGODB_URI`, `NEXTAUTH_SECRET`, `CLOUDINARY_*`,
@@ -128,13 +128,14 @@ older files are left in place as history, and this table is the authority.
 `BULKSMSBD_SENDER_ID`. All are listed in `.env.example`; none are committed.
 
 Note against SPEC §4 ("no core feature hidden behind a disabled-by-default switch"): the exam write
-gate, the snapshot gate and the SMS gate currently do exactly that. R2 and R5 must turn SMS and
-exams into normal features (mock provider first), and the snapshot confirm checkbox should be
-revisited in R6.
+gate, the snapshot gate and the SMS gate did exactly that. R2 made SMS a normal feature (mock
+provider first), **R5 retired the exam write gate**, and the snapshot confirm checkbox is R6 work.
 
-`npm run verify` sets `CENTER_EXAM_WRITE_ENABLED=true` for the disposable test database only, so
-verification demonstrates the exam flow instead of asserting a disabled button. No production
-default was changed.
+`CENTER_EXAM_WRITE_ENABLED` no longer exists in the code. Exams are written in normal mode and
+authorization is by role and by the class groups a teacher is assigned to
+(`src/lib/exams/exam-scope.ts`), so `npm run verify` demonstrates the same flow the owner gets:
+create → marks → grade, point and position → publish. The name survives in `.env.example` only as a
+note for anybody holding an old `.env`.
 
 ## 6. Owner decisions
 
@@ -590,3 +591,541 @@ past class and an empty reason each refuse with a sentence in both languages, an
 allowed to carry are masks — no digits, no family key. Described in `docs/R3-COVERAGE.md` §13 and
 photographed at 360 px and 1440 px in `screenshots/r3/` (`b3-handoff-*`). **Still owed, in the owner's
 order:** the import wizard, then the funnel reports and CSV export.
+
+---
+
+## R1 leftovers closed, and the language scan at zero (step 3, 2026-11-14)
+
+**Testimonials / social proof.** A testimonial is an ordinary `editorial` kind, so the list on
+`/admin/content` already carried the full Recycle Bin contract — `RowControls kind="editorial"`
+(soft delete and archive by role), the bin's restore and 30-day purge, and the 10-second undo toast,
+which lives in `RecycleToastHost` in the admin layout precisely so the window survives the row it
+undoes (`src/components/admin/recycle-toast-host.tsx`, window in `action-feedback.tsx`). What was
+missing was the proof: `tests/recycle-bin.integration.ts` §8 now bins a published testimonial, shows
+it leave the public list at query time and return on restore, and §9 proves the two account reference
+blocks — a managed staff role and a legacy student profile each make an account **disable-only**
+(`archiveSet:{active:false}`), the bin refusing with `recycleBin.kinds.accountStaffRole` /
+`...accountStudentProfiles` in both languages and writing nothing, while an account with neither
+bins and restores normally.
+
+**Written confirmations, with their proofs.** The soft-delete auto-hide is a schema-hook rule, and
+`tests/recycle-coverage.test.ts` §3 reads the registered hooks off the schema and asserts the whole
+list: `find`, `findOne`, `countDocuments` (counts), `distinct`, `findOneAndUpdate`,
+`findOneAndReplace`, `findOneAndDelete`, `updateOne`, `updateMany` (bulk updates), `deleteOne`,
+`deleteMany`, `aggregate` (aggregations) and `bulkWrite`. `populate` needs no hook of its own — it
+runs a `find` on the referenced model, so the referenced model's hook hides binned documents; that is
+proved against a live database in `tests/recycle-bin.integration.ts` §7. The one deliberate exception
+is `estimatedDocumentCount`, which cannot carry a filter and whose only caller is the storage card,
+where counting stored rows (bin included) is the correct number; the same suite asserts the exception
+stays exactly that wide. Delete, restore and purge each call `revalidateKind`
+(`src/lib/admin/recycle.ts`, on `softDelete`, `restoreRecord`, the single purge and the daily job),
+which walks the kind's `publicPaths` through `revalidatePath` for both locales — ISR pages refresh on
+the next request — and `tests/recycle-coverage.test.ts` §4 asserts every public kind has those paths
+and every private kind has none. `src/app/sitemap.ts` is `force-dynamic` and builds from the same
+public readers, so a binned slug leaves the sitemap on the next request; there is no cached sitemap
+to go stale.
+
+**The language scan is at zero, and it is a gate now.** `tests/i18n-bangla-scan.test.ts` — the third
+suite of `npm run test:i18n`, so R0.12 proves it — walked 451 files and found
+**0 lines** of Bangla interface text outside allow blocks (was 22 in 16 files). Forty-five sentences
+moved into the catalogs in both languages — a new `payHistory` group, `center.print` and
+`center.restore.*`, `achievement.sampleCard.*`, `recovery.mailSubject`/`recovery.mailBody` (the reset
+email now renders from the catalog in the locale it was asked for), `daily.dayRange`, and
+`leads.handoff.*` plus `leads.handoffReasons.*` for the not-interested chips — every Bangla value
+taken verbatim from the line it left. Six lines stay under markers written for them, each naming its
+reason — the exam band parser's Bangla digit folding, the header switcher naming
+the language it switches to, the podium glyphs inside aria-hidden artwork, the digit-conversion
+table, and the two stored-default taglines a new document starts with — beside the allowances that
+were already in place (SMS bodies, sheet-synonym tables, the channel's own titles, the PWA manifest's
+brand block, whose end marker moved onto the line it closes). No SMS template body was touched, and
+the language-ternary
+allowance `tests/i18n-routes.test.ts` carried for `src/actions/recovery.ts` is gone with it: the only
+ternary left there picks a catalog locale (`bn`/`en`), which the gate already treats as a code rather
+than a painted word. The gate counts stand at 0 hardcoded language pairs and 0 Bangla lines in route
+files, with 2458 distinct keys used at 3313 call sites, all present in both catalogs.
+
+---
+
+## Staging deployment checkpoint written down (step 4, 2026-11-14)
+
+`docs/DEPLOYMENT.md` is the operator's script for putting this build on a real staging site: a free
+Atlas M0 cluster in Singapore or Mumbai with a `readWrite`-on-`dictioncoaching`-only user and
+`0.0.0.0/0` network access (Vercel has no fixed egress IP), the complete environment template with
+every value described in `.env.example`, the Vercel project settings including function-region
+alignment with Atlas and turning preview-deployment protection off so cron and a phone can reach the
+site, the two `vercel.json` jobs at 01:00 and 07:05 Asia/Dhaka with `CRON_SECRET` (32 characters
+minimum) in the bearer header Vercel adds by itself, why IP whitelisting must be **off** at
+BulkSMSBD, and a ten-line smoke checklist to run from a phone after every deploy. **Nothing was
+deployed**: this is documentation, and the flags that could spend money or publish a child's data all
+still ship off.
+
+Two of its claims are code, so they are checked rather than trusted. `tests/deployment-doc.test.ts`
+(now the 28th suite of `test:unit:core`, and therefore R0.7's proof) asserts that `src/proxy.ts` —
+the Next 16 name for middleware, with no `middleware.ts` beside it — matches only `/`, the locale
+prefixes and paths that are not `api`, not `_next` and not a file name, so a cron call is never
+redirected to `/bn` and never loses its `Authorization` header; that `vercel.json` ships exactly the
+two daily jobs the guide names, at the schedules it prints; that §9 of the guide is ten lines long,
+because a checklist nobody finishes is not a checklist; and that every secret variable in
+`.env.example` is empty. `README.md` and the repository-root `DEPLOYMENT.md` point at the new guide,
+and the root file no longer claims SMS is unimplemented — it shipped in R2, behind `mock`.
+
+---
+
+## The visitor funnel and its CSV (R3 wave C, 2026-11-14)
+
+`/admin/leads/funnel` answers the question the owner asks at the end of a month: of the people who
+walked in, how many booked a trial, and how many of those joined. It sits in the sidebar's
+*Admissions & leads* group beside the Visitors list and the import wizard, and it is readable at
+360 px because that is where it gets read.
+
+**The definitions, written where a screen cannot quietly change them** (`src/lib/leads/funnel.ts`):
+
+- **A cohort, not a calendar.** Each row follows the visitors who arrived in that month, source or
+  class; the trial and the admission are counted on that lead whenever they happened. Counting the
+  events instead would let a February admission flatter January and produce a rate nobody could act
+  on.
+- **Evidence in two forms.** *Trial booked* is a `trialBooking` reference — the intake row the
+  hand-off wrote — or the status `trial_booked`, the operator's own word from the inline dropdown.
+  *Admitted* is an `admission` reference, a `student` reference or the status `admitted`. Both paths
+  are real, and refusing one would undercount rather than correct.
+- **Trial → admitted divides by the leads that did both.** A direct admission that never booked a
+  trial is counted in *Admitted* and in *Visitor → admitted*; leaving it in this numerator too would
+  print a rate over 100%, which reads as a broken report rather than as a fact.
+- **A rate with nobody to divide by is null and prints as a dash, never 0%.** Zero percent claims we
+  tried; an empty bucket claims nothing.
+- **Empty buckets print.** All five sources and all thirteen class buckets (twelve plus *no class
+  read*) appear even at zero — a source that stopped bringing visitors is the interesting row, and
+  the CSV keeps one shape month to month. Months are the exception: only months holding a lead
+  appear, plus every month inside a from/to range the operator chose, up to a 60-month cap.
+- **Binned leads are not counted**, because the query goes through `Lead.aggregate` and carries the
+  Recycle Bin hook — the report and the Visitors list cannot disagree.
+- **Two aggregations, one filter.** The buckets and the cohort total are separate queries on purpose:
+  if a bucket expression ever dropped a lead the two would disagree, and the suites assert they do
+  not, in all three breakdowns.
+
+**Digits and words.** Every label comes from `leads.funnel.*` in both catalogs from the first line
+(28 new keys, plus the sidebar's `adminRedesign.items.leadsFunnel`); months and classes are rendered
+by the shared `formatMonth` (new, beside `formatDate` and `formatClass`) and `formatNumber`, so a
+Bangla screen reads `জানুয়ারি ২০২৬` and `৬৬.৭%` while an English screen reads `January 2026` and
+`66.7%`, with the digits following the operator's own preference exactly as the other 28 admin
+screens do.
+
+**The CSV is the table on screen.** A client component builds it from the rows the page already
+rendered — one source of truth, no second query, no new route to authorize. It is byte-order-marked
+so Excel reads the Bangla labels, CRLF-separated, every label quoted, a cell that begins like a
+formula neutralized with a leading apostrophe (the same defence the admissions export uses), and the
+numbers go out **bare and in Latin digits**: a spreadsheet is data, and Excel cannot add up `৪১.৭`.
+The file is named for its breakdown and its Dhaka day.
+
+**Proofs.** `tests/lead-funnel.test.ts` (no database) pins the rounding, the null denominators, the
+vocabulary checks on a URL, the reversed-range swap, the bucket lists, the month fill and its cap,
+and the CSV's exact bytes. `tests/lead-funnel.integration.ts` (R3.17, disposable database) counts
+eight synthetic FAKE leads across three months, five sources and four class readings — visitors 8,
+trials 3, admitted 3, rates 37.5% / 33.3% / 37.5% — proves both kinds of evidence, the direct
+admission that does not inflate the trial rate, the ninth lead invisible once binned, every empty
+bucket printed, a chosen range filling December, the buckets adding up to the cohort in all three
+breakdowns, no phone number anywhere in the report, and an empty database reading as a report rather
+than an error. `tests/lead-funnel-browser.integration.ts` (R3.18) drives the screen in both
+languages, switches the breakdown, downloads the CSV twice and asserts its name, its BOM, its
+headers and the absence of a single Bangla digit, checks that nothing overflows at 360 px, and
+photographs 360 px and 1440 px in Bangla and English into `screenshots/r3/leads-funnel-*`.
+
+---
+
+## 17. R5 slice 1 — exams and results (verified: 55/55, run 43681561293, tag `r5-verified`)
+
+**The gate is gone.** `CENTER_EXAM_WRITE_ENABLED` was the flag that kept the experimental exam code from
+writing in production. R5 retires it: the feature is the feature, and what replaces the flag is
+authorization — `src/lib/exams/exam-scope.ts` decides, once, what each role may do and which classes it
+may touch, and every exam screen and action asks that module instead of reasoning about roles itself.
+The flag is kept in `.env.example` as a line that says it does nothing, so an operator's existing
+environment file is not silently wrong.
+
+**One workbook reader.** `src/lib/sheets/workbook.ts` reads `.xlsx`, `.xls`, `.csv` and `.txt` into the
+same `SheetGrid[]`. The teacher-CV importer and the marks importer now share it, which is why a sheet
+with an empty worksheet, a Bangla header or a comma inside a quoted cell behaves the same in both.
+
+**The rules are pure and tested without a database.** `src/lib/exams/grading.ts` (bands, points,
+percentage → grade, pass/fail, positions with ties, the class summary), `src/lib/exams/grid.ts` (reading
+one mark, a pasted block, a whole sheet, and matching a sheet row to a student) and
+`src/lib/exams/vocab.ts` (exam types, the standard scale, absence words, the student-column spellings).
+Two decisions worth naming: a mark over the full mark is **refused, not clipped**, and the sentence says
+which full mark it broke; and a class summary with nobody to average says **nothing** rather than `0`,
+because `0%` pass rate and `no results` are different facts.
+
+**Scope is read fresh, never remembered.** A teacher's scope is the `teachers` list on
+`CenterClassGroup`, read on every request — moving a teacher onto or off a class changes what they may
+mark on the next page load, with no session to invalidate. That list had nowhere to be written before
+R5: the classes screen (`/admin/students/classes`) now carries it, one tick per live teacher account,
+and the row names who takes the class so the owner can read the assignment without opening anything. An
+id that is not an active `teacher` account is refused rather than stored, because an assignment is an
+authorization and a dead entry that looks live is worse than none.
+
+**The wall around a teacher's eyes.** The teacher's exam screens are built from a scope-filtered view
+(`src/lib/exams/exam-view.ts`) that never selects fee history, dues, receipts or guardian numbers, and
+`tests/exam-flow.integration.ts` asserts it by serializing the whole view a teacher gets and searching
+it for `fee`, `payment`, `receipt`, `cash`, `due`, `amount` and `guardianPhone`. The browser suite
+asserts the same thing the way an owner would notice it: no such word on the screen and no link into the
+admin.
+
+**Sessions stay out of the rule layer.** `src/lib/exams/exam-actor.ts` holds the half that reads the
+session; `exam-scope.ts` holds the pure predicates. A plain test runner cannot import `next/navigation`,
+so a module that reached for the session could not be loaded by a suite that only wanted the rules — and
+a rule that cannot be tested without a browser is a rule nobody will test.
+
+**Proofs.** `tests/exam-rules.test.ts` (R5.1) and `tests/exam-grid.test.ts` (R5.2) run with no database,
+over a real CSV and a real XLSX built inside the suite. `tests/exam-flow.integration.ts` (R5.3) runs the
+whole flow against the disposable database, including two concurrent saves of one row settling as exactly
+one write. `tests/center-exams-browser.integration.ts` (R0.9 and R5.4) drives thirteen steps in the
+browser and photographs them at 360 px and 1440 px into `screenshots/r5/`, in both languages;
+`tests/language-sweep-browser.integration.ts` now sweeps `/teacher/exams` too, because a portal screen is
+not in the admin route tree and nothing else would have caught a hardcoded sentence there. The old
+`tests/center-exam-batch.integration.ts` is deleted: it asserted the pre-R5 signatures, and its two
+claims that nothing else made — the concurrent-save race and the revision counter — moved into R5.3.
+
+**Two scope questions, not one.** `scopeCovers(scope,classGroups)` asks whether an actor reaches *every*
+class of an exam, and it is the right question for the acts that speak for the whole exam at once:
+publishing, reshaping, choosing the scale. `scopeClasses(scope,classGroups)` asks which of those classes
+the actor may touch, and it is the right question for marks, because a teacher who takes Nine A marks Nine
+A inside an exam that also covers Nine B. R5 shipped with the write asking the wider question, so the grid
+a teacher was shown — already narrowed by the view — refused to save behind their back. Both now live in
+`exam-scope.ts` side by side, and `exam-view.ts` reads its `visibleClasses` through `scopeClasses` so the
+screen and the write cannot drift apart again. The actor's slice travels into the engine as
+`allowedClasses` and narrows the roster *inside the write transaction*, because a check made outside a
+transaction is a check against a database that may have moved by the time the mark lands. A refused row
+answers `STUDENT_UNAVAILABLE` — the same sentence the engine gives for a student who is not in the exam at
+all, so a forged row learns nothing about whose class is whose.
+
+**Digits are a promise that reaches the numbers inside sentences.** next-intl leaves an ICU number
+argument exactly as it was passed, whatever the locale, so `t('grid.errors.outOfRange',{full:100})` painted
+`100` in the middle of an otherwise Bangla refusal on a `/bn` address — the words were Bangla and the number
+was not, which is the same breach a hardcoded sentence would be and considerably harder to see. Every
+numeric parameter now goes through `inDigits(digits)` in `src/lib/admin/format.ts`, and every count, total
+and date through `formatNumber`/`formatDate`: cell refusals, the grid's status lines, the upload's counts
+and row numbers, the subject labels in the exam form, the exam dates, the result and scale counts, and the
+teacher's "your N classes" note.
+
+**"Students" is the class, not the marks.** `classSummary` answered its `students` field with the number of
+rows it was handed, and a row only reaches the summary once every subject of it is marked — so a class of
+five with one child not yet marked read "মোট শিক্ষার্থী ৪" under a label that promises the class. Both
+callers know the size of the class they are summarizing and both pass it now; the difference between that
+number and `counted` is the honest "still to mark".
+
+**A stored mark's subject is an ObjectId.** `calculateExam` compares ids as lowercase hex, and `applyMarks`
+normalizes on the way in — but the recompute inside `updateCenterExam` read the stored marks raw, so every
+row looked like a mark for a subject the exam did not have and tightening the scale of an exam anyone had
+sat failed with `INVALID_MARKS`, transaction and all. The recompute is the only reason that path exists, so
+this was the one edit guaranteed to be attempted and guaranteed to fail. It reads through `String` now.
+
+**A client component is only as translated as the provider above it.** The marks grid reads `exams` with
+`useTranslations`, and the portal is not inside the admin tree: the public layout ships only the groups the
+public site's own client components read, so on a teacher's screen the grid was handed nothing and painted
+its key paths — `exams.grid.save` where a sentence belongs. That fails no build, no type check and no server
+test; only a browser notices. The teacher's exam page now ships the one group its grid reads, through
+`pickedMessages` in `src/i18n/client-namespaces.ts` — the tightest filter there is, next to `clientMessages`,
+which subtracts what no client can read and is the right answer inside the admin tree where the shell reads
+dozens of groups. `exams` alone, and not the whole client catalog, because the groups a teacher is not given
+include the dues vocabulary that wall is built to keep off that screen.
+
+**And the check that should have existed with it.** `tests/i18n-catalog.test.ts` now walks every page against
+the layouts above it, follows its imports to the client components it renders, and fails when a group they
+read is shipped by no provider in that chain. It found the teacher's grid and eleven more routes, none of them
+R5's, and following the imports split those eleven into two very different facts.
+
+Two were broken the same way the teacher's grid was: `/practice-tests/[slug]` and the student's practice
+history both render a client component that reads `practicePublic`, unconditionally, and no provider shipped
+it — so both painted `practicePublic.exam.start` where a sentence belongs. `practicePublic` is two keys and
+the first of those routes needs no session at all, so it joined `PUBLIC_NAMESPACES`, the list the root layout
+now reads from `src/i18n/client-namespaces.ts` instead of holding its own copy of.
+
+The other ten are not broken screens and the suite says so in those words: each one imports an admin control
+that a role gate then never mounts — the student and parent fee screens pull in the invoice form and its
+student-search picker (`center`) behind `{role==='admin'&&…}`, and the materials and notices screens of all
+three portal trees pull in the publish and delete controls (`adminWork`, through `DeleteRow`) behind
+`{isAdmin&&…}`. Nothing paints. What it costs is the bundle: an admin control and the catalog group it reads
+ride along in the JavaScript of a student's fee screen. Those ten are named as debt inside the suite, in both
+directions — a route that stops being uncovered has to be struck off, and a new one fails — and the fix is to
+split the portal component from the control only an admin mounts. It is **not** to ship the group, which is
+the tempting one-line answer and the wrong one: `center` holds the dues vocabulary that the wall around a
+teacher's eyes exists to keep off a teacher's screen.
+
+**Two responsive faults, both the same CSS fact.** A grid item's automatic minimum size is its content's own
+minimum, so the marks table — deliberately `min-width:max-content` so eight columns of Bangla headings stay
+readable, inside a wrapper that scrolls — held `.center-exam-gridwrap` open at 408px and scrolled the *page*
+sideways at 360px instead of the table; and the import panel took its width from a file input, a form control
+with an intrinsic size of its own, which put the label, the help line and the preview button at right=393 on
+a 360px screen. `min-width:0` on the items hands the shrinking back to the elements that can scroll, which is
+the house fix (`.private-notice`, `.practice-question` and `.editorial-section` carry it for the same reason);
+`max-width` cannot do it, because a maximum does not lower a minimum. The overflow check now names the
+elements that escape the viewport, skipping anything inside a wrapper that scrolls, because "this screen
+overflows by 48px" is a CSS question and a screenshot does not answer it.
+
+**Verified.** Run 43681561293 on commit `0308c16`: 55 requirements PASS, 0 FAIL, 0 NOT TESTED, tag
+`r5-verified`, photographs in `screenshots/r5/`. Seven product defects and six suite defects were found on
+the way there and only in CI, because five of the seven need a browser or a database and the other two need
+both: the scope wall above, digits inside translated sentences, the summary that counted marks and called
+them students, the scale recompute, the missing provider, and the two layout faults.
+
+## 18. R5 slice 2 — the result SMS (verified: 56/56, run 43686815982)
+
+**What was missing was not the send.** `exam_result` has existed since R2 with the right purpose,
+`feeRelated:false` — so a held family still learns a result, a decision `sms-recipients.ts` makes from the
+template's own flag — and `autoSendKey:'autoResult'`; and since R5 slice 1 `publishExamAction` has called
+`autoSendClassResults` once per class of the exam, best-effort inside a `try`, so a send that fails never
+turns a published exam back into a draft. What it would have sent was the R2 body: the result is published,
+log in to the portal for details, contact `{institute_phone}`. True, and useless to the person it was for.
+§R5 of `docs/SPEC.md` fixes the sentence a family reads on result day, and that sentence names the child's
+marks, their total and their position — three numbers for which no chip existed, so the spec's wording could
+not be shipped until the chips did and something filled them.
+
+**Four new chips, all per student.** `SMS_VARIABLES` gains `exam`, `marks`, `total` and `rank`, and the
+default body is now the spec's sentence byte-for-byte with `variables` naming all five. "Per student" is the
+part that decides the design: a result message quoting the class's numbers would be worse than no message, so
+the values travel on the candidate rather than as class-wide `globalValues`, through
+`SmsCandidateStudent.values`, which `resolveRecipients` already merges under `student_name`. One consequence
+falls out for free and is now asserted: two siblings on one guardian number get **one message each**, because
+`mergeValues` refuses to merge a chip whose value differs between them — their marks are not one sentence.
+
+**`src/lib/exams/result-message.ts` builds the four strings, purely.** Given the exam name, the exam's own
+subject list and one result row's marks, total, full total and position, it returns the values or `null`.
+Three of its rules are why it is a module rather than a line in the sender: a subject the child did not sit
+reads as a dash and not as a zero, because a zero claims they sat and scored nothing, while a genuine zero
+stays a zero; subjects are listed in the exam's own order however the marks were stored, and a mark for a
+subject this exam does not have is left out; and nothing re-ranks — a tie reads as the position publishing
+wrote, since a message that disagreed with the result table would be a second and worse bug. Numbers go
+through `formatNumber(value,'bn')`, the same helper every screen uses, so an SMS and a result table cannot
+disagree about a total.
+
+**A child with nothing to report is sent nothing.** `resultMessage` returns `null` for an absent row, for a
+row whose every subject is absent, for a row publishing has not ranked, for an exam with no name or no
+subjects, and for a row with no stored total. `resultMessagesForExam` — in `exam-view.ts`, beside the other
+reads of stored results — leaves those rows out, the candidate keeps no values, and `buildSmsPlan` skips them
+as `missing_value`: counted on the batch, with the reason the operator reads there. The alternative was
+texting the family of a child who never sat that the child's total was 0 out of 150. A class with no results
+of its own — a draft exam, or one class of a multi-class exam — answers `no results` and raises no problem
+card, because nothing is broken and `publishCenterExam` already refuses an exam with no results anywhere.
+
+**Proofs.** `tests/exam-result-message.test.ts` (new, pure, `npm run test:exam:result` and part of
+`test:exams`) renders the values through the shipped template and the shipped renderer and compares what comes
+out with the spec's wording byte-for-byte, then checks the coverage fact that actually protects an operator:
+every chip of the shipped body except `student_name` — which `resolveRecipients` fills — is a key of these
+values, and no value is invented. It is asserted against the template rather than a list, so a wording change
+in the catalog fails here instead of in front of a family. The two database suites that already drove this
+send now seed a real published exam: the dialog contract asserts the exact sentence five families receive,
+including the sibling pair on one number, that the absent child is on the batch as a `missing_value` skip and
+not as a message, and that a result message carries no chip and no word about money; the problems suite
+asserts that a retried send still quotes that one child's own marks and position, and that a draft exam is
+not a problem. Registered as **R5.5**, so the registry holds 56 requirements; R2.2's "five default bodies" is
+corrected to six, and R2.8 and R2.9 each gained a clause in both languages for what their suites now prove.
+
+**One deviation from the spec, recorded rather than papered over.** §R5 says publishing *prompts* "Send
+result SMS now?". It does not. R2 built this as a settings toggle — `autoResult`, OFF by default, on the SMS
+page — which publishing honours, and R5 kept that shape, so the operator's decision is made once in advance
+and a publish does not stop to ask. The failure mode that decision creates is exactly why
+`CenterSmsAutoProblem` exists: an automatic send nobody watched has to store its own failure, and it does,
+naming the exam and the class. **Still owed in slice 2** — and delivered in §19: the student's result history
+and improvement chart, the portal Results tab for a linked student, and the on-demand report card.
+
+**Verified, and what the first attempt taught.** Run 43686815982 on commit `84b7c0a`: 56 requirements PASS,
+0 FAIL, 0 NOT TESTED, the new row being **R5.5**. The first run of this slice, on `c138ec0`, failed R2.7,
+R2.8 and R2.9 — three suite faults, not product faults, and all three of a kind no local run can reach
+because two need a database and one needs a browser:
+
+* A stored `CenterExamResult` **requires** `recordedBy`, because `ref()` in `CenterRecords.ts` sets
+  `required:true` on every reference. Both database suites died seeding the published exam the result send
+  now reads.
+* The result row has **no** `absent` field — only its per-subject marks do — and absence is recognised by the
+  grade `ABSENT` that the engine writes, which is how `examDetailView` already read it. The new reader had
+  selected a field that does not exist and the seeded row had set one that mongoose quietly dropped, so a
+  reader can now take absence from the grade and from nothing else: one convention for reading a stored
+  result, not two.
+* The dialog offers one chip per `SMS_VARIABLES` entry and that list grew from nine to thirteen, so a
+  hard-coded `9` in the browser suite was a claim about a catalog this slice had deliberately changed. It
+  now reads the length of the list the dialog itself renders, and names the four result chips separately —
+  a count alone would also pass if they were swapped for four nobody asked for.
+
+
+## 19. R5 slice 2, finished — the prompt, the history, the portal tab and the report card (verified: 59/59)
+
+§18 shipped the sentence a family reads on result day and left the three screens around it owed. This
+section closes them, and the four things it closes are four different kinds of honesty.
+
+**The publish prompt is a question, not a toggle.** `publishExamAction` has called `autoSendClassResults`
+since slice 1, gated on `CenterSettings.autoResult`, which meant the decision was made once, centre-wide,
+months before the exam — and a publish did not stop to ask. `PublishCenterExam` is now a native `<dialog>`
+holding the review box, the result-SMS box and a count, and `autoResult` only says how that box *starts*.
+Ticked, the action sends with `ignoreToggle:true`, because the person holding the mouse has just consented
+to this exam's messages, which is a stronger authority than a setting somebody left on; unticked, it
+publishes and writes no batch. Either way the screen says which happened (`publish.smsSent` /
+`publish.smsSkipped`), and either way publishing itself succeeds — a send stays best-effort.
+
+The count comes from `resultSmsAudience(examId)`, which counts **the way the send counts**: the same
+candidates from `resolveSmsSource`, the same per-student values, the same recipient rules including the
+sibling rule that refuses to merge two children on one number, the same effective template body with an
+operator's stored edit honoured, and the same chip-completeness check that makes the plan skip a family
+with nothing to quote. The only difference is that nothing is written, and the publication gate is lifted
+because at prompt time the exam is still a draft. `tests/exam-results.integration.ts` runs the real send
+afterwards and asserts the batch's `sentCount` equals the number the prompt showed: a prompt that says
+four and a send that writes two has told the operator a lie with their own software. Whether a send is
+*possible* is asked of `createSmsProvider()` and not of the environment flag, because the mock provider
+never consults it — a test-mode prompt that said "cannot send" would be wrong in the one place its numbers
+are checked.
+
+The first CI run of this slice found the one way that count could be honest-looking and still be zero.
+`resultMessage` refuses a row with no position, because a message that quoted a rank nobody earned would be
+a lie — and **positions are written by publishing**, so every row of a draft exam has none. The prompt asks
+before publishing, so it counted nothing to send for an exam holding two hundred marked rows, and the send
+that followed it wrote four messages. The fix is not to relax the refusal: the ungated reader now ranks a
+draft's rows per class with `positionOf`, the pure rule R5.1 proves, and `publishCenterExam` was changed to
+rank with the same function instead of its own inline copy of the rule — one ranking, used by the publish
+and by the count that promises what the publish will send. A stored position always wins; nothing re-ranks a
+published row.
+
+The same cross-check then found a fault in the R2 send engine, and it is worth stating plainly because it
+was invisible for four milestones. `sendChunks` grouped its rows **by phone** and transmitted the first
+message of each group, which is right for a merged sibling reminder — one sentence covering both children,
+one call, two log rows — and wrong for a result send, where `resolveRecipients` refuses to merge two
+children whose marks differ and the plan holds two items with two different bodies for one number. The
+second child's message never left, and both rows were marked `sent`, so the batch reported a transmission
+that did not happen and a guardian read about one of her two children. Grouping is now by phone **and**
+message: the merged case still takes one call, and two different sentences to one number take two. R2.8
+already claimed "two siblings on one number get one each, because their marks are not the same sentence" —
+it was asserting the log rows, and the rows were right while the wire was not.
+
+**The history and its trend.** `studentResultHistory(studentId,locale)` returns the published exams newest
+first, each with the exam's own subjects, marks, full and pass marks, total, percentage, grade and the
+position publishing wrote. Only `status:'published'`: a draft is the operator's working paper, with marks
+that may still move and positions publishing has not finished ranking, and that is one condition in one
+query rather than a filter applied in three screens. The class printed is the **result row's** class, so a
+promoted child's old report belongs to the class they sat it in, while the profile header names the class
+they are in now.
+
+`trendOf` sorts oldest first whatever order the rows were read in, takes the step between the *last* two
+exams — a good month in the middle cannot hide a bad one after it — and leaves an exam the child was
+absent from out of the line while counting it as skipped. That last rule is the one the chart exists to
+get right: an absent row is 0 percent, and plotting it would draw a collapse and a recovery that never
+happened. `chartOf` maps the whole 0–100 scale into the padded box rather than squeezing the axis to fit
+the data, spaces the exams evenly because they are a sequence and not a timeline, centres a single point
+and clamps an out-of-range percentage to the edge. Both are pure and proved in
+`tests/exam-result-trend.test.ts` (**R5.6**), which needs no database and no browser.
+
+**The portal tab reads only what it may.** There is no stored link between a portal account and a centre
+student, so the identity evidence is the phone number: it is what the result SMS is sent to and what the
+operator typed for that child. `portalResultStudents({id,role})` reads the number **from the account
+itself**, by id — a route that could hand it somebody else's phone could hand it somebody else's child —
+and matches it exactly: a student account against its own `studentPhone`, a guardian account against
+`guardianPhone` or `altPhone`. Not a pattern, not a tail: a number one digit away is another family. A
+removed student is left out, a teacher or admin session gets nothing, an account with no number gets the
+empty state. `/dashboard/results` and `/parent/results` are two routes because they are two roles, and a
+student session at the guardian's address is sent to sign in.
+
+The isolation is structural rather than a filter applied late, and the reader is the wall: it selects
+marks, totals, grades and positions and asks for no fee, payment, receipt, due or guardian number at all,
+so there is no field that could reach a student's browser. `tests/exam-results.integration.ts` (**R5.7**)
+serializes what the portal receives and walks its **keys** as well as its text for a money word in either
+language and for a phone number; `tests/exam-results-browser.integration.ts` (**R5.8**) asserts the same
+thing about the painted screen — no sibling's name, no other child's, no fee from the child's own record,
+no `/admin/` address anywhere on the page, no catalog key path where a word belongs.
+
+**The report card is printable because print is written down.** `ReportCard` quotes the stored row through
+`studentReportCard`, so a card and the exam's own result table cannot disagree about a total. The
+institute's name is `common.brand`, the same one the public site prints, because a card with a name nobody
+maintains goes out wrong the day the centre is renamed. The remarks block is a **placeholder on purpose**:
+no schema field holds a teacher's remark, and a card that printed an invented sentence under a heading
+would be forging the one part a family reads aloud — so the heading, two ruled lines and a sentence saying
+nothing has been written yet are what ships, and the space is there for a hand. `@media print` in
+`globals.css` hides the sidebar, the header, the tab bar, the toolbar and the print button by measurement,
+not by shrinking them, and the browser suite asserts each of those takes no space while the card is still
+the page — that is what makes it a report card rather than a screenshot of one. Two refusals are told
+apart: `NOT_PUBLISHED` is the centre still working, `NO_RESULT` is this child never having been in that
+exam, and a screen that said the first for both would send a parent to ask about a result that cannot
+exist.
+
+**Screens and languages.** The new suite photographs the results tab, the report card (including one under
+print media), the student's tab, the guardian's tab and the portal report card at 360 px and 1440 px into
+`screenshots/r5`, in Bangla and in English, and asserts on the English addresses that every label these
+screens own is English with English digits and English month names on the chart — while the exam keeps the
+Bangla name it was given, because an exam is stored with one name and inventing an English one would be
+inventing data. `PublishCenterExam`'s prompt is photographed by the exam suite. The two-language sweep
+(**R0.13**, reworded in the same patch) now also reads `/dashboard/results` and `/parent/results` on both
+addresses with a student and a guardian session, sweeping the portal chrome, the headline, the card head
+and the empty state — with no student record seeded, because a sweep proves language and a class group
+here would paint its Bangla name into admin screens that have always been swept with an empty database.
+Both new portal components are **server** components, and `PrintButton` is a client island whose label is
+a prop: the portal tree's client catalog is `PUBLIC_NAMESPACES`, and a client component reading `exams`
+there would paint a key path instead of a word.
+
+**Registry: 59 requirements.** New rows **R5.6** (trend and chart geometry, `test:exam:trend`), **R5.7**
+(history, card, portal identity and the prompt's count against the disposable database,
+`test:exam:results`) and **R5.8** (the screens, `tests/exam-results-browser.integration.ts`); **R5.4** and
+**R0.13** reworded in the same patch, because a registry line may claim only what its suite proves.
+
+## 20. R6 slice 1 — the money reports, the cashbook check, the statement and the export engine
+
+Five screens under `/admin/reports` — a hub, the daily collection, the monthly collection, the cashbook
+check and the year summary — plus one student's ledger statement at
+`/admin/reports/statement/[studentId]`, all gated by `requireArchiver` (super admin, admin, staff: the
+accountant at the desk; never a teacher, which slice 2's role tests will hold to the wall).
+
+The mathematics is pure and lives in `src/lib/reports/`: `collections.ts` (a day split by the operator
+who took each receipt, a month in a class-by-day matrix whose row totals, column totals and head totals
+meet at one grand total), `receipt-audit.ts` (every receipt number written twice, every gap in the
+numeric sequence bounded by the two receipts around it), `ledger.ts` (assessments, waivers, holds and
+payments in date order with a running due that ends at the outstanding sum `monthStatus` shows — the R1
+fee engine, never a copy) and `year-summary.ts` (expected, collected, outstanding, pending, waived per
+class). The database halves are `server-only` loaders beside them; `tests/report-math.test.ts` proves
+the pure half without a database, registry row R6.1.
+
+The export engine (`src/lib/reports/export.ts`) is one door for every table: `?kind=…&format=csv|xlsx`.
+The CSV reuses R2's `csvCell` — every cell quoted, formula-like ones prefixed — and the `.xlsx` is
+written here rather than imported: a store-only zip of the five workbook parts with a correct CRC32 and
+inline-string text cells no spreadsheet will evaluate. The math suite unzips it and recomputes every
+CRC. Printing follows the house convention the daily receipt and the class sheet set: everything hidden
+by visibility, `.report-print` whitelisted back — the rule the R5 report card was caught breaking.
+
+Both catalogs carry a `reports` group from the first commit of the slice; the sidebar carries a
+`reports` nav group; screenshots land in `screenshots/r6/`; registry rows R6.1–R6.5 point at the math
+suite and `tests/reports-browser.integration.ts`.
+
+## 21. R6 slice 2 — backup, usage, retention and the role wall
+
+The backup door is the narrowest in the building: `/admin/backup` and its export route answer a
+`superadmin` session and redirect everybody else, staff included — a file that holds every child's
+record and every taka the centre took is not an accountant's carry-out. The JSON export carries all
+fifteen centre collections with `passwordHash` projected away; the Excel export is one worksheet per
+collection through the same store-only zip the report engine owns. A successful export writes
+`lastBackupAt` on the settings row and one `backup.export` line in the activity log, and the Overview
+reminder — Super Admin only — counts its month from that stamp: it stands while no backup exists or
+the last one is older than thirty days, and stands down the moment an export succeeds.
+
+The database usage card and the twelve-month log trim arrived in earlier milestones and are re-proven
+here rather than assumed: `tests/backup-roles-browser.integration.ts` reads the card on the Super
+Admin's Overview against its 512 MB ceiling, calls the daily job straight against its route handler
+with a bearer secret and watches a thirteen-month-old SmsLog and ActivityLog row disappear while last
+week's stay. The role matrix is asserted in the same suite: Super Admin reads backup, reports and the
+cash desk; staff read the reports and are refused the cash desk and the backup; a teacher is refused
+all three and never lands in the admin tree at all. Registry rows R6.6–R6.8.
+
+## 22. R7 — deployment papers, go-live and handover
+
+The last milestone ships no feature: it ships the papers that let a non-engineer run the center.
+The root README was rewritten from a milestone log into a working manual — overview, stack, local
+setup (`npm ci`, env, seed, the suite list), architecture overview and a directory map naming all
+ten modules. `docs/DEPLOYMENT.md` gained the three production facts an owner cannot guess: the
+connection pool the code actually opens (`maxPoolSize: 5`, band 5–10, `src/lib/db.ts`), the masking
+rules around the BulkSMSBD key (read in one file, redacted from every string it returns or throws),
+and the segment arithmetic that prices Bangla (GSM-7 160/153, Unicode 70/67).
+
+`docs/GO-LIVE.md` is the owner's launch day: Atlas and the one-time Super Admin bootstrap
+(`npm run seed`), the Vercel environment and the no-banner check, both cron schedules, the live
+balance and the single test SMS to the owner's own phone, the progressive automatic-SMS rollout
+(receipt → due reminder → exam result, a week apart) with the emergency brake taught after it, and
+a ten-line phone smoke test. `docs/OPERATIONS.md` is the rhythm after launch: the monthly backup
+and its two offline copies, the 512 MB watch at 70% and 90% with the paid-cluster path, and the
+Recycle Bin's three verbs — hold thirty days, restore inside the window, purge deliberately.
+
+Every promise on paper is asserted against paper and code together in `tests/r7-docs.test.ts`
+(registry row R7.1): the README's setup and map, the environment template's completeness against
+every variable the source reads, the deployment facts, the go-live order — rollout before brake,
+receipt before due before results — and the operations rhythms. Docs are requirements; requirements
+get proofs.
