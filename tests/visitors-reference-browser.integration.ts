@@ -178,6 +178,13 @@ async function run(){
       console.error(`DIAG probe status=${probe?probe.status():'timeout-or-refused'} url=${probe?probe.url():''} bytes=${probeHtml.length} rows=${(probeHtml.match(/data-visitor-row/g)||[]).length} empty=${probeHtml.includes('admin-empty')} h1tag=${probeH1} panel=${probeHtml.slice(at,at+220).replace(/\s+/g,' ')}`);
       const browserHtml=await boss.page.content().catch(()=>'');
       console.error(`DIAG browser readyState=${await boss.page.evaluate(()=>document.readyState).catch(()=>'?')} scripts=${(browserHtml.match(/<script/g)||[]).length} bytes=${browserHtml.length} rowsInDom=${(browserHtml.match(/data-visitor-row/g)||[]).length}`);
+      const fs=await import('node:fs');
+      fs.mkdirSync('test-results/ci-latest/logs',{recursive:true});
+      fs.writeFileSync('test-results/ci-latest/logs/diag-leads-probe.html',probeHtml);
+      fs.writeFileSync('test-results/ci-latest/logs/diag-leads-browser.html',browserHtml);
+      console.error(`DIAG probe head=${probeHtml.slice(0,700).replace(/\s+/g,' ')}`);
+      console.error(`DIAG probe bodystart=${probeHtml.slice(probeHtml.indexOf('<body'),probeHtml.indexOf('<body')+700).replace(/\s+/g,' ')}`);
+      console.error(`DIAG browser bodystart=${browserHtml.slice(browserHtml.indexOf('<body'),browserHtml.indexOf('<body')+700).replace(/\s+/g,' ')}`);
       throw error;
     }
     await boss.page.locator('tr[data-visitor-row]').first().waitFor({timeout:90000});
