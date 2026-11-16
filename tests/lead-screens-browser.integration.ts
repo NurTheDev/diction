@@ -858,9 +858,17 @@ async function run(){
     dupPanel=await typeAdd(M1,P6);
     await dupPanel.locator('p.admin-feedback').first().waitFor({state:'visible',timeout:90000});
     assert.equal(await dupPanel.locator('[data-dup-ask]').count(),0,'a number nobody holds asks nothing');
+    /* Wait for M1's RECORD before typing M2, exactly as the merge below waits for its record: the
+       question for M2 is one indexed lookup on `phones.normalized`, so it can only appear once the
+       first entry is a row somebody else can find. The panel's own feedback paints from the response,
+       which is the same reason the next wait carries the holder count — a refusal and a slow write
+       look identical from the browser, and only the database says which one it was. */
+    await until(async()=>(await Lead.countDocuments({studentName:M1}))===1,'the first merge entry holds the number',90000);
     dupPanel=await typeAdd(M2,P6);
     const ask3=dupPanel.locator('[data-dup-ask]');
-    await ask3.waitFor({state:'visible',timeout:90000});
+    await ask3.waitFor({state:'visible',timeout:90000}).catch(async error=>{
+      throw Error(`the second duplicate question never appeared — ${error.message.split('\n')[0]} · url=${boss.page.url()} · holders of ${P6}=${await Lead.countDocuments({'phones.normalized':P6})} · panel=${JSON.stringify((await dupPanel.innerText().catch(()=>'(none)')).replace(/\s+/g,' ').slice(0,400))} · pageErrors=${JSON.stringify(boss.errors)}`);
+    });
     await ask3.locator('button[name="dupMerge"]').click();
     // Wait for the merge RECORD, not for the absence of a row: "M2 was never written" is true the
     // moment the question appears, so polling it would read the target before the merge commits.

@@ -267,15 +267,22 @@ async function run(){
     await goto(page,'/bn/admin','[data-daily-operations]');
 
     /* The order IS the redesign: welcome line, the day's tier, the visitor queue, the intake panels,
-       and the site's own work folded at the bottom. */
+       and the site's own work folded at the bottom. No function-valued `const` inside an evaluated
+       closure: tsx transpiles with esbuild's keepNames, which wraps a function assigned to a name in a
+       `__name(...)` helper that does not exist in the browser, so the three comparisons are written
+       out — the house shape for `page.evaluate` here is one expression per fact. */
     const order=await page.evaluate(()=>{
       const heading=document.querySelector('.overview-heading');
       const ops=document.querySelector('[data-daily-operations]');
       const intake=document.querySelector('.admin-kpis:not(.ops-kpis)');
       const site=document.querySelector('[data-site-management]');
       if(!heading||!ops||!intake||!site)return null;
-      const before=(a:Element,b:Element)=>(a.compareDocumentPosition(b)&Node.DOCUMENT_POSITION_FOLLOWING)!==0;
-      return {headingThenOps:before(heading,ops),opsThenIntake:before(ops,intake),intakeThenSite:before(intake,site)};
+      const following=Node.DOCUMENT_POSITION_FOLLOWING;
+      return {
+        headingThenOps:(heading.compareDocumentPosition(ops)&following)!==0,
+        opsThenIntake:(ops.compareDocumentPosition(intake)&following)!==0,
+        intakeThenSite:(intake.compareDocumentPosition(site)&following)!==0,
+      };
     });
     assert.ok(order,'the dashboard paints its heading, both tiers and the intake panels');
     assert.deepEqual(order,{headingThenOps:true,opsThenIntake:true,intakeThenSite:true},
