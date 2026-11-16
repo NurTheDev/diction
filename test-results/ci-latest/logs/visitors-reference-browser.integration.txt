@@ -1,3 +1,3 @@
 visitors-reference-browser: FAIL
-AssertionError [ERR_ASSERTION]: the admin's bulk bar offers মুছুন (২টি নির্বাচিত ধন্যবাদ এসএমএস পাঠান স্ট্যাটাস বদল ফলো-আপ ঠিক করুন ডিলিট নির্বাচন বাতিল)
-    at run (/home/runner/work/diction/diction/tests/visitors-reference-browser.integration.ts:326:14)
+AssertionError [ERR_ASSERTION]: the English calendar names its month in English (November ২০২৬)
+    at run (/home/runner/work/diction/diction/tests/visitors-reference-browser.integration.ts:366:12)
