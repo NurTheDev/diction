@@ -256,7 +256,13 @@ async function run(){
     await boss.page.locator('.admin-toast[role="status"]',{hasText:bn.leads.success.STATUS_CHANGED}).first().waitFor({state:'visible',timeout:60000});
     assert.ok((await toast.first().innerText()).includes(bn.leads.success.STATUS_CHANGED),'and a toast says it happened, in the catalogue\u2019s own sentence');
     await until(async()=>(await stored(FIRST))!.status==='called','the status to be written');
-    assert.equal(await boss.page.locator('tr[data-visitor-row]',{hasText:FIRST}).locator('[data-status-badge]',{hasText:statusLabel(lt,'called')}).count(),1,'the badge now reads the new status, with no Save button anywhere');
+    /* Waited for, and only then counted. The toast is raised on the way back from the write now, so it
+       no longer implies the refreshed row has been painted — the badge arrives a moment later, and an
+       instant count here would be measuring the previous render. */
+    const calledBadge=boss.page.locator('tr[data-visitor-row]',{hasText:FIRST})
+      .locator('[data-status-badge]',{hasText:statusLabel(lt,'called')});
+    await calledBadge.first().waitFor({timeout:60000});
+    assert.equal(await calledBadge.count(),1,'the badge now reads the new status, with no Save button anywhere');
 
     // ---- 3. Follow-up in two taps, then a day picked from OUR calendar.
     taps=0;
@@ -463,8 +469,12 @@ async function run(){
     /* Closing a visitor files the row away: it leaves the list the desk works from, and the show-closed
        tick is where it went. The badge is read there, with the new status on it. */
     await until(async()=>await rowOf(desk.page,LONG_NAME).count()===0,'a closed visitor to leave the default list');
-    await desk.page.locator('input[name="closed"]').check();
-    await desk.page.locator('[data-lead-filters] button[type="submit"]').click();
+    /* On a phone the Filters panel arrives collapsed and the tick lives inside it, so the desk opens
+       the panel first — the same one tap it would cost a person standing at the counter. */
+    const deskFilters=desk.page.locator('[data-lead-filters]');
+    if(await deskFilters.getAttribute('open')===null)await deskFilters.locator('summary').click();
+    await deskFilters.locator('input[name="closed"]').check();
+    await deskFilters.locator('button[type="submit"]').click();
     await rowOf(desk.page,LONG_NAME).locator('[data-status-badge]',{hasText:statusLabel(lt,'not_interested')}).waitFor({timeout:90000});
     await desk.page.locator('input[name="smsLead"]').first().check();
     const deskBulk=desk.page.locator('[data-lead-bulk-bar]');
