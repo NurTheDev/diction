@@ -43,6 +43,7 @@ import {dhakaCalendar} from '../src/lib/center/month-status';
 import {calculateStudentDues,monthKey} from '../src/lib/center/dues';
 import {formatNumber} from '../src/lib/admin/format';
 import bn from '../src/messages/bn.json';
+import enCatalogue from '../src/messages/en.json';
 
 const c=bn.center,row=c.row;
 const SHOTS=path.join('screenshots','g1');
@@ -620,7 +621,11 @@ async function run(){
     await en.page.locator('tr[data-student-row]').first().waitFor({timeout:90000});
     const enChip=rowOf(en.page,FIXTURES.dues).locator('[data-dues-chip]').first();
     assert.ok(!banglaDigits(await enChip.innerText()),`the English list reads ASCII digits (${await enChip.innerText()})`);
-    assert.ok((await en.page.locator('thead').innerText()).includes(row.who),'and its headers come from the catalogue');
+    /* The English screen is read against the English catalogue: `row` above is the Bangla one, and a
+       header that says "Student" does not include "শিক্ষার্থী" — the assertion would have failed on a
+       page that is translated correctly and passed on one that is not translated at all. */
+    assert.ok((await en.page.locator('thead').innerText()).includes(enCatalogue.center.row.who),
+      'and its headers come from the catalogue');
     /* The read-out is worth more than its digits: the months behind the total have to name themselves in
        English too, from the catalogue's own month names, or the page is half translated. */
     await enChip.click();

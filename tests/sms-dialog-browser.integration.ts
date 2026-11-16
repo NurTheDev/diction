@@ -378,7 +378,22 @@ async function run(){
     const duesHtml=await worker.page.content();
     for(const needle of [...SERVER_ONLY_NAMES,...SECRET_NAMES])assert.ok(!duesHtml.includes(needle),`a staff member’s due list never mentions ${needle}`);
     try{
-      await worker.page.goto(`${origin}/bn/admin/sms`,{waitUntil:'domcontentloaded',timeout:180000});
+      /* The due list is still settling when the suite leaves it: its own client re-read can be in
+         flight, and Chromium answers a navigation started over one with `net::ERR_ABORTED` rather than
+         with a page. That is not a refusal of the SMS screen, so the navigation is retried once the load
+         has settled — and anything else, a real refusal among it, still fails on the first attempt. */
+      let attempt=0;
+      for(;;){
+        try{
+          await worker.page.goto(`${origin}/bn/admin/sms`,{waitUntil:'domcontentloaded',timeout:180000});
+          break;
+        }catch(navigation){
+          attempt+=1;
+          if(attempt>2||!String(navigation).includes('ERR_ABORTED'))throw navigation;
+          console.error(`DIAG the navigation to /bn/admin/sms was aborted in flight; retrying (attempt ${attempt+1})`);
+          await worker.page.waitForLoadState('load',{timeout:60000}).catch(()=>{});
+        }
+      }
     }catch(error){
       console.error(`DIAG the sms page did not load for staff: url=${worker.page.url()} (${error})`);
       console.error(`DIAG body=${(await worker.page.locator('body').innerText().catch(()=>'')).slice(0,900)}`);
