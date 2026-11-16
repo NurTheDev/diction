@@ -173,7 +173,11 @@ async function run(){
       console.error(`DIAG pageerrors=${JSON.stringify(boss.errors)}`);
       const probe=await boss.context.request.get(`${origin}${list}`,{timeout:45000}).catch(()=>null);
       const probeHtml=probe?await probe.text().catch(()=>''):'';
-      console.error(`DIAG probe status=${probe?probe.status():'timeout-or-refused'} bytes=${probeHtml.length} rows=${probeHtml.includes('data-visitor-row')} h1=${probeHtml.includes(t.title)}`);
+      const probeH1=probeHtml.match(/<h1[^>]*>([^<]{0,40})<\/h1>/)?.[1]||'no-h1';
+      const at=probeHtml.indexOf('list-panel');
+      console.error(`DIAG probe status=${probe?probe.status():'timeout-or-refused'} url=${probe?probe.url():''} bytes=${probeHtml.length} rows=${(probeHtml.match(/data-visitor-row/g)||[]).length} empty=${probeHtml.includes('admin-empty')} h1tag=${probeH1} panel=${probeHtml.slice(at,at+220).replace(/\s+/g,' ')}`);
+      const browserHtml=await boss.page.content().catch(()=>'');
+      console.error(`DIAG browser readyState=${await boss.page.evaluate(()=>document.readyState).catch(()=>'?')} scripts=${(browserHtml.match(/<script/g)||[]).length} bytes=${browserHtml.length} rowsInDom=${(browserHtml.match(/data-visitor-row/g)||[]).length}`);
       throw error;
     }
     await boss.page.locator('tr[data-visitor-row]').first().waitFor({timeout:90000});
