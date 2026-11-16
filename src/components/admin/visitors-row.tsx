@@ -195,6 +195,20 @@ export function VisitorRow({row,fullPhone,canDelete,canArchive,sms,language,digi
 }
 
 /**
+ * The rows, composed on the client from plain data — the same channel the students list uses. A server
+ * component handing the browser one client row at a time is what the students page never did, and the
+ * list is one surface anyway: one component owns the map, so the page hands over data and nothing else.
+ */
+export function VisitorRows({items,canDelete,canArchive,sms,language,digits,hasCheck}:{
+  items:{row:LeadRowView;fullPhone:string}[];canDelete:boolean;canArchive:boolean;sms:LeadSmsKit|null;
+  language:Language;digits:Digits;hasCheck:boolean;
+}){
+  return <>{items.map(({row,fullPhone})=><VisitorRow key={row.id} row={row} fullPhone={fullPhone}
+    canDelete={canDelete} canArchive={canArchive} sms={sms} language={language} digits={digits}
+    hasCheck={hasCheck}/>)}</>;
+}
+
+/**
  * The bulk bar: it appears the moment a row is ticked and offers the four things an operator does to a
  * handful of visitors at once — thank them by SMS, move their status, set one follow-up day for all of
  * them, or clear them out (Delete for Admin and Super Admin, Archive for Staff).

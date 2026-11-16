@@ -391,7 +391,7 @@ async function run(){
     await until(async()=>(await stored(FIXTURES.dues))?.notes==='দ্বিতীয় নোট — তালিকা থেকেই বদলানো','the note is written');
     await until(async()=>(await stored(FIXTURES.dues))?.school==='উত্তরা মডেল স্কুল','and so is the school');
     await until(async()=>await form.count()===0,'the form closes itself once the write lands');
-    assert.ok((await rowOf(boss.page,FIXTURES.dues).locator('.student-note').innerText()).includes('দ্বিতীয় নোট'),
+    await until(async()=>(await rowOf(boss.page,FIXTURES.dues).locator('.student-note').innerText()).includes('দ্বিতীয় নোট'),
       'and the row reads the new note back without a reload');
     // Somebody else writes first: the same form, still open, is refused — and then recovers.
     await rowOf(boss.page,FIXTURES.dues).locator('[data-student-edit]').click();

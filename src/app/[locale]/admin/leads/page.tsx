@@ -15,7 +15,7 @@ import {
 import {Pagination} from '@/components/admin/pagination';
 import {LeadQuickAdd,LeadSearch} from '@/components/admin/leads-ui';
 import {LeadSmsBar,LeadSmsPicker} from '@/components/admin/lead-sms';
-import {LeadBulkBar,VisitorRow} from '@/components/admin/visitors-row';
+import {LeadBulkBar,VisitorRows} from '@/components/admin/visitors-row';
 import {FilterDayField,LeadFilters} from '@/components/admin/visitors-filters';
 import {FilterToggle,listTableClass} from '@/components/admin/list-pattern';
 
@@ -206,19 +206,9 @@ export default async function Leads({params,searchParams}:{params:Promise<{local
           <th className="visitor-status list-status">{t('colStatus')}</th><th className="visitor-follow list-follow">{t('colFollowUp')}</th>
           <th className="visitor-note list-note">{t('lastNote')}</th><th className="visitor-act list-act">{t('colActions')}</th>
         </tr></thead>
-        <tbody>{result.rows.map(row=>{
-          const view=rowView(row);
-          /**
-           * The reference row: one line, five visible controls, the badge and the chip doing the work
-           * a dropdown plus a Save button used to do. The printed number is the one raw digit this
-           * screen carries, and it comes from the rule layer's own row — never from a client — for the
-           * signed-in roles that call visitors. It is printed and nothing more: no URL, no log, no
-           * audit target, no analytics event, and every other screen still shows the mask.
-           */
-          return <VisitorRow key={row.id} row={view} canDelete={canDelete} canArchive={canArchive} sms={sms}
-            language={language} digits={digits} hasCheck={Boolean(sms)}
-            fullPhone={seesNumbers?(row.phones?.[0]?.normalized||''):''}/>;
-        })}</tbody>
+        <tbody><VisitorRows items={result.rows.map(row=>({row:rowView(row),fullPhone:seesNumbers?(row.phones?.[0]?.normalized||''):''}))}
+          canDelete={canDelete} canArchive={canArchive} sms={sms} language={language} digits={digits} hasCheck={Boolean(sms)}/></tbody>
+
       </table></div>:<div className="admin-empty">
         <p>{activeFilters||q?t('emptyFilter'):t('empty')}</p>
         <span className="admin-help">{t('emptyHelp')}</span>
