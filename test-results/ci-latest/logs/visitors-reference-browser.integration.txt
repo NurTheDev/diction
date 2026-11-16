@@ -29,7 +29,7 @@ DIAG body=মূল বিষয়বস্তুতে যান
 ▾
 টেস্ট মোড — আলাদা dictioncoaching_test ডাটাবেস
 Visitors
-Attempted to call listTableClass() from the server but listTableClass is on the client. It's not possible to invoke a client function from the server, it can only be rendered as a Component or passed to props of a Client Component. :: Error: Attempted to call listTableClass() from the server but listTableClass is on the client. It's not possible to invoke a client function from the server, it can only be rendered as a Component or passed to props of a Client Component. |     at /home/runner/work/diction/diction/.next/server/app/[locale]/admin/leads/page.js:1:9197 |
+Attempted to call listTableClass() from the server but listTableClass is on the client. It's not possible to invoke a client function from the server, it can only be rendered as a Component or passed to props of a Client Component. :: Error: Attempted to call listTableClass() from the server but listTableClass is on the client. It's not possible to invoke a client function from the server, it can only be rendered as a Component or passed to props of a Client Component. |     at /home/runner/work/diction/diction/.next/server/app/[locale]/admin/leads/page.js:1:9983 |
 DIAG pageerrors=[]
 DIAG probe status=200 url=http://localhost:3111/bn/admin/leads bytes=240092 rows=0 empty=false h1tag=Visitors panel=
 DIAG browser readyState=complete scripts=11 bytes=240133 rowsInDom=0

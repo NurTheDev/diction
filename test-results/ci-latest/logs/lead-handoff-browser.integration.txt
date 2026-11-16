@@ -31,7 +31,7 @@ Diction
 মেনু
 টেস্ট মোড
 Visitors
-Attempted to call listTableClass() from the server but listTableClass is on the client. It's not possible to invoke a client function from the server, it can only be rendered as a Component or passed to props of a Client Component. :: Error: Attempted to call listTableClass() from the server but listTableClass is on the client. It's not possible to invoke a client function from the server, it can only be rendered as a Component or passed to props of a Client Component. |     at /home/runner/work/diction/diction/.next/server/app/[locale]/admin/leads/page.js:1:9197 |     at x (/home/runner/work/diction/
+Attempted to call listTableClass() from the server but listTableClass is on the client. It's not possible to invoke a client function from the server, it can only be rendered as a Component or passed to props of a Client Component. :: Error: Attempted to call listTableClass() from the server but listTableClass is on the client. It's not possible to invoke a client function from the server, it can only be rendered as a Component or passed to props of a Client Component. |     at /home/runner/work/diction/diction/.next/server/app/[locale]/admin/leads/page.js:1:9983 |     at x (/home/runner/work/diction/
 DIAG pageerrors=[]
 DIAG probe status=200 bytes=239541 rows=false h1=true
 locator.waitFor: Timeout 60000ms exceeded.
