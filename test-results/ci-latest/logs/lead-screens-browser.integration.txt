@@ -31,8 +31,8 @@ DIAG body=মূল বিষয়বস্তুতে যান
 তথ্য লোড করা যায়নি। ডাটাবেস সংযোগ ও অনুমতি যাচাই করুন।
 ফিরে যান
 DIAG pageerrors=[]
-DIAG probe status=200 url=http://localhost:3111/bn/admin/leads bytes=237306 rows=0 empty=false h1tag=no-h1 panel=
-DIAG browser readyState=complete scripts=9 bytes=237568 rowsInDom=0
+DIAG probe status=200 url=http://localhost:3111/bn/admin/leads bytes=237307 rows=0 empty=false h1tag=no-h1 panel=
+DIAG browser readyState=complete scripts=9 bytes=237570 rowsInDom=0
 locator.waitFor: Timeout 60000ms exceeded.
 Call log:
   - waiting for locator('h1').filter({ hasText: 'ভিজিটর' }).first() to be visible

@@ -31,8 +31,11 @@ DIAG body=মূল বিষয়বস্তুতে যান
 তথ্য লোড করা যায়নি। ডাটাবেস সংযোগ ও অনুমতি যাচাই করুন।
 ফিরে যান
 DIAG pageerrors=[]
-DIAG probe status=200 url=http://localhost:3111/bn/admin/leads bytes=237306 rows=0 empty=false h1tag=no-h1 panel=
-DIAG browser readyState=complete scripts=9 bytes=237568 rowsInDom=0
+DIAG probe status=200 url=http://localhost:3111/bn/admin/leads bytes=237307 rows=0 empty=false h1tag=no-h1 panel=
+DIAG browser readyState=complete scripts=9 bytes=237570 rowsInDom=0
+DIAG probe head=<!DOCTYPE html><html lang="bn" data-scroll-behavior="smooth" class="__variable_88e097 __variable_e401dd __variable_528daf" style="--brand-primary:#2E3192;--brand-action:#C51920"><head><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="preload" as="image" imageSrcSet="/_next/image?url=%2Fbrand%2Flogo.png&amp;w=128&amp;q=75 1x, /_next/image?url=%2Fbrand%2Flogo.png&amp;w=256&amp;q=75 2x"/><link rel="stylesheet" href="/_next/static/css/58b39b0c58160959.css" data-precedence="next"/><link rel="stylesheet" href="/_next/static/css/445a87c9b8f6cb8a.css" data-precedence="next"/><link rel="preload" as="script" fetchPriority="low" href="/_next/static/c
+DIAG probe bodystart=<body><div hidden=""><!--$--><!--/$--></div><a class="skip-link" href="#main-content">মূল বিষয়বস্তুতে যান</a><noscript><div class="noscript-note" role="status">ফর্ম, ফিল্টার ও অন্যান্য ইন্টারেক্টিভ সুবিধা ব্যবহার করতে আপনার ব্রাউজারে জাভাস্ক্রিপ্ট চালু করুন। মেনুর লিংকগুলো ব্যবহার করতে পারবেন।</div></noscript><div class="topbar"><div class="wrap topinner"><div class="top-left"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sun"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.
+DIAG browser bodystart=<body><div hidden=""><!--$--><!--/$--></div><a class="skip-link" href="#main-content">মূল বিষয়বস্তুতে যান</a><noscript><div class="noscript-note" role="status">ফর্ম, ফিল্টার ও অন্যান্য ইন্টারেক্টিভ সুবিধা ব্যবহার করতে আপনার ব্রাউজারে জাভাস্ক্রিপ্ট চালু করুন। মেনুর লিংকগুলো ব্যবহার করতে পারবেন।</div></noscript><div class="topbar"><div class="wrap topinner"><div class="top-left"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sun"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.
 visitors-reference-browser: FAIL
 locator.waitFor: Timeout 60000ms exceeded.
 Call log:
