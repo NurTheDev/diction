@@ -1,4 +1,4 @@
-DIAG the sms page did not load for staff: url=http://localhost:3111/bn/admin/students/dues?class=6afaa6e770a3caf02b404df2 (Error: page.goto: net::ERR_ABORTED at http://localhost:3111/bn/admin/sms
+DIAG the sms page did not load for staff: url=http://localhost:3111/bn/admin/students/dues?class=6afaacf658320175a78cf4aa (Error: page.goto: net::ERR_ABORTED at http://localhost:3111/bn/admin/sms
 Call log:
   - navigating to "http://localhost:3111/bn/admin/sms", waiting until "domcontentloaded"
 )
@@ -38,6 +38,7 @@ Synthetic staff
 
 আজ কল করার মতো কিছু নেই।
 DIAG pageerrors=[]
+DIAG probe dues-as-staff status=200 bytes=235146 final=http://localhost:3111/bn/admin/students/dues?class=6afaacf658320175a78cf4aa smsOpen=false
 page.goto: net::ERR_ABORTED at http://localhost:3111/bn/admin/sms
 Call log:
   - navigating to "http://localhost:3111/bn/admin/sms", waiting until "domcontentloaded"

@@ -33,12 +33,13 @@ Diction
 তথ্য লোড করা যায়নি। ডাটাবেস সংযোগ ও অনুমতি যাচাই করুন।
 ফিরে যান
 DIAG pageerrors=[]
+DIAG probe status=200 bytes=236758 rows=false h1=true
 locator.waitFor: Timeout 60000ms exceeded.
 Call log:
   - waiting for locator('h1').filter({ hasText: 'ভিজিটর' }).first() to be visible
 
     at openDrawer (/home/runner/work/diction/diction/tests/lead-handoff-browser.integration.ts:150:60)
-    at async run (/home/runner/work/diction/diction/tests/lead-handoff-browser.integration.ts:179:16) {
+    at async run (/home/runner/work/diction/diction/tests/lead-handoff-browser.integration.ts:182:16) {
   log: [
     "  - waiting for locator('h1').filter({ hasText: 'ভিজিটর' }).first() to be visible"
   ],
