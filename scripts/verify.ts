@@ -411,6 +411,16 @@ async function main():Promise<void>{
        says every sentence these five screens paint lives in both catalogs and in no route file. */
     await stepUnitSuites(ctx,'test:r9:fields','R9.7','Every field the routine schema holds is editable: each path of MasterRoutine, DailyRoutine and TeachingAssignment bound to a named control, the system\u2019s own paths left read-only, the covered count asserted');
     await stepUnitSuites(ctx,'test:r9:copy','R9.8','The routine\u2019s words belong to the catalogs: every key the routine screens paint resolves in bn.json and en.json, both catalogs whole, no hardcoded pair or line of Bangla in a route file');
+    /* O1 · operational polish. Six rows, each its own script because each names a different claim: the
+       routine's own arithmetic, the percentage a grade is read from, the grid a mark is typed into, the
+       button every write goes through, the one door to exams and results, and the class a roll hangs
+       from. The two browser rows below are proved by one suite, run once. */
+    await stepUnitSuites(ctx,'test:o1:time','O1.1','A period is as long as the centre says and the next one starts where the last one ended: presets, custom lengths, the 23:55 clamp, every five-minute step, the paper shifts and the chain seed');
+    await stepUnitSuites(ctx,'test:o1:grading','O1.2','A grade is a percentage of whatever the full marks happen to be: 25/30 an A+, 38/50 an A, 8/20 a C, every band edge, and no hard-coded 100 anywhere');
+    await stepUnitSuites(ctx,'test:o1:grid','O1.3','The marks grid is a grid an operator types into: roll order read as numbers, every enrolled child painted, Enter down and Tab across, the import one folded button');
+    await stepUnitSuites(ctx,'test:o1:feedback','O1.4','Every write says it is writing and is answered top-right: one button behind fourteen controls, one skeleton above every admin address, and a toast for every mutation');
+    await stepUnitSuites(ctx,'test:o1:menu','O1.5','One door to exams and results, the old addresses forwarding to it, and the class screen with its own gated door');
+    await stepUnitSuites(ctx,'test:o1:classes','O1.6','A class is a place, a set of hours, a roll and its batches: the record, the shape of a write, the guards behind it and the screen that reads them');
     await stepUnitSuites(ctx,'test:g3:copy','G3.6','The plain-language sweep: no shipped value says snapshot, write enabled or reconciliation in either language, both catalogues whole, no hardcoded pair in a route file');
     await stepScreens(ctx);
     await stepBrowserTests(ctx);

@@ -23,6 +23,7 @@ import {useLocale,useTranslations} from 'next-intl';
 import {BanglaDate} from './bangla-date';
 import {useClashSentence} from './routine-drawer';
 import {showRecycleToast} from './recycle-toast-host';
+import {SubmitButton} from './submit-button';
 import {applyReplaceTeacherAction,bulkEditPeriodsAction,duplicateDayAction,moveDayAction,
   previewReplaceTeacherAction,type RoutineActionState} from '@/actions/routine';
 import type {ReplaceRow} from '@/lib/routine/bulk';
@@ -153,10 +154,10 @@ function BulkForm({props,onDone}:{props:RoutineToolsProps;onDone:(message:string
     <ClashBanner state={state} digits={digits}/>
     <Refused state={state} hook="bulk"/>
     <div className="routine-form-actions">
-      <button type="submit" className="button button-navy" disabled={pending} data-bulk-apply>
-        {t('bulk.apply')}</button>
-      {state.status==='clash'&&<button type="submit" name="force" value="on" disabled={pending}
-        className="button routine-save-anyway" data-bulk-force>{t('bulk.anyway')}</button>}
+      <SubmitButton pending={pending} data-bulk-apply busyLabel={t('period.saving')} label={t('bulk.apply')}/>
+      {state.status==='clash'&&<SubmitButton pending={pending} name="force" value="on"
+        className="button routine-save-anyway" data-bulk-force busyLabel={t('period.saving')}
+        label={t('bulk.anyway')}/>}
       <button type="button" className="admin-mini-button" onClick={onClear} data-bulk-clear>
         {t('bulk.clear')}</button>
     </div>
@@ -257,8 +258,8 @@ function ReplaceForm({props}:{props:RoutineToolsProps}){
       </label>
       <Refused state={preview} hook="replace-preview"/>
       <div className="routine-form-actions">
-        <button type="submit" className="button button-navy" disabled={previewPending} data-replace-show>
-          {t('replace.preview')}</button>
+        <SubmitButton pending={previewPending} data-replace-show busyLabel={t('period.saving')}
+          label={t('replace.preview')}/>
       </div>
     </form>
 
@@ -291,10 +292,11 @@ function ReplaceForm({props}:{props:RoutineToolsProps}){
         <Refused state={state} hook="replace"/>
         {done&&<p className="admin-feedback ok" data-replace-done>{done}</p>}
         <div className="routine-form-actions">
-          <button type="submit" className="button button-navy" disabled={pending} data-replace-run>
-            {t('replace.apply')}</button>
-          {state.status==='clash'&&<button type="submit" name="force" value="on" disabled={pending}
-            className="button routine-save-anyway" data-replace-force>{t('replace.anyway')}</button>}
+          <SubmitButton pending={pending} data-replace-run busyLabel={t('period.saving')}
+            label={t('replace.apply')}/>
+          {state.status==='clash'&&<SubmitButton pending={pending} name="force" value="on"
+            className="button routine-save-anyway" data-replace-force busyLabel={t('period.saving')}
+            label={t('replace.anyway')}/>}
         </div>
       </form>
     </>}
@@ -361,10 +363,11 @@ function DayOpForm({kind,classId,shift,from,weekdays,digits,onDone}:{
     <Refused state={state} hook={hook}/>
     {done&&<p className="admin-feedback ok" data-dayop-done={hook}>{done}</p>}
     <div className="routine-form-actions">
-      <button type="submit" className="button button-navy" disabled={pending} data-dayop-run={hook}>
-        {t(kind==='move'?'dayOps.move':'dayOps.duplicate')}</button>
-      {state.status==='clash'&&<button type="submit" name="force" value="on" disabled={pending}
-        className="button routine-save-anyway" data-dayop-force={hook}>{t('dayOps.anyway')}</button>}
+      <SubmitButton pending={pending} data-dayop-run={hook} busyLabel={t('period.saving')}
+        label={t(kind==='move'?'dayOps.move':'dayOps.duplicate')}/>
+      {state.status==='clash'&&<SubmitButton pending={pending} name="force" value="on"
+        className="button routine-save-anyway" data-dayop-force={hook} busyLabel={t('period.saving')}
+        label={t('dayOps.anyway')}/>}
     </div>
   </form>;
 }

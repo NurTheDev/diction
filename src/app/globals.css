@@ -425,7 +425,7 @@ html:lang(bn) .public-motion-root:not(.private-motion-disabled) :is(h1,h2,h3,h4)
 .admin-shell .admin-edit :is(input,select,textarea){font-size:16px}
 .admin-shell .admin-badge.pending,.admin-shell .admin-badge.unread{color:#865000}.admin-shell .admin-badge.approved,.admin-shell .admin-badge.enrolled,.admin-shell .admin-badge.booked,.admin-shell .admin-badge.enabled{color:#006b34}.admin-shell .admin-badge.rejected,.admin-shell .admin-badge.cancelled,.admin-shell .admin-badge.disabled{color:#a22529}.admin-skeleton{display:grid;gap:12px}.admin-skeleton span{display:block;background:#d9deee;border-radius:8px;height:72px}.admin-skeleton span:first-child{height:110px}
 .admin-settings-nav{overflow:visible;flex-wrap:wrap}.admin-settings-tabs{display:flex;flex-wrap:wrap;gap:8px}.admin-settings-nav a{display:inline-flex;align-items:center}
-.admin-toast{position:fixed;z-index:80;right:24px;bottom:24px;display:flex;align-items:center;gap:16px;max-width:min(420px,calc(100vw - 32px));padding:12px 16px;background:#e5f6eb;border:1px solid #83c69d;border-radius:8px;box-shadow:0 6px 24px #1a1d3a20;color:#006b34;font-size:15px}.admin-toast.error{background:#fff1f1;border-color:#e39a9c;color:#a11218}.admin-toast button{min-width:44px;min-height:44px;background:transparent;border:0;color:inherit;font-size:22px}@media(max-width:760px){.admin-toast{bottom:calc(68px + env(safe-area-inset-bottom));right:16px;left:16px;max-width:none}}
+.admin-toast{position:fixed;z-index:80;right:24px;top:24px;display:flex;align-items:center;gap:16px;max-width:min(420px,calc(100vw - 32px));padding:12px 16px;background:#e5f6eb;border:1px solid #83c69d;border-radius:8px;box-shadow:0 6px 24px #1a1d3a20;color:#006b34;font-size:15px}.admin-toast.error{background:#fff1f1;border-color:#e39a9c;color:#a11218}.admin-toast button{min-width:44px;min-height:44px;background:transparent;border:0;color:inherit;font-size:22px}@media(max-width:760px){.admin-toast{top:calc(12px + env(safe-area-inset-top));bottom:auto;right:16px;left:16px;max-width:none}}
 /* Round 2: calm, consistent administrative typography and hierarchy. */
 @font-face{font-family:AdminHind;src:url('/fonts/hind-siliguri-latin-400.woff2') format('woff2');font-weight:400;font-display:swap}
 @font-face{font-family:AdminHind;src:url('/fonts/hind-siliguri-latin-500.woff2') format('woff2');font-weight:500;font-display:swap}
@@ -1328,4 +1328,63 @@ html:lang(bn) .public-motion-root:not(.private-motion-disabled) :is(h1,h2,h3,h4)
   .routine-replace-rows li,.teacher-rows li{grid-template-columns:minmax(0,1fr)}
   .dispatch-message{padding:12px}
   .routine-tools{padding:12px 14px}
+}
+
+/* ── O1 · operational polish ──────────────────────────────────────────────────────────────────────
+   The four things a screen owes an operator who is doing this sixty times a day: a period length that
+   can be picked instead of summed, both clocks at once, a save that says it is saving, and a toast that
+   arrives where the eye already is — the top right, out of the way of the thumb bar and the table. */
+.routine-duration{display:grid;gap:6px;margin:2px 0 4px}
+.routine-duration-word{font-size:13px;color:#4a5072}
+.routine-duration-chips{display:flex;flex-wrap:wrap;gap:8px}
+.routine-chip{min-height:40px;padding:7px 14px;border:1px solid #c9d0e6;border-radius:999px;background:#fff;
+  color:#232a52;font-size:14px;cursor:pointer}
+.routine-chip:hover{border-color:#2e3192}
+.routine-chip-on{border-color:#2e3192;background:#e9ecff;color:#2e3192;font-weight:600}
+.routine-time-typed input{max-width:120px;min-height:40px}
+.routine-time-clocks{display:flex;flex-wrap:wrap;gap:12px;font-size:13px;color:#4a5072}
+.routine-day-add{display:grid;gap:6px;justify-items:start;margin-top:12px}
+.routine-day-add .admin-help{font-size:12px}
+.routine-add-plain{margin-top:2px}
+/* A save that is saving: the button is disabled, its word changes, and a spinner turns beside it. */
+.admin-spinner{display:inline-block;width:14px;height:14px;border-radius:50%;border:2px solid currentColor;
+  border-right-color:transparent;animation:admin-spin .7s linear infinite;vertical-align:-2px;flex:none}
+@keyframes admin-spin{to{transform:rotate(360deg)}}
+.button-busy{display:inline-flex;align-items:center;gap:8px}
+@media(prefers-reduced-motion:reduce){.admin-spinner{animation:none;border-right-color:currentColor;opacity:.55}}
+/* The skeleton a screen shows while its own numbers are being fetched, instead of a white page. */
+.admin-skeleton .admin-skeleton-head{height:34px;width:min(360px,70%);border-radius:8px;background:#d9deee}
+.admin-skeleton-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
+.admin-skeleton-kpis span{height:74px}
+.admin-skeleton-rows span{height:46px}
+.admin-skeleton-rows span:nth-child(odd){opacity:.72}
+@keyframes admin-skeleton-pulse{0%,100%{opacity:.55}50%{opacity:.95}}
+.admin-skeleton span,.admin-skeleton-head{animation:admin-skeleton-pulse 1.4s ease-in-out infinite}
+@media(prefers-reduced-motion:reduce){.admin-skeleton span,.admin-skeleton-head{animation:none}}
+/* The class and batch cards: one card per class, its own facts and its own three ways in. */
+.class-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.class-card{display:grid;gap:8px;padding:16px;border:1px solid #d9deee;border-radius:12px;background:#fff}
+.class-card-head{display:flex;align-items:flex-start;gap:10px;justify-content:space-between}
+.class-card-head h2{margin:0;font-size:19px}
+.class-card-head small{display:block;color:#4a5072;font-size:13px}
+.class-card-facts{display:grid;gap:4px;font-size:14px;color:#232a52}
+.class-card-facts b{color:#1a1d3a}
+.class-card-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.class-card-more{margin-left:auto}
+.class-shift-chips{display:flex;flex-wrap:wrap;gap:6px}
+.class-form-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.class-form-grid label{display:grid;gap:4px}
+.class-modal{width:min(720px,calc(100vw - 32px));max-height:calc(100dvh - 48px);overflow:auto;border:1px solid #c5cce0;
+  border-radius:14px;padding:0;background:#fff}
+.class-modal::backdrop{background:#11132d99}
+.class-modal-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;
+  border-bottom:1px solid #e5e8f4}
+.class-modal-head h2{margin:0;font-size:20px}
+.class-modal-body{display:grid;gap:12px;padding:18px}
+.class-toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
+.class-toolbar .admin-help{margin-right:auto}
+@media(max-width:760px){
+  .class-cards{grid-template-columns:minmax(0,1fr)}
+  .class-modal{width:100vw;max-width:none;height:100dvh;max-height:none;border:0;border-radius:0}
+  .class-card-actions .admin-mini-button,.class-card-actions .button{flex:1 1 calc(50% - 4px);min-height:46px}
 }

@@ -10,7 +10,14 @@ const ref=(name:string)=>({type:Schema.Types.ObjectId,ref:name,required:true});
 /* R5: which teachers take this class. A teacher's whole scope is this list — it is the only thing that
    decides which marks grid they may open, and it is stored on the class because that is where the owner
    reads it ("who takes 9-A?"), not on the account. A class with nobody assigned is nobody's to mark. */
-const groupSchema=new Schema({name:text,level:{type:String,trim:true,maxlength:80,default:''},shift:{type:String,trim:true,maxlength:100,default:''},academicYear:{type:Number,required:true,min:1900,max:2200,validate:Number.isSafeInteger},active:{type:Boolean,default:true},/* Group 3: what a month in this class costs. Fees live per student in
+/* O1 · a class is a place and a set of hours, and the owner's own sheet says so on one card.
+   `shift` stays what it always was — the one shift a routine is written for — because the timetable
+   reads it; `shifts` is the wider truth (a class that runs both a morning and an evening batch holds
+   both), and `room` is the room the class is taught in by default, the number a period card falls back
+   to. Both are optional with empty defaults, so every class written before them keeps saying exactly
+   what it always said. */
+const groupSchema=new Schema({name:text,level:{type:String,trim:true,maxlength:80,default:''},shift:{type:String,trim:true,maxlength:100,default:''},
+   shifts:{type:[{type:String,trim:true,maxlength:40}],default:[]},room:{type:String,trim:true,maxlength:80,default:''},academicYear:{type:Number,required:true,min:1900,max:2200,validate:Number.isSafeInteger},active:{type:Boolean,default:true},/* Group 3: what a month in this class costs. Fees live per student in
    `feeHistory` and stay the truth a receipt is checked against; this is the class's own advertised month,
    the number the hub header shows and a new enrolment starts from. Zero means "not set", not "free". */
    monthlyFee:{type:Number,default:0,min:0,max:100000000,validate:Number.isSafeInteger},order:{type:Number,default:0,min:0,max:10000,validate:Number.isSafeInteger},teachers:{type:[{type:Schema.Types.ObjectId,ref:'User'}],default:[]}},{timestamps:true});addRecycleFields(groupSchema);

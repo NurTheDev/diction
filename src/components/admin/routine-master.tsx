@@ -19,7 +19,8 @@
 import {useActionState,useEffect,useRef,useState} from 'react';
 import {useRouter} from 'next/navigation';
 import {useTranslations} from 'next-intl';
-import {RoutineDrawer,TimeField,useClashSentence} from './routine-drawer';
+import {DurationChips,RoutineDrawer,TimeField,chainedEnd,durationOf,useClashSentence} from './routine-drawer';
+import {SubmitButton} from './submit-button';
 import {RoutineDayOps,RoutineTools,type BulkPicked} from './routine-tools';
 import {RoutineHistory} from './routine-history';
 import {RowControls} from './row-controls';
@@ -29,7 +30,7 @@ import {saveMasterDayAction,saveMasterPeriodAction,deleteMasterPeriodAction,rest
 import {dayTotals,type RoutineClash} from '@/lib/routine/conflicts';
 import type {MasterDayView,PeriodView,RoutineTeacher} from '@/lib/routine/read';
 import {formatNumber,type Digits} from '@/lib/admin/format';
-import {rangeWord} from '@/lib/routine/time';
+import {DEFAULT_PERIOD_MINUTES,endAfter,nextPeriodSeed,rangeWord,type ChainSeed} from '@/lib/routine/time';
 
 const idle:RoutineActionState={status:'idle'};
 
@@ -109,8 +110,17 @@ function PeriodDeleteControl({classId,shift,periodId,name,onDone}:{
 }
 
 /** The period editor: every field of a period, and the day it belongs to. */
-function MasterPeriodDrawer({target,onClose,props}:{
-  target:{weekday:number;period:PeriodView|null}|null;onClose:()=>void;props:RoutineMasterProps;
+/**
+ * One period's editor.
+ *
+ * `target.seed` is what "+ the next period" hands it: the times and the sequence a day's own last
+ * period implies, worked out by `nextPeriodSeed` rather than by this drawer. `onDuration` reports the
+ * chip the operator pressed back to the board, so the next period the board offers is chained to the
+ * length the centre is actually running today and not to a default nobody chose.
+ */
+function MasterPeriodDrawer({target,onClose,onDuration,props}:{
+  target:{weekday:number;period:PeriodView|null;seed?:ChainSeed}|null;onClose:()=>void;
+  onDuration:(minutes:number|null)=>void;props:RoutineMasterProps;
 }){
   const t=useTranslations('routine');
   const router=useRouter();
@@ -124,7 +134,11 @@ function MasterPeriodDrawer({target,onClose,props}:{
     router.refresh();
   },[state]);
   const joints=(props.joints.find(entry=>entry.weekday===weekday)?.options)||[];
-  const start=period?.start||'08:00',end=period?.end||'09:00';
+  const seed=target?.seed||null;
+  /* A new period starts on the chip the centre runs: fifty minutes from eight, or from wherever the
+     day's own last period ended when the chain button opened this drawer. */
+  const start=period?.start||seed?.start||'08:00';
+  const end=period?.end||seed?.end||endAfter(start,DEFAULT_PERIOD_MINUTES);
   /* Every field lives in state, the way the daily sheet's own drawer and the assignment drawer hold
      theirs: React 19 hands a finished form action back to the form's defaults, and a save that answers
      as a warning must hand the operator the period they typed rather than an empty form, or the
@@ -132,8 +146,20 @@ function MasterPeriodDrawer({target,onClose,props}:{
      per target, so the state starts as the period being edited and then holds what is typed into it. */
   const [draft,setDraft]=useState({weekday:String(weekday),start,end,subjectBn:period?.subjectBn||'',
     subjectEn:period?.subjectEn||'',teacher:period?.teacherId||'',room:period?.room||'',
-    jointWith:period?.jointWith||'',order:String(period?.order??0),note:period?.note||''});
+    jointWith:period?.jointWith||'',order:String(period?.order??seed?.order??0),note:period?.note||''});
   const write=(patch:Partial<typeof draft>):void=>setDraft(current=>({...current,...patch}));
+  /* The length this drawer is on: the one the period's own two times press, fifty minutes for a period
+     with no times yet, and Custom for a length no chip names — so opening a drawer on a period that
+     runs fifty-five minutes never quietly moves its end. */
+  const [duration,setDuration]=useState<number|null>(()=>
+    period?durationOf(period.start,period.end):durationOf(start,end));
+  const pick=(minutes:number|null):void=>{
+    setDuration(minutes);
+    onDuration(minutes);
+    if(minutes)write({end:endAfter(draft.start,minutes)});
+  };
+  /* A start written while a chip is on drags its end along; a start written on Custom moves alone. */
+  const writeStart=(value:string):void=>write({start:value,end:chainedEnd(value,draft.end,duration)});
   const name=period?t('period.summary',{time:rangeWord(period.start,period.end,props.digits),
     subject:period.subjectBn}):t('period.newTitle');
   return <RoutineDrawer open={!!target} onClose={onClose} title={period?t('period.editorTitle'):t('period.newTitle')}>
@@ -154,10 +180,11 @@ function MasterPeriodDrawer({target,onClose,props}:{
         </select>
       </label>
       <small className="admin-help">{t('period.moveHelp')}</small>
+      <p className="admin-help" data-period-shift>{t('period.shiftLine',{shift:props.shift||t('master.noShift')})}</p>
+      <DurationChips minutes={duration} digits={props.digits} onPick={pick}/>
       <div className="routine-time-row">
         <label>{t('period.start')}
-          <TimeField name="start" value={draft.start} digits={props.digits}
-            onChange={value=>write({start:value})}/>
+          <TimeField name="start" value={draft.start} digits={props.digits} onChange={writeStart}/>
         </label>
         <label>{t('period.end')}
           <TimeField name="end" value={draft.end} digits={props.digits}
@@ -221,11 +248,11 @@ function MasterPeriodDrawer({target,onClose,props}:{
         </p>}
 
       <div className="routine-form-actions">
-        <button type="submit" className="button button-navy" disabled={pending} data-period-save>
-          {t('period.save')}
-        </button>
-        {state.status==='clash'&&<button type="submit" name="force" value="on" disabled={pending}
-          className="button routine-save-anyway" data-save-anyway>{t('period.saveAnyway')}</button>}
+        <SubmitButton pending={pending} data-period-save busyLabel={t('period.saving')}
+          label={t('period.save')}/>
+        {state.status==='clash'&&<SubmitButton pending={pending} name="force" value="on"
+          className="button routine-save-anyway" data-save-anyway busyLabel={t('period.saving')}
+          label={t('period.saveAnyway')}/>}
         <button type="button" className="admin-mini-button" onClick={onClose} data-period-cancel>
           {t('period.cancel')}
         </button>
@@ -279,7 +306,7 @@ function MasterDayDrawer({day,onClose,props}:{
       {state.status!=='ok'&&state.status!=='idle'&&
         <p role="alert" className="admin-feedback error" data-day-refused>{t('common.failed')}</p>}
       <div className="routine-form-actions">
-        <button type="submit" className="button button-navy" disabled={pending} data-day-save>{t('day.save')}</button>
+        <SubmitButton pending={pending} data-day-save busyLabel={t('period.saving')} label={t('day.save')}/>
         <button type="button" className="admin-mini-button" onClick={onClose}>{t('period.cancel')}</button>
       </div>
     </form>
@@ -293,7 +320,11 @@ function MasterDayDrawer({day,onClose,props}:{
 export function RoutineMasterBoard(props:RoutineMasterProps){
   const t=useTranslations('routine'),router=useRouter();
   const sentence=useClashSentence();
-  const [periodTarget,setPeriodTarget]=useState<{weekday:number;period:PeriodView|null}|null>(null);
+  const [periodTarget,setPeriodTarget]=useState<
+    {weekday:number;period:PeriodView|null;seed?:ChainSeed}|null>(null);
+  /* The length the chain is offering, which is the last chip an operator pressed in a drawer — fifty
+     minutes until somebody says otherwise, because that is what the centre's schedule is built from. */
+  const [chainMinutes,setChainMinutes]=useState<number>(DEFAULT_PERIOD_MINUTES);
   const [dayTarget,setDayTarget]=useState<MasterDayView|null>(null);
   /* The ticks live here, beside the cards they are on, and the tools read them from here. One day at a
      time, because a bulk edit is one write to one document — ticking a period of another day starts a
@@ -338,6 +369,12 @@ export function RoutineMasterBoard(props:RoutineMasterProps){
               {t('master.periodCount',{count:formatNumber(day.periods.length,props.digits)})}
               {totals.minutes>0?` · ${t('master.minutes',{minutes:formatNumber(totals.minutes,props.digits)})}`:''}
             </p>
+            {/* Which shift this day belongs to: the board is one class in one shift, and a card that does
+                not say so leaves an operator guessing whether they are looking at the morning or the
+                evening half of a class. */}
+            <p className="admin-help" data-day-shift={day.weekday}>
+              {t('master.shiftWord',{shift:day.shift||props.shift||t('master.noShift')})}
+            </p>
             {!day.active&&<p className="admin-badge routine-day-off" data-day-off>{t('master.dayOff')}</p>}
             <div className="routine-day-actions">
               {props.canEdit&&day.periods.length>0&&
@@ -368,7 +405,13 @@ export function RoutineMasterBoard(props:RoutineMasterProps){
                 <span className="routine-period-what">
                   <strong data-period-subject>{subjectOf(period)}</strong>
                   <span data-period-teacher>{period.teacherName||t('master.noTeacher')}</span>
-                  {period.room&&<span data-period-room>{t('master.roomWord',{room:period.room})}</span>}
+                  {period.room
+                    ? <span data-period-room>{t('master.roomWord',{room:period.room})}</span>
+                    /* A room nobody wrote is said out loud rather than left blank: on a card the blank
+                       reads as "the stylesheet hid it", and a period with no room is a question the
+                       owner has to answer before the day runs. `[data-period-room]` stays the room that
+                       was written, so a count of rooms is still a count of rooms. */
+                    : <span className="admin-help" data-period-room-none>{t('master.noRoom')}</span>}
                   {period.jointWith&&<span className="admin-badge" data-period-joint>{t('master.joint')}</span>}
                   {period.note&&<span className="admin-help" data-period-note>{period.note}</span>}
                 </span>
@@ -390,16 +433,33 @@ export function RoutineMasterBoard(props:RoutineMasterProps){
           {day.binned>0&&<p className="admin-help" data-binned-count>
             {t('master.binned',{count:formatNumber(day.binned,props.digits)})}</p>}
 
-          {props.canEdit&&<button type="button" className="button button-navy routine-add" data-add-period={day.weekday}
-            onClick={()=>setPeriodTarget({weekday:day.weekday,period:null})}>+ {t('master.addPeriod')}</button>}
+          {props.canEdit&&<div className="routine-day-add">
+            {/* The primary way in is the chain: the next period of a day starts when this day's last one
+                ends, runs the length the chips are on, and is numbered one past the day's highest — so
+                writing a day of three fifty-minute periods is three clicks and no arithmetic. */}
+            {day.periods.length>0&&
+              <button type="button" className="button button-navy routine-add routine-add-next"
+                data-add-next={day.weekday} title={t('master.nextHelp')}
+                onClick={()=>setPeriodTarget({weekday:day.weekday,period:null,
+                  seed:nextPeriodSeed(day.periods.map(period=>({start:period.start,end:period.end,
+                    order:period.order})),chainMinutes)})}>+ {t('master.addNext')}</button>}
+            <button type="button"
+              className={day.periods.length?'admin-mini-button routine-add routine-add-plain':'button button-navy routine-add'}
+              data-add-period={day.weekday}
+              onClick={()=>setPeriodTarget({weekday:day.weekday,period:null})}>+ {t('master.addPeriod')}</button>
+          </div>}
         </section>;
       })}
     </div>
 
     {/* The drawers live outside every card: a `<dialog>` inside a `<details>` in a scrolling column is a
         dialog that opens clipped, and a nested form is a form that does not submit. */}
-    <div key={periodTarget?`${periodTarget.weekday}:${periodTarget.period?.id||'new'}`:'closed'}>
-      <MasterPeriodDrawer target={periodTarget} onClose={()=>setPeriodTarget(null)} props={props}/>
+    {/* The drawer is re-keyed on the seed as well, because "+ the next period" on a day whose drawer was
+        already open this session has to arrive as a fresh draft and not as the one last typed. */}
+    <div key={periodTarget?`${periodTarget.weekday}:${periodTarget.period?.id
+      ||`new:${periodTarget.seed?`${periodTarget.seed.start}-${periodTarget.seed.order}`:'plain'}`}`:'closed'}>
+      <MasterPeriodDrawer target={periodTarget} onClose={()=>setPeriodTarget(null)} props={props}
+        onDuration={minutes=>{if(minutes)setChainMinutes(minutes)}}/>
     </div>
     <div key={dayTarget?`day:${dayTarget.weekday}`:'day:closed'}>
       <MasterDayDrawer day={dayTarget} onClose={()=>setDayTarget(null)} props={props}/>

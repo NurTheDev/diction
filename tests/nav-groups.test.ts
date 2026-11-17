@@ -39,7 +39,13 @@ assert.ok(daily.indexOf('overview')<daily.indexOf('centerDailyCash'),'the Overvi
 
 // ── 2. One item, one place, one real destination ───────────────────────────────────────────────────
 assert.equal(new Set(keys).size,keys.length,'no screen appears in the menu twice');
+/* O1: one screen left the menu and one joined it, so the count is the same and the set is not. The
+   old "Results" item was a second door to the exams hub — two doors to one grade — and the class and
+   batch screen is now its own door rather than a row inside the student list. */
 assert.equal(keys.length,51,`the menu still carries all 51 screens (found ${keys.length})`);
+assert.equal(keys.includes('academics'),false,
+  'the legacy results door is gone from the menu — one link, পরীক্ষা ও ফলাফল, leads to the exam hub');
+assert.equal(keys.includes('classes'),true,'class and batch management has its own door');
 for(const {href,key} of items){
   const path=href.split('?')[0];
   const file=join('src','app','[locale]',...path.split('/').filter(Boolean),'page.tsx');
@@ -50,8 +56,12 @@ for(const {href,key} of items){
 const groupOf=(key:string):string|undefined=>items.find(item=>item.key===key)?.group;
 for(const key of ['leads','followUps','leadsFunnel','importLeads'])
   assert.equal(groupOf(key),'daily',`${key} sits with the visitor list — a collapsed group hides its items`);
-for(const key of ['academics','centerExams','modelTests','practice'])
+for(const key of ['centerExams','modelTests','practice'])
   assert.equal(groupOf(key),'students',`${key} folds into the exams section of one group`);
+/* The class screen sits with the roll and the timetable it leads to, and the exam hub is the ONE door
+   to exams and results — an address that forwards is not a menu item. */
+assert.equal(groupOf('classes'),'students','a class sits with the students and batches it holds');
+assert.equal(groupOf('centerExams'),'students','the exam hub stays in the students group');
 /* R9: the timetable is a students screen, and the week and its day are never separated. */
 for(const key of ['routineMaster','routineDaily'])
   assert.equal(groupOf(key),'students',`${key} sits with the batches and slots it is written for`);
@@ -72,8 +82,8 @@ const without=(...drop:string[]):string[]=>ALL.filter(key=>!drop.includes(key));
 const expected:Record<string,string[]>={
   superadmin:ALL,
   admin:without('roles','audit','ai','backup'),
-  staff:without('centerStudents','centerDailyCash','centerSheetView','centerDues','teacherCvs','gradingScale',
-    'roles','audit','ai','backup','sms'),
+  staff:without('classes','centerStudents','centerDailyCash','centerSheetView','centerDues','teacherCvs',
+    'gradingScale','roles','audit','ai','backup','sms'),
   content_editor:['blog','sheets'],
   exam_manager:['centerExams','modelTests','practice'],
   teacher:[],

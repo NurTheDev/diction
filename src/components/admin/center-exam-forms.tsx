@@ -17,6 +17,8 @@
 import {useTranslations} from 'next-intl';
 import {useActionState,useEffect,useRef,useState} from 'react';
 import {BanglaDate} from './bangla-date';
+import {SubmitButton} from './submit-button';
+import {showRecycleToast} from './recycle-toast-host';
 import {createExamAction,updateExamAction,publishExamAction,unpublishExamAction,saveGradingScaleAction} from '@/actions/center-exams';
 import type {ExamState} from '@/lib/exams/exam-state';
 import {DEFAULT_GRADING_RANGES,EXAM_TYPES,MAX_EXAM_SUBJECTS,type GradeRange} from '@/lib/exams/vocab';
@@ -25,6 +27,29 @@ import {formatNumber,type Digits} from '@/lib/admin/format';
 const initial:ExamState={status:'idle'};
 
 /** A refusal painted in the reader's language: the action sends a catalog key and its params. */
+/**
+ * O1 · every write on the exam screens answers in the corner as well as in place.
+ *
+ * Each of these forms already paints its own sentence — "created", "saved", "published", and the reason
+ * a write was refused — but a sentence under a button is easy to miss when the page has just re-read
+ * itself, and a refusal that only re-renders a form leaves the operator guessing. So the same answer is
+ * raised as the admin shell's own toast: success on the left of the screen's own vocabulary, failure in
+ * red, both in the language being read.
+ *
+ * It is keyed on the state object rather than on the status string, because a second write answers `ok`
+ * again and a string that does not change would never re-run anything: the toast from the first save
+ * would be the last word the operator ever read.
+ */
+function useWriteToast(state:ExamState,ok:()=>string,fail:()=>string):void{
+  useEffect(()=>{
+    if(state.status==='idle')return;
+    showRecycleToast(state.status==='ok'
+      ? {state:{status:'ok'},success:ok(),error:''}
+      : {state:{status:'error'},success:'',error:fail()});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[state]);
+}
+
 export function ExamError({state}:{state:ExamState}){
   const t=useTranslations('exams');
   if(state.status!=='error'||!state.messageKey)return null;
@@ -80,6 +105,8 @@ export function ExamShapeForm({mode,groups,scales,value,digits}:{mode:'create'|'
   const [scaleChoice,setScaleChoice]=useState(savedScale?savedScale.id:value.bands.length?CUSTOM:'');
   const [classIds,setClassIds]=useState<string[]>(value.classIds);
   useEffect(()=>{if(mode==='create')setRequestId(crypto.randomUUID())},[mode]);
+  const common=useTranslations('common');
+  useWriteToast(state,()=>(mode==='create'?t('form.created'):t('form.saved')),()=>common('saveFailed'));
   const typed=scaleChoice===CUSTOM;
   const bandsText=typed
     ? (value.bands.length?value.bands:DEFAULT_GRADING_RANGES.map(range=>({min:range.min,label:range.grade,point:range.point})))
@@ -142,9 +169,8 @@ export function ExamShapeForm({mode,groups,scales,value,digits}:{mode:'create'|'
       <p className="admin-help">{t('form.bandsHelp')}</p>
       <label>{t('form.scaleNameLabel')}<input className="admin-input" name="scaleName" maxLength={80} defaultValue={value.scaleName==='default'?'':value.scaleName}/></label></>}
     <label className="admin-check"><input name="confirm" type="checkbox" value="YES" required/> {t('form.confirmReview')}</label>
-    <button className="button button-navy" disabled={!ready||pending||state.status==='ok'} data-exam-submit>
-      {mode==='create'?t('form.createButton'):t('form.saveButton')}
-    </button>
+    <SubmitButton pending={pending||state.status==='ok'} disabled={!ready} data-exam-submit
+      busyLabel={t('grid.saving')} label={mode==='create'?t('form.createButton'):t('form.saveButton')}/>
     {state.status==='ok'&&<p role="status" data-exam-saved>{mode==='create'?t('form.created'):t('form.saved')}</p>}
     <ExamError state={state}/>
   </form>;
@@ -186,12 +212,15 @@ export function PublishCenterExam({exam,published,sms,digits}:{exam:string;publi
   const outcome=note?<p role="status" data-publish-status>{note==='sent'?t('publish.smsSent'):t('publish.smsSkipped')}</p>:null;
   // The question closes when it has an answer, whichever way it went: an error has to be readable.
   useEffect(()=>{if(state.status!=='idle'&&dialog.current?.open)dialog.current.close()},[state.status]);
+  const common=useTranslations('common');
+  useWriteToast(state,()=>t('publish.published'),()=>common('saveFailed'));
+  useWriteToast(backState,()=>t('publish.unpublished'),()=>common('saveFailed'));
   const open=():void=>{dialog.current?.showModal()};
   if(published)return <form action={backSubmit} data-exam-publish="unpublish">
     <input type="hidden" name="exam" value={exam}/>
     <p>{t('publish.unpublishNote')}</p>
     <label className="admin-check"><input type="checkbox" name="confirm" value="YES" required/> {t('publish.unpublishConfirm')}</label>
-    <button className="button button-navy" disabled={backPending}>{t('publish.unpublishButton')}</button>
+    <SubmitButton pending={backPending} busyLabel={t('grid.saving')} label={t('publish.unpublishButton')}/>
     {outcome}
     {backState.status==='ok'&&<p role="status">{t('publish.unpublished')}</p>}
     <ExamError state={backState}/>
@@ -218,7 +247,7 @@ export function PublishCenterExam({exam,published,sms,digits}:{exam:string;publi
         <p className="admin-help">{t('publish.smsDefault')}</p>
         <div className="admin-dialog-actions">
           <button type="button" className="admin-mini-button" data-publish-cancel onClick={()=>dialog.current?.close()}>{t('publish.cancel')}</button>
-          <button type="submit" className="button button-navy" data-publish-submit disabled={pending}>{t('publish.button')}</button>
+          <SubmitButton pending={pending} data-publish-submit busyLabel={t('grid.saving')} label={t('publish.button')}/>
         </div>
       </form>
     </dialog>
@@ -238,6 +267,8 @@ export function GradingScaleForm({scale,scales}:{scale:{id:string;name:string;ra
   const [name,setName]=useState(scale?.name||'');
   const [ranges,setRanges]=useState<GradeRange[]>(scale?.ranges?.length?scale.ranges:DEFAULT_GRADING_RANGES);
   const [active,setActive]=useState(scale?.active??false);
+  const common=useTranslations('common');
+  useWriteToast(state,()=>t('scale.saved'),()=>common('saveFailed'));
   const set=(index:number,patch:Partial<GradeRange>):void=>setRanges(list=>list.map((range,at)=>at===index?{...range,...patch}:range));
   return <form action={submit} className="admin-edit" data-scale-form>
     {scale?.id&&<input type="hidden" name="scale" value={scale.id}/>}
@@ -258,7 +289,7 @@ export function GradingScaleForm({scale,scales}:{scale:{id:string;name:string;ra
     <label className="admin-check"><input type="checkbox" checked={active} onChange={event=>setActive(event.target.checked)}/> {t('scale.activeLabel')}</label>
     <p className="admin-help">{t('scale.help')}</p>
     {scales.length>1&&<p className="admin-help">{t('scale.others')}</p>}
-    <button className="button button-navy" disabled={pending||!name} data-scale-save>{t('scale.save')}</button>
+    <SubmitButton pending={pending} disabled={!name} data-scale-save busyLabel={t('grid.saving')} label={t('scale.save')}/>
     {state.status==='ok'&&<p role="status" data-scale-saved>{t('scale.saved')}</p>}
     <ExamError state={state}/>
   </form>;

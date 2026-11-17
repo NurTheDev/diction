@@ -500,7 +500,9 @@ export default function SendSmsDialog({open,onClose,request,templates,title,defa
           ):!result?(
             <button type="button" ref={sendRef} className="button sms-send" onClick={()=>void send()} disabled={!canSend||sending} data-sms-send="">
               {sending?<Loader2 aria-hidden="true" size={15} className="sms-spin" />:<Send aria-hidden="true" size={15} />}
-              {ts('dialog.sendCount',{count:formatNumber(preview?.messages??0,digits)})}
+              {/* A send in flight says it is sending rather than repeating how many it was asked to
+                  send: the button is already disabled, and the word is what the operator reads. */}
+              {sending?ts('dialog.sending'):ts('dialog.sendCount',{count:formatNumber(preview?.messages??0,digits)})}
             </button>
           ):(
             <button type="button" className="button button-navy" onClick={onClose} data-sms-done="">{ts('dialog.done')}</button>

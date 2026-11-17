@@ -152,7 +152,10 @@
       "day": "Day",
       "month": "Month",
       "year": "Year"
-    }
+    },
+    "saving": "Saving…",
+    "saved": "Changes saved successfully",
+    "saveFailed": "That could not be done. Please try again."
   },
   "pages": {
     "eyebrow": "DICTION COACHING CENTER",
@@ -1134,7 +1137,9 @@
     "confirmRemove": "Remove this student from the batch? Attendance and results remain stored but will not appear in the portal unless the student is re-enrolled.",
     "removeHelp": "Removing a student retains attendance and results in the database, but hides them from student and parent portals unless re-enrolled.",
     "noStudents": "No students in this batch.",
-    "accountInactive": "account inactive"
+    "accountInactive": "account inactive",
+    "classLabel": "Class",
+    "classNone": "No class picked"
   },
   "materials": {
     "section": "Learning resources",
@@ -1615,7 +1620,8 @@
       "reportsYear": "Year summary",
       "backup": "Backup",
       "routineMaster": "Class routine",
-      "routineDaily": "Daily working sheet"
+      "routineDaily": "Daily working sheet",
+      "classes": "Classes and batches"
     },
     "search": "Search menu",
     "noMenuResults": "No menu items found",
@@ -1721,7 +1727,8 @@
       "date": "Date",
       "time": "Time"
     },
-    "cancelShort": "Cancel"
+    "cancelShort": "Cancel",
+    "loadingHelp": "The screen's own numbers are being fetched — one moment."
   },
   "adminWork": {
     "help": "Help",
@@ -3755,7 +3762,8 @@
       "passMarks": "Pass marks",
       "percentage": "Percentage",
       "point": "Point",
-      "absent": "Absent"
+      "absent": "Absent",
+      "roll": "Roll"
     },
     "status": {
       "published": "Published",
@@ -3911,7 +3919,17 @@
         "more": "{count} more cells have a problem.",
         "partTooHigh": "{student} · {part}: cannot be more than {max}."
       },
-      "partCellLabel": "{student} · {subject} · {part}"
+      "partCellLabel": "{student} · {subject} · {part}",
+      "importToggle": "Import from a file",
+      "importToggleHelp": "Open this to bring marks in from a spreadsheet — filling the grid by hand is enough on its own, and an import is never a required step.",
+      "rowSaved": "Saved",
+      "rowUnsaved": "Not saved yet",
+      "rowStale": "Changed elsewhere",
+      "rowAbsent": "Absent",
+      "rowIncomplete": "Incomplete",
+      "rowEmpty": "Not marked",
+      "sortHelp": "Sorted by roll",
+      "saving": "Saving…"
     },
     "summary": {
       "title": "Summary",
@@ -4980,7 +4998,11 @@
       "kpiMinutes": "Teaching minutes",
       "kpiTeachers": "Teachers involved",
       "kpiClashes": "Same-time warnings",
-      "kpiDaysOn": "Days taught"
+      "kpiDaysOn": "Days taught",
+      "addNext": "Add the next period",
+      "nextHelp": "It starts where the day's last period ends.",
+      "noRoom": "No room written",
+      "shiftWord": "Shift: {shift}"
     },
     "daily": {
       "title": "Daily working sheet",
@@ -5028,7 +5050,11 @@
       "noSheet": "Nothing has been written for this day yet.",
       "unsaved": "This day has changes — save it.",
       "toMaster": "Weekly routine",
-      "periodCount": "{count} periods"
+      "periodCount": "{count} periods",
+      "addNext": "Add the next period",
+      "nextHelp": "It starts where the sheet's last period ends.",
+      "noRoom": "No room written",
+      "shiftWord": "Shift: {shift}"
     },
     "period": {
       "editorTitle": "Edit the period",
@@ -5064,7 +5090,18 @@
       "dangerZone": "Danger zone",
       "invalid": "That was not accepted — check the time, the subject and the day.",
       "summary": "{time} · {subject}",
-      "leftOut": "The period has been left out of this day."
+      "leftOut": "The period has been left out of this day.",
+      "duration": "Period length",
+      "durationMinutes": "{minutes} minutes",
+      "durationCustom": "Custom",
+      "durationHelp": "Keep a length picked and the end time follows the start on its own.",
+      "durationCustomHelp": "On Custom both times are yours to write.",
+      "typedTime": "Type a time",
+      "typedTimeHelp": "Typing works too — hour:minute, such as 9:20.",
+      "clock12": "12-hour",
+      "clock24": "24-hour",
+      "shiftLine": "Shift: {shift}",
+      "saving": "Saving…"
     },
     "clashes": {
       "banner": "Two classes have landed on the same time",
@@ -5251,5 +5288,77 @@
       "back": "Back to the portal",
       "print": "Print my schedule"
     }
+  },
+  "classAdmin": {
+    "section": "Classes and batches",
+    "title": "Class and batch management",
+    "desc": "Which class runs in which shift, in which room, with how many students and how many batches — all of it in one place.",
+    "cardsHelp": "Each card holds the class's own facts: its shifts, its room, its student count and its running batches.",
+    "addClass": "Add a new class",
+    "newTitle": "A new class",
+    "editTitle": "Edit the class",
+    "nameLabel": "Class name (Bangla)",
+    "nameEnLabel": "Class name (English)",
+    "levelLabel": "Level or group",
+    "levelHelp": "Pick from the list below, or write your own.",
+    "levels": [
+      "Class 5",
+      "Class 6",
+      "Class 7",
+      "Class 8",
+      "Class 9",
+      "Class 10",
+      "SSC",
+      "HSC"
+    ],
+    "roomLabel": "Default room",
+    "roomHelp": "Such as Room-1201 — the class's own room, shown on its card.",
+    "shiftsLabel": "The shifts it runs in",
+    "shiftsHelp": "Pick as many as the class runs.",
+    "shiftMorning": "Morning",
+    "shiftDay": "Day",
+    "shiftEvening": "Evening",
+    "feeLabel": "Monthly fee (optional)",
+    "feeHelp": "Left empty it means the fee is not set yet.",
+    "yearLabel": "Academic year",
+    "activeCheck": "The class is running",
+    "statusActive": "Running",
+    "statusArchived": "Archived",
+    "save": "Save",
+    "saving": "Saving…",
+    "saved": "Changes saved successfully",
+    "created": "The new class was added.",
+    "saveFailed": "That could not be done.",
+    "duplicate": "A class with that name and shift already exists.",
+    "invalid": "Fix the fields that are marked.",
+    "students": "Students",
+    "studentsCount": "{count} students",
+    "batches": "Batches",
+    "batchesCount": "{count} active batches",
+    "noBatches": "No batches",
+    "shifts": "Shifts",
+    "noShifts": "No shift written",
+    "room": "Room",
+    "noRoom": "No room written",
+    "viewStudents": "Student list",
+    "viewRoutine": "See the routine",
+    "viewHub": "The class's own page",
+    "edit": "Edit",
+    "more": "More",
+    "close": "Close",
+    "empty": "No class has been added yet.",
+    "emptyHelp": "Start with Add a new class — the routine, the marks and the fees all hang off a class.",
+    "teachers": "The teachers who take it",
+    "teacherNone": "Nobody assigned yet",
+    "year": "{year}",
+    "conflict": "Somebody changed this class while you were editing it. Check the boxes and save again.",
+    "feeWord": "Monthly fee: {amount}",
+    "feeNone": "Monthly fee not set yet",
+    "levelNone": "No level written",
+    "batchesLabel": "Batches that run in this class",
+    "batchesHelp": "Tick the batches that belong to this class. Unticking one lets it go.",
+    "noBatchOptions": "No running batches yet.",
+    "saveBatches": "Save batches",
+    "batchesSaved": "Batches assigned."
   }
 }

@@ -25,13 +25,14 @@
 import {useActionState,useEffect,useState} from 'react';
 import {useRouter} from 'next/navigation';
 import {useTranslations} from 'next-intl';
-import {RoutineDrawer,TimeField} from './routine-drawer';
+import {DurationChips,RoutineDrawer,TimeField,chainedEnd,durationOf} from './routine-drawer';
+import {SubmitButton} from './submit-button';
 import {RoutineHistory} from './routine-history';
 import {RowControls} from './row-controls';
 import {showRecycleToast} from './recycle-toast-host';
 import {resetDailySheetAction,saveDailySheetAction,type RoutineActionState} from '@/actions/routine';
 import {formatDate,formatNumber,type Digits} from '@/lib/admin/format';
-import {rangeWord,type Language} from '@/lib/routine/time';
+import {DEFAULT_PERIOD_MINUTES,endAfter,nextPeriodSeed,rangeWord,type Language} from '@/lib/routine/time';
 import type {DailySheetView,DailyPeriodView,RoutineTeacher} from '@/lib/routine/read';
 import type {RoutineClash} from '@/lib/routine/conflicts';
 
@@ -71,25 +72,43 @@ export interface RoutineDailyProps{
   canDelete:boolean;
 }
 
-/** The drawer that edits one period of this date — and only of this date. */
-function DailyPeriodDrawer({target,onClose,onSave,props}:{
+/**
+ * The drawer that edits one period of this date — and only of this date.
+ *
+ * The length chips sit above the two clocks here exactly as they do in the week's own drawer, so a day
+ * sheet that shortens a period to forty-five minutes says so with the same four buttons and the same
+ * arithmetic — and the end follows the start unless the operator has pressed Custom.
+ */
+function DailyPeriodDrawer({target,onClose,onSave,onDuration,props}:{
   target:{index:number;period:DraftPeriod}|null;
   onClose:()=>void;
   onSave:(period:DraftPeriod,index:number)=>void;
+  onDuration:(minutes:number|null)=>void;
   props:RoutineDailyProps;
 }){
   const t=useTranslations('routine');
   const [draft,setDraft]=useState<DraftPeriod|null>(target?.period||null);
   const write=(patch:Partial<DraftPeriod>):void=>setDraft(current=>current?{...current,...patch}:current);
   const isNew=(target?.index??-1)<0;
+  const [duration,setDuration]=useState<number|null>(()=>draft?durationOf(draft.start,draft.end):null);
+  const pick=(minutes:number|null):void=>{
+    setDuration(minutes);
+    onDuration(minutes);
+    if(minutes&&draft)write({end:endAfter(draft.start,minutes)});
+  };
+  const writeStart=(value:string):void=>
+    write(draft?{start:value,end:chainedEnd(value,draft.end,duration)}:{start:value});
   return <RoutineDrawer open={!!target} onClose={onClose}
     title={isNew?t('period.newTitle'):t('period.editorTitle')}>
     {draft&&<form className="admin-edit routine-form" data-daily-period-form={isNew?'new':draft.id}
       onSubmit={event=>{event.preventDefault();if(!draft.subjectBn.trim())return;onSave(draft,target?.index??-1)}}>
       <p className="admin-help" data-daily-period-scope>{t('daily.dayOnly')}</p>
+      <p className="admin-help" data-daily-period-shift>
+        {t('period.shiftLine',{shift:props.sheet.shift||t('master.noShift')})}</p>
+      <DurationChips minutes={duration} digits={props.digits} onPick={pick}/>
       <div className="routine-time-row">
         <label>{t('period.start')}
-          <TimeField name="start" value={draft.start} digits={props.digits} onChange={value=>write({start:value})}/>
+          <TimeField name="start" value={draft.start} digits={props.digits} onChange={writeStart}/>
         </label>
         <label>{t('period.end')}
           <TimeField name="end" value={draft.end} digits={props.digits} onChange={value=>write({end:value})}/>
@@ -206,12 +225,25 @@ export function RoutineDailySheet(props:RoutineDailyProps){
     showRecycleToast({state:{status:'ok'},success:t('period.leftOut'),error:''});
   };
   const addPeriod=():void=>setEditor({index:-1,period:{
-    id:'',masterPeriod:'',start:'08:00',end:'09:00',subjectBn:'',subjectEn:'',teacher:'',room:'',
-    jointWith:'',order:draft.length,note:'',source:'own'}});
+    id:'',masterPeriod:'',start:'08:00',end:endAfter('08:00',DEFAULT_PERIOD_MINUTES),subjectBn:'',subjectEn:'',
+    teacher:'',room:'',jointWith:'',order:draft.length,note:'',source:'own'}});
+  /* The chain, on a day sheet: the next period starts when this sheet's last one ends — a period the
+     sheet holds only as a draft counts, because a day being written is what the chain is for — and is
+     numbered one past the highest number already on the sheet. */
+  const [chainMinutes,setChainMinutes]=useState<number>(DEFAULT_PERIOD_MINUTES);
+  const addNextPeriod=():void=>{
+    const seed=nextPeriodSeed(draft.map(period=>({start:period.start,end:period.end,order:period.order})),
+      chainMinutes);
+    setEditor({index:-1,period:{
+      id:'',masterPeriod:'',start:seed.start,end:seed.end,subjectBn:'',subjectEn:'',teacher:'',room:'',
+      jointWith:'',order:seed.order,note:'',source:'own'}});
+  };
 
   return <>
     <div className="routine-badges" data-daily-badges>
       <h2 className="routine-day-title" data-daily-day>{props.weekdays[sheet.weekday]}</h2>
+      <span className="admin-help" data-daily-shift>
+        {t('daily.shiftWord',{shift:sheet.shift||t('master.noShift')})}</span>
       {sheet.passed&&<span className="admin-badge routine-badge-past" data-badge-passed>{t('daily.passed')}</span>}
       {sheet.changedSinceSent&&
         <span className="admin-badge routine-badge-sent" data-badge-changed>{t('daily.changedSinceSent')}</span>}
@@ -278,7 +310,9 @@ export function RoutineDailySheet(props:RoutineDailyProps){
                 <span data-daily-period-teacher>
                   {props.teachers.find(teacher=>teacher.id===period.teacher)?.name||t('master.noTeacher')}
                 </span>
-                {period.room&&<span data-daily-period-room>{t('master.roomWord',{room:period.room})}</span>}
+                {period.room
+                  ? <span data-daily-period-room>{t('master.roomWord',{room:period.room})}</span>
+                  : <span className="admin-help" data-daily-period-room-none>{t('daily.noRoom')}</span>}
                 <span className="admin-badge routine-badge-source" data-daily-period-source={period.source}>
                   {period.masterPeriod?t('daily.fromMaster'):t('daily.ownPeriod')}
                 </span>
@@ -298,6 +332,14 @@ export function RoutineDailySheet(props:RoutineDailyProps){
                 </details>
               </span>
             </li>)}</ul>}
+
+        {props.canEdit&&draft.length>0&&<div className="routine-day-add">
+          <button type="button" className="button button-navy routine-add routine-add-next"
+            data-daily-add-next title={t('daily.addNext')} onClick={addNextPeriod}>
+            + {t('daily.addNext')}
+          </button>
+          <small className="admin-help" data-daily-next-help>{t('daily.nextHelp')}</small>
+        </div>}
       </div>
 
       {state.status==='clash'&&<div className="routine-warn" role="alert" data-clash-warning>
@@ -314,10 +356,11 @@ export function RoutineDailySheet(props:RoutineDailyProps){
       {dirty&&<p className="admin-help" role="status" data-daily-dirty>{t('daily.unsaved')}</p>}
 
       <div className="routine-form-actions">
-        {props.canEdit&&<button type="submit" className="button button-navy" disabled={pending} data-daily-save>
-          {t('daily.save')}</button>}
-        {props.canEdit&&state.status==='clash'&&<button type="submit" name="force" value="on" disabled={pending}
-          className="button routine-save-anyway" data-save-anyway>{t('daily.saveAnyway')}</button>}
+        {props.canEdit&&<SubmitButton pending={pending} data-daily-save busyLabel={t('period.saving')}
+          label={t('daily.save')}/>}
+        {props.canEdit&&state.status==='clash'&&<SubmitButton pending={pending} name="force" value="on"
+          className="button routine-save-anyway" data-save-anyway busyLabel={t('period.saving')}
+          label={t('daily.saveAnyway')}/>}
         {props.canEdit&&<button type="button" className="admin-mini-button" data-daily-add-period onClick={addPeriod}>
           + {t('daily.addPeriod')}</button>}
       </div>
@@ -341,8 +384,9 @@ export function RoutineDailySheet(props:RoutineDailyProps){
         {t('daily.periodCount',{count:formatNumber(sheet.periods.length,digits)})}</p>
     </div>
 
-    <div key={editor?`${editor.index}:${editor.period.id||'new'}`:'closed'}>
-      <DailyPeriodDrawer target={editor} onClose={()=>setEditor(null)} onSave={savePeriod} props={props}/>
+    <div key={editor?`${editor.index}:${editor.period.id||`new:${editor.period.start}`}`:'closed'}>
+      <DailyPeriodDrawer target={editor} onClose={()=>setEditor(null)} onSave={savePeriod} props={props}
+        onDuration={minutes=>{if(minutes)setChainMinutes(minutes)}}/>
     </div>
     {/* Keyed on open and shut only. A restore answers, Next re-reads the page, the day's memory is one
         entry longer — and a key that counted those entries threw the drawer away at that exact moment,
