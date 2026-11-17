@@ -450,7 +450,8 @@ async function run(){
     await goto(page,dailyUrl(today),'[data-daily-form]');
     assert.equal((await page.locator('[data-daily-day]').innerText()).trim(),weekdays[todayWeekday],
       'the sheet opens on Dhaka\'s today and names its weekday');
-    assert.equal((await page.locator('input[name="date"]').inputValue()),today,'and holds today\'s date');
+    assert.equal((await page.locator('[data-daily-form] input[name="date"]').inputValue()),today,
+      'and holds today\'s date');
     assert.equal(await page.locator('[data-badge-passed]').count(),0,'today has not passed');
     assert.equal(await page.locator('[data-daily-not-stored]').count(),1,
       'a sheet nobody has changed says that no copy of it is stored');
