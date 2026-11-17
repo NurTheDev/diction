@@ -3,7 +3,7 @@ STARTING TEST MODE: checking TypeScript — first startup may take several minut
 
 STARTING TEST MODE: building the test application — first startup may take several minutes. Please wait.
 ▲ Next.js 16.4.5 (webpack)
-✓ Running next.config.ts took 71ms
+✓ Running next.config.ts took 70ms
 ⚠ No build cache found. Please configure build caching for faster rebuilds. Read more: https://nextjs.org/docs/messages/no-cache
 Attention: Next.js now collects completely anonymous telemetry regarding usage.
 This information is used to shape Next.js' roadmap and prioritize features.
@@ -17,15 +17,15 @@ https://nextjs.org/telemetry
   ✓ webpackMemoryOptimizations
 
   Creating an optimized production build ...
-✓ Compiled successfully in 43s
+✓ Compiled successfully in 42s
   Skipping validation of types
   Finished TypeScript config validation in 5ms ...
   Collecting page data using 1 worker ...
-  Generating static pages using 1 worker (0/217) ...
-  Generating static pages using 1 worker (54/217) 
-  Generating static pages using 1 worker (108/217) 
-  Generating static pages using 1 worker (162/217) 
-✓ Generating static pages using 1 worker (217/217) in 1696ms
+  Generating static pages using 1 worker (0/223) ...
+  Generating static pages using 1 worker (55/223) 
+  Generating static pages using 1 worker (111/223) 
+  Generating static pages using 1 worker (167/223) 
+✓ Generating static pages using 1 worker (223/223) in 1712ms
   Finalizing page optimization ...
   Collecting build traces ...
 
@@ -59,8 +59,10 @@ Route (app)                                        Revalidate  Expire
 ├ ƒ /[locale]/admin/center-exams
 ├ ƒ /[locale]/admin/center-exams/[id]
 ├ ƒ /[locale]/admin/center-exams/marksheet
+├ ƒ /[locale]/admin/classes
 ├ ƒ /[locale]/admin/content
 ├ ƒ /[locale]/admin/courses
+├ ƒ /[locale]/admin/exams
 ├ ƒ /[locale]/admin/faculty
 ├ ƒ /[locale]/admin/fees
 ├ ƒ /[locale]/admin/fees/[id]
@@ -75,6 +77,7 @@ Route (app)                                        Revalidate  Expire
 ├ ƒ /[locale]/admin/media
 ├ ƒ /[locale]/admin/messages
 ├ ƒ /[locale]/admin/model-tests
+├ ƒ /[locale]/admin/overview/results
 ├ ƒ /[locale]/admin/portal-notices
 ├ ƒ /[locale]/admin/practice-tests
 ├ ƒ /[locale]/admin/public-sheets
@@ -197,7 +200,7 @@ Route (app)                                        Revalidate  Expire
 
 Starting disposable test database… first startup may download MongoDB.
 TEST_ORIGIN=http://localhost:3111
-TEST_MONGO_URI=mongodb://127.0.0.1:42267/?replicaSet=testset
+TEST_MONGO_URI=mongodb://127.0.0.1:36859/?replicaSet=testset
 TEST_MONGO_DB=dictioncoaching_test
 
 DISPOSABLE TEST MODE — all data disappears when stopped.
@@ -210,5 +213,5 @@ Database is an in-memory replica set; real MONGODB_URI is ignored. Ctrl+C to sto
 ▲ Next.js 16.4.5
 - Local:         http://localhost:3111
 - Network:       http://0.0.0.0:3111
-✓ Ready in 153ms
-✓ Running next.config.ts took 88ms
+✓ Ready in 148ms
+✓ Running next.config.ts took 87ms

@@ -1,0 +1,2 @@
+--- tests/routine-period-time.test.ts (exit 0) ---
+Routine period time: the fifty-minute chain, the chips, the five-minute steps, the midnight clamp and both clocks passed.

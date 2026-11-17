@@ -1,0 +1,12 @@
+AssertionError [ERR_ASSERTION]: the class the centre already has is a card
+
+0 !== 1
+
+    at run (/home/runner/work/diction/diction/tests/operational-polish-browser.integration.ts:475:12) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: 0,
+  expected: 1,
+  operator: 'strictEqual',
+  diff: 'simple'
+}
