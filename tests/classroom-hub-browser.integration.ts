@@ -43,7 +43,7 @@ import {randomBytes,randomUUID} from 'node:crypto';
 import {mkdir} from 'node:fs/promises';
 import path from 'node:path';
 import {chromium} from 'playwright';
-import type {Browser,Page} from 'playwright';
+import type {Browser,Locator,Page} from 'playwright';
 import {preflight,testDbName} from './helpers/env-preflight';
 import {User} from '../src/models/User';
 import {
@@ -66,6 +66,26 @@ const ym=(year:number,month:number):string=>`${year}-${String(month).padStart(2,
 /** Fill an ICU-less catalog sentence the way next-intl does. */
 const fill=(template:string,params:Record<string,string|number>):string=>
   Object.entries(params).reduce((text,[name,value])=>text.split(`{${name}}`).join(String(value)),template);
+
+/**
+ * Walk the month picker to a `YYYY-MM` value and take it.
+ *
+ * The picker's cells carry the whole month, not its number, and its year is walked with the `‹ ›`
+ * beside the year it is showing — towards the value rather than forwards only, so a leave month in
+ * December still works on a suite that runs in January. The year head is waited for because the
+ * popover paints a frame after the anchor is clicked.
+ */
+const pickMonth=async(scope:Locator,name:string,value:string):Promise<void>=>{
+  await scope.locator(`[data-month-choose="${name}"]`).click();
+  await scope.locator('[data-month-year]').waitFor({state:'visible',timeout:60000});
+  const cell=scope.locator(`[data-month-pick="${value}"]`);
+  const year=Number(value.slice(0,4));
+  for(let step=0;step<8&&(await cell.count())===0;step++){
+    const shown=Number(ascii(await scope.locator('[data-month-year]').innerText()));
+    await scope.locator(shown>year?'[data-month-back]':'[data-month-forward]').click();
+  }
+  await cell.click();
+};
 
 const CLASS_A='গ৩ নবম শ্রেণি',CLASS_B='গ৩ দশম শ্রেণি',CLASS_B_EN='Group Three Ten';
 const FEE_A=600,FEE_B=500,DISCOUNT=100;
@@ -370,8 +390,7 @@ async function run(){
     await removeForm.waitFor({state:'visible',timeout:60000});
     assert.equal(await removeForm.locator('button[type="submit"]').isDisabled(),true,
       'removing a student asks for a month and a reason before it will run');
-    await removeForm.locator('[data-month-choose="leave"]').click();
-    await removeForm.locator(`[data-month-pick="${today.month}"]`).click();
+    await pickMonth(removeForm,'leave',ym(today.year,today.month));
     await removeForm.locator('textarea[name=reason]').fill('গ৩ পরীক্ষা: শিক্ষার্থী অন্য কেন্দ্রে ভর্তি হয়েছে');
     await removeForm.locator('button[type="submit"]').click();
     await until('the student to leave the roll',async()=>
