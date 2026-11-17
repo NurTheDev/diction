@@ -1,14 +1,3 @@
-AssertionError [ERR_ASSERTION]: and the picker arrives on that class
-+ actual - expected
-
-+ ''
-- '6afbf5f0c3e1fb5c34d37485'
-
-    at run (/home/runner/work/diction/diction/tests/classroom-hub-browser.integration.ts:494:12) {
-  generatedMessage: false,
-  code: 'ERR_ASSERTION',
-  actual: '',
-  expected: '6afbf5f0c3e1fb5c34d37485',
-  operator: 'strictEqual',
-  diff: 'simple'
-}
+Error: timed out waiting for the picker to arrive on that class
+    at until (/home/runner/work/diction/diction/tests/classroom-hub-browser.integration.ts:281:36)
+    at async run (/home/runner/work/diction/diction/tests/classroom-hub-browser.integration.ts:500:5)
