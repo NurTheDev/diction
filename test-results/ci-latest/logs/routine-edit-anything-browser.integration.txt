@@ -1,11 +1,10 @@
-locator.inputValue: Error: strict mode violation: locator('input[name="date"]') resolved to 3 elements:
-    1) <input name="date" type="hidden" value="2026-11-17"/> aka locator('label').filter({ hasText: 'তারিখদিন১২৩৪৫৬৭৮৯১০১১১২১৩১৪১৫১৬১৭১৮১৯২০২১২২২৩২৪২৫২৬২৭২৮২৯৩০মাসজানুয়ারিফেব্রুয়া' }).locator('input[name="date"]')
-    2) <input name="date" type="hidden" value="2026-11-17"/> aka locator('form').filter({ hasText: 'দিনের অবস্থাস্বাভাবিকপরিবর্তিতছুটিছুটির কারণছুটি ঘোষণা করলে কারণটি লিখতে হবে।দিন' }).locator('input[name="date"]')
-    3) <input name="date" type="hidden" value="2026-11-17"/> aka locator('form').filter({ hasText: 'মাস্টার রুটিনে ফিরিয়ে নিনএই তারিখের সব বদল মুছে সপ্তাহের রুটিন ফিরিয়ে আনা হবে।' }).locator('input[name="date"]')
-
+locator.click: Timeout 60000ms exceeded.
 Call log:
-  - waiting for locator('input[name="date"]')
+  - waiting for locator('[data-daily-period-more="6afc4b9044f54aaf798b8dd8"] summary')
 
-    at run (/home/runner/work/diction/diction/tests/routine-edit-anything-browser.integration.ts:453:60) {
-  log: [ `  - waiting for locator('input[name="date"]')` ]
+    at run (/home/runner/work/diction/diction/tests/routine-edit-anything-browser.integration.ts:528:75) {
+  log: [
+    `  - waiting for locator('[data-daily-period-more="6afc4b9044f54aaf798b8dd8"] summary')`
+  ],
+  name: 'TimeoutError'
 }
