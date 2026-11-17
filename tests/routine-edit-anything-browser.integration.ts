@@ -171,14 +171,25 @@ async function run(){
     }
     await page.setViewportSize({width:1440,height:900});
   };
-  const until=async(what:string,check:()=>Promise<boolean>,timeoutMs=90000)=>{
+  /**
+   * Wait for something the screen paints. `extra` is read once, when the wait gives up, because a log
+   * that says only "timed out" sends the next reader back to guess which of three things happened.
+   */
+  const until=async(what:string,check:()=>Promise<boolean>,timeoutMs=90000,extra?:()=>Promise<string>)=>{
     const deadline=Date.now()+timeoutMs;
     for(;;){
       if(await check().catch(()=>false))return;
-      if(Date.now()>deadline)throw Error(`timed out waiting for ${what}`);
+      if(Date.now()>deadline){
+        const said=extra?await extra().catch(error=>`the state could not be read: ${String(error)}`):'';
+        throw Error(`timed out waiting for ${what}${said?`\n  ${said}`:''}`);
+      }
       await new Promise(resolve=>setTimeout(resolve,500));
     }
   };
+
+  /* What each page saw on the wire: the answer a server action gave, read out of its own flight
+     payload, which is the one place that says whether a write came back refused, warned or saved. */
+  const wire=new WeakMap<Page,{posted:string[];errors:string[]}>();
 
   try{
     const signIn=async(email:string,width=1440,height=900,digits:'bn'|'en'='bn')=>{
@@ -199,10 +210,19 @@ async function run(){
       }
       if(!session?.user)throw Error(`sign-in failed for ${email} — ${notes.join(' | ')}`);
       await context.addCookies([{name:`diction_digits_${session.user.id||ownerId}`,value:digits,url:`${origin}/`}]);
-      const page=await context.newPage(),errors:string[]=[];
+      const page=await context.newPage(),errors:string[]=[],posted:string[]=[];
       page.on('pageerror',error=>errors.push(`${page.url()}: ${error.message}`));
       page.on('dialog',dialog=>void dialog.accept());
+      page.on('response',response=>{
+        if(response.request().method()!=='POST')return;
+        void response.text().then(text=>{
+          const hit=text.match(/"status":"[a-z]+"/g);
+          posted.push(`${response.status()} ${hit?[...new Set(hit)].join(' '):text.replace(/\s+/g,' ').slice(0,80)}`);
+          if(posted.length>6)posted.shift();
+        }).catch(()=>{});
+      });
       page.setDefaultTimeout(60000);
+      wire.set(page,{posted,errors});
       return {context,page,errors};
     };
     const goto=async(page:Page,url:string,waitFor:string)=>{
@@ -247,10 +267,30 @@ async function run(){
       await page.locator(`[data-add-period="${weekday}"]`).click();
       const box=await fillPeriod(page,fields);
       await box.locator('[data-period-save]').click();
-      await until('the period drawer closes',async()=>await drawer(page).count()===0);
+      await until('the period drawer closes',async()=>await drawer(page).count()===0,90000,
+        ()=>drawerState(page));
     };
     const toastText=(page:Page):Promise<string>=>page.locator('.admin-toast').first().innerText()
       .catch(()=> '');
+    /**
+     * Everything a stuck drawer can be asked about, in one paragraph: whether the warning is still
+     * standing (the save came back as a clash again), whether the screen read as refused (the write
+     * failed), what the server answered on the wire, and what the page threw while it was happening.
+     */
+    const drawerState=async(page:Page):Promise<string>=>{
+      const open=drawer(page),seen=wire.get(page);
+      const [warning,refused,anyway,said]=(await Promise.all([
+        page.locator('[data-clash-warning]').count(),
+        page.locator('[data-period-refused]').count(),
+        page.locator('[data-save-anyway]').count(),
+        open.first().innerText().catch(()=>''),
+      ])) as [number,number,number,string];
+      return `open drawers=${await open.count()} warning=${warning} refused=${refused} anyway=${anyway}`
+        +` toast="${(await toastText(page)).replace(/\s+/g,' ').slice(0,120)}" url=${page.url()}`
+        +`\n  the drawer says: ${said.replace(/\s+/g,' ').slice(0,240)}`
+        +`\n  the server answered: ${(seen?.posted||['no POST was captured']).join(' | ')}`
+        +`\n  the page threw: ${(seen?.errors||[]).join(' | ')||'nothing'}`;
+    };
     /** The row's own destructive pair: outright on a desk, behind the ⋯ on a phone. */
     const rowButton=async(row:Locator,name:string)=>{
       const direct=row.locator('.admin-row-direct').getByRole('button',{name,exact:true});
@@ -346,6 +386,9 @@ async function run(){
     await page.locator(`[data-day-edit="${clashWeekday}"]`).click();
     await drawer(page).locator('[data-day-shift]').fill(SHIFT);
     await drawer(page).locator('[data-day-save]').click();
+    /* The write is waited for before the address is asked again: navigating away from a save still in
+       flight is a navigation that can beat the write, and then the reload proves nothing. */
+    await until('the day drawer closes',async()=>await drawer(page).count()===0,45000,()=>drawerState(page));
     await goto(page,masterUrl(classA),'[data-routine-week]');
     await until('the day is back on its own shift',async()=>
       await page.locator(`[data-routine-day="${clashWeekday}"] [data-period-card]`).count()===1);
@@ -370,9 +413,26 @@ async function run(){
       'and an unforced save writes nothing');
     await shot(page,'r9-period-clash-bn-1440');
     await clashBox.locator('[data-save-anyway]').click();
-    await until('the drawer closes after Save anyway',async()=>await drawer(page).count()===0);
-    await until('class B holds the period it was warned about',async()=>
-      await page.locator(`[data-routine-day="${clashWeekday}"] [data-period-card]`).count()===1);
+    /* A click that lands while the warning is being re-rendered is a click that posted nothing, so the
+       button is pressed once more before the wait is called a failure. A force the server ignored would
+       fail both times, and that is the thing this step is actually about. */
+    await new Promise(resolve=>setTimeout(resolve,8000));
+    if((await masterDay(classB,clashWeekday))?.periods.filter(period=>!period.deletedAt).length!==1
+      &&await page.locator('[data-save-anyway]').count()>0){
+      await page.locator('[data-save-anyway]').click();
+    }
+    /* The write is the claim, so the database is asked first and the drawer second: a save that answers
+       as a clash again leaves the warning standing, one that failed reads as refused, and one that
+       worked closes the drawer — and the log now says which of the three it was. */
+    await until('class B holds the period it was warned about',async()=>{
+      const day=await masterDay(classB,clashWeekday);
+      return (day?.periods.filter(period=>!period.deletedAt).length??0)===1;
+    },90000,()=>drawerState(page));
+    await until('the drawer closes once the warned period is written',async()=>
+      await drawer(page).count()===0,45000,()=>drawerState(page));
+    await until('the week shows the period it was warned about',async()=>
+      await page.locator(`[data-routine-day="${clashWeekday}"] [data-period-card]`).count()===1,45000,
+      ()=>drawerState(page));
     {const day=await masterDay(classB,clashWeekday);
      assert.equal(day?.periods.length,1,'the warned period is written, because a warning never blocks');
      assert.equal(day?.periods[0].teacher?.toString(),String(teacherOne._id),'with the same teacher in it')}
@@ -421,7 +481,7 @@ async function run(){
     await dailyBox.locator('[data-daily-teacher]').selectOption(String(teacherTwo._id));
     await dailyBox.locator('[data-daily-room]').fill(ROOM_THREE);
     await dailyBox.locator('[data-daily-period-save]').click();
-    await until('the drawer closes',async()=>await drawer(page).count()===0);
+    await until('the drawer closes',async()=>await drawer(page).count()===0,90000,()=>drawerState(page));
     await until('the sheet says it has changes',async()=>await page.locator('[data-daily-dirty]').count()===1);
     await page.locator('[data-daily-save]').click();
     await until('the sheet reports that the day is stored',async()=>

@@ -128,6 +128,15 @@ function MasterPeriodDrawer({target,onClose,props}:{
   },[state]);
   const joints=(props.joints.find(entry=>entry.weekday===weekday)?.options)||[];
   const start=period?.start||'08:00',end=period?.end||'09:00';
+  /* Every field lives in state, the way the daily sheet's own drawer and the assignment drawer hold
+     theirs: React 19 hands a finished form action back to the form's defaults, and a save that answers
+     as a warning must hand the operator the period they typed rather than an empty form, or the
+     "Save anyway" standing beside the warning would post the emptiness. The board re-keys this drawer
+     per target, so the state starts as the period being edited and then holds what is typed into it. */
+  const [draft,setDraft]=useState({weekday:String(weekday),start,end,subjectBn:period?.subjectBn||'',
+    subjectEn:period?.subjectEn||'',teacher:period?.teacherId||'',room:period?.room||'',
+    jointWith:period?.jointWith||'',order:String(period?.order??0),note:period?.note||''});
+  const write=(patch:Partial<typeof draft>):void=>setDraft(current=>({...current,...patch}));
   const name=period?t('period.summary',{time:rangeWord(period.start,period.end,props.digits),
     subject:period.subjectBn}):t('period.newTitle');
   return <RoutineDrawer open={!!target} onClose={onClose} title={period?t('period.editorTitle'):t('period.newTitle')}>
@@ -137,42 +146,48 @@ function MasterPeriodDrawer({target,onClose,props}:{
       <input type="hidden" name="periodId" value={period?.id||''}/>
       <input type="hidden" name="masterPeriod" value=""/>
       <label>{t('period.day')}
-        <select className="admin-select" name="weekday" data-period-weekday defaultValue={String(weekday)}>
+        <select className="admin-select" name="weekday" data-period-weekday value={draft.weekday}
+          onChange={event=>write({weekday:event.target.value})}>
           {props.weekdays.map((word,index)=><option key={word+index} value={index}>{word}</option>)}
         </select>
       </label>
       <small className="admin-help">{t('period.moveHelp')}</small>
       <div className="routine-time-row">
         <label>{t('period.start')}
-          <TimeField name="start" value={start} digits={props.digits}/>
+          <TimeField name="start" value={draft.start} digits={props.digits}
+            onChange={value=>write({start:value})}/>
         </label>
         <label>{t('period.end')}
-          <TimeField name="end" value={end} digits={props.digits}/>
+          <TimeField name="end" value={draft.end} digits={props.digits}
+            onChange={value=>write({end:value})}/>
         </label>
       </div>
       <small className="admin-help">{t('period.timeHelp')}</small>
       <label>{t('period.subjectBn')} *
         <input className="admin-input" name="subjectBn" required maxLength={200} data-period-subject-bn
-          defaultValue={period?.subjectBn||''}/>
+          value={draft.subjectBn} onChange={event=>write({subjectBn:event.target.value})}/>
       </label>
       <label>{t('period.subjectEn')}
-        <input className="admin-input" name="subjectEn" maxLength={200} defaultValue={period?.subjectEn||''}/>
+        <input className="admin-input" name="subjectEn" maxLength={200} value={draft.subjectEn}
+          onChange={event=>write({subjectEn:event.target.value})}/>
       </label>
       <label>{t('period.teacher')}
-        <select className="admin-select" name="teacher" data-period-teacher defaultValue={period?.teacherId||''}>
+        <select className="admin-select" name="teacher" data-period-teacher value={draft.teacher}
+          onChange={event=>write({teacher:event.target.value})}>
           <option value="">{t('period.teacherNone')}</option>
           {props.teachers.map(teacher=><option key={teacher.id} value={teacher.id}>{teacher.name}</option>)}
         </select>
       </label>
       <label>{t('period.room')}
         <input className="admin-input" name="room" maxLength={80} list="routine-rooms" data-period-room
-          defaultValue={period?.room||''}/>
+          value={draft.room} onChange={event=>write({room:event.target.value})}/>
         <datalist id="routine-rooms">
           {props.rooms.map(room=><option key={room} value={room}/>)}
         </datalist>
       </label>
       <label>{t('period.joint')}
-        <select className="admin-select" name="jointWith" data-period-joint defaultValue={period?.jointWith||''}>
+        <select className="admin-select" name="jointWith" data-period-joint value={draft.jointWith}
+          onChange={event=>write({jointWith:event.target.value})}>
           <option value="">{t('period.jointNone')}</option>
           {joints.map(option=><option key={option.id} value={option.id}>{option.label}</option>)}
         </select>
@@ -180,11 +195,12 @@ function MasterPeriodDrawer({target,onClose,props}:{
       <small className="admin-help">{t('period.jointHelp')}</small>
       <label>{t('period.order')}
         <input className="admin-input" name="order" inputMode="numeric" maxLength={2} data-period-order
-          defaultValue={String(period?.order??0)}/>
+          value={draft.order} onChange={event=>write({order:event.target.value})}/>
       </label>
       <small className="admin-help">{t('period.orderHelp')}</small>
       <label>{t('period.note')}
-        <textarea className="admin-textarea" name="note" maxLength={300} defaultValue={period?.note||''}/>
+        <textarea className="admin-textarea" name="note" maxLength={300} value={draft.note}
+          onChange={event=>write({note:event.target.value})}/>
       </label>
 
       {/* The clash is an answer, not a refusal: the banner names what landed where, and the button beside
@@ -229,6 +245,10 @@ function MasterDayDrawer({day,onClose,props}:{
 }){
   const t=useTranslations('routine'),router=useRouter();
   const [state,action,pending]=useActionState(saveMasterDayAction,idle);
+  /* Held in state for the same reason as the period drawer above: an answer that keeps the drawer open
+     must not blank the shift the operator typed into it. */
+  const [shiftValue,setShiftValue]=useState(day?.shift||props.shift);
+  const [active,setActive]=useState(day?.active!==false);
   useEffect(()=>{
     if(state.status!=='ok')return;
     onClose();
@@ -238,8 +258,9 @@ function MasterDayDrawer({day,onClose,props}:{
     <form action={action} className="admin-edit routine-form" data-day-form={day?.weekday??''}>
       <input type="hidden" name="dayId" value={day?.id||''}/>
       <label>{t('day.shift')}
-        <input className="admin-input" name="shift" data-day-shift defaultValue={day?.shift||props.shift}
-          maxLength={100} list="routine-shifts" required/>
+        <input className="admin-input" name="shift" data-day-shift value={shiftValue}
+          onChange={event=>setShiftValue(event.target.value)} maxLength={100} list="routine-shifts"
+          required/>
         <datalist id="routine-shifts">
           {[...new Set([...props.days.map(entry=>entry.shift),props.shift].filter(Boolean))]
             .map(shift=><option key={shift} value={shift}/>)}
@@ -247,7 +268,8 @@ function MasterDayDrawer({day,onClose,props}:{
       </label>
       <small className="admin-help">{t('day.shiftHelp')}</small>
       <label className="admin-check">
-        <input type="checkbox" name="active" data-day-active defaultChecked={day?.active!==false}/>
+        <input type="checkbox" name="active" data-day-active checked={active}
+          onChange={event=>setActive(event.target.checked)}/>
         {t('day.active')}
       </label>
       <small className="admin-help">{t('day.activeHelp')}</small>

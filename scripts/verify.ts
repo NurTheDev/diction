@@ -409,6 +409,8 @@ async function main():Promise<void>{
        the screens: an owner does not take a snapshot, enable a write or reconcile. So the copy proof is
        the catalog scan that fails on those three words in either language, beside the parity scan that
        says every sentence these five screens paint lives in both catalogs and in no route file. */
+    await stepUnitSuites(ctx,'test:r9:fields','R9.7','Every field the routine schema holds is editable: each path of MasterRoutine, DailyRoutine and TeachingAssignment bound to a named control, the system\u2019s own paths left read-only, the covered count asserted');
+    await stepUnitSuites(ctx,'test:r9:copy','R9.8','The routine\u2019s words belong to the catalogs: every key the routine screens paint resolves in bn.json and en.json, both catalogs whole, no hardcoded pair or line of Bangla in a route file');
     await stepUnitSuites(ctx,'test:g3:copy','G3.6','The plain-language sweep: no shipped value says snapshot, write enabled or reconciliation in either language, both catalogues whole, no hardcoded pair in a route file');
     await stepScreens(ctx);
     await stepBrowserTests(ctx);
