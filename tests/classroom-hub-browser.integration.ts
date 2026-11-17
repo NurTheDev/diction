@@ -489,10 +489,16 @@ async function run(){
       .includes(`class=${classB}`),'each line\'s action opens that class\'s own due list');
     await noJargon(page,'the due list');
     await shot(page,'g3-dues-summary-bn-1440');
-    await page.locator(`[data-dues-summary-view="${classB}"]`).click();
-    await page.locator('form.admin-filter select[name=class]').first().waitFor({state:'visible',timeout:90000});
-    assert.equal(await page.locator('form.admin-filter select[name=class]').first().inputValue(),classB,
-      'and the picker arrives on that class');
+    /* The picker is on the page before the click as well, so "wait for the picker" is answered by the
+       page the click has not left yet. The address is what the click changes, so the arrival is waited
+       for there and then read again out of the box the new page painted. */
+    await Promise.all([
+      page.waitForURL(address=>address.searchParams.get('class')===classB,{timeout:90000,waitUntil:'commit'}),
+      page.locator(`[data-dues-summary-view="${classB}"]`).click(),
+    ]);
+    const picker=page.locator('form.admin-filter select[name=class]').first();
+    await until('the picker to arrive on that class',async()=>(await picker.inputValue())===classB);
+    assert.equal(await picker.inputValue(),classB,'and the picker arrives on that class');
     /* The screen has two tables — the centre's summary and one class's list — so the wait names the
        panel it means rather than the first table on the page. The match is exact because the summary's
        own heading is a sentence that ends in the same word: a substring would pick up both panels and
@@ -515,7 +521,9 @@ async function run(){
     assert.ok((await page.locator('.daily-student').innerText()).includes(PAYER),
       'the cash desk arrives on the student it was sent to');
     await page.locator('.daily-month.daily-due').first().click();
-    await page.locator('button.daily-save').waitFor({state:'visible',timeout:60000});
+    /* The save button is standing there before a month is picked, so the click's own answer is waited
+       for instead: the month wears `chosen` once the desk has taken it. */
+    await page.locator('.daily-month.chosen').first().waitFor({state:'visible',timeout:60000});
     await page.locator('[data-discount]').fill(bnDigits(DISCOUNT));
     /* The read-out is a client re-render away, so it is waited for rather than read straight after the
        keystroke — the claim is about what the operator sees, and what they see arrives a frame later. */
