@@ -1,3 +1,13 @@
-Error: timed out waiting for the picker to arrive on that class
-    at until (/home/runner/work/diction/diction/tests/classroom-hub-browser.integration.ts:281:36)
-    at async run (/home/runner/work/diction/diction/tests/classroom-hub-browser.integration.ts:500:5)
+AssertionError [ERR_ASSERTION]: four log rows, one per family told
+
+6 !== 4
+
+    at run (/home/runner/work/diction/diction/tests/classroom-hub-browser.integration.ts:728:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: 6,
+  expected: 4,
+  operator: 'strictEqual',
+  diff: 'simple'
+}
