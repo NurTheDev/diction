@@ -757,7 +757,11 @@ async function run(){
     await page.setViewportSize({width:360,height:900});
     await shot(page,'r9-daily-bn-360');
     await page.setViewportSize({width:1440,height:900});
-    for(const url of [masterUrl(classA),dailyUrl(today)]){
+    for(const [url,waitFor] of [[masterUrl(classA),'[data-routine-week]'],
+      [dailyUrl(today),'[data-daily-form]']] as const){
+      /* Each address is opened before it is read: a body read without the walk only re-reads whatever
+         page the suite happened to be standing on. */
+      await goto(page,url,waitFor);
       const text=await page.locator('body').innerText();
       assert.equal(RAW_KEY.test(text),false,`no raw catalog key is printed on ${url}`);
     }
