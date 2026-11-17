@@ -1,20 +1,13 @@
-AssertionError [ERR_ASSERTION]: the Bangla dashboard at 360px: nothing tappable hides under the bottom bar (its top edge is 719px; the page is 3692px tall, the window 780px, scrolled to 2912px)
-+ actual - expected
+locator.waitFor: Timeout 60000ms exceeded.
+Call log:
+  - waiting for locator('h2').first() to be visible
+    123 × locator resolved to hidden <h2>এই পেজে কাজ করার নিয়ম</h2>
 
-+ [
-+   'input bottom 729',
-+   'a.admin-mini-button bottom 741',
-+   'input bottom 781',
-+   'a.admin-mini-button bottom 793'
-+ ]
-- []
-
-    at nothingUnderTheBar (/home/runner/work/diction/diction/tests/dashboard-ops-browser.integration.ts:241:12)
-    at async run (/home/runner/work/diction/diction/tests/dashboard-ops-browser.integration.ts:456:5) {
-  generatedMessage: false,
-  code: 'ERR_ASSERTION',
-  actual: [Array],
-  expected: [],
-  operator: 'deepStrictEqual',
-  diff: 'simple'
+    at goto (/home/runner/work/diction/diction/tests/dashboard-ops-browser.integration.ts:339:43)
+    at async run (/home/runner/work/diction/diction/tests/dashboard-ops-browser.integration.ts:535:5) {
+  log: [
+    "  - waiting for locator('h2').first() to be visible",
+    '    123 × locator resolved to hidden <h2>এই পেজে কাজ করার নিয়ম</h2>'
+  ],
+  name: 'TimeoutError'
 }
