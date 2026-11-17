@@ -3,8 +3,9 @@
  * deletes that come back.
  *
  * Six claims in one suite, because they are one idea and they share one seeded centre — two classes on
- * one shift, two teachers, and a weekday chosen at runtime so the day the suite runs on is always the day
- * it writes about:
+ * one shift, two teachers, and every weekday chosen at runtime, so that the day the suite runs on is
+ * always the day it writes about and the day it walks back to is always a day the week holds a single
+ * period on, whatever day of the week CI happens to run:
  *
  *  1. **The week is built in the open.** Seven day cards, each with a visible "+ Add period" and every
  *     period with a visible Edit — not one hidden in a collapsed menu — and an editor that changes the
@@ -20,7 +21,8 @@
  *     refused. A sheet that has been sent stays editable and is badged as changed.
  *  4. **A day that says nothing new costs nothing.** Saving the week's own day writes no document, one
  *     changed line writes exactly one, a reset removes it again, a sent sheet survives its reset, and the
- *     retention job prunes what a 512 MB database cannot hold while leaving yesterday alone.
+ *     retention job prunes what a 512 MB database cannot hold while leaving the days inside its window
+ *     alone.
  *  5. **Anything can be edited and a delete comes back.** An assignment is written through its drawer,
  *     refused as a duplicate the second time, deleted behind one question into the Recycle Bin under a
  *     named kind and restored from it; a period is deleted into its day's own bin and brought back by the
@@ -123,12 +125,25 @@ async function run(){
 
   /* The suite writes about the day it runs on, so the day it runs on has to have something written. The
      clash is parked three weekdays away from today, so the sheet's own save never meets it by accident. */
-  const today=dhakaDay(new Date()),yesterday=shiftDate(today,-1);
+  const today=dhakaDay(new Date());
   const todayWeekday=weekdayOf(today);
   /* The clash is parked three weekdays away from today, so the sheet's own save never meets it; the
      retention test's throwaway day is parked away from both. */
   const clashWeekday=(todayWeekday+3)%7;
   const pruneWeekday=[3,4,5,6].find(day=>day!==todayWeekday&&day!==clashWeekday)??2;
+  /* The week is built on two weekdays of its own, and neither can be a day this suite writes about for
+     another reason — the day it runs on, the clash day, or the retention job's throwaway day — or a
+     period added for one of those would land on the same card and every count below would be one out.
+     Sunday and Monday are the natural pair; on a Sunday or a Monday the pair moves along the week. */
+  const taken=[todayWeekday,clashWeekday,pruneWeekday];
+  const firstDay=[0,1,2,3,4,5,6].find(day=>!taken.includes(day))??0;
+  const secondDay=[0,1,2,3,4,5,6].find(day=>!taken.includes(day)&&day!==firstDay)??1;
+  /* The date the suite walks back to has to have passed, and it has to be a date the week holds exactly
+     one period on: what it proves is a period left out of one date while the week keeps it. So it is the
+     most recent date before today whose weekday is the first day the week was built on — a day that is
+     neither the day the suite runs on, nor the clash day, nor the retention job's throwaway day. A suite
+     that hardcoded the day before today passed only on the weekdays where that day happened to hold one. */
+  const passedDate=shiftDate(today,-(((todayWeekday-firstDay)+7)%7||7));
   const weekdays=dayHeaders('bn');
   const masterUrl=(classId:string,shift:string=SHIFT):string=>
     `/bn/admin/routine/master?classId=${classId}${shift?`&shift=${encodeURIComponent(shift)}`:''}`;
@@ -338,47 +353,50 @@ async function run(){
       'the week is seven day cards, whatever has been written on them');
     assert.equal(await page.locator('[data-add-period]').count(),7,
       'every day carries a visible "+ Add period" — not one hidden in a menu');
-    assert.equal((await page.locator('[data-routine-weekday="0"]').innerText()).trim(),weekdays[0],
-      'the day is named from the catalog, Sunday first');
-    assert.equal((await page.locator('[data-routine-day="0"] [data-routine-empty-day]').innerText()).trim(),
-      R.master.noPeriods,'an empty day says it is empty rather than looking broken');
+    assert.deepEqual(await page.locator('section[data-routine-day] [data-routine-weekday]').allInnerTexts()
+      .then(names=>names.map(name=>name.trim())),weekdays,
+      'the seven days are named from the catalog, Sunday first');
+    assert.equal((await page.locator(`[data-routine-day="${firstDay}"] [data-routine-empty-day]`)
+      .innerText()).trim(),R.master.noPeriods,
+      'an empty day says it is empty rather than looking broken');
     await shot(page,'r9-master-empty-bn-1440');
 
     /* A period written through the drawer, with a time picked from two selects. */
-    await addPeriod(page,0,{start:'08:00',end:'09:00',subjectBn:SUBJECT_MATH,subjectEn:'Mathematics',
+    await addPeriod(page,firstDay,{start:'08:00',end:'09:00',subjectBn:SUBJECT_MATH,subjectEn:'Mathematics',
       teacher:String(teacherOne._id),room:ROOM_ONE,order:'1',note:'প্রথম বেন্ড'});
-    await until('Sunday holds one period',async()=>
-      await page.locator('[data-routine-day="0"] [data-period-card]').count()===1);
-    const sundayCard=page.locator('[data-routine-day="0"] [data-period-card]').first();
-    assert.equal((await sundayCard.locator('[data-period-subject]').innerText()).trim(),SUBJECT_MATH);
-    assert.equal((await sundayCard.locator('[data-period-teacher]').innerText()).trim(),TEACHER_ONE);
-    assert.ok((await sundayCard.locator('[data-period-room]').innerText()).includes(ROOM_ONE));
-    assert.ok((await sundayCard.locator('[data-period-time]').innerText()).includes('০৮:০০'),
+    await until(`${weekdays[firstDay]} holds one period`,async()=>
+      await page.locator(`[data-routine-day="${firstDay}"] [data-period-card]`).count()===1);
+    const firstCard=page.locator(`[data-routine-day="${firstDay}"] [data-period-card]`).first();
+    assert.equal((await firstCard.locator('[data-period-subject]').innerText()).trim(),SUBJECT_MATH);
+    assert.equal((await firstCard.locator('[data-period-teacher]').innerText()).trim(),TEACHER_ONE);
+    assert.ok((await firstCard.locator('[data-period-room]').innerText()).includes(ROOM_ONE));
+    assert.ok((await firstCard.locator('[data-period-time]').innerText()).includes('০৮:০০'),
       'the card reads the time in the operator\'s own digits');
-    assert.equal(await sundayCard.locator('[data-period-edit]').count(),1,
+    assert.equal(await firstCard.locator('[data-period-edit]').count(),1,
       'every period card carries a visible Edit button of its own');
-    assert.equal(await page.locator('[data-routine-day="0"] [data-period-more]').count(),1,
+    assert.equal(await page.locator(`[data-routine-day="${firstDay}"] [data-period-more]`).count(),1,
       'and a ⋯ menu beside it, holding the things done rarely');
 
     /* A second period, then moved to another weekday from inside its own editor. */
-    await addPeriod(page,0,{start:'09:00',end:'10:00',subjectBn:SUBJECT_BANGLA,subjectEn:'Bangla',
+    await addPeriod(page,firstDay,{start:'09:00',end:'10:00',subjectBn:SUBJECT_BANGLA,subjectEn:'Bangla',
       teacher:String(teacherTwo._id)});
-    await until('Sunday holds two periods',async()=>
-      await page.locator('[data-routine-day="0"] [data-period-card]').count()===2);
-    const movedId=await page.locator('[data-routine-day="0"] [data-period-card]').nth(1)
+    await until(`${weekdays[firstDay]} holds two periods`,async()=>
+      await page.locator(`[data-routine-day="${firstDay}"] [data-period-card]`).count()===2);
+    const movedId=await page.locator(`[data-routine-day="${firstDay}"] [data-period-card]`).nth(1)
       .getAttribute('data-period-card');
     assert.ok(movedId,'the moved period has an id of its own');
     await page.locator(`[data-period-edit="${movedId}"]`).click();
-    const moveBox=await fillPeriod(page,{start:'09:00',end:'10:00',subjectBn:SUBJECT_BANGLA,weekday:1});
+    const moveBox=await fillPeriod(page,{start:'09:00',end:'10:00',subjectBn:SUBJECT_BANGLA,
+      weekday:secondDay});
     await moveBox.locator('[data-period-save]').click();
-    await until('the period has left Sunday',async()=>
-      await page.locator('[data-routine-day="0"] [data-period-card]').count()===1
-      &&await page.locator('[data-routine-day="1"] [data-period-card]').count()===1);
-    {const monday=await masterDay(classA,1);
-     assert.ok(monday&&monday.periods.length===1,'the day it moved to holds it in the database');
-     assert.equal(monday?.periods[0].subject.bn,SUBJECT_BANGLA,'and holds its own copy of the subject');
-     const sunday=await masterDay(classA,0);
-     assert.equal(sunday?.periods.filter(period=>!period.deletedAt).length,1,
+    await until(`the period has left ${weekdays[firstDay]}`,async()=>
+      await page.locator(`[data-routine-day="${firstDay}"] [data-period-card]`).count()===1
+      &&await page.locator(`[data-routine-day="${secondDay}"] [data-period-card]`).count()===1);
+    {const movedTo=await masterDay(classA,secondDay);
+     assert.ok(movedTo&&movedTo.periods.length===1,'the day it moved to holds it in the database');
+     assert.equal(movedTo?.periods[0].subject.bn,SUBJECT_BANGLA,'and holds its own copy of the subject');
+     const movedFrom=await masterDay(classA,firstDay);
+     assert.equal(movedFrom?.periods.filter(period=>!period.deletedAt).length,1,
        'the day it left no longer holds it')}
 
     /* Today's own period, so the working sheet has something to be filled from whatever day CI runs on. */
@@ -532,7 +550,7 @@ async function run(){
      assert.equal(week?.periods[0].room,ROOM_TWO,'and still names its own room')}
 
     /* A date that has passed: badged, and fully editable. */
-    await goto(page,dailyUrl(yesterday),'[data-daily-form]');
+    await goto(page,dailyUrl(passedDate),'[data-daily-form]');
     assert.equal((await page.locator('[data-badge-passed]').innerText()).trim(),R.daily.passed,
       'a past date carries a small badge saying it has passed');
     assert.equal((await page.locator('[data-passed-help]').innerText()).trim(),R.daily.passedHelp,
@@ -541,12 +559,12 @@ async function run(){
     await page.locator('[data-holiday-reason]').fill('বার্ষিক ক্রীড়া প্রতিযোগিতা');
     await page.locator('[data-daily-notes]').fill('অফিস খোলা ছিল, ক্লাস বন্ধ');
     await page.locator('[data-daily-save]').click();
-    await until('the past day is stored',async()=>await sheetCount(yesterday)===1);
+    await until('the past day is stored',async()=>await sheetCount(passedDate)===1);
     assert.equal(await page.locator('[data-daily-refused]').count(),0,'nothing about the past was refused');
-    {const stored=await DailyRoutine.findOne({date:yesterday,classGroup:classA,shift:SHIFT}).lean<SheetDoc|null>();
+    {const stored=await DailyRoutine.findOne({date:passedDate,classGroup:classA,shift:SHIFT}).lean<SheetDoc|null>();
      assert.equal(stored?.status,'holiday','the past day is a holiday in the database');
      assert.equal(stored?.holidayReason,'বার্ষিক ক্রীড়া প্রতিযোগিতা','with the reason written down')}
-    await goto(page,dailyUrl(yesterday),'[data-daily-form]');
+    await goto(page,dailyUrl(passedDate),'[data-daily-form]');
     assert.equal(await page.locator('[data-holiday-banner]').count(),1,'and the sheet says so when reopened');
     assert.equal((await page.locator('[data-holiday-reason]').inputValue()),'বার্ষিক ক্রীড়া প্রতিযোগিতা');
     assert.equal((await page.locator('[data-daily-notes]').inputValue()),'অফিস খোলা ছিল, ক্লাস বন্ধ');
@@ -564,7 +582,7 @@ async function run(){
       await page.locator('[data-daily-save]').click();
       await until('the day without that period is stored',async()=>
         (await toastText(page)).includes(R.daily.saved));
-      const week=await masterDay(classA,weekdayOf(yesterday));
+      const week=await masterDay(classA,weekdayOf(passedDate));
       assert.equal(week?.periods.filter(period=>!period.deletedAt).length,1,
         'the period left out of the date is still in the week');
     }
@@ -572,7 +590,7 @@ async function run(){
     await page.locator('[data-daily-reset]').click();
     await until('the reset is reported',async()=>(await toastText(page)).includes(R.daily.resetDone));
     await until('the day is no longer stored',async()=>await page.locator('[data-daily-not-stored]').count()===1);
-    assert.equal(await sheetCount(yesterday),0,'a day put back to the week costs no document again');
+    assert.equal(await sheetCount(passedDate),0,'a day put back to the week costs no document again');
 
     /* A sheet that has been sent stays editable, and says when it has changed since. */
     await goto(page,dailyUrl(today),'[data-daily-form]');
@@ -619,12 +637,12 @@ async function run(){
     assert.equal(report.periods,1,'and the binned period whose thirty days were up went for good');
     assert.equal(await DailyRoutine.countDocuments({date:oldUnsent}),0);
     assert.equal(await DailyRoutine.countDocuments({date:oldSent}),0);
-    assert.equal(await sheetCount(yesterday)+await sheetCount(today),1,
-      'yesterday and today are inside the window, so the job leaves them alone');
+    assert.equal(await sheetCount(passedDate)+await sheetCount(today),1,
+      'the passed day and today are inside the window, so the job leaves them alone');
     {const day=await MasterRoutine.findOne({classGroup:classB,weekday:pruneWeekday,shift:SHIFT,
        deletedAt:null}).lean<MasterDoc|null>();
      assert.equal(day?.periods.length,0,'the pruned period is out of the week for good');
-     const week=await masterDay(classA,0);
+     const week=await masterDay(classA,firstDay);
      assert.equal(week?.periods.filter(period=>!period.deletedAt).length,1,
        'and the week the operator is reading kept every period it had')}
 
@@ -685,9 +703,9 @@ async function run(){
 
     /* A period deleted behind one question, into its day's own bin, and back by the toast's Undo. */
     await goto(page,masterUrl(classA),'[data-routine-week]');
-    const victim=await page.locator('[data-routine-day="0"] [data-period-card]').first()
+    const victim=await page.locator(`[data-routine-day="${firstDay}"] [data-period-card]`).first()
       .getAttribute('data-period-card')||'';
-    assert.ok(victim,'Sunday has a period to delete');
+    assert.ok(victim,`${weekdays[firstDay]} has a period to delete`);
     await page.locator(`[data-period-more="${victim}"] summary`).click();
     await page.locator(`[data-period-delete="${victim}"]`).click();
     /* Scoped to the menu that opened it: every period card and every day card carries a dialog of its
@@ -700,22 +718,22 @@ async function run(){
     await until('the period is out of the week',async()=>
       await page.locator(`[data-period-card="${victim}"]`).count()===0);
     assert.ok((await toastText(page)).includes(R.period.deleted),'and the toast says it is in the bin');
-    {const day=await masterDay(classA,0);
+    {const day=await masterDay(classA,firstDay);
      const binned=day?.periods.find(period=>String(period._id)===victim);
      assert.ok(binned?.deletedAt,'the period is soft-deleted inside its own day');
      assert.ok(binned?.purgeAt&&binned.purgeAt.getTime()>Date.now(),'with thirty days before the purge')}
     await until('the day counts the period in its bin',async()=>
-      await page.locator('[data-routine-day="0"] [data-binned-count]').count()===1);
+      await page.locator(`[data-routine-day="${firstDay}"] [data-binned-count]`).count()===1);
     await page.locator('.admin-toast').getByRole('button',{name:R.common.undo,exact:true}).click();
     await until('the period is back in the week',async()=>
       await page.locator(`[data-period-card="${victim}"]`).count()===1);
-    {const day=await masterDay(classA,0);
+    {const day=await masterDay(classA,firstDay);
      const restored=day?.periods.find(period=>String(period._id)===victim);
      assert.ok(restored&&!restored.deletedAt,'Undo brought the very same period back, not a copy')}
 
     /* The day's own record, deleted to the Recycle Bin and restored from it. */
-    const dayId=String((await masterDay(classA,1))?._id);
-    const dayCard=page.locator('[data-routine-day="1"]');
+    const dayId=String((await masterDay(classA,secondDay))?._id);
+    const dayCard=page.locator(`[data-routine-day="${secondDay}"]`);
     await rowButton(dayCard,W.deleteAction);
     const dayConfirm=dayCard.locator('.admin-row-direct dialog.admin-confirm');
     await dayConfirm.waitFor({state:'visible'});
@@ -731,7 +749,7 @@ async function run(){
     await until('the day is restored',async()=>
       await MasterRoutine.countDocuments({_id:dayId,deletedAt:null})===1);
     await goto(page,masterUrl(classA),'[data-routine-week]');
-    assert.equal(await page.locator('[data-routine-day="1"] [data-period-card]').count(),1,
+    assert.equal(await page.locator(`[data-routine-day="${secondDay}"] [data-period-card]`).count(),1,
       'and the restored day is back in the week with its period');
 
     /* A staff session: the same rows, no write button, and Archive where Delete was. The assignment is
@@ -760,7 +778,7 @@ async function run(){
     await page.setViewportSize({width:360,height:900});
     await shot(page,'r9-master-bn-360');
     /* The same drawer at 360px: a full-screen touch sheet, with inputs a thumb can hit. */
-    const smallId=await page.locator('[data-routine-day="0"] [data-period-card]').first()
+    const smallId=await page.locator(`[data-routine-day="${firstDay}"] [data-period-card]`).first()
       .getAttribute('data-period-card')||'';
     await page.locator(`[data-period-edit="${smallId}"]`).click();
     const smallBox=drawer(page);
@@ -803,13 +821,13 @@ async function run(){
     /* The English address: the same two screens, the same data, English words and English digits. */
     const english=await signIn(BOSS,1440,900,'en');
     await goto(english.page,`/en/admin/routine/master?classId=${classA}`,'[data-routine-week]');
-    assert.equal((await english.page.locator('[data-routine-weekday="0"]').innerText()).trim(),
-      dayHeaders('en')[0],'the weekday comes from the English catalog');
+    assert.equal((await english.page.locator(`[data-routine-weekday="${firstDay}"]`).innerText()).trim(),
+      dayHeaders('en')[firstDay],'the weekday comes from the English catalog');
     assert.equal((await english.page.locator('[data-master-heading]').innerText()).trim(),RE.master.title);
     assert.equal((await english.page.locator('[data-kpi-periods]').innerText()).trim(),
       RE.master.periodCount.replace('{count}','4'),
       'and the week counts its four periods in ASCII digits for an operator who asked for them');
-    const englishCard=english.page.locator('[data-routine-day="0"] [data-period-card]').first();
+    const englishCard=english.page.locator(`[data-routine-day="${firstDay}"] [data-period-card]`).first();
     assert.equal((await englishCard.locator('[data-period-edit]').innerText()).trim(),RE.common.edit,
       'the visible Edit button reads as English');
     /* The screens' own words, and not the centre's data: a class, a teacher or a subject named in Bangla
@@ -843,7 +861,7 @@ async function run(){
     assert.deepEqual(boss.errors,[],`no client-side error anywhere in the routine screens (${boss.errors.join(' | ')})`);
     await boss.context.close();
 
-    console.log(`R9 in the browser, photographed at 360 px and 1440 px into screenshots/r9: ${CLASS_A}'s week was built one period at a time — ${SUBJECT_MATH} at ০৮:০০ on ${weekdays[0]} with a visible Edit on the card and a ⋯ beside it, ${SUBJECT_BANGLA} moved out of ${weekdays[0]} and into ${weekdays[1]} from inside its own editor, ${SUBJECT_CHEM} written on ${weekdays[todayWeekday]} so the day the suite runs on has a day to run — and ${weekdays[clashWeekday]} was switched off, moved into ${EVENING} with its period inside it and moved back, one live day per class, shift and weekday all the way; ${TEACHER_ONE} double-booked into ${CLASS_B} at ১২:০০ answered with the drawer still open, a banner naming ${TEACHER_ONE}, ${CLASS_A} and ${SUBJECT_PHYSICS}, nothing written until Save anyway wrote it, and both classes then counting ${bnDigits(1)} clash in the week; the sheet for ${today} arrived filled from the week and badged as the week's own, saved unchanged at the cost of ${bnDigits(0)} documents, took ${TEACHER_TWO} and ${ROOM_THREE} for that date alone while the master still named ${TEACHER_ONE} and ${ROOM_TWO}, and ${yesterday} — badged as passed — became a holiday with its reason, lost a period the week kept, and went back to the week at the cost of its document, while today's sent sheet kept its record through a reset and badged itself changed; the retention job pruned ${bnDigits(report.dailySheets)} working sheet, ${bnDigits(report.sentSheets)} sent sheet and ${bnDigits(report.periods)} binned period and left yesterday alone; an assignment was written, refused as a duplicate, edited to ${bnDigits(5)} periods a week, deleted behind one question, restored from the Recycle Bin under ${BIN.kindNames.masterRoutine}, and archived by a staff session that was offered no write button at all — in Bangla and in English, with no raw key printed and nothing overflowing at 360, 768 or 1440 px.`);
+    console.log(`R9 in the browser, photographed at 360 px and 1440 px into screenshots/r9: ${CLASS_A}'s week was built one period at a time — ${SUBJECT_MATH} at ০৮:০০ on ${weekdays[firstDay]} with a visible Edit on the card and a ⋯ beside it, ${SUBJECT_BANGLA} moved out of ${weekdays[firstDay]} and into ${weekdays[secondDay]} from inside its own editor, ${SUBJECT_CHEM} written on ${weekdays[todayWeekday]} so the day the suite runs on has a day to run — and ${weekdays[clashWeekday]} was switched off, moved into ${EVENING} with its period inside it and moved back, one live day per class, shift and weekday all the way; ${TEACHER_ONE} double-booked into ${CLASS_B} at ১২:০০ answered with the drawer still open, a banner naming ${TEACHER_ONE}, ${CLASS_A} and ${SUBJECT_PHYSICS}, nothing written until Save anyway wrote it, and both classes then counting ${bnDigits(1)} clash in the week; the sheet for ${today} arrived filled from the week and badged as the week's own, saved unchanged at the cost of ${bnDigits(0)} documents, took ${TEACHER_TWO} and ${ROOM_THREE} for that date alone while the master still named ${TEACHER_ONE} and ${ROOM_TWO}, and ${passedDate} — badged as passed — became a holiday with its reason, lost a period the week kept, and went back to the week at the cost of its document, while today's sent sheet kept its record through a reset and badged itself changed; the retention job pruned ${bnDigits(report.dailySheets)} working sheet, ${bnDigits(report.sentSheets)} sent sheet and ${bnDigits(report.periods)} binned period and left the days inside its window alone; an assignment was written, refused as a duplicate, edited to ${bnDigits(5)} periods a week, deleted behind one question, restored from the Recycle Bin under ${BIN.kindNames.masterRoutine}, and archived by a staff session that was offered no write button at all — in Bangla and in English, with no raw key printed and nothing overflowing at 360, 768 or 1440 px.`);
   }finally{
     await browser.close();
     await mongoose.disconnect();
