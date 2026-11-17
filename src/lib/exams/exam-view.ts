@@ -19,15 +19,15 @@ import {resultMessage,type ResultMessageValues} from './result-message';
 
 /** A class group as a screen names it: the name in the page's language plus the session year. */
 export interface ViewClass{id:string;name:string}
-export interface ViewSubject{id:string;name:string;full:number;pass:number}
+export interface ViewSubject{id:string;name:string;full:number;pass:number;parts:{name:string;marks:number}[]}
 export interface ViewBand{min:number;label:string;point:number}
 export interface ViewStudent{
   id:string;name:string;studentId:string;roll:string;version:number;
-  marks:Record<string,{obtained:number|null;absent:boolean}>;
+  marks:Record<string,{obtained:number|null;absent:boolean;parts:{name:string;obtained:number|null}[]}>;
 }
 export interface ViewResult{
   id:string;studentId:string;name:string;classId:string;
-  marks:Record<string,{obtained:number|null;absent:boolean}>;
+  marks:Record<string,{obtained:number|null;absent:boolean;parts:{name:string;obtained:number|null}[]}>;
   total:number;fullTotal:number;percentage:number;grade:string;point:number;position:number|null;
 }
 export interface ExamListView{id:string;name:string;type:string;date:string;status:string;classes:string[];results:number}
@@ -35,12 +35,12 @@ export interface ExamListView{id:string;name:string;type:string;date:string;stat
 interface ExamDoc{
   _id:mongoose.Types.ObjectId;name:{bn:string;en?:string};type:string;date:string;status:string;
   scaleName?:string;classGroups:mongoose.Types.ObjectId[];
-  subjects:{_id:mongoose.Types.ObjectId;name:{bn:string;en?:string};fullMarks:number;passMarks:number}[];
+  subjects:{_id:mongoose.Types.ObjectId;name:{bn:string;en?:string};fullMarks:number;passMarks:number;parts?:{name:{bn:string;en?:string};marks:number}[]}[];
   gradeBands:{min:number;label:string;point?:number}[];
 }
 interface ResultDoc{
   _id:mongoose.Types.ObjectId;student:mongoose.Types.ObjectId;classGroup?:mongoose.Types.ObjectId;
-  revision?:number;marks:{subject:mongoose.Types.ObjectId;obtained:number|null;absent:boolean}[];
+  revision?:number;marks:{subject:mongoose.Types.ObjectId;obtained:number|null;absent:boolean;parts?:{name:string;obtained:number|null}[]}[];
   total:number;fullTotal:number;percentage:number;grade:string;point?:number;position?:number;
 }
 interface StudentDoc{_id:mongoose.Types.ObjectId;studentId:string;name:{bn:string;en?:string};roll?:string;classGroup:mongoose.Types.ObjectId}
@@ -85,6 +85,7 @@ export async function examDetailView(examId:string,scope:ExamScope,locale:string
     .limit(MAX_GRID_ROWS+1).lean<ResultDoc[]>();
   const subjects:ViewSubject[]=exam.subjects.map(subject=>({
     id:String(subject._id),name:localName(subject.name,locale),full:subject.fullMarks,pass:subject.passMarks,
+    parts:(subject.parts||[]).map(part=>({name:localName(part.name,locale),marks:part.marks})),
   }));
   const byResult=new Map(results.map(row=>[String(row.student),row]));
   const viewStudents:ViewStudent[]=students.map(student=>{
@@ -92,14 +93,14 @@ export async function examDetailView(examId:string,scope:ExamScope,locale:string
     return {
       id:String(student._id),name:localName(student.name,locale),studentId:String(student.studentId||''),
       roll:String(student.roll||''),version:row?row.revision??0:-1,
-      marks:Object.fromEntries((row?.marks||[]).map(mark=>[String(mark.subject),{obtained:mark.absent?null:mark.obtained,absent:!!mark.absent}])),
+      marks:Object.fromEntries((row?.marks||[]).map(mark=>[String(mark.subject),{obtained:mark.absent?null:mark.obtained,absent:!!mark.absent,parts:(mark.parts||[]).map(part=>({name:part.name,obtained:part.obtained}))}])),
     };
   });
   const names=new Map(students.map(student=>[String(student._id),localName(student.name,locale)]));
   const viewResults:ViewResult[]=results.map(row=>({
     id:String(row._id),studentId:String(row.student),
     name:names.get(String(row.student))||'',classId:String(row.classGroup||''),
-    marks:Object.fromEntries((row.marks||[]).map(mark=>[String(mark.subject),{obtained:mark.absent?null:mark.obtained,absent:!!mark.absent}])),
+    marks:Object.fromEntries((row.marks||[]).map(mark=>[String(mark.subject),{obtained:mark.absent?null:mark.obtained,absent:!!mark.absent,parts:(mark.parts||[]).map(part=>({name:part.name,obtained:part.obtained}))}])),
     total:row.total??0,fullTotal:row.fullTotal??0,percentage:row.percentage??0,grade:String(row.grade||''),
     point:row.point??0,position:row.grade==='ABSENT'?null:row.position??null,
   }));

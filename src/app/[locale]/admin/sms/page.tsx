@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import {getTranslations} from 'next-intl/server';
+import {Link} from '@/i18n/navigation';
 import {requireAdmin} from '@/lib/admin/guard';
 import {dashboardDigits} from '@/lib/admin/digits';
 import {formatNumber,formatDate,formatTime,formatDigits} from '@/lib/admin/format';
@@ -16,7 +17,7 @@ import {SmsAutoProblems} from '@/components/admin/sms-auto-problems';
 export const dynamic='force-dynamic';
 
 type BatchRow={_id:mongoose.Types.ObjectId;purpose:string;templateKey?:string;status:string;recipientCount:number;sentCount:number;failedCount:number;skippedCount:number;estimatedCost:number;quiet:boolean;scheduledFor?:Date;createdAt:Date};
-type LogRow={_id:mongoose.Types.ObjectId;phone:string;message:string;status:string;reason?:string;providerCode?:string;providerMessage?:string;segments:number;cost:number;templateKey?:string;sentAt?:Date;createdAt:Date;student?:{name:{bn:string;en?:string};studentId:string}};
+type LogRow={_id:mongoose.Types.ObjectId;batch?:mongoose.Types.ObjectId;phone:string;message:string;status:string;reason?:string;providerCode?:string;providerMessage?:string;segments:number;cost:number;templateKey?:string;sentAt?:Date;createdAt:Date;student?:{name:{bn:string;en?:string};studentId:string}};
 
 const STATUSES=['sent','failed','skipped','queued'] as const;
 
@@ -45,7 +46,7 @@ const STATUSES=['sent','failed','skipped','queued'] as const;
  * Nothing here exposes a credential — only the provider's NAME and whether it is configured. The balance
  * is fetched server-side and rendered as a number.
  */
-export default async function SmsPage({params,searchParams}:{params:Promise<{locale:string}>;searchParams:Promise<{status?:string;template?:string;q?:string}>}){
+export default async function SmsPage({params,searchParams}:{params:Promise<{locale:string}>;searchParams:Promise<{status?:string;template?:string;q?:string;batch?:string}>}){
   const actor=await requireAdmin();
   const {locale}=await params;
   const query=await searchParams;
@@ -73,7 +74,11 @@ export default async function SmsPage({params,searchParams}:{params:Promise<{loc
   const status=STATUSES.includes(query.status as typeof STATUSES[number])?query.status as typeof STATUSES[number]:undefined;
   const template=templates.some(t=>t.key===query.template)?query.template:undefined;
   const search=String(query.q||'').trim().slice(0,80);
+  /* Group 3: one batch's own messages. An exam's result send links straight here, so the proof of what
+     went to those guardians is the list on screen rather than a search through every send there ever was. */
+  const batch=mongoose.isValidObjectId(String(query.batch||''))?String(query.batch):undefined;
   const filter:mongoose.FilterQuery<LogRow>={};
+  if(batch)filter.batch=new mongoose.Types.ObjectId(batch) as unknown as LogRow['batch'];
   if(status)filter.status=status;
   if(template)filter.templateKey=template;
   if(search)filter.$or=[{phone:{ $regex:search.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}},{'student.name.bn':{$regex:search.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}}];
@@ -158,6 +163,13 @@ export default async function SmsPage({params,searchParams}:{params:Promise<{loc
       <div className="admin-panel-head sms-card-head"><h2>{ts('page.cardHistory')}</h2><p className="admin-help">{ts('page.cardHistoryNote')}</p></div>
       <div className="admin-panel-body sms-card-body">
         <section className="admin-panel"><div className="admin-panel-head"><h2>{ts('page.history')}</h2></div><div className="admin-panel-body">
+          {/* Group 3: a batch of one send, opened from the exam that produced it. The list says so, and
+              offers the way back to every message — a scoped list that does not announce its scope is a
+              list an operator reads as the whole history. */}
+          {batch&&<p className="admin-help" data-sms-batch-filter>
+            {ts('page.batchFilter',{count:formatNumber(logs.length,digits)})}{' '}
+            <Link className="text-link" href="/admin/sms">{ts('page.batchFilterClear')}</Link>
+          </p>}
           <form method="get" className="admin-filter">
             <label>{ts('page.status')} <select name="status" className="admin-select" defaultValue={status||''}>
               <option value="">{ts('page.all')}</option>

@@ -86,6 +86,20 @@ export function screenPlan(_milestone:string):ScreenTarget[]{
        360px and 1440px, which is the owner's evidence bar for this group. */
     {path:'/en/admin',label:'admin-overview-en'},
     {path:'/bn/admin/sms',label:'sms-centre-bn'},
+    /* Group 3 · the three screens this group added, in both languages: the exam creator that now takes a
+       subject's components, and the month's consolidated marksheet. What this pass photographs is the
+       honest first look — a create form nobody has filled and a marksheet with no class chosen yet —
+       because the screens pass runs before the browser suites and creates no centre of its own. The
+       classroom hub, the dues summary with classes in it, the component grid with marks in it and the
+       marksheet with a month's exams on it are photographed with real data by
+       tests/classroom-hub-browser.integration.ts into screenshots/g3, at the same two widths; the hub
+       cannot be addressed from here at all, because its address is a class this pass never creates.
+       The cash desk (daily-collection) and the due list (due-list) are already in this plan in both
+       languages, and now carry the discount field and the all-class summary this group added. */
+    {path:'/bn/admin/center-exams?new=1',label:'center-exams-create-bn',waitFor:'[data-exam-form="create"]'},
+    {path:'/en/admin/center-exams?new=1',label:'center-exams-create-en',waitFor:'[data-exam-form="create"]'},
+    {path:'/bn/admin/center-exams/marksheet',label:'marksheet-bn',waitFor:'[data-marksheet-form]'},
+    {path:'/en/admin/center-exams/marksheet',label:'marksheet-en',waitFor:'[data-marksheet-form]'},
   ];
 }
 

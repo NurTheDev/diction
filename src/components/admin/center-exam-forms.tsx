@@ -35,7 +35,7 @@ export interface ClassOption{id:string;name:string}
 export interface ScaleOption{id:string;name:string;ranges:GradeRange[];active:boolean}
 export interface ExamShapeValue{
   id?:string;name:string;type:string;date:string;scaleName:string;
-  classIds:string[];subjects:{name:string;full:number;pass:number}[];bands:{min:number;label:string;point:number}[];
+  classIds:string[];subjects:{name:string;full:number;pass:number;parts?:{name:string;marks:number}[]}[];bands:{min:number;label:string;point:number}[];
 }
 
 /** The scale a saved exam used, as ranges the form can show; an exam with no scale name is the default. */
@@ -52,12 +52,30 @@ const CUSTOM='custom';
  * `mode` decides which action it posts to and which button it shows; everything else is the same form,
  * because the two must never disagree about what an exam is made of.
  */
+/** A component row's marks, in Latin digits whatever keyboard typed them, so the total can add up. */
+function partSum(rows:{name:string;marks:string}[]):number{
+  return rows.reduce((sum,row)=>{
+    const marks=Number(row.marks.replace(/[\u09e6-\u09ef]/g,c=>String(c.charCodeAt(0)-0x09e6)).trim());
+    return sum+(Number.isFinite(marks)&&marks>=0?Math.round(marks):0);
+  },0);
+}
+
 export function ExamShapeForm({mode,groups,scales,value,digits}:{mode:'create'|'edit';groups:ClassOption[];scales:ScaleOption[];value:ExamShapeValue;digits:Digits}){
   const t=useTranslations('exams');
   const action=mode==='create'?createExamAction:updateExamAction;
   const [state,submit,pending]=useActionState(action,initial);
   const [requestId,setRequestId]=useState('');
   const [subjectCount,setSubjectCount]=useState(Math.max(1,value.subjects.length));
+  /* Group 3: a subject's components, as typed rows. They live in client state so the total can add
+     itself up while the creator types, and they travel as positional form fields like the subjects. */
+  const [parts,setParts]=useState<Record<number,{name:string;marks:string}[]>>(()=>
+    Object.fromEntries(value.subjects.map((subject,index)=>[index,(subject.parts||[]).map(part=>({name:part.name,marks:String(part.marks)}))])));
+  const partRows=(index:number)=>parts[index]||[];
+  const setPart=(index:number,slot:number,next:{name?:string;marks?:string})=>setParts(old=>{
+    const list=[...(old[index]||[])];list[slot]={...list[slot],...next};return {...old,[index]:list};
+  });
+  const addPart=(index:number)=>setParts(old=>({...old,[index]:[...(old[index]||[]),{name:'',marks:''}]}));
+  const dropPart=(index:number,slot:number)=>setParts(old=>({...old,[index]:(old[index]||[]).filter((_,i)=>i!==slot)}));
   const savedScale=scales.find(scale=>scale.name===value.scaleName);
   const [scaleChoice,setScaleChoice]=useState(savedScale?savedScale.id:value.bands.length?CUSTOM:'');
   const [classIds,setClassIds]=useState<string[]>(value.classIds);
@@ -88,8 +106,24 @@ export function ExamShapeForm({mode,groups,scales,value,digits}:{mode:'create'|'
     <fieldset><legend>{t('form.subjectsLegend')}</legend>
       {Array.from({length:subjectCount},(_,index)=><div className="center-exam-subject" key={index}>
         <label>{t('form.subjectLabel')} {formatNumber(index+1,digits)}<input name={`subject-${index}`} className="admin-input" required maxLength={100} defaultValue={value.subjects[index]?.name||''}/></label>
-        <label>{t('form.fullLabel')}<input name={`full-${index}`} className="admin-input" inputMode="numeric" required defaultValue={value.subjects[index]?.full??''}/></label>
+        {partRows(index).length>0
+          /* With components, the total is their sum and says so: a read-only field that adds itself up
+             in front of the creator, rather than a second number they have to keep agreeing with. */
+          ? <label>{t('form.fullLabel')}<input name={`full-${index}`} className="admin-input" inputMode="numeric" required readOnly
+                value={formatNumber(partSum(partRows(index)),digits)} data-part-total={index}/></label>
+          : <label>{t('form.fullLabel')}<input name={`full-${index}`} className="admin-input" inputMode="numeric" required defaultValue={value.subjects[index]?.full??''}/></label>}
         <label>{t('form.passLabel')}<input name={`pass-${index}`} className="admin-input" inputMode="numeric" required defaultValue={value.subjects[index]?.pass??''}/></label>
+        <div className="center-exam-parts" data-exam-parts={index}>
+          <p className="admin-help">{t('form.partsHelp')}</p>
+          {partRows(index).map((part,slot)=>(<div className="center-exam-part" key={slot} data-part-row={`${index}-${slot}`}>
+            <label>{t('form.partName')}<input className="admin-input" name={`part-${index}-${slot}-name`} maxLength={100} value={part.name}
+              onChange={event=>setPart(index,slot,{name:event.target.value})}/></label>
+            <label>{t('form.partMarks')}<input className="admin-input" inputMode="numeric" name={`part-${index}-${slot}-marks`} value={part.marks}
+              onChange={event=>setPart(index,slot,{marks:event.target.value})}/></label>
+            <button type="button" className="admin-mini-button" onClick={()=>dropPart(index,slot)}>{t('form.partRemove')}</button>
+          </div>))}
+          <button type="button" className="admin-mini-button" data-part-add={index} disabled={partRows(index).length>=8} onClick={()=>addPart(index)}>{t('form.addPart')}</button>
+        </div>
       </div>)}
       <button type="button" className="admin-mini-button" disabled={subjectCount>=MAX_EXAM_SUBJECTS} onClick={()=>setSubjectCount(count=>count+1)}>{t('form.addSubject')}</button>
       {subjectCount>1&&<button type="button" className="admin-mini-button" onClick={()=>setSubjectCount(count=>count-1)}>{t('form.removeLast')}</button>}

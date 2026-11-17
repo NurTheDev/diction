@@ -61,6 +61,8 @@
     "test:g2:dashboard": "tsx --conditions=react-server tests/dashboard-ops-browser.integration.ts",
     "test:g2:menu": "tsx tests/nav-groups.test.ts",
     "test:g2:copy": "tsx tests/i18n-catalog.test.ts && tsx tests/i18n-bangla-scan.test.ts",
+    "test:g3:classroom": "tsx tests/classroom-hub-browser.integration.ts",
+    "test:g3:copy": "tsx tests/i18n-catalog.test.ts && tsx tests/i18n-bangla-scan.test.ts",
     "test:teacher": "npm run test:teacher:rules && npm run test:teacher:sheet",
     "test:teacher:rules": "tsx tests/teacher-cv-rules.test.ts",
     "test:teacher:sheet": "tsx tests/teacher-cv-sheet.test.ts",

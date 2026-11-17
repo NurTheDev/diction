@@ -405,6 +405,11 @@ async function main():Promise<void>{
        browser receives names a variable instead of telling its reader what to do. */
     await stepUnitSuites(ctx,'test:g2:menu','G2.5','The menu contract: five operator groups, one place per screen, a real route behind each, both catalogues complete, every role\u2019s visible set frozen');
     await stepUnitSuites(ctx,'test:g2:copy','G2.6','The copy safeguards: no shipped value names a variable, both catalogues whole, no hardcoded pair in a route file');
+    /* Group 3 rebuilt the centre's own workflow, and its brief named the words as plainly as it named
+       the screens: an owner does not take a snapshot, enable a write or reconcile. So the copy proof is
+       the catalog scan that fails on those three words in either language, beside the parity scan that
+       says every sentence these five screens paint lives in both catalogs and in no route file. */
+    await stepUnitSuites(ctx,'test:g3:copy','G3.6','The plain-language sweep: no shipped value says snapshot, write enabled or reconciliation in either language, both catalogues whole, no hardcoded pair in a route file');
     await stepScreens(ctx);
     await stepBrowserTests(ctx);
     (ctx as Context&{stop?:()=>void}).stop?.();

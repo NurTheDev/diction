@@ -32,16 +32,19 @@ import {listTableClass} from './list-class';
 import {StudentRow,type StudentRowKit} from './students-row';
 import SendSmsDialog,{type SmsTemplateOption} from './send-sms-dialog';
 
-export function CenterStudentList({initial,classes,digits,sms,canManage,maySendSms}:{
+export function CenterStudentList({initial,classes,digits,sms,canManage,maySendSms,lockClassId}:{
   initial:CenterSearchResult;classes:ClassChoice[];digits:Digits;
   sms:{templates:SmsTemplateOption[];institutePhone:string};
   /** Only an Admin or a Super Admin removes or restores a student; the row says so to anybody else. */
   canManage:boolean;maySendSms:boolean;
+  /** Group 3: a class page's list. The class is where the operator is standing, so it is not a filter
+      they could change — the picker stays out and every read is this class's roll. */
+  lockClassId?:string;
 }){
   const t=useTranslations('center'),a=useTranslations('admin'),ts=useTranslations('sms'),common=useTranslations('common'),locale=useLocale();
   const language=locale==='en'?'en':'bn';
   const [result,setResult]=useState(initial);
-  const [q,setQ]=useState(''),[classId,setClass]=useState(''),[status,setStatus]=useState(''),[removed,setRemoved]=useState(false);
+  const [q,setQ]=useState(''),[classId,setClass]=useState(lockClassId||''),[status,setStatus]=useState(''),[removed,setRemoved]=useState(false);
   const [busy,start]=useTransition();
   const [picked,setPicked]=useState<string[]>([]),[smsOpen,setSmsOpen]=useState(false);
 
@@ -79,11 +82,11 @@ export function CenterStudentList({initial,classes,digits,sms,canManage,maySendS
       <form className="admin-filter list-filter" onSubmit={event=>{event.preventDefault();search(1)}}>
         <label><span>{t('searchLabel')}</span>
           <input name="q" className="admin-input" value={q} onChange={event=>setQ(event.target.value)} placeholder={t('search')}/></label>
-        <label><span>{t('class')}</span>
+        {!lockClassId&&<label><span>{t('class')}</span>
           <select className="admin-select" name="class" value={classId} onChange={event=>setClass(event.target.value)}>
             <option value="">{t('allClasses')}</option>
             {classes.map(c=><option key={c.id} value={c.id}>{c.name} {c.shift} · {formatNumber(c.year,digits)}</option>)}
-          </select></label>
+          </select></label>}
         <label><span>{t('status')}</span>
           <select className="admin-select" name="status" value={status} onChange={event=>setStatus(event.target.value)}>
             <option value="">{t('allStatus')}</option>

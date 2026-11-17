@@ -252,6 +252,31 @@ assert.deepEqual(unnamedSettings.sort(),[],'a shipped value names a setting only
 assert.deepEqual([...new Set(rotten)].sort(),[],'every allowed name is still in the value it was allowed for');
 console.log(`Browser exposure: ${readByClient.size} groups are read by client components, ${SERVER_ONLY_NAMESPACES.length} stay on the server, and no shipped value names a variable — ${Object.keys(NAMED_SETTINGS).length} allowances, ${SECRETS.length} secret names watched for.`);
 
+// ── 5b. Group 3 · the words are the operator's, not the builder's ─────────────────────────────────
+/* The owner's brief for this group named three words, and named them because a screen that says
+   "snapshot", "write enabled" or "reconciliation" is a screen written for the person who built it: an
+   owner who runs a coaching centre does not take a snapshot, does not enable a write and does not
+   reconcile — they save a calculation, take a fee and match two lists. Rule 5 above is the same
+   argument about a variable name; this is that argument about a word. It is checked here, over every
+   shipped value in both languages, because the catalogs are the only place a sentence lives — and
+   again in the browser, over the five screens this group rebuilt, because a catalog can be clean and a
+   component can still hardcode a word (tests/classroom-hub-browser.integration.ts reads what an
+   operator reads and fails on the same three). The Bangla spellings are watched for too: the sweep
+   that rewrote these sentences rewrote both languages, and a transliteration is the same jargon in a
+   different script. */
+const JARGON:[string,string][]=[['snapshot','স্ন্যাপশট'],['write enabled','রাইট এনাবেলড'],['reconcil','রিকনসিলিয়েশন']];
+const jargon:string[]=[];
+for(const [loc,catalog] of [['bn',bnMessages],['en',enMessages]] as const){
+  for(const key of leaves(catalog as Catalog)){
+    const value=String(walk(catalog as Catalog,key)).toLowerCase();
+    for(const [word,transliterated] of JARGON){
+      if(value.includes(word)||value.includes(transliterated.toLowerCase()))jargon.push(`${loc} ${key} says "${word}"`);
+    }
+  }
+}
+assert.deepEqual(jargon.sort(),[],'no shipped sentence speaks the builder\'s jargon in either language');
+console.log(`Plain language: ${JARGON.length} of the builder's own words watched for in both catalogs — ${bnKeys.length} Bangla values and ${enKeys.length} English ones, and not one of them says snapshot, write enabled or reconciliation.`);
+
 // ── 6. A client component is given the group it reads, on the route that renders it ───────────────
 /* Rule 5 knows which groups may travel to the browser. It cannot see WHERE: a page is served the
    messages its own provider chain hands it, and a chain that does not include the group a client

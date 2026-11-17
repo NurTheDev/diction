@@ -269,12 +269,14 @@ export async function runSmsDialog(input:SmsDialogInput,actor:string,options:Sms
  * toggle that is off, a class with nobody overdue, and a send that is queued for quiet hours — those
  * are the system working.
  */
-async function batchCounts(batchId:string):Promise<{status:string;sent:number;failed:number}|null>{
+export async function batchCounts(batchId:string):Promise<{status:string;sent:number;failed:number;skipped:number}|null>{
   if(!batchId||!mongoose.isValidObjectId(batchId))return null;
-  const row=await CenterSmsBatch.findById(batchId).select('status sentCount failedCount').lean() as unknown as
-    {status?:string;sentCount?:number;failedCount?:number}|null;
+  const row=await CenterSmsBatch.findById(batchId).select('status sentCount failedCount skippedCount').lean() as unknown as
+    {status?:string;sentCount?:number;failedCount?:number;skippedCount?:number}|null;
   if(!row)return null;
-  return {status:String(row.status||''),sent:Number(row.sentCount)||0,failed:Number(row.failedCount)||0};
+  /* Group 3 reads `skipped` too: a result send has to be able to say how many children were left out
+     because they had no marks, which is the number that proves no blank message went anywhere. */
+  return {status:String(row.status||''),sent:Number(row.sentCount)||0,failed:Number(row.failedCount)||0,skipped:Number(row.skippedCount)||0};
 }
 
 /** Why a batch did not fully go out, in the provider's own code when there is one. Empty means fine. */
