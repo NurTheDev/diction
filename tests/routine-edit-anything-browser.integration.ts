@@ -35,7 +35,6 @@ import bcrypt from 'bcryptjs';
 import assert from 'node:assert/strict';
 import {randomBytes} from 'node:crypto';
 import {mkdir} from 'node:fs/promises';
-import {readFileSync} from 'node:fs';
 import path from 'node:path';
 import {chromium} from 'playwright';
 import type {Browser,Locator,Page} from 'playwright';
@@ -286,13 +285,7 @@ async function run(){
         page.locator('[data-save-anyway]').count(),
         open.first().innerText().catch(()=>''),
       ])) as [number,number,number,string];
-      let traced='no trace file';
-      try{
-        traced=readFileSync('test-results/ci-latest/logs/routine-trace.txt','utf8').trim().split('\n')
-          .slice(-8).join(' | ');
-      }catch{/* the trace is a bonus, never a requirement */}
       return `open drawers=${await open.count()} warning=${warning} refused=${refused} anyway=${anyway}`
-        +`\n  the write path traced: ${traced}`
         +` toast="${(await toastText(page)).replace(/\s+/g,' ').slice(0,120)}" url=${page.url()}`
         +`\n  the drawer says: ${said.replace(/\s+/g,' ').slice(0,240)}`
         +`\n  the server answered: ${(seen?.posted||['no POST was captured']).join(' | ')}`

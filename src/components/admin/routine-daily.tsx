@@ -201,7 +201,10 @@ export function RoutineDailySheet(props:RoutineDailyProps){
     {sheet.passed&&<p className="admin-help" data-passed-help>{t('daily.passedHelp')}</p>}
     <p className="admin-help" data-daily-scope>{t('daily.sheetHelp')}</p>
 
-    <form action={action} className="admin-edit routine-daily-form" data-daily-form>
+    {/* The reset React 19 runs once an action settles is declined, for the same reason as in the master
+        drawers: an answer that keeps the sheet on screen must keep showing what was written. */}
+    <form action={action} className="admin-edit routine-daily-form" data-daily-form
+      onReset={event=>event.preventDefault()}>
       <input type="hidden" name="classId" value={sheet.classId}/>
       <input type="hidden" name="shift" value={sheet.shift}/>
       <input type="hidden" name="date" value={sheet.date}/>
@@ -296,7 +299,8 @@ export function RoutineDailySheet(props:RoutineDailyProps){
     </form>
 
     <div className="routine-sheet-foot">
-      {props.canEdit&&<form action={resetAction} className="routine-reset" data-daily-reset-form>
+      {props.canEdit&&<form action={resetAction} className="routine-reset" data-daily-reset-form
+        onReset={event=>event.preventDefault()}>
         <input type="hidden" name="classId" value={sheet.classId}/>
         <input type="hidden" name="shift" value={sheet.shift}/>
         <input type="hidden" name="date" value={sheet.date}/>

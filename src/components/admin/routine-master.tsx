@@ -140,7 +140,12 @@ function MasterPeriodDrawer({target,onClose,props}:{
   const name=period?t('period.summary',{time:rangeWord(period.start,period.end,props.digits),
     subject:period.subjectBn}):t('period.newTitle');
   return <RoutineDrawer open={!!target} onClose={onClose} title={period?t('period.editorTitle'):t('period.newTitle')}>
-    <form action={action} className="admin-edit routine-form" data-period-form={period?.id||'new'}>
+    {/* React 19 resets a form once its action settles: the selects fall back to their first option and
+        the "Save anyway" beside a warning would post a weekday the operator never chose. The draft lives
+        in state here, so the reset has nothing to hand back — declining it keeps every control showing
+        exactly what the operator wrote. */}
+    <form action={action} className="admin-edit routine-form" data-period-form={period?.id||'new'}
+      onReset={event=>event.preventDefault()}>
       <input type="hidden" name="classId" value={props.classId}/>
       <input type="hidden" name="shift" value={props.shift}/>
       <input type="hidden" name="periodId" value={period?.id||''}/>
@@ -255,7 +260,8 @@ function MasterDayDrawer({day,onClose,props}:{
     router.refresh();
   },[state]);
   return <RoutineDrawer open={!!day} onClose={onClose} title={t('day.editorTitle')}>
-    <form action={action} className="admin-edit routine-form" data-day-form={day?.weekday??''}>
+    <form action={action} className="admin-edit routine-form" data-day-form={day?.weekday??''}
+      onReset={event=>event.preventDefault()}>
       <input type="hidden" name="dayId" value={day?.id||''}/>
       <label>{t('day.shift')}
         <input className="admin-input" name="shift" data-day-shift value={shiftValue}

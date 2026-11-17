@@ -54,7 +54,8 @@ function AssignmentDrawer({target,onClose,props}:{
     setDraft(current=>current?{...current,...patch}:current);
   return <RoutineDrawer open={!!target} onClose={onClose}
     title={draft?.id?t('assignment.edit'):t('assignment.add')}>
-    {draft&&<form action={action} className="admin-edit routine-form" data-assignment-form={draft.id||'new'}>
+    {draft&&<form action={action} className="admin-edit routine-form" data-assignment-form={draft.id||'new'}
+      onReset={event=>event.preventDefault()}>
       <input type="hidden" name="assignmentId" value={draft.id}/>
       <label>{t('assignment.teacher')} *
         <select className="admin-select" name="teacherId" required data-assignment-teacher value={draft.teacherId}
