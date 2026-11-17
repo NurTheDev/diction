@@ -372,6 +372,12 @@ async function run(){
         }
       }
       await page.locator(waitFor).first().waitFor({state:'visible',timeout:90000});
+      /* Every screen here is server-rendered, so the field a step is about to type into is on the page
+         before React is listening to it. A fill that lands in that window is undone by the first render,
+         and what the form posts is a value nobody typed — so the navigation waits for the page to go
+         quiet as well as for the field to be there. */
+      await page.waitForLoadState('load',{timeout:60000}).catch(()=>{});
+      await page.waitForLoadState('networkidle',{timeout:5000}).catch(()=>{});
     };
     const drawer=(page:Page):Locator=>page.locator('[data-routine-drawer="open"]');
 
@@ -605,10 +611,21 @@ async function run(){
     // ══ 4. The day goes out ═══════════════════════════════════════════════════════════════════════
     /* Two notes through the sheet's own save, so the sheet has a memory to restore from as well. */
     await goto(page,dailyUrl('bn'),'[data-daily-form]');
-    await page.locator('[data-daily-notes]').fill('টেস্ট নোট এক');
+    /** Write a note and wait for the sheet to say it is an unsaved change. That marker is React's own
+        answer, so it is the difference between a note in the field and a note in the draft the form
+        posts; filling again is harmless, and a fill that lands before the page is listening is not. */
+    const writeNotes=async(text:string):Promise<void>=>{
+      await until(`the sheet to hold "${text}" as an unsaved change`,async()=>{
+        if(await page.locator('[data-daily-dirty]').count()===1
+          &&await page.locator('[data-daily-notes]').inputValue()===text)return true;
+        await page.locator('[data-daily-notes]').fill(text).catch(()=>{});
+        return false;
+      },90000,()=>pageState(page));
+    };
+    await writeNotes('টেস্ট নোট এক');
     await page.locator('[data-daily-save]').click();
     await until('the first note to be stored',async()=>(await sheetOf(today))?.notes==='টেস্ট নোট এক');
-    await page.locator('[data-daily-notes]').fill('টেস্ট নোট দুই');
+    await writeNotes('টেস্ট নোট দুই');
     await page.locator('[data-daily-save]').click();
     await until('the second note to be stored',async()=>(await sheetOf(today))?.notes==='টেস্ট নোট দুই');
     await page.locator('[data-daily-history]').click();
@@ -941,9 +958,12 @@ async function run(){
     const before=await countTeacher(teacherOne._id);
     assert.ok(before>=3,`the teacher who is about to be away holds periods in the week (${before})`);
     await page.locator('[data-replace-fold] summary').click();
-    await page.locator('[data-replace-from]').selectOption(String(teacherOne._id));
-    await page.locator('[data-replace-to]').selectOption(String(teacherTwo._id));
-    await page.locator('[data-replace-master]').check();
+    const chooseTeachers=async():Promise<void>=>{
+      await page.locator('[data-replace-from]').selectOption(String(teacherOne._id));
+      await page.locator('[data-replace-to]').selectOption(String(teacherTwo._id));
+      await page.locator('[data-replace-master]').check();
+    };
+    await chooseTeachers();
     assert.equal(await page.locator('[data-replace-daily]').isChecked(),true,
       'the working sheets inside the range are in scope by default');
     /* The range the panel opens with is Dhaka's today to a fortnight on, which holds tomorrow's sheet.
@@ -954,10 +974,18 @@ async function run(){
     assert.ok(rangeFrom===today||rangeFrom===shiftDate(today,1),
       `the panel opens on Dhaka's today, whichever side of midnight this suite is running on (${rangeFrom})`);
     assert.equal(rangeTo,shiftDate(rangeFrom,13),'and runs a fortnight on from there');
+    const askPreview=():Promise<string>=>settle(page,'the replacement preview',
+      ['[data-replace-rows]','[data-replace-none]','[data-tool-refused="replace-preview"]']);
     await page.locator('[data-replace-show]').click();
-    assert.equal(await settle(page,'the replacement preview',
-      ['[data-replace-rows]','[data-replace-none]','[data-tool-refused="replace-preview"]']),
-    '[data-replace-rows]','the preview lists what it would change');
+    let previewed=await askPreview();
+    if(previewed!=='[data-replace-rows]'){
+      /* A controlled select that took its value before React was listening loses it again on the first
+         render, and a preview of nobody is an empty list rather than a refusal — so choose once more. */
+      await chooseTeachers();
+      await page.locator('[data-replace-show]').click();
+      previewed=await askPreview();
+    }
+    assert.equal(previewed,'[data-replace-rows]','the preview lists what it would change');
     const painted=await page.locator('[data-replace-row]').count();
     const masterRows=await page.locator('[data-replace-row^="master:"]').count();
     const dailyRows=await page.locator('[data-replace-row^="daily:"]').count();
