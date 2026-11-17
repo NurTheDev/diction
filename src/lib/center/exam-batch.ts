@@ -99,7 +99,12 @@ export async function createCenterExam(input:unknown,actor:string){
       await acquireCenterLocks([`exam-create:${req}`],session);
       const found=await CenterExam.findOne({requestId:req}).session(session).lean<Ex>();
       if(found){
-        if(String(found.createdBy)!==actor.toLowerCase()||found.name.bn!==p.name||found.type!==p.type||found.date!==p.date||JSON.stringify(sortedIds(found.classGroups))!==JSON.stringify(classIds)||JSON.stringify(found.subjects.map(s=>({name:s.name.bn,full:s.fullMarks,pass:s.passMarks})))!==JSON.stringify(p.subjects)||JSON.stringify(validateBands(found.gradeBands))!==JSON.stringify(validateBands(p.bands.map(b=>({min:b.min,label:b.label})))))throw Error('REQUEST_CONFLICT');
+        /* A replay is the same request asking again, so it is answered with the exam already written —
+           but only if every part of the shape agrees. The comparison carries the subject's components
+           because the input always has them (an empty list for a subject with a single total): a replay
+           that read the stored subject without its parts would answer REQUEST_CONFLICT to the centre's
+           own double-click, which is the one thing a request id exists to prevent. */
+        if(String(found.createdBy)!==actor.toLowerCase()||found.name.bn!==p.name||found.type!==p.type||found.date!==p.date||JSON.stringify(sortedIds(found.classGroups))!==JSON.stringify(classIds)||JSON.stringify(found.subjects.map(s=>({name:s.name.bn,full:s.fullMarks,pass:s.passMarks,parts:(s.parts||[]).map(part=>({name:part.name.bn,marks:part.marks}))})))!==JSON.stringify(p.subjects)||JSON.stringify(validateBands(found.gradeBands))!==JSON.stringify(validateBands(p.bands.map(b=>({min:b.min,label:b.label})))))throw Error('REQUEST_CONFLICT');
         resultId=String(found._id);return;
       }
       const groups=await CenterClassGroup.find({_id:{$in:classIds},active:true}).session(session).select('_id').lean<{_id:mongoose.Types.ObjectId}[]>();

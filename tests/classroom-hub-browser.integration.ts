@@ -411,8 +411,14 @@ async function run(){
     await enrollForm.waitFor({state:'visible',timeout:60000});
     assert.equal(await enrollForm.locator('select[name=classGroup]').inputValue(),classA,
       'the enrollment form is already standing in this class');
-    assert.equal((await enrollForm.locator('select[name=classGroup] option').allInnerTexts())
-      .filter(text=>text.trim().length>0).length,1,'and offers no other class to choose');
+    /* The box keeps the empty choice it arrived with — a placeholder with words on it, so it is counted
+       by the value it carries rather than by the text an operator reads. */
+    const offered=await enrollForm.locator('select[name=classGroup]').evaluate((select:HTMLSelectElement)=>{
+      let count=0;
+      for(let index=0;index<select.options.length;index++)if(select.options[index].value)count+=1;
+      return count;
+    });
+    assert.equal(offered,1,'and offers no other class to choose');
     await enrollForm.locator('[name=nameBn]').fill(NEW_STUDENT);
     await enrollForm.locator('[name=guardianName]').fill('গ৩ নতুন অভিভাবক');
     await enrollForm.locator('[name=guardianPhone]').fill('01799000111');
