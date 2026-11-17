@@ -1,11 +1,1 @@
-AssertionError [ERR_ASSERTION]: the English daily sheet overflows horizontally at 768px (786 > 768)
-  escaping the viewport: a.admin-mini-button right=786
-    at noOverflow (/home/runner/work/diction/diction/tests/routine-edit-anything-browser.integration.ts:169:14)
-    at async run (/home/runner/work/diction/diction/tests/routine-edit-anything-browser.integration.ts:835:5) {
-  generatedMessage: false,
-  code: 'ERR_ASSERTION',
-  actual: false,
-  expected: true,
-  operator: '==',
-  diff: 'simple'
-}
+R9 in the browser, photographed at 360 px and 1440 px into screenshots/r9: র৯ নবম শ্রেণি's week was built one period at a time — গণিত at ০৮:০০ on রবি with a visible Edit on the card and a ⋯ beside it, বাংলা moved out of রবি and into সোম from inside its own editor, রসায়ন written on মঙ্গল so the day the suite runs on has a day to run — and শুক্র was switched off, moved into সন্ধ্যা with its period inside it and moved back, one live day per class, shift and weekday all the way; র৯ শিক্ষক ক double-booked into র৯ দশম শ্রেণি at ১২:০০ answered with the drawer still open, a banner naming র৯ শিক্ষক ক, র৯ নবম শ্রেণি and পদার্থ, nothing written until Save anyway wrote it, and both classes then counting ১ clash in the week; the sheet for 2026-11-17 arrived filled from the week and badged as the week's own, saved unchanged at the cost of ০ documents, took র৯ শিক্ষক খ and কক্ষ ৩ for that date alone while the master still named র৯ শিক্ষক ক and কক্ষ ২, and 2026-11-16 — badged as passed — became a holiday with its reason, lost a period the week kept, and went back to the week at the cost of its document, while today's sent sheet kept its record through a reset and badged itself changed; the retention job pruned ১ working sheet, ১ sent sheet and ১ binned period and left yesterday alone; an assignment was written, refused as a duplicate, edited to ৫ periods a week, deleted behind one question, restored from the Recycle Bin under মাস্টার রুটিনের দিন, and archived by a staff session that was offered no write button at all — in Bangla and in English, with no raw key printed and nothing overflowing at 360, 768 or 1440 px.
