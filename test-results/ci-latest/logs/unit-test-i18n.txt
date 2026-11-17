@@ -1,10 +1,10 @@
 --- tests/i18n-catalog.test.ts (exit 0) ---
 No mis-nested keys, no empty values, no leftover template literals.
-Used keys: 3283 distinct across 4627 call sites, all present in both catalogs.
-  (29 computed keys are not checked statically: r(`fieldNames.${key}`), r(`fieldNames.${key}`), c(`dayPeriod.${k}`), t(`fieldNames.${k}`), c(`dayPeriod.${k}`), ts(`statuses.${value}`), t(`sourceLabels.${option}`), t(`typeLabels.${type}`), t(`override.${key}`), t(`codes.${e.code}`), t(`issueNames.${issue}`), t(`errors.${state.error}`), t(`warnings.${w}`), t(`issues.${i}`), h(`status.${m.status}`), t(`options.${type}.${value}`), t(`labels.${type}`), t(`labels.${type}`), c(`dayPeriod.${k}`), c(`dayPeriod.${k}`), common(`dayPeriod.${dayPeriodKey(clock.hour)}`), t(`items.${key}`), t(`groups.${g.key}`), t(`items.${key}`), t(`items.${key}`), t(`examDesc.${key}`), roleNames(`role.${r}`), t(`items.${key}`), t(`role.${role}`))
+Used keys: 3373 distinct across 4742 call sites, all present in both catalogs.
+  (30 computed keys are not checked statically: r(`fieldNames.${key}`), r(`fieldNames.${key}`), c(`dayPeriod.${k}`), t(`fieldNames.${k}`), c(`dayPeriod.${k}`), ts(`statuses.${value}`), t(`sourceLabels.${option}`), t(`typeLabels.${type}`), t(`override.${key}`), t(`codes.${e.code}`), t(`issueNames.${issue}`), t(`errors.${state.error}`), t(`warnings.${w}`), t(`issues.${i}`), h(`status.${m.status}`), t(`options.${type}.${value}`), t(`labels.${type}`), t(`labels.${type}`), c(`dayPeriod.${k}`), c(`dayPeriod.${k}`), common(`dayPeriod.${dayPeriodKey(clock.hour)}`), t(`history.code.${code}`), t(`items.${key}`), t(`groups.${g.key}`), t(`items.${key}`), t(`items.${key}`), t(`examDesc.${key}`), roleNames(`role.${r}`), t(`items.${key}`), t(`role.${role}`))
 Browser exposure: 56 groups are read by client components, 12 stay on the server, and no shipped value names a variable — 0 allowances, 5 secret names watched for.
-Plain language: 3 of the builder's own words watched for in both catalogs — 4530 Bangla values and 4530 English ones, and not one of them says snapshot, write enabled or reconciliation.
-Provider chain: 109 pages walked against the layouts above them; every group a client component reads is shipped by the route that renders it, apart from 10 named as debt.
+Plain language: 3 of the builder's own words watched for in both catalogs — 4643 Bangla values and 4643 English ones, and not one of them says snapshot, write enabled or reconciliation.
+Provider chain: 110 pages walked against the layouts above them; every group a client component reads is shipped by the route that renders it, apart from 10 named as debt.
 A.7 · the catalogs are whole: parity both ways, no mis-nested keys, no leftover templates, every key src/ asks for resolves in both languages, and Bangla inside an English value only where a language names itself, and the browser receives no secret and no group only a server reads.
 
 
@@ -18,6 +18,6 @@ A.6 · the route sweep holds: no page reached for a new hardcoded pair, and ever
 
 
 --- tests/i18n-bangla-scan.test.ts (exit 0) ---
-Bangla scan: 0 lines in 0 files (555 walked).
+Bangla scan: 0 lines in 0 files (563 walked).
   most: 
-Bangla scan: 555 files walked, nothing left outside the allow blocks.
+Bangla scan: 563 files walked, nothing left outside the allow blocks.

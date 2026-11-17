@@ -114,7 +114,7 @@ Deployment guide: the proxy matcher leaves /api/*, /_next/* and file names out o
 
 
 --- tests/rsc-boundary.test.ts (exit 0) ---
-Client-boundary sweep passed: 555 modules read, 129 of them 'use client', no server module reaches a plain value across the border.
+Client-boundary sweep passed: 563 modules read, 133 of them 'use client', no server module reaches a plain value across the border.
 
 
 --- tests/nav-groups.test.ts (exit 0) ---
