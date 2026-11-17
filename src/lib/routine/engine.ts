@@ -100,13 +100,19 @@ const labelOf=(group:ClassDoc):{bn:string;en:string}=>({bn:group.name?.bn||'',en
 
 /** The day document for one class, shift and weekday — created the moment a period is written into it. */
 async function upsertMasterDay(classId:string,shift:string,weekday:number,actor:string,group:ClassDoc):Promise<MasterDoc|null>{
-  return MasterRoutine.findOneAndUpdate(
+  /* TEMPORARY TRACE (R9 diagnosis): says which day document a period write landed in, and whether that
+     document is live or binned the moment it comes back. Remove once the CI log has answered. */
+  const found=await MasterRoutine.findOneAndUpdate(
     {classGroup:classId,shift,weekday},
     /* The label is `$set` and not only `$setOnInsert`: a class renamed since this day was written is a
        class the bin should name correctly the next time anybody touches the day. */
     {$set:{classLabel:labelOf(group)},$setOnInsert:{classGroup:classId,shift,weekday,active:true,createdBy:actor,periods:[]}},
     {upsert:true,new:true,setDefaultsOnInsert:true,runValidators:true},
   ) as unknown as Promise<MasterDoc|null>;
+  const day=await found;
+  console.log('[r9-trace] upsertMasterDay',{classId,shift,weekday,got:day?String(day._id):null,
+    dayShift:day?.shift,dayWeekday:day?.weekday,deletedAt:day?.deletedAt?String(day.deletedAt):day?.deletedAt});
+  return day;
 }
 
 /** A period as the clash check reads it, with the teacher's own name so the warning can say who. */
@@ -147,6 +153,8 @@ export async function saveMasterPeriod({classId,shift,weekday,draft,force,actor}
 
   const proposed=await proposedSlot(draft,weekday);
   const clashes=clashesFor(proposed,await centreSlots(weekday));
+  console.log('[r9-trace] saveMasterPeriod in',{classId,shift,weekday,force:!!force,
+    subject:draft.subjectBn,clashes:clashes.length});
   /* The warning is the answer, not a refusal: with `force` the same write goes through unchanged. */
   if(clashes.length&&!force)return {status:'clash',clashes};
 
@@ -199,6 +207,10 @@ export async function saveMasterPeriod({classId,shift,weekday,draft,force,actor}
   }finally{
     await session.endSession();
   }
+  const live=await MasterRoutine.countDocuments({_id:target._id,deletedAt:null});
+  const binned=await MasterRoutine.countDocuments({_id:target._id,deletedAt:{$ne:null}});
+  console.log('[r9-trace] saveMasterPeriod out',{id:String(target._id),periods:target.periods.length,
+    live,binned});
   await audit(actor,moving?'routine.period.move':'routine.period.save',String(target._id));
   refreshRoutine();
   return {status:'ok',id:String(target._id),clashes};
