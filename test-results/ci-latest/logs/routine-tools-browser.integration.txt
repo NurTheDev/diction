@@ -1,9 +1,6 @@
-AssertionError [ERR_ASSERTION]: an entry says when it happened on Dhaka's clock (১৭ নভেম্বর ২০২৬ · ২৩:১৬)
-    at run (/home/runner/work/diction/diction/tests/routine-tools-browser.integration.ts:541:12) {
-  generatedMessage: false,
-  code: 'ERR_ASSERTION',
-  actual: false,
-  expected: true,
-  operator: '==',
-  diff: 'simple'
-}
+Error: timed out waiting for the sheet on screen to hold the note that went back
+  url=http://localhost:3111/bn/admin/routine/daily?date=2026-11-17&classId=6afc96143004b79f619d9524&shift=%E0%A6%AA%E0%A7%8D%E0%A6%B0%E0%A6%AD%E0%A6%BE%E0%A6%A4%E0%A7%80 clash=0 refused=0 bulkDone=0 replaceRows=0 historyList=1 toast=0 refused says=""
+  the server answered: 200 "status":"ok" | 200 "status":"ok" | 200 "status":"ok" | 200 "status":"ok" "status":"adjusted" | 200 "status":"ok" "status":"adjusted" | 200 "status":"ok" "status":"adjusted"
+  the page threw: nothing
+    at until (/home/runner/work/diction/diction/tests/routine-tools-browser.integration.ts:291:15)
+    at async run (/home/runner/work/diction/diction/tests/routine-tools-browser.integration.ts:638:5)
