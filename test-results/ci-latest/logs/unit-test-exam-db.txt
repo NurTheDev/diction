@@ -1,2 +1,7 @@
---- tests/exam-flow.integration.ts (exit 0) ---
-Exam flow: teacher class scope with no payment field anywhere, one exam over two classes, batched marks with a stale row named, per-class positions with ties and absence, publish and unpublish, what an edit may change, and the saved grading scales passed.
+--- tests/exam-flow.integration.ts (exit 1) ---
+Error: REQUEST_CONFLICT
+    at <anonymous> (/home/runner/work/diction/diction/src/lib/center/exam-batch.ts:102:451)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async ClientSession.withTransaction (/home/runner/work/diction/diction/node_modules/mongodb/src/sessions.ts:750:20)
+    at async createCenterExam (/home/runner/work/diction/diction/src/lib/center/exam-batch.ts:98:5)
+    at async run (/home/runner/work/diction/diction/tests/exam-flow.integration.ts:96:17)

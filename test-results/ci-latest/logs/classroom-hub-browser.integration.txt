@@ -1,0 +1,10 @@
+locator.click: Timeout 60000ms exceeded.
+Call log:
+  - waiting for locator('tr[data-student-row]').filter({ hasText: 'নমুনা ছাত্র ছ' }).first().locator('[data-more-remove]').locator('[data-month-pick="11"]')
+
+    at run (/home/runner/work/diction/diction/tests/classroom-hub-browser.integration.ts:374:68) {
+  log: [
+    `  - waiting for locator('tr[data-student-row]').filter({ hasText: 'নমুনা ছাত্র ছ' }).first().locator('[data-more-remove]').locator('[data-month-pick="11"]')`
+  ],
+  name: 'TimeoutError'
+}
