@@ -216,13 +216,23 @@ async function run(){
     const measured=await page.evaluate(()=>{
       const nav=document.querySelector('nav.admin-bottom-nav');
       if(!nav)return null;
-      const top=nav.getBoundingClientRect().top,view=window.innerHeight;
+      const top=nav.getBoundingClientRect().top,view=window.innerHeight,wide=window.innerWidth;
       const under:string[]=[];
       const targets='.admin-content button,.admin-content a,.admin-content input,.admin-content select,.admin-content textarea,.admin-content table,.admin-content summary';
       for(const element of Array.from(document.querySelectorAll<HTMLElement>(targets))){
         const box=element.getBoundingClientRect();
         if(box.height===0||box.width===0)continue;
-        if(box.bottom>top+1&&box.top<view){
+        /* A rect is not a control. Content the renderer skips, and content parked off the screen by a
+           transform, still reports a box — so the browser is asked its own two questions: is this being
+           rendered at all (`checkVisibility`), and does a finger at its centre actually land on it or on
+           the bar that covers it (`elementFromPoint`)? A phantom can never fail the requirement, and a
+           control genuinely under the bar always does. */
+        if(!element.checkVisibility())continue;
+        if(!(box.bottom>top+1&&box.top<view))continue;
+        const cx=box.left+box.width/2,cy=box.top+box.height/2;
+        if(cx<0||cx>wide||cy<0||cy>view)continue;
+        const hit=document.elementFromPoint(cx,cy);
+        if(hit&&(hit===element||element.contains(hit)||nav.contains(hit))){
           /* Name the offender the way the overflow check does — tag, every class, its data hooks — so a
              real overlap says which control it is instead of leaving a guess. */
           let name=element.tagName.toLowerCase();
@@ -231,7 +241,16 @@ async function run(){
           let hooks='';
           for(const attribute of element.attributes)if(attribute.name.startsWith('data-')&&hooks.length<40)hooks+=(hooks?' ':'')+attribute.name;
           if(hooks)name+=' ['+hooks+']';
-          under.push(`${name} bottom ${Math.round(box.bottom)}`);
+          /* And name where it lives, so a real overlap is a five-second read instead of a hunt. */
+          const chain:string[]=[];
+          for(let node:Element|null=element.parentElement;node&&chain.length<5;node=node.parentElement){
+            let part=node.tagName.toLowerCase();
+            const parentClasses=(node.getAttribute('class')||'').trim();
+            if(parentClasses)part+='.'+parentClasses.split(/\s+/).slice(0,2).join('.');
+            for(const attribute of node.attributes){if(attribute.name.startsWith('data-')){part+='['+attribute.name+']';break}}
+            chain.push(part);
+          }
+          under.push(`${name} bottom ${Math.round(box.bottom)} in ${chain.join(' < ')}`);
         }
       }
       return {top:Math.round(top),under:under.slice(0,6),y:Math.round(window.scrollY),
