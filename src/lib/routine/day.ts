@@ -125,7 +125,7 @@ export function isPrunable(date:string,now:Date=new Date()):boolean{
 export interface SentSheet{status:DayStatus;notes?:string;holidayReason?:string;periods:PeriodShape[]}
 export function sheetSignature(sheet:SentSheet):string{
   return createHash('sha256').update(JSON.stringify({status:sheet.status,notes:trim(sheet.notes),
-    reason:trim(sheet.holidayReason),day:daySignature(sheet.periods)})).digest('hex').slice(0,16);
+    reason:trim(sheet.holidayReason),day:daySignature(sheet.periods)})).digest('hex');
 }
 export function changedSinceSent(sheet:SentSheet,sentSignature:string):boolean{
   const sent=trim(sentSignature);
