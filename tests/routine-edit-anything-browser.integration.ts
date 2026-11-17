@@ -45,7 +45,7 @@ import {DailyRoutine,MasterRoutine,TeachingAssignment} from '../src/models/Routi
 import {dhakaDay} from '../src/lib/admin/today';
 import {dayHeaders} from '../src/components/admin/list-dates';
 import {dailySheet,shapeOf} from '../src/lib/routine/read';
-import {daySignature} from '../src/lib/routine/day';
+import {sheetSignature} from '../src/lib/routine/day';
 import {shiftDate,weekdayOf} from '../src/lib/routine/time';
 import {routineRetention} from '../src/lib/routine/retention';
 import bn from '../src/messages/bn.json';
@@ -549,7 +549,8 @@ async function run(){
     {const view=await dailySheet(classA,SHIFT,today,'bn');
      assert.ok(view&&view.docId,'today\'s sheet is stored, so it can be marked as sent');
      await DailyRoutine.updateOne({_id:view?.docId},{$set:{sentAt:new Date(),sentBy:owner._id,
-       sentSignature:daySignature(view?.periods.map(shapeOf)||[])}})}
+       sentSignature:sheetSignature({status:view?.status||'normal',notes:view?.notes||'',
+         holidayReason:view?.holidayReason||'',periods:view?.periods.map(shapeOf)||[]})}})}
     await goto(page,dailyUrl(today),'[data-daily-form]');
     assert.ok((await page.locator('[data-daily-sent]').innerText()).length>0,'the sheet says when it was sent');
     assert.equal(await page.locator('[data-badge-changed]').count(),0,

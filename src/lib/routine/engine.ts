@@ -23,7 +23,7 @@ import {User} from '@/models/User';
 import {purgeAtFor} from '@/models/recycle';
 import {audit} from '@/lib/admin/helpers';
 import {clashesFor,type RoutineClash,type RoutineSlot} from './conflicts';
-import {needsDocument,daySignature,type DayStatus,type PeriodShape} from './day';
+import {needsDocument,daySignature,sheetSignature,type DayStatus,type PeriodShape} from './day';
 import {centreSlots,masterWeek,shapeOf,type PeriodView} from './read';
 import {weekdayOf} from './time';
 import type {AssignmentInput,DailySheetInput,RoutinePeriodInput} from '@/schemas/routine';
@@ -452,7 +452,8 @@ export async function markDailySheetSent({classId,shift,date,actor,now=new Date(
       order:Number(period.order)||0,note:period.note||''}));
   sheet.sentAt=now;
   sheet.sentBy=new mongoose.Types.ObjectId(actor);
-  sheet.sentSignature=daySignature(shapes);
+  sheet.sentSignature=sheetSignature({status:sheet.status,notes:sheet.notes,
+    holidayReason:sheet.holidayReason,periods:shapes});
   await sheet.save();
   await audit(actor,'routine.daily.sent',String(sheet._id));
   refreshRoutine();

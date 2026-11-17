@@ -320,7 +320,8 @@ export async function dailySheet(classId:string,shift:string,date:string,languag
     status,holidayReason:doc?.holidayReason||'',notes:doc?.notes||'',
     periods,masterPeriods,
     sent:!!sentAt,sentAt:sentAt?sentAt.toISOString():null,
-    changedSinceSent:changedSinceSent(periods.map(shapeOf),doc?.sentSignature||''),
+    changedSinceSent:changedSinceSent({status,notes:doc?.notes||'',
+      holidayReason:doc?.holidayReason||'',periods:periods.map(shapeOf)},doc?.sentSignature||''),
     passed:hasPassed(date),
     signature:daySignature(periods.map(shapeOf)),
   };

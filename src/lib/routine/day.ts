@@ -119,10 +119,18 @@ export function isPrunable(date:string,now:Date=new Date()):boolean{
 }
 
 /** Has a sent sheet been edited since it went out? No sent mark, no badge. */
-export function changedSinceSent(draft:PeriodShape[],sentSignature:string):boolean{
+/** A sheet as its sent mark reads it: the day, not only its periods. A holiday declared or a note
+ * added after the dispatch went out is as much a change since the send as a moved room is, so the
+ * signature the badge compares against covers everything the sheet holds. */
+export interface SentSheet{status:DayStatus;notes?:string;holidayReason?:string;periods:PeriodShape[]}
+export function sheetSignature(sheet:SentSheet):string{
+  return createHash('sha256').update(JSON.stringify({status:sheet.status,notes:trim(sheet.notes),
+    reason:trim(sheet.holidayReason),day:daySignature(sheet.periods)})).digest('hex').slice(0,16);
+}
+export function changedSinceSent(sheet:SentSheet,sentSignature:string):boolean{
   const sent=trim(sentSignature);
   if(!sent)return false;
-  return daySignature(draft)!==sent;
+  return sheetSignature(sheet)!==sent;
 }
 
 /** `HH:MM` on a five-minute step, or the nearest one below it — what a picker writes back. */
