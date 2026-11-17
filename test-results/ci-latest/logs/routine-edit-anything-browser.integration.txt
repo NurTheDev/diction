@@ -1,7 +1,11 @@
-Error: timed out waiting for the changed sheet is stored
-  url=http://localhost:3111/bn/admin/routine/daily?date=2026-11-17&classId=6afc5869a29d2ffb5a5dfd79&shift=%E0%A6%AA%E0%A7%8D%E0%A6%B0%E0%A6%AD%E0%A6%BE%E0%A6%A4%E0%A7%80 open drawers=0 warning=0 periodRefused=0 dailyRefused=1 assignmentRefused=0 badgeChanged=0 refused says="কাজটি করা যায়নি।" toast=""
-  the server answered: 200 "status":"ok" "status":"normal" | 200 "status":"ok" "status":"normal" | 200 "status":"ok" "status":"holiday" | 200 "status":"ok" "status":"holiday" | 200 "status":"ok" "status":"normal" | 200 "status":"error"
-  the page threw: nothing
-  the write path traced: 1794916630667 {"where":"upsert","classId":"6afc4113a103a5b7bd5f69dc","shift":"প্রভাতী","weekday":5,"got":"6afc411636b06076e933fa88","dayShift":"প্রভাতী","dayWeekday":5,"deletedAt":"null"} | 1794916630672 {"where":"out","id":"6afc411636b06076e933fa88","shift":"প্রভাতী","weekday":5,"periods":1,"live":1,"binned":0} | 1794916633668 {"where":"in","classId":"6afc4113a103a5b7bd5f69de","shift":"প্রভাতী","weekday":5,"force":false,"subject":"পদার্থ","clashes":1} | 1794916633849 {"where":"in","classId":"6afc4113a103a5b7bd5f69de","shift":"প্রভাতী","weekday":0,"force":true,"subject":"পদার্থ","clashes":0} | 1794916633852 {"where":"upsert","classId":"6afc4113a103a5b7bd5f69de","shift":"প্রভাতী","weekday":0,"got":"6afc411936b06076e933fa89","dayShift":"প্রভাতী","dayWeekday":0,"deletedAt":"null"} | 1794916633857 {"where":"out","id":"6afc411936b06076e933fa89","shift":"প্রভাতী","weekday":0,"periods":1,"live":1,"binned":0}
-    at until (/home/runner/work/diction/diction/tests/routine-edit-anything-browser.integration.ts:213:15)
-    at async run (/home/runner/work/diction/diction/tests/routine-edit-anything-browser.integration.ts:590:5)
+AssertionError [ERR_ASSERTION]: the English daily sheet overflows horizontally at 768px (786 > 768)
+  escaping the viewport: a.admin-mini-button right=786
+    at noOverflow (/home/runner/work/diction/diction/tests/routine-edit-anything-browser.integration.ts:169:14)
+    at async run (/home/runner/work/diction/diction/tests/routine-edit-anything-browser.integration.ts:835:5) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}
