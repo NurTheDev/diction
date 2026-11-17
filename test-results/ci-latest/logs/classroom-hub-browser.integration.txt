@@ -1,15 +1,14 @@
-AssertionError [ERR_ASSERTION]: and offers no other class to choose
+AssertionError [ERR_ASSERTION]: and the picker arrives on that class
++ actual - expected
 
-2 !== 1
++ ''
+- '6afbf5f0c3e1fb5c34d37485'
 
-    at run (/home/runner/work/diction/diction/tests/classroom-hub-browser.integration.ts:414:12)
-    at runNextTicks (node:internal/process/task_queues:64:5)
-    at process.processImmediate (node:internal/timers:452:9)
-    at process.callbackTrampoline (node:internal/async_hooks:130:17) {
+    at run (/home/runner/work/diction/diction/tests/classroom-hub-browser.integration.ts:494:12) {
   generatedMessage: false,
   code: 'ERR_ASSERTION',
-  actual: 2,
-  expected: 1,
+  actual: '',
+  expected: '6afbf5f0c3e1fb5c34d37485',
   operator: 'strictEqual',
   diff: 'simple'
 }
