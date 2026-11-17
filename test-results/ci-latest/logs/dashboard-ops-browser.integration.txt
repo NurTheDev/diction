@@ -1,10 +1,20 @@
-locator.innerText: Error: strict mode violation: locator('[data-site-fold]').locator('summary') resolved to 2 elements:
-    1) <summary>…</summary> aka getByText('সেন্টার ও ওয়েবসাইটব্যানার, প্রশংসাপত্র, ক্লাস শিট আর ব্লগ — সপ্তাহে একবারের কাজ')
-    2) <summary>…</summary> aka getByText('শুরু করার তালিকা০/৪ সম্পন্ন')
+AssertionError [ERR_ASSERTION]: the Bangla dashboard at 360px: nothing tappable hides under the bottom bar (its top edge is 719px)
++ actual - expected
 
-Call log:
-  - waiting for locator('[data-site-fold]').locator('summary')
++ [
++   'input. bottom 729',
++   'a.admin-mini-button bottom 741',
++   'input. bottom 781',
++   'a.admin-mini-button bottom 793'
++ ]
+- []
 
-    at run (/home/runner/work/diction/diction/tests/dashboard-ops-browser.integration.ts:355:46) {
-  log: [ "  - waiting for locator('[data-site-fold]').locator('summary')" ]
+    at nothingUnderTheBar (/home/runner/work/diction/diction/tests/dashboard-ops-browser.integration.ts:215:12)
+    at async run (/home/runner/work/diction/diction/tests/dashboard-ops-browser.integration.ts:397:5) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: [Array],
+  expected: [],
+  operator: 'deepStrictEqual',
+  diff: 'simple'
 }

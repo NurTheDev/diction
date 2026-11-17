@@ -1,11 +1,1 @@
-DIAG the profile's Remove answered with no toast: dialog said [] dialogOpen=false status=removed revision=3
-locator.waitFor: Timeout 60000ms exceeded.
-Call log:
-  - waiting for locator('.admin-toast[role="status"]').filter({ hasText: 'শিক্ষার্থী সরানো হয়েছে।' }).first() to be visible
-
-    at run (/home/runner/work/diction/diction/tests/students-reference-browser.integration.ts:520:43) {
-  log: [
-    `  - waiting for locator('.admin-toast[role="status"]').filter({ hasText: 'শিক্ষার্থী সরানো হয়েছে।' }).first() to be visible`
-  ],
-  name: 'TimeoutError'
-}
+Students: the shared pattern paints the list and the profile — four controls a row, Edit→Save, Hold→Unhold, Remove→Restore, the picked month, the role gates and three widths all hold
