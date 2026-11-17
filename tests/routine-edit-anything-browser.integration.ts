@@ -35,6 +35,7 @@ import bcrypt from 'bcryptjs';
 import assert from 'node:assert/strict';
 import {randomBytes} from 'node:crypto';
 import {mkdir} from 'node:fs/promises';
+import {readFileSync} from 'node:fs';
 import path from 'node:path';
 import {chromium} from 'playwright';
 import type {Browser,Locator,Page} from 'playwright';
@@ -175,12 +176,40 @@ async function run(){
    * Wait for something the screen paints. `extra` is read once, when the wait gives up, because a log
    * that says only "timed out" sends the next reader back to guess which of three things happened.
    */
+  /* The page a wait times out on is usually the one signed in last, so a wait that is not given its own
+     state reader still leaves behind what the screen, the toast and the wire were saying. */
+  let current:Page|null=null;
+  const pageState=async(page:Page):Promise<string>=>{
+    const open=page.locator('[data-routine-drawer="open"]'),seen=wire.get(page);
+    const counts=await Promise.all([
+      page.locator('[data-clash-warning]').count(),
+      page.locator('[data-period-refused]').count(),
+      page.locator('[data-daily-refused]').count(),
+      page.locator('[data-assignment-refused]').count(),
+      page.locator('[data-badge-changed]').count(),
+    ]).catch(()=>[0,0,0,0,0]);
+    const refusedText=(await page.locator('[data-daily-refused],[data-period-refused],'
+      +'[data-assignment-refused]').first().innerText().catch(()=>'')).replace(/\s+/g,' ').slice(0,160);
+    let traced='no trace file';
+    try{
+      traced=readFileSync('test-results/ci-latest/logs/routine-trace.txt','utf8').trim().split('\n')
+        .slice(-6).join(' | ');
+    }catch{/* the trace is a bonus, never a requirement */}
+    return `url=${page.url()} open drawers=${await open.count().catch(()=>-1)}`
+      +` warning=${counts[0]} periodRefused=${counts[1]} dailyRefused=${counts[2]}`
+      +` assignmentRefused=${counts[3]} badgeChanged=${counts[4]} refused says="${refusedText}"`
+      +` toast="${(await page.locator('.admin-toast').first().innerText().catch(()=>'')).replace(/\s+/g,' ').slice(0,140)}"`
+      +`\n  the server answered: ${(seen?.posted||['nothing captured']).join(' | ')}`
+      +`\n  the page threw: ${(seen?.errors||[]).join(' | ')||'nothing'}`
+      +`\n  the write path traced: ${traced}`;
+  };
   const until=async(what:string,check:()=>Promise<boolean>,timeoutMs=90000,extra?:()=>Promise<string>)=>{
     const deadline=Date.now()+timeoutMs;
     for(;;){
       if(await check().catch(()=>false))return;
       if(Date.now()>deadline){
-        const said=extra?await extra().catch(error=>`the state could not be read: ${String(error)}`):'';
+        const read=extra||(current?()=>pageState(current as Page):undefined);
+        const said=read?await read().catch(error=>`the state could not be read: ${String(error)}`):'';
         throw Error(`timed out waiting for ${what}${said?`\n  ${said}`:''}`);
       }
       await new Promise(resolve=>setTimeout(resolve,500));
@@ -223,6 +252,7 @@ async function run(){
       });
       page.setDefaultTimeout(60000);
       wire.set(page,{posted,errors});
+      current=page;
       return {context,page,errors};
     };
     const goto=async(page:Page,url:string,waitFor:string)=>{
