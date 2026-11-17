@@ -217,16 +217,25 @@ export async function previewBulkEdit(input:BulkEditInput):Promise<BulkPreview>{
   const names=await teacherNames([...periods.map(period=>String(period.teacher||'')),
     ...(input.setTeacher?[input.teacher]:[])]);
   const edited=new Set(periods.map(period=>String(period._id).toLowerCase()));
-  const others=(await centreSlots(input.weekday)).filter(slot=>!edited.has(String(slot.periodId||'').toLowerCase()));
+  const proposed:RoutineSlot[]=periods.flatMap(period=>{
+    const next=drafts.get(String(period._id));
+    if(!next)return [];
+    return [{periodId:String(period._id),classId:String(doc.classGroup),weekday:input.weekday,
+      start:next.start,end:next.end,teacher:next.teacher,room:next.room,className,
+      subject:next.subjectBn,teacherName:names.get(next.teacher)||''}];
+  });
+  /* What the day will hold once the edit is in: everything the centre already has at that minute apart
+     from the periods being edited, plus the edited periods as they will be. Two ticked periods moved onto
+     each other are a clash the operator is told about, and a period is never compared with itself. */
+  const others=[...(await centreSlots(input.weekday))
+    .filter(slot=>!edited.has(String(slot.periodId||'').toLowerCase())),...proposed];
   const rows:BulkRow[]=[];
   const clashes:RoutineClash[]=[];
   for(const period of periods){
     const next=drafts.get(String(period._id));
     if(!next)continue;
-    const slot:RoutineSlot={periodId:String(period._id),classId:String(doc.classGroup),
-      weekday:input.weekday,start:next.start,end:next.end,teacher:next.teacher,room:next.room,
-      className,subject:next.subjectBn,teacherName:names.get(next.teacher)||''};
-    clashes.push(...clashesFor(slot,others));
+    const slot=proposed.find(candidate=>candidate.periodId===String(period._id));
+    if(slot)clashes.push(...clashesFor(slot,others));
     rows.push({
       id:String(period._id),className,weekday:input.weekday,
       start:period.start,end:period.end,nextStart:next.start,nextEnd:next.end,
@@ -384,6 +393,7 @@ export async function previewReplaceTeacher(input:ReplaceTeacherInput):Promise<R
   const classes=await classDocs([...masters,...dailies].map(doc=>String(doc.classGroup)));
   const rows:ReplaceRow[]=[];
   const clashes:RoutineClash[]=[];
+  const proposed:{key:string;slot:RoutineSlot}[]=[];
   /* One clash walk per weekday, not per period: a week's worth of replacements asks the centre's week
      once, and the range's sheets ask once per date they hold. */
   const slotsByKey=new Map<string,RoutineSlot[]>();
@@ -399,30 +409,34 @@ export async function previewReplaceTeacher(input:ReplaceTeacherInput):Promise<R
     return slots;
   };
   const toName=names.get(trim(input.to))||'';
-  for(const doc of masters){
-    const className=classes.get(String(doc.classGroup))?.name?.bn||'';
+  const gather=(doc:MasterDoc|DailyDoc,kind:'master'|'daily',date:string,weekday:number):void=>{
+    const classId=String(doc.classGroup);
+    const className=classes.get(classId)?.name?.bn||'';
     for(const period of replacePeriods(doc,input)){
-      rows.push({kind:'master',date:'',weekday:doc.weekday,classId:String(doc.classGroup),className,
-        shift:doc.shift,start:period.start,end:period.end,subjectBn:period.subject?.bn||'',
-        subjectEn:period.subject?.en||'',room:period.room||''});
-      const others=await slotsFor(doc.weekday);
-      clashes.push(...clashesFor({periodId:String(period._id),classId:String(doc.classGroup),
-        weekday:doc.weekday,start:period.start,end:period.end,teacher:trim(input.to),
-        room:period.room||'',className,subject:period.subject?.bn||'',teacherName:toName},others));
+      rows.push({kind,date,weekday,classId,className,shift:doc.shift,start:period.start,end:period.end,
+        subjectBn:period.subject?.bn||'',subjectEn:period.subject?.en||'',room:period.room||''});
+      proposed.push({key:date?`date:${date}`:`weekday:${weekday}`,
+        slot:{periodId:String(period._id),classId,weekday,start:period.start,end:period.end,
+          teacher:trim(input.to),room:period.room||'',className,subject:period.subject?.bn||'',
+          teacherName:toName}});
     }
-  }
-  for(const doc of dailies){
-    const className=classes.get(String(doc.classGroup))?.name?.bn||'';
-    const weekday=weekdayOf(doc.date);
-    for(const period of replacePeriods(doc,input)){
-      rows.push({kind:'daily',date:doc.date,weekday,classId:String(doc.classGroup),className,
-        shift:doc.shift,start:period.start,end:period.end,subjectBn:period.subject?.bn||'',
-        subjectEn:period.subject?.en||'',room:period.room||''});
-      const others=await slotsFor(weekday,doc.date);
-      clashes.push(...clashesFor({periodId:String(period._id),classId:String(doc.classGroup),
-        weekday,start:period.start,end:period.end,teacher:trim(input.to),room:period.room||'',
-        className,subject:period.subject?.bn||'',teacherName:toName},others));
-    }
+  };
+  for(const doc of masters)gather(doc,'master','',doc.weekday);
+  for(const doc of dailies)gather(doc,'daily',doc.date,weekdayOf(doc.date));
+  /* The comparison is against the day as it will be: the periods being replaced are taken out — they are
+     the ones changing hands, and comparing a period with its own old teacher would invent a clash — and
+     the same periods as they will be are put back in, so two classes handed to one substitute at one
+     minute are reported to the person about to do it. */
+  const replaced=new Set(proposed.map(entry=>entry.slot.periodId||''));
+  for(const key of [...new Set(proposed.map(entry=>entry.key))]){
+    const group=proposed.filter(entry=>entry.key===key);
+    const first=group[0].slot;
+    const held=key.startsWith('date:')
+      ? await slotsFor(first.weekday,key.slice('date:'.length))
+      : await slotsFor(first.weekday);
+    const others=[...held.filter(slot=>!replaced.has(String(slot.periodId||''))),
+      ...group.map(entry=>entry.slot)];
+    for(const entry of group)clashes.push(...clashesFor(entry.slot,others));
   }
   return {rows,clashes,fromName:names.get(trim(input.from))||'',toName,invalid:[]};
 }
@@ -549,14 +563,19 @@ async function dayOpPreview(input:DayOpInput,copy:boolean):Promise<DayOpPreview>
   const names=await teacherNames(periods.map(period=>String(period.teacher||'')));
   /* A move empties the day it leaves, so its own periods are not standing in the way at the day it
      arrives in; a duplicate leaves them where they are, and they are not at the new weekday either. */
-  const others=(await centreSlots(input.to)).filter(slot=>!periods.some(period=>String(period._id)===String(slot.periodId||'')));
+  const moving:RoutineSlot[]=periods.map(period=>({periodId:String(period._id),
+    classId:String(doc.classGroup),weekday:input.to,start:period.start,end:period.end,
+    teacher:period.teacher?String(period.teacher):'',room:period.room||'',className,
+    subject:period.subject?.bn||'',teacherName:names.get(String(period.teacher||''))||''}));
+  /* The day they land in, as it will be once they land: what is already there, minus the periods on their
+     way (a move takes them out of the day they leave, and a duplicate leaves them on another weekday),
+     plus the arriving periods themselves — so two of them landing on each other is a warning too. */
+  const others=[...(await centreSlots(input.to))
+    .filter(slot=>!periods.some(period=>String(period._id)===String(slot.periodId||''))),...moving];
   const clashes:RoutineClash[]=[];
   const rows:DayOpPreview['rows']=[];
-  for(const period of periods){
-    clashes.push(...clashesFor({periodId:String(period._id),classId:String(doc.classGroup),
-      weekday:input.to,start:period.start,end:period.end,teacher:period.teacher?String(period.teacher):'',
-      room:period.room||'',className,subject:period.subject?.bn||'',
-      teacherName:names.get(String(period.teacher||''))||''},others));
+  for(const [index,period] of periods.entries()){
+    clashes.push(...clashesFor(moving[index],others));
     rows.push({id:String(period._id),start:period.start,end:period.end,
       subjectBn:period.subject?.bn||'',subjectEn:period.subject?.en||'',room:period.room||'',
       teacherName:names.get(String(period.teacher||''))||''});
@@ -736,15 +755,20 @@ export async function restoreHistory(input:RestoreInput&{force?:boolean;actor:st
   const clashes:RoutineClash[]=[];
   /* The day's own bin is not part of the day, so it is not part of a restore: those periods stay exactly
      where they are, binned, and the Recycle Bin is still what brings one of them back. */
-  const others=await centreSlots(weekday,input.kind==='daily'
+  const names=await teacherNames(snapshot.periods.map(period=>period.teacher));
+  const proposed:RoutineSlot[]=snapshot.periods.map((period,index)=>({periodId:`restore-${index}`,
+    classId,weekday,start:period.start,end:period.end,teacher:period.teacher,room:period.room,
+    className,subject:period.subjectBn,teacherName:names.get(period.teacher)||''}));
+  /* The day as it will be once the version is back. Its own current periods are left out of the
+     comparison — they are exactly what the restore replaces, and a day argued with itself would warn
+     about every restore — and the restored periods are put in, so a version that double-books itself is
+     still reported. */
+  const mine=new Set(doc.periods.filter(live).map(period=>String(period._id)));
+  const held=await centreSlots(weekday,input.kind==='daily'
     ? {excludeClass:classId,date:(doc as DailyDoc).date,excludeDailyClass:classId}
     : {});
-  const names=await teacherNames(snapshot.periods.map(period=>period.teacher));
-  for(const period of snapshot.periods){
-    clashes.push(...clashesFor({classId,weekday,start:period.start,end:period.end,
-      teacher:period.teacher,room:period.room,className,subject:period.subjectBn,
-      teacherName:names.get(period.teacher)||''},others));
-  }
+  const others=[...held.filter(slot=>!mine.has(String(slot.periodId||''))),...proposed];
+  for(const slot of proposed)clashes.push(...clashesFor(slot,others));
   if(clashes.length&&!input.force)return {status:'clash',clashes};
   const restored=snapshot.periods.map(period=>({
     _id:new mongoose.Types.ObjectId(),start:period.start,end:period.end,

@@ -1309,6 +1309,10 @@ html:lang(bn) .public-motion-root:not(.private-motion-disabled) :is(h1,h2,h3,h4)
   body[data-print="notice"] [data-print-sheet],body[data-print="notice"] [data-print-sheet] *{visibility:visible!important}
   body[data-print="notice"] [data-print-sheet]{position:absolute;left:0;top:0;width:100%;display:block!important}
   body[data-print="notice"]{background:#fff}
+  /* The report card's print rule takes every portal card out of the flow, which is right for a result and
+     wrong for a teacher's own schedule: the card that holds the marked sheet stays, so the seven days a
+     teacher prints are the seven days they were looking at. */
+  body[data-print="notice"] .portal-area>.wrap>.portal-card:has([data-print-sheet]){display:block!important}
 }
 /* A teacher's own seven days: the same card language as the admin's week, in the portal's own shell. */
 .teacher-schedule{display:grid;gap:14px;min-width:0}

@@ -22,6 +22,7 @@ import {useRouter} from 'next/navigation';
 import {useLocale,useTranslations} from 'next-intl';
 import {BanglaDate} from './bangla-date';
 import {useClashSentence} from './routine-drawer';
+import {showRecycleToast} from './recycle-toast-host';
 import {applyReplaceTeacherAction,bulkEditPeriodsAction,duplicateDayAction,moveDayAction,
   previewReplaceTeacherAction,type RoutineActionState} from '@/actions/routine';
 import type {ReplaceRow} from '@/lib/routine/bulk';
@@ -80,7 +81,7 @@ function Refused({state,hook}:{state:RoutineActionState;hook:string}){
 }
 
 /** The bulk edit: everything ticked in one day, changed in one write. */
-function BulkForm({props}:{props:RoutineToolsProps}){
+function BulkForm({props,onDone}:{props:RoutineToolsProps;onDone:(message:string)=>void}){
   const t=useTranslations('routine'),router=useRouter();
   const {classId,shift,weekdays,teachers,rooms,digits,picked,onClear}=props;
   const [state,action,pending]=useActionState(bulkEditPeriodsAction,idle);
@@ -88,10 +89,11 @@ function BulkForm({props}:{props:RoutineToolsProps}){
   const [roomOn,setRoomOn]=useState(false),[room,setRoom]=useState('');
   const [teacherOn,setTeacherOn]=useState(false),[teacher,setTeacher]=useState('');
   const [subjectOn,setSubjectOn]=useState(false),[subjectBn,setSubjectBn]=useState(''),[subjectEn,setSubjectEn]=useState('');
-  const [done,setDone]=useState('');
   useEffect(()=>{
     if(state.status!=='ok')return;
-    setDone(state.message||'');
+    /* The sentence outlives this form: a finished bulk edit drops the ticks, and the ticks are what this
+       form is rendered for, so the message is handed up to the panel that stays. */
+    onDone(state.message||'');
     router.refresh();
     onClear();
   },[state]);
@@ -302,14 +304,16 @@ function ReplaceForm({props}:{props:RoutineToolsProps}){
 /** The two tools that write many periods, in one panel on the master routine. */
 export function RoutineTools(props:RoutineToolsProps){
   const t=useTranslations('routine');
+  const [done,setDone]=useState('');
   /* A box inside the week's own panel rather than a panel of its own: these tools act on the grid they
      sit above, and the ticks that feed them are on the cards of that grid. */
   return <div className="routine-tools" data-routine-tools>
     <h2 data-bulk-title>{t('bulk.title')}</h2>
     <p className="admin-help" data-bulk-help>{t('bulk.help')}</p>
+    {done&&<p className="admin-feedback ok" role="status" data-bulk-done>{done}</p>}
     {props.picked.ids.length===0
       ? <p className="admin-help" data-bulk-none>{t('bulk.none')}</p>
-      : <BulkForm props={props}/>}
+      : <BulkForm props={props} onDone={setDone}/>}
     <details className="admin-fold routine-fold" data-replace-fold>
       <summary data-replace-title>{t('replace.title')}</summary>
       <div className="admin-fold-body">
@@ -333,6 +337,9 @@ function DayOpForm({kind,classId,shift,from,weekdays,digits,onDone}:{
   useEffect(()=>{
     if(state.status!=='ok')return;
     setDone(state.message||'');
+    /* The day editor closes on a finished move, so the sentence also travels as the toast every other
+       write in this app travels as, and stays on screen after the drawer that earned it is gone. */
+    showRecycleToast({state:{status:'ok'},success:state.message||'',error:''});
     router.refresh();
     onDone();
   },[state]);

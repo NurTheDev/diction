@@ -19,6 +19,8 @@
 'use server';
 import {getTranslations} from 'next-intl/server';
 import {requireAdmin} from '@/lib/admin/guard';
+import {dashboardDigits} from '@/lib/admin/digits';
+import {inDigits} from '@/lib/admin/format';
 import {assignmentSchema,bulkEditSchema,dayOpSchema,dispatchSchema,replaceTeacherSchema,
   restoreHistorySchema,dailySheetSchema,routinePeriodSchema} from '@/schemas/routine';
 import {
@@ -219,7 +221,9 @@ export async function bulkEditPeriodsAction(_:RoutineActionState,form:FormData):
       setSubject:flagged(form,'setSubject'),subjectBn:text(form,'subjectBn'),subjectEn:text(form,'subjectEn'),
     });
     if(!parsed.success)return {status:'invalid',fields:parsed.error.issues.map(issue=>String(issue.path[0]))};
-    message=t('bulk.applied',{count:parsed.data.periodIds.length});
+    /* A count inside a sentence is a number the operator reads, so it goes out in their own digits:
+       next-intl leaves a numeric argument in Latin digits whatever the locale. */
+    message=t('bulk.applied',inDigits(await dashboardDigits(admin.id))({count:parsed.data.periodIds.length}));
     const outcome:BulkOutcome=await applyBulkEdit({...parsed.data,force:flagged(form,'force'),actor:admin.id});
     return toolState(outcome,outcome.status==='ok'?message:undefined);
   }catch{return {status:'error'}}
@@ -263,7 +267,8 @@ export async function applyReplaceTeacherAction(_:RoutineActionState,form:FormDa
     if(!parsed.success)return {status:'invalid',fields:parsed.error.issues.map(issue=>String(issue.path[0]))};
     const outcome:ReplaceOutcome=await applyReplaceTeacher({...parsed.data,force:flagged(form,'force'),
       actor:admin.id});
-    if(outcome.status==='ok')message=t('replace.applied',{count:outcome.touched,days:outcome.days});
+    if(outcome.status==='ok')message=t('replace.applied',inDigits(await dashboardDigits(admin.id))
+      ({count:outcome.touched,days:outcome.days}));
     return toolState(outcome,outcome.status==='ok'?message:undefined);
   }catch{return {status:'error'}}
 }
@@ -278,7 +283,8 @@ export async function moveDayAction(_:RoutineActionState,form:FormData):Promise<
       from:text(form,'from'),to:text(form,'to')});
     if(!parsed.success)return {status:'invalid',fields:parsed.error.issues.map(issue=>String(issue.path[0]))};
     const outcome:DayOpOutcome=await moveMasterDay({...parsed.data,force:flagged(form,'force'),actor:admin.id});
-    if(outcome.status==='ok')message=t('dayOps.moved',{count:outcome.touched});
+    if(outcome.status==='ok')message=t('dayOps.moved',inDigits(await dashboardDigits(admin.id))
+      ({count:outcome.touched}));
     return toolState(outcome,outcome.status==='ok'?message:undefined);
   }catch{return {status:'error'}}
 }
@@ -294,7 +300,8 @@ export async function duplicateDayAction(_:RoutineActionState,form:FormData):Pro
     if(!parsed.success)return {status:'invalid',fields:parsed.error.issues.map(issue=>String(issue.path[0]))};
     const outcome:DayOpOutcome=await duplicateMasterDay({...parsed.data,force:flagged(form,'force'),
       actor:admin.id});
-    if(outcome.status==='ok')message=t('dayOps.duplicated',{count:outcome.touched});
+    if(outcome.status==='ok')message=t('dayOps.duplicated',inDigits(await dashboardDigits(admin.id))
+      ({count:outcome.touched}));
     return toolState(outcome,outcome.status==='ok'?message:undefined);
   }catch{return {status:'error'}}
 }
