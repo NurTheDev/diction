@@ -1,3 +1,3 @@
-Error: timed out waiting for the sheet is badged as changed since it was sent
+Error: timed out waiting for the changed sheet is stored
     at until (/home/runner/work/diction/diction/tests/routine-edit-anything-browser.integration.ts:184:15)
     at async run (/home/runner/work/diction/diction/tests/routine-edit-anything-browser.integration.ts:560:5)
