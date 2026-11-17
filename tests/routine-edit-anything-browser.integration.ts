@@ -521,10 +521,12 @@ async function run(){
     assert.equal((await page.locator('[data-holiday-reason]').inputValue()),'বার্ষিক ক্রীড়া প্রতিযোগিতা');
     assert.equal((await page.locator('[data-daily-notes]').inputValue()),'অফিস খোলা ছিল, ক্লাস বন্ধ');
 
-    /* A period left out of one date stays in the week. */
-    const leftOut=String(((await masterDay(classA,weekdayOf(yesterday)))?.periods||[])
-      .filter(period=>!period.deletedAt)[0]?._id||'');
-    if(leftOut){
+    /* A period left out of one date stays in the week. The id comes from the row itself: once a sheet
+       is stored, its periods carry the ids the save wrote for them, not the week's. */
+    const leftOut=await page.locator('[data-daily-period]').first().getAttribute('data-daily-period')||'';
+    assert.ok(leftOut&&!leftOut.startsWith('new-'),
+      `the stored holiday sheet lists the week's period under an id of its own (${leftOut})`);
+    {
       await page.locator(`[data-daily-period-more="${leftOut}"] summary`).click();
       await page.locator(`[data-daily-period-leave="${leftOut}"]`).click();
       await until('the period has left the day',async()=>
