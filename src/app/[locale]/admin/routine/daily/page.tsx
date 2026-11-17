@@ -2,12 +2,16 @@ import {getTranslations} from 'next-intl/server';
 import {Link} from '@/i18n/navigation';
 import {requireArchiver} from '@/lib/admin/guard';
 import {dashboardDigits} from '@/lib/admin/digits';
-import {formatDate} from '@/lib/admin/format';
+import {formatDate,formatNumber} from '@/lib/admin/format';
 import {dhakaDay} from '@/lib/admin/today';
 import {dayHeaders,type Language} from '@/components/admin/list-dates';
 import {BanglaDate} from '@/components/admin/bangla-date';
-import {dailySheet,jointOptions,knownRooms,routineClasses,shiftsForClass,teacherOptions} from '@/lib/routine/read';
+import {dailySheet,jointOptions,knownRooms,printNotice,routineClasses,shiftsForClass,
+  teacherOptions} from '@/lib/routine/read';
+import {classDispatchText,teacherDispatchText,whatsappHref,messengerHref} from '@/lib/routine/dispatch';
+import {dayHeading,rangeWord} from '@/lib/routine/time';
 import {RoutineDailySheet} from '@/components/admin/routine-daily';
+import {RoutineDispatch,type DispatchTeacher} from '@/components/admin/routine-dispatch';
 export const dynamic='force-dynamic';
 
 const DAY=/^\d{4}-\d{2}-\d{2}$/;
@@ -86,7 +90,33 @@ export default async function RoutineDailyPage({params,searchParams}:{
   const askedShift=String(query.shift||'');
   const shift=shifts.includes(askedShift)?askedShift:(shifts[0]||chosen.shift||'');
   const sheet=await dailySheet(chosen.id,shift,date,language);
-  const [teachers,rooms,joints]=sheet?await Promise.all([teacherOptions(),knownRooms(),jointOptions(sheet.weekday)]):[[],[],[]];
+  const [teachers,rooms,joints,notice]=sheet
+    ? await Promise.all([teacherOptions(),knownRooms(),jointOptions(sheet.weekday),printNotice(date,language)])
+    : [[],[],[],null];
+
+  /* Slice 2 · the day going out. The messages are written here, on the server, from the sheet and from the
+     catalogs — so the text the operator copies is already in the screen's own language and their own
+     digits, and the same builder serves the class group and every teacher who takes a period today. */
+  const say=(key:string,params?:Record<string,string|number>):string=>String(t(key,params));
+  const dispatch=sheet?(()=>{
+    const classText=classDispatchText({date:sheet.date,className:sheet.className,shift:sheet.shift,
+      periods:sheet.periods.map(period=>({start:period.start,end:period.end,subjectBn:period.subjectBn,
+        subjectEn:period.subjectEn,teacherName:period.teacherName,room:period.room})),
+      language,digits},say);
+    const held=new Map<string,{name:string;rows:{start:string;end:string;className:string;room:string}[]}>();
+    for(const period of sheet.periods){
+      if(!period.teacherId)continue;
+      const entry=held.get(period.teacherId)||{name:period.teacherName,rows:[]};
+      entry.rows.push({start:period.start,end:period.end,className:sheet.className,room:period.room});
+      held.set(period.teacherId,entry);
+    }
+    const teachersOut:DispatchTeacher[]=[...held.entries()].map(([id,entry])=>{
+      const text=teacherDispatchText({date:sheet.date,teacherName:entry.name,rows:entry.rows,language,
+        digits},say);
+      return {id,name:entry.name,text,whatsapp:whatsappHref(text),messenger:messengerHref(text)};
+    }).sort((a,b)=>a.name.localeCompare(b.name));
+    return {classText,whatsapp:whatsappHref(classText),messenger:messengerHref(classText),teachers:teachersOut};
+  })():null;
 
   return <>{heading}
     <section className="admin-panel" data-daily-filters>
@@ -131,5 +161,43 @@ export default async function RoutineDailyPage({params,searchParams}:{
       : <section className="admin-panel" data-daily-unavailable>
         <div className="admin-panel-body"><p className="admin-help">{t('daily.noSheet')}</p></div>
       </section>}
+
+    {sheet&&dispatch&&<RoutineDispatch classId={sheet.classId} shift={sheet.shift} date={sheet.date}
+      className={sheet.className} classText={dispatch.classText} whatsapp={dispatch.whatsapp}
+      messenger={dispatch.messenger} teachers={dispatch.teachers} sent={sheet.sent} sentAt={sheet.sentAt}
+      sentByName={sheet.sentByName} changedSinceSent={sheet.changedSinceSent} digits={digits}
+      language={language} canEdit={canWrite}/>}
+
+    {/* The paper sheet for the notice board: today's routine across every class, hidden on screen and
+        laid out for print. One print stylesheet, one button, and what comes out is what actually runs —
+        a date's own sheet speaks for its class, and the week speaks where no sheet does. */}
+    {notice&&<section className="routine-notice print-hidden" data-print-notice data-print-sheet
+      aria-hidden={true}>
+      <h1 data-notice-title>{t('dispatch.printTitle')}</h1>
+      <p className="notice-date" data-notice-date>{dayHeading(date,digits,language)}</p>
+      {notice.classes.length===0
+        ? <p className="notice-empty" data-notice-none>{t('dispatch.noClasses')}</p>
+        : notice.classes.map(entry=><div className="notice-class" key={`${entry.classId}:${entry.shift}`}
+          data-notice-class={entry.classId} data-notice-shift={entry.shift}>
+          <h2 data-notice-class-name>{entry.className}{entry.shift?` · ${entry.shift}`:''}</h2>
+          {entry.status==='holiday'
+            ? <p className="notice-holiday" data-notice-holiday>
+              {t('dispatch.holiday',{reason:entry.holidayReason})}</p>
+            : entry.periods.length===0
+              ? <p className="notice-empty" data-notice-empty>{t('dispatch.noPeriods')}</p>
+              : <table className="notice-table" data-notice-table><tbody>
+                {entry.periods.map(period=><tr key={period.id} data-notice-period={period.id}>
+                  <td data-notice-time>{rangeWord(period.start,period.end,digits)}</td>
+                  <td data-notice-subject>
+                    {language==='en'?(period.subjectEn||period.subjectBn):period.subjectBn}</td>
+                  <td data-notice-teacher>{period.teacherName}</td>
+                  <td data-notice-room>{period.room}</td>
+                </tr>)}
+              </tbody></table>}
+          {entry.notes&&<p className="notice-notes" data-notice-notes>{entry.notes}</p>}
+        </div>)}
+      <p className="notice-count" data-notice-count>
+        {t('dispatch.noticeCount',{count:formatNumber(notice.classes.length,digits)})}</p>
+    </section>}
   </>;
 }

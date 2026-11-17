@@ -16,8 +16,24 @@
 import {useEffect,useId,useRef,useState,type ReactNode} from 'react';
 import {useTranslations} from 'next-intl';
 import {type Digits} from '@/lib/admin/format';
-import {MINUTE_STEPS,clockMinutes,clockOfMinutes,clockWord,hourWord,minuteWord} from '@/lib/routine/time';
+import {MINUTE_STEPS,clockMinutes,clockOfMinutes,clockWord,hourWord,minuteWord,rangeWord} from '@/lib/routine/time';
 import {dayPeriodKey} from '@/lib/admin/format';
+import type {RoutineClash} from '@/lib/routine/conflicts';
+
+/**
+ * One clash as the operator reads it: who, where, and the time it landed on. Every routine surface that
+ * can answer `clash` — the period drawer, the daily sheet, a bulk tool, a restore — composes its warning
+ * with this, so the sentence is the same sentence everywhere.
+ */
+export function useClashSentence(){
+  const t=useTranslations('routine');
+  return (clash:RoutineClash,digits:Digits):string=>{
+    const params={who:clash.who,otherClass:clash.otherClass,otherSubject:clash.otherSubject,
+      time:rangeWord(clash.otherStart,clash.otherEnd,digits)};
+    if(clash.kind==='teacher')return t('clashes.teacher',params);
+    return t('clashes.room',params);
+  };
+}
 
 /** The drawer shell: one `<dialog>`, a head with its title and a close, and the body a form goes in. */
 export function RoutineDrawer({open,onClose,title,children}:{

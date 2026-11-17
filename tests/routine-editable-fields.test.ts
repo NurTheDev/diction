@@ -35,6 +35,11 @@ const FILES={
   master:'src/components/admin/routine-master.tsx',
   daily:'src/components/admin/routine-daily.tsx',
   assignments:'src/components/admin/routine-assignments.tsx',
+  /* Slice 2's own surfaces: the bulk and replacement tools, a day's memory, and the dispatch panel. They
+     post to the same action file, so the reverse claim below reads them too. */
+  tools:'src/components/admin/routine-tools.tsx',
+  history:'src/components/admin/routine-history.tsx',
+  dispatch:'src/components/admin/routine-dispatch.tsx',
   action:'src/actions/routine.ts',
   engine:'src/lib/routine/engine.ts',
 } as const;
@@ -43,6 +48,9 @@ const source:Record<FileKey,string>={
   master:readFileSync(FILES.master,'utf8'),
   daily:readFileSync(FILES.daily,'utf8'),
   assignments:readFileSync(FILES.assignments,'utf8'),
+  tools:readFileSync(FILES.tools,'utf8'),
+  history:readFileSync(FILES.history,'utf8'),
+  dispatch:readFileSync(FILES.dispatch,'utf8'),
   action:readFileSync(FILES.action,'utf8'),
   engine:readFileSync(FILES.engine,'utf8'),
 };
@@ -89,6 +97,10 @@ const MODELS:{name:string;model:unknown;
       /* The label a row carries so the Recycle Bin can name what it holds is copied from the class record
          on every save: typing it would let the bin disagree with the class it points at. */
       'classLabel.bn':'derived','classLabel.en':'derived',
+      /* The day's own memory: twenty entries the engine writes on every save and the history drawer
+         reads. Nobody types one, so it is derived — and a restore, which is a write like any other,
+         leaves an entry of its own. */
+      history:'derived',
       createdBy:'system',_id:'system',createdAt:'system',updatedAt:'system',__v:'system',
       deletedAt:'system',deletedBy:'system',purgeAt:'system',
     },
@@ -106,6 +118,7 @@ const MODELS:{name:string;model:unknown;
       'classLabel.bn':'derived','classLabel.en':'derived',
       /* The dispatch writes these when a sheet is sent; the operator reads them as a badge. */
       sentAt:'system',sentBy:'system',sentSignature:'derived',
+      history:'derived',
       createdBy:'system',_id:'system',createdAt:'system',updatedAt:'system',__v:'system',
       deletedAt:'system',deletedBy:'system',purgeAt:'system',
     },
@@ -199,13 +212,19 @@ assert.ok(source.daily.includes('data-daily-period-source'),'each period says wh
 /* A control nobody classified is a field the table does not know about — the same drift, from the other
    side. Every `name="…"` the three routine components render must be either a classified control, the
    draft the daily sheet posts, or the save-anyway flag that makes a warning pass. */
-const known=new Set<string>(['force','periodId','dayId','assignmentId','masterPeriod','periods']);
+/* The names a tool posts that are not paths of a routine document: which periods were ticked, how far the
+   clock moves, which field is being written across them, who replaces whom over which range, and which
+   remembered version a restore puts back. They are inputs to an operation, and the operation's own schema
+   in `src/schemas/routine.ts` is what checks them. */
+const known=new Set<string>(['force','periodId','dayId','assignmentId','masterPeriod','periods',
+  'periodIds','minutes','setRoom','setTeacher','setSubject','from','to','fromDate','toDate','master',
+  'daily','kind','id','entryId']);
 for(const entry of MODELS){
   for(const kind of Object.values({...entry.fields,...entry.periods})){
     if(kind!=='system'&&kind!=='derived')known.add(kind.control);
   }
 }
-for(const file of ['master','daily','assignments'] as const){
+for(const file of ['master','daily','assignments','tools','history','dispatch'] as const){
   const rendered=[...source[file].matchAll(/name="([a-zA-Z][a-zA-Z0-9]*)"/g)].map(hit=>hit[1]);
   for(const control of new Set(rendered)){
     assert.ok(known.has(control),

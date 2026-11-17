@@ -19,7 +19,9 @@
 import {useActionState,useEffect,useRef,useState} from 'react';
 import {useRouter} from 'next/navigation';
 import {useTranslations} from 'next-intl';
-import {RoutineDrawer,TimeField} from './routine-drawer';
+import {RoutineDrawer,TimeField,useClashSentence} from './routine-drawer';
+import {RoutineDayOps,RoutineTools,type BulkPicked} from './routine-tools';
+import {RoutineHistory} from './routine-history';
 import {RowControls} from './row-controls';
 import {showRecycleToast} from './recycle-toast-host';
 import {saveMasterDayAction,saveMasterPeriodAction,deleteMasterPeriodAction,restoreMasterPeriodAction,
@@ -37,6 +39,12 @@ export interface RoutineMasterProps{
   classId:string;
   className:string;
   shift:string;
+  /** Every class and every shift, so the replacement tool can be centre-wide rather than only this one. */
+  classes:{id:string;name:string}[];
+  shifts:string[];
+  /** Dhaka's today and the last date the replacement range offers — decided on the server, not here. */
+  today:string;
+  until:string;
   days:MasterDayView[];
   /** The seven weekday names, in the screen's own language, starting on Sunday. */
   weekdays:string[];
@@ -47,17 +55,6 @@ export interface RoutineMasterProps{
   digits:Digits;
   canEdit:boolean;
   canDelete:boolean;
-}
-
-/** One clash as the operator reads it: who, where, and the time it landed on. */
-function useClashSentence(){
-  const t=useTranslations('routine');
-  return (clash:RoutineClash,digits:Digits):string=>{
-    const params={who:clash.who,otherClass:clash.otherClass,otherSubject:clash.otherSubject,
-      time:rangeWord(clash.otherStart,clash.otherEnd,digits)};
-    if(clash.kind==='teacher')return t('clashes.teacher',params);
-    return t('clashes.room',params);
-  };
 }
 
 /** Deleting one period: into that day's own bin for thirty days, with Undo in the toast. */
@@ -286,6 +283,10 @@ function MasterDayDrawer({day,onClose,props}:{
         <button type="button" className="admin-mini-button" onClick={onClose}>{t('period.cancel')}</button>
       </div>
     </form>
+    {/* Slice 2: a whole day, moved to another weekday or duplicated onto one. Both are day questions, so
+        both live in the day's own editor rather than in a menu on the card. */}
+    {day?.id&&props.canEdit&&<RoutineDayOps classId={props.classId} shift={day.shift||props.shift}
+      from={day.weekday} weekdays={props.weekdays} digits={props.digits} onDone={onClose}/>}
   </RoutineDrawer>;
 }
 
@@ -294,6 +295,22 @@ export function RoutineMasterBoard(props:RoutineMasterProps){
   const sentence=useClashSentence();
   const [periodTarget,setPeriodTarget]=useState<{weekday:number;period:PeriodView|null}|null>(null);
   const [dayTarget,setDayTarget]=useState<MasterDayView|null>(null);
+  /* The ticks live here, beside the cards they are on, and the tools read them from here. One day at a
+     time, because a bulk edit is one write to one document — ticking a period of another day starts a
+     new pick rather than quietly spanning two. */
+  const [picked,setPicked]=useState<BulkPicked>({weekday:-1,ids:[]});
+  /* Held as a weekday, not as the day object: a restore refreshes the page, and the drawer must then show
+     the day's new memory rather than the copy it was opened with. */
+  const [historyWeekday,setHistoryWeekday]=useState<number|null>(null);
+  const historyDay=historyWeekday===null?null:props.days.find(day=>day.weekday===historyWeekday)||null;
+  const toggle=(weekday:number,id:string,on:boolean):void=>setPicked(current=>{
+    if(current.weekday!==weekday)return on?{weekday,ids:[id]}:{weekday:-1,ids:[]};
+    const ids=on?[...new Set([...current.ids,id])]:current.ids.filter(value=>value!==id);
+    return ids.length?{weekday,ids}:{weekday:-1,ids:[]};
+  });
+  const pickAll=(day:MasterDayView):void=>
+    setPicked({weekday:day.weekday,ids:day.periods.map(period=>period.id)});
+  const clearPicks=():void=>setPicked({weekday:-1,ids:[]});
   const subjectOf=(period:PeriodView):string=>period.subjectBn;
   const nameOf=(period:PeriodView):string=>
     t('period.summary',{time:rangeWord(period.start,period.end,props.digits),subject:subjectOf(period)});
@@ -305,6 +322,10 @@ export function RoutineMasterBoard(props:RoutineMasterProps){
         <li key={`${clash.kind}${clash.weekday}${clash.start}${index}`} data-clash-line={clash.kind}>
           {props.weekdays[clash.weekday]} · {sentence(clash,props.digits)}</li>)}</ul>
     </div>}
+
+    {props.canEdit&&<RoutineTools classId={props.classId} shift={props.shift} classes={props.classes}
+      shifts={props.shifts} weekdays={props.weekdays} teachers={props.teachers} rooms={props.rooms}
+      digits={props.digits} today={props.today} until={props.until} picked={picked} onClear={clearPicks}/>}
 
     <div className="routine-week" data-routine-week>
       {props.days.map(day=>{
@@ -319,9 +340,14 @@ export function RoutineMasterBoard(props:RoutineMasterProps){
             </p>
             {!day.active&&<p className="admin-badge routine-day-off" data-day-off>{t('master.dayOff')}</p>}
             <div className="routine-day-actions">
+              {props.canEdit&&day.periods.length>0&&
+                <button type="button" className="admin-mini-button" data-bulk-all={day.weekday}
+                  onClick={()=>pickAll(day)}>{t('bulk.pickAll')}</button>}
               {props.canEdit&&day.id&&
                 <button type="button" className="admin-mini-button" data-day-edit={day.weekday}
                   onClick={()=>setDayTarget(day)}>{t('common.edit')}</button>}
+              {day.id&&<button type="button" className="admin-mini-button" data-history-open={day.weekday}
+                onClick={()=>setHistoryWeekday(day.weekday)}>{t('history.open')}</button>}
               {day.id&&<RowControls kind="masterRoutine" id={day.id}
                 name={`${props.className} · ${props.weekdays[day.weekday]}`}
                 canDelete={props.canDelete} canArchive onDone={()=>router.refresh()}/>}
@@ -332,6 +358,12 @@ export function RoutineMasterBoard(props:RoutineMasterProps){
             ? <p className="admin-help" data-routine-empty-day>{t('master.noPeriods')}</p>
             : <ul className="routine-periods">
               {day.periods.map(period=><li className="routine-period" key={period.id} data-period-card={period.id}>
+                {props.canEdit&&<label className="admin-check routine-pick">
+                  <input type="checkbox" data-bulk-select={period.id}
+                    checked={picked.weekday===day.weekday&&picked.ids.includes(period.id)}
+                    onChange={event=>toggle(day.weekday,period.id,event.target.checked)}/>
+                  <span className="routine-pick-word">{t('bulk.pick')}</span>
+                </label>}
                 <span className="routine-period-when" data-period-time>{rangeWord(period.start,period.end,props.digits)}</span>
                 <span className="routine-period-what">
                   <strong data-period-subject>{subjectOf(period)}</strong>
@@ -371,6 +403,11 @@ export function RoutineMasterBoard(props:RoutineMasterProps){
     </div>
     <div key={dayTarget?`day:${dayTarget.weekday}`:'day:closed'}>
       <MasterDayDrawer day={dayTarget} onClose={()=>setDayTarget(null)} props={props}/>
+    </div>
+    <div key={historyWeekday===null?'history:closed':`history:${historyWeekday}`}>
+      <RoutineHistory open={!!historyDay} onClose={()=>setHistoryWeekday(null)} kind="master"
+        docId={historyDay?.id||''} entries={historyDay?.history||[]} weekdays={props.weekdays}
+        digits={props.digits} canEdit={props.canEdit}/>
     </div>
   </>;
 }

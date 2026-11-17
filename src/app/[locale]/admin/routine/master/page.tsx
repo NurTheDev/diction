@@ -4,8 +4,10 @@ import {requireArchiver} from '@/lib/admin/guard';
 import {dashboardDigits} from '@/lib/admin/digits';
 import {formatNumber} from '@/lib/admin/format';
 import {dayHeaders,type Language} from '@/components/admin/list-dates';
-import {assignments,centreWeek,jointOptionsForWeek,knownRooms,masterWeek,routineClasses,
+import {assignments,centreWeek,jointOptionsForWeek,knownRooms,knownShifts,masterWeek,routineClasses,
   shiftsForClass,teacherOptions} from '@/lib/routine/read';
+import {shiftDate} from '@/lib/routine/time';
+import {dhakaDay} from '@/lib/admin/today';
 import {dayTotals,scanSlots,type RoutineSlot} from '@/lib/routine/conflicts';
 import {RoutineMasterBoard} from '@/components/admin/routine-master';
 import {RoutineAssignments} from '@/components/admin/routine-assignments';
@@ -60,10 +62,14 @@ export default async function RoutineMasterPage({params,searchParams}:{
   const shifts=await shiftsForClass(chosen.id,chosen.shift);
   const askedShift=String(query.shift||'');
   const shift=shifts.includes(askedShift)?askedShift:(shifts[0]||chosen.shift||'');
-  const [days,slots,teachers,rooms,assignmentRows]=await Promise.all([
+  const [days,slots,teachers,rooms,assignmentRows,everyShift]=await Promise.all([
     masterWeek(chosen.id,shift,language),centreWeek(),teacherOptions(),knownRooms(),
-    assignments(language,chosen.id),
+    assignments(language,chosen.id),knownShifts(),
   ]);
+  /* The replacement tool's own range, decided here rather than in the browser: Dhaka's today, and a
+     fortnight on, which is as long as a sick leave usually is and as far as it is worth offering. */
+  const today=dhakaDay();
+  const until=shiftDate(today,13);
   const joints=jointOptionsForWeek(slots);
   /* Only the clashes this class is a party to: a page about one class does not lecture about two others. */
   const clashes=scanSlots(slots).filter(clash=>clash.classId===chosen.id||clash.otherClassId===chosen.id);
@@ -127,6 +133,8 @@ export default async function RoutineMasterPage({params,searchParams}:{
         <p className="admin-help" data-master-shift-line>{t('master.shiftLabel')}: {shift||t('master.noShift')}</p>
         <p className="admin-help" data-master-week-help>{t('master.weekHelp')}</p>
         <RoutineMasterBoard classId={chosen.id} className={chosen.name} shift={shift} days={days}
+          classes={classes.map(group=>({id:group.id,name:group.name}))} shifts={everyShift}
+          today={today} until={until}
           weekdays={dayHeaders(language)} teachers={teachers} rooms={rooms} joints={joints} clashes={clashes}
           digits={digits} canEdit={canWrite} canDelete={canWrite}/>
       </div>

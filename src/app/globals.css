@@ -1254,3 +1254,74 @@ html:lang(bn) .public-motion-root:not(.private-motion-disabled) :is(h1,h2,h3,h4)
   .routine-period{padding:12px}
   .routine-status{flex-direction:column;align-items:stretch}
 }
+
+/* R9 · Slice 2 — the tools that write many periods at once, a day's own memory, the day going out, and
+   the sheet of paper that goes on the notice board.
+
+   The tools box sits above the week it acts on and reads as one of the routine's own surfaces: navy rule
+   on the left, the same borders and radii as a day card, nothing that looks like a browser widget. The
+   tick on a period card is 22px inside a 44px row, because it is aimed at with a thumb. A day's memory is
+   a list of cards, newest first, each with the person, the Dhaka wall clock and one sentence — and the
+   message blocks are `<pre>` so the text somebody copies is byte-for-byte the text that goes into
+   WhatsApp, with the line breaks it was written with. */
+.routine-tools{border:1px solid #d9deee;border-left:5px solid #2e3192;border-radius:10px;background:#fbfcff;padding:14px 16px;margin-bottom:16px;display:grid;gap:10px;min-width:0}
+.routine-tools h2{margin:0;font-size:18px;color:#1a1d3a}
+.routine-pick{display:flex;align-items:center;gap:6px;min-height:44px;align-self:start}
+.routine-pick input{width:22px;height:22px;accent-color:#2e3192}
+/* The tick's own word is for a screen reader: on the card there is room for the box and nothing else. */
+.routine-pick-word{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.routine-period:has(.routine-pick){grid-template-columns:auto auto minmax(0,1fr)}
+.routine-period:has(.routine-pick) .routine-period-what{grid-column:3}
+.routine-fold{border-top:1px solid #eef0f7;padding-top:10px;min-width:0}
+.routine-fold summary{cursor:pointer;font-weight:700;color:#2e3192;min-height:44px;display:flex;align-items:center}
+.routine-fold .admin-fold-body{display:grid;gap:10px;padding-top:10px;min-width:0}
+.routine-replace{display:grid;gap:12px;min-width:0}
+.routine-replace-rows{list-style:none;margin:0;padding:10px;display:grid;gap:6px;max-height:280px;overflow:auto;border:1px solid #e6e9f4;border-radius:9px;background:#fff}
+.routine-replace-rows li{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:4px 10px;font-size:14px;color:#4a5072;border-bottom:1px dashed #eef0f7;padding-bottom:6px;min-width:0}
+.routine-replace-rows li span{overflow-wrap:anywhere}
+.routine-dayops{border-top:1px solid #eef0f7;margin-top:14px;padding-top:12px;display:grid;gap:10px;min-width:0}
+.routine-dayops h3{margin:0;font-size:16px;color:#1a1d3a}
+.routine-history{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.routine-history-entry{border:1px solid #e6e9f4;border-left:4px solid #2e3192;border-radius:9px;background:#fafbfe;padding:10px 12px;display:grid;gap:4px;min-width:0}
+.routine-history-when{font-size:13px;color:#4a5072}
+.routine-history-line{font-size:15px;color:#1a1d3a;overflow-wrap:anywhere}
+.routine-history-restore{display:grid;gap:6px}
+.routine-dispatch .admin-panel-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.dispatch-message{border:1px solid #d9deee;border-radius:10px;background:#fff;padding:12px 14px;display:grid;gap:10px;min-width:0}
+.dispatch-message h3{margin:0;font-size:16px;color:#1a1d3a;overflow-wrap:anywhere}
+.dispatch-text{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font-family:inherit;font-size:15px;line-height:1.6;color:#1a1d3a;background:#fbfcff;border:1px dashed #d9deee;border-radius:8px;padding:10px 12px}
+.dispatch-list{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.dispatch-teachers{display:grid;gap:10px;min-width:0}
+/* The paper sheet. Hidden on screen, and the only thing on the page once the printer is asked for it:
+   everything else goes invisible and the marked sheet is lifted to the top of the page. */
+.print-hidden{display:none}
+.routine-notice{background:#fff;color:#111}
+.routine-notice h1{font-size:22px;margin:0 0 4px}
+.routine-notice .notice-date{margin:0 0 14px;font-size:15px}
+.notice-class{break-inside:avoid;margin-bottom:16px}
+.notice-class h2{font-size:17px;margin:0 0 6px;border-bottom:1px solid #bbb;padding-bottom:4px}
+.notice-table{width:100%;border-collapse:collapse;font-size:14px}
+.notice-table td{border:1px solid #ccc;padding:5px 7px;vertical-align:top}
+.notice-holiday,.notice-empty,.notice-notes{font-size:14px;margin:0 0 6px}
+.notice-count{font-size:13px;margin-top:10px}
+@media print{
+  body[data-print="notice"] *{visibility:hidden!important}
+  body[data-print="notice"] [data-print-sheet],body[data-print="notice"] [data-print-sheet] *{visibility:visible!important}
+  body[data-print="notice"] [data-print-sheet]{position:absolute;left:0;top:0;width:100%;display:block!important}
+  body[data-print="notice"]{background:#fff}
+}
+/* A teacher's own seven days: the same card language as the admin's week, in the portal's own shell. */
+.teacher-schedule{display:grid;gap:14px;min-width:0}
+.teacher-day{border:1px solid #e6e9f4;border-radius:10px;background:#fafbfe;padding:12px 14px;display:grid;gap:6px;min-width:0}
+.teacher-day h3{margin:0;font-size:16px;color:#1a1d3a}
+.teacher-rows{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.teacher-rows li{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:4px 10px;font-size:14px;color:#4a5072;border-left:3px solid #2e3192;padding-left:8px;min-width:0}
+.teacher-rows li span{overflow-wrap:anywhere}
+.teacher-rows li span:first-child{font-weight:700;color:#1a1d3a;white-space:nowrap}
+@media(max-width:760px){
+  .routine-period:has(.routine-pick){grid-template-columns:minmax(0,1fr)}
+  .routine-period:has(.routine-pick) .routine-period-what{grid-column:auto}
+  .routine-replace-rows li,.teacher-rows li{grid-template-columns:minmax(0,1fr)}
+  .dispatch-message{padding:12px}
+  .routine-tools{padding:12px 14px}
+}

@@ -26,6 +26,7 @@ import {useActionState,useEffect,useState} from 'react';
 import {useRouter} from 'next/navigation';
 import {useTranslations} from 'next-intl';
 import {RoutineDrawer,TimeField} from './routine-drawer';
+import {RoutineHistory} from './routine-history';
 import {RowControls} from './row-controls';
 import {showRecycleToast} from './recycle-toast-host';
 import {resetDailySheetAction,saveDailySheetAction,type RoutineActionState} from '@/actions/routine';
@@ -148,6 +149,9 @@ export function RoutineDailySheet(props:RoutineDailyProps){
   const [holidayReason,setHolidayReason]=useState(sheet.holidayReason);
   const [notes,setNotes]=useState(sheet.notes);
   const [editor,setEditor]=useState<{index:number;period:DraftPeriod}|null>(null);
+  /* Slice 2: the sheet's own memory — the last twenty changes to this date, and the tap that puts one
+     of them back. */
+  const [historyOpen,setHistoryOpen]=useState(false);
   const [state,action,pending]=useActionState(saveDailySheetAction,idle);
   const [resetState,resetAction]=useActionState(resetDailySheetAction,idle);
 
@@ -197,6 +201,8 @@ export function RoutineDailySheet(props:RoutineDailyProps){
       {sheet.stored
         ? <span className="admin-help" data-daily-stored>{t('daily.stored')}</span>
         : <span className="admin-help" data-daily-not-stored>{t('daily.notStored')}</span>}
+      <button type="button" className="admin-mini-button" data-daily-history
+        onClick={()=>setHistoryOpen(true)}>{t('history.open')}</button>
     </div>
     {sheet.passed&&<p className="admin-help" data-passed-help>{t('daily.passedHelp')}</p>}
     <p className="admin-help" data-daily-scope>{t('daily.sheetHelp')}</p>
@@ -318,6 +324,11 @@ export function RoutineDailySheet(props:RoutineDailyProps){
 
     <div key={editor?`${editor.index}:${editor.period.id||'new'}`:'closed'}>
       <DailyPeriodDrawer target={editor} onClose={()=>setEditor(null)} onSave={savePeriod} props={props}/>
+    </div>
+    <div key={historyOpen?`history:${sheet.history.length}`:'history:closed'}>
+      <RoutineHistory open={historyOpen} onClose={()=>setHistoryOpen(false)} kind="daily"
+        docId={sheet.docId||''} entries={sheet.history} weekdays={props.weekdays} digits={digits}
+        canEdit={props.canEdit}/>
     </div>
   </>;
 }

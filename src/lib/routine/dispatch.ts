@@ -16,7 +16,7 @@ import {formatDate,type Digits} from '@/lib/admin/format';
 import {rangeWord,type Language} from './time';
 
 /** A translate function for the `routine` group, as the server hands it out. */
-export type RoutineSay=(key:string,params?:Record<string,unknown>)=>string;
+export type RoutineSay=(key:string,params?:Record<string,string|number>)=>string;
 
 export interface DispatchPeriod{
   start:string;
