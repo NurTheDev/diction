@@ -333,7 +333,10 @@ export function RoutineDailySheet(props:RoutineDailyProps){
               </span>
             </li>)}</ul>}
 
-        {props.canEdit&&draft.length>0&&<div className="routine-day-add">
+        {/* The chain is offered whether or not the date has anything on it yet: the next period of an
+            empty sheet is its first one, and an operator building a day from nothing should not have to
+            find a different button for the first period than for the second. */}
+        {props.canEdit&&<div className="routine-day-add">
           <button type="button" className="button button-navy routine-add routine-add-next"
             data-daily-add-next title={t('daily.addNext')} onClick={addNextPeriod}>
             + {t('daily.addNext')}

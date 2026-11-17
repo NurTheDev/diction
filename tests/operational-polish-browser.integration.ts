@@ -229,8 +229,8 @@ async function run():Promise<void>{
     await goto(page,`/bn/admin/routine/master?classId=${classId}`,'[data-routine-week]');
     assert.equal(await page.locator('[data-add-period]').count(),7,
       'every day of the week still carries its own "add a period" button');
-    assert.equal(await page.locator('[data-add-next]').count(),0,
-      'and no day offers a next period until it has a period to follow');
+    assert.equal(await page.locator('[data-add-next]').count(),7,
+      'and every day offers its next period too — the next period of an empty day is its first one');
     assert.match((await page.locator('[data-day-shift="0"]').innerText()).trim(),/শিফট/,
       'a day card says which shift it belongs to, so the morning half of a class is never mistaken for the evening');
     assert.ok((await page.locator('[data-day-shift="0"]').innerText()).includes(SHIFT_WORD),

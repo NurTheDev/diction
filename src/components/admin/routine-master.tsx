@@ -434,17 +434,20 @@ export function RoutineMasterBoard(props:RoutineMasterProps){
             {t('master.binned',{count:formatNumber(day.binned,props.digits)})}</p>}
 
           {props.canEdit&&<div className="routine-day-add">
-            {/* The primary way in is the chain: the next period of a day starts when this day's last one
-                ends, runs the length the chips are on, and is numbered one past the day's highest — so
-                writing a day of three fifty-minute periods is three clicks and no arithmetic. */}
-            {day.periods.length>0&&
-              <button type="button" className="button button-navy routine-add routine-add-next"
-                data-add-next={day.weekday} title={t('master.nextHelp')}
-                onClick={()=>setPeriodTarget({weekday:day.weekday,period:null,
-                  seed:nextPeriodSeed(day.periods.map(period=>({start:period.start,end:period.end,
-                    order:period.order})),chainMinutes)})}>+ {t('master.addNext')}</button>}
-            <button type="button"
-              className={day.periods.length?'admin-mini-button routine-add routine-add-plain':'button button-navy routine-add'}
+            {/* The primary way in is the chain, on every day of the week — a day with nothing on it
+                included, because "the next period" of an empty day is its first one. It starts when this
+                day's last period ends, runs the length the chips are on, and is numbered one past the
+                day's highest, so writing a day of three fifty-minute periods is three clicks and no
+                arithmetic. */}
+            <button type="button" className="button button-navy routine-add routine-add-next"
+              data-add-next={day.weekday} title={t('master.nextHelp')}
+              onClick={()=>setPeriodTarget({weekday:day.weekday,period:null,
+                seed:nextPeriodSeed(day.periods.map(period=>({start:period.start,end:period.end,
+                  order:period.order})),chainMinutes)})}>+ {t('master.addNext')}</button>
+            {/* The plain button stays on every day — it is the one a suite counts, and it is the way in
+                for an operator who wants to choose the time rather than be given it — but it is the
+                second of the two now, because the chain is the way a day is really written. */}
+            <button type="button" className="admin-mini-button routine-add routine-add-plain"
               data-add-period={day.weekday}
               onClick={()=>setPeriodTarget({weekday:day.weekday,period:null})}>+ {t('master.addPeriod')}</button>
           </div>}
