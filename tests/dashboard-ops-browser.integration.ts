@@ -352,10 +352,15 @@ async function run(){
     /* The site tier: folded, named, and one tap from open. */
     const fold=page.locator('[data-site-fold]');
     assert.equal(await fold.evaluate(node=>node.hasAttribute('open')),false,'the public site\'s work arrives folded — below the day, not above it');
-    assert.ok((await fold.locator('summary').innerText()).includes(bn.adminRedesign.site.title),'the fold names itself');
-    assert.ok((await fold.locator('summary').innerText()).includes(bn.adminRedesign.site.lede),'and says what is inside it');
+    /* The fold's OWN summary, by child combinator: the site-readiness checklist that lives inside the
+       fold is itself a `details`, so a bare `summary` under the fold resolves to two and Playwright's
+       strict mode refuses to guess which one names the tier. */
+    const foldSummary=page.locator('[data-site-fold] > summary');
+    assert.equal(await foldSummary.count(),1,'the tier has exactly one summary of its own');
+    assert.ok((await foldSummary.innerText()).includes(bn.adminRedesign.site.title),'the fold names itself');
+    assert.ok((await foldSummary.innerText()).includes(bn.adminRedesign.site.lede),'and says what is inside it');
     assert.equal(await fold.locator('[data-site-link]:visible').count(),0,'folded means none of its doors is on screen');
-    await fold.locator('summary').click();
+    await foldSummary.click();
     await page.waitForTimeout(300);
     const doors=await fold.locator('[data-site-link]').evaluateAll(nodes=>nodes.map(node=>({
       key:node.getAttribute('data-site-link')||'',href:node.getAttribute('href')||'',

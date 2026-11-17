@@ -198,6 +198,11 @@ async function run(){
   };
   const stored=async(name:string)=>CenterStudent.findOne({'name.bn':name}).lean<Stored|null>();
   const toast=(page:Page,text:string):Locator=>page.locator('.admin-toast[role="status"]',{hasText:text}).first();
+  /* A write's confirmation is raised on the way back from the action, but it paints only once React is
+     free: the same commit that closes the dialog asks the page to re-read itself, and on the one-CPU
+     runner that refresh can hold the toast's paint past a minute. The proof is unchanged — the toast
+     has to arrive with its own words — it is only given the room the machine actually needs. */
+  const TOAST_MS=120000;
 
   try{
     async function signIn(role:keyof typeof accounts,width=1440){
@@ -361,7 +366,7 @@ async function run(){
     assert.equal(await statusMenu.locator('[data-status-option="active"]').count(),0,'and keeps the one it already has out of its own menu');
     await shot(boss.page,'g1-students-status-menu-1440',false);
     await statusMenu.locator('[data-status-option="on_hold"]').click();
-    await toast(boss.page,row.holdOk).waitFor({state:'visible',timeout:60000});
+    await toast(boss.page,row.holdOk).waitFor({state:'visible',timeout:TOAST_MS});
     await until(async()=>(await stored(FIXTURES.heldBack))?.status==='on_hold','the hold is written');
     await until(async()=>(await rowOf(boss.page,FIXTURES.heldBack).locator('[data-status-badge]').innerText())===c.onHold,'and the row re-reads with the new badge');
     assert.equal(await rowOf(boss.page,FIXTURES.heldBack).locator('[data-dues-chip="none"]').count(),1,'a held student stops being counted the moment the hold lands');
@@ -370,7 +375,7 @@ async function run(){
     // …and back, the same two taps.
     await rowOf(boss.page,FIXTURES.heldBack).locator('[data-status-badge]').click();
     await rowOf(boss.page,FIXTURES.heldBack).locator('[data-status-option="active"]').click();
-    await toast(boss.page,row.unholdOk).waitFor({state:'visible',timeout:60000});
+    await toast(boss.page,row.unholdOk).waitFor({state:'visible',timeout:TOAST_MS});
     await until(async()=>(await stored(FIXTURES.heldBack))?.status==='active','the hold is lifted');
     assert.equal(await CenterActivityLog.countDocuments({action:'student.unhold',target:(await stored(FIXTURES.heldBack))!._id}),1,'and so is its audit line');
 
@@ -388,7 +393,7 @@ async function run(){
     await form.locator('[name="notes"]').fill('দ্বিতীয় নোট — তালিকা থেকেই বদলানো');
     await form.locator('[name="school"]').fill('উত্তরা মডেল স্কুল');
     await form.locator('[data-student-edit-save]').click();
-    await toast(boss.page,c.editSaved).waitFor({state:'visible',timeout:60000});
+    await toast(boss.page,c.editSaved).waitFor({state:'visible',timeout:TOAST_MS});
     await until(async()=>(await stored(FIXTURES.dues))?.notes==='দ্বিতীয় নোট — তালিকা থেকেই বদলানো','the note is written');
     await until(async()=>(await stored(FIXTURES.dues))?.school==='উত্তরা মডেল স্কুল','and so is the school');
     await until(async()=>await form.count()===0,'the form closes itself once the write lands');
@@ -429,7 +434,7 @@ async function run(){
     assert.ok(await removeForm.locator('button[type="submit"]').isEnabled(),'picking the month is what arms the verb');
     await removeForm.locator('[name="reason"]').fill('পরিবার চট্টগ্রামে চলে গেছে');
     await removeForm.locator('button[type="submit"]').click();
-    await toast(boss.page,row.removeOk).waitFor({state:'visible',timeout:60000});
+    await toast(boss.page,row.removeOk).waitFor({state:'visible',timeout:TOAST_MS});
     await until(async()=>(await stored(FIXTURES.dues))?.status==='removed','the student is filed away');
     await until(async()=>await rowOf(boss.page,FIXTURES.dues).count()===0,'and leaves the list the centre works from');
     const removeLog=await CenterActivityLog.findOne({action:'student.remove',target:(await stored(FIXTURES.dues))!._id}).lean<{after:{leaveDate:string;reason:string}}|null>();
@@ -448,7 +453,7 @@ async function run(){
     await pickMonth(restoreForm,'resume',ym(today.year,today.month));
     await restoreForm.locator('[name="reason"]').fill('ফেরা নিশ্চিত করেছে');
     await restoreForm.locator('button[type="submit"]').click();
-    await toast(boss.page,c.restore.ok).waitFor({state:'visible',timeout:60000});
+    await toast(boss.page,c.restore.ok).waitFor({state:'visible',timeout:TOAST_MS});
     await until(async()=>(await stored(FIXTURES.dues))?.status==='active','the student is back');
     await panel2.locator('input[name="removed"]').uncheck();
     await panel2.locator('button[type="submit"]').click();
@@ -501,7 +506,7 @@ async function run(){
     assert.equal(await boss.page.locator('[data-student-hold]').count(),0,'so the standalone Hold button that duplicated it is gone');
     await boss.page.locator('[data-profile-status] [data-status-badge]').click();
     await boss.page.locator('[data-profile-status] [data-status-option="on_hold"]').click();
-    await toast(boss.page,row.holdOk).waitFor({state:'visible',timeout:60000});
+    await toast(boss.page,row.holdOk).waitFor({state:'visible',timeout:TOAST_MS});
     await until(async()=>(await stored(FIXTURES.paid))?.status==='on_hold','the profile holds a student the same two taps');
     await until(async()=>(await boss.page.locator('[data-profile-status] [data-status-badge]').innerText())===c.onHold,'and re-reads its own badge');
     await boss.page.locator('[data-profile-status] [data-status-badge]').click();
@@ -517,13 +522,15 @@ async function run(){
     await dialog.locator('[name="reason"]').fill('প্রোফাইল থেকে সরানো');
     await dialog.locator('[data-student-remove-submit]').click();
     try{
-      await toast(boss.page,row.removeOk).waitFor({state:'visible',timeout:60000});
+      await toast(boss.page,row.removeOk).waitFor({state:'visible',timeout:TOAST_MS});
     }catch(error){
       /* A missing toast has two meanings — the write was refused, or it landed and the answer was lost —
          and the dialog is what tells them apart. Name both halves rather than leaving a bare timeout. */
       const said=await dialog.locator('.admin-feedback').allInnerTexts().catch(()=>[] as string[]);
+      const painted=await boss.page.locator('.admin-toast').allInnerTexts().catch(()=>[] as string[]);
       const now=await stored(FIXTURES.paid);
       console.error(`DIAG the profile's Remove answered with no toast: dialog said ${JSON.stringify(said)} `+
+        `toasts on the page ${JSON.stringify(painted)} `+
         `dialogOpen=${await dialog.isVisible().catch(()=>false)} status=${now?.status} revision=${now?.revision}`);
       throw error;
     }
@@ -537,7 +544,7 @@ async function run(){
     await pickMonth(restoreForm2,'resume',ym(today.year,today.month));
     await restoreForm2.locator('[name="reason"]').fill('আবার ভর্তি');
     await restoreForm2.locator('[data-restore-submit]').click();
-    await toast(boss.page,c.restore.ok).waitFor({state:'visible',timeout:60000});
+    await toast(boss.page,c.restore.ok).waitFor({state:'visible',timeout:TOAST_MS});
     await until(async()=>(await stored(FIXTURES.paid))?.status==='active','and the removed list brings a student back');
 
     // ── 11. the Super Admin may remove too — it is the second role that may ───────────────────────
