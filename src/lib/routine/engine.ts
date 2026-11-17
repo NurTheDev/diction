@@ -168,23 +168,28 @@ export async function saveMasterPeriod({classId,shift,weekday,draft,force,actor}
   if(source)source.classLabel=labelOf(group) as never;
   target.classLabel=labelOf(group) as never;
 
+  /* The arriving period's id is struck before the transaction and both writes look for it first:
+     Mongo re-runs a transaction callback after a transient error, and a callback that pushes blindly
+     would come out of the retry holding the same period twice — a day that double-books itself. */
+  const newId=new mongoose.Types.ObjectId();
   const session=await mongoose.startSession();
   try{
     await session.withTransaction(async()=>{
+      const arrived=target.periods.id(String(newId));
       if(source){
         const period=source.periods.id(String(draft.id));
-        if(!period)throw Object.assign(new Error('MISSING'),{code:'MISSING'});
+        if(!period&&!arrived)throw Object.assign(new Error('MISSING'),{code:'MISSING'});
         if(moving){
           /* The period keeps its own history rather than being recreated: it is the same period, on
              another day, which is what "move to another day" means to the person who wrote it. */
-          period.deleteOne();
-          target.periods.push({...periodValues,_id:new mongoose.Types.ObjectId()});
+          period?.deleteOne();
+          if(!arrived)target.periods.push({...periodValues,_id:newId});
           await source.save({session});
-        }else{
+        }else if(period){
           Object.assign(period,periodValues);
         }
-      }else{
-        target.periods.push({...periodValues,_id:new mongoose.Types.ObjectId()});
+      }else if(!arrived){
+        target.periods.push({...periodValues,_id:newId});
       }
       await target.save({session});
     });

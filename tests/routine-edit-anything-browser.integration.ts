@@ -424,15 +424,18 @@ async function run(){
     /* The write is the claim, so the database is asked first and the drawer second: a save that answers
        as a clash again leaves the warning standing, one that failed reads as refused, and one that
        worked closes the drawer — and the log now says which of the three it was. */
+    const classBDay=async():Promise<string>=>JSON.stringify(await masterDay(classB,clashWeekday)
+      .then(day=>day?.periods.map(period=>({start:period.start,subject:period.subject.bn,
+        deleted:!!period.deletedAt}))));
     await until('class B holds the period it was warned about',async()=>{
       const day=await masterDay(classB,clashWeekday);
       return (day?.periods.filter(period=>!period.deletedAt).length??0)===1;
-    },90000,()=>drawerState(page));
+    },90000,async()=>`${await drawerState(page)}\n  class B's day holds: ${await classBDay()}`);
     await until('the drawer closes once the warned period is written',async()=>
       await drawer(page).count()===0,45000,()=>drawerState(page));
     await until('the week shows the period it was warned about',async()=>
       await page.locator(`[data-routine-day="${clashWeekday}"] [data-period-card]`).count()===1,45000,
-      ()=>drawerState(page));
+      async()=>`${await drawerState(page)}\n  class B's day holds: ${await classBDay()}`);
     {const day=await masterDay(classB,clashWeekday);
      assert.equal(day?.periods.length,1,'the warned period is written, because a warning never blocks');
      assert.equal(day?.periods[0].teacher?.toString(),String(teacherOne._id),'with the same teacher in it')}
