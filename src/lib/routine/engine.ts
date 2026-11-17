@@ -85,6 +85,17 @@ export function refreshRoutine():void{
 
 const validId=(value:unknown):boolean=>mongoose.isValidObjectId(String(value??''));
 
+/* TEMPORARY TRACE (one CI run): the routine write path appends what it did to a file inside the
+   evidence folder, because the server's own console never reaches the committed logs. Remove with the
+   diagnosis. */
+import {appendFileSync,mkdirSync} from 'node:fs';
+function trace(entry:Record<string,unknown>):void{
+  try{
+    mkdirSync('test-results/ci-latest/logs',{recursive:true});
+    appendFileSync('test-results/ci-latest/logs/routine-trace.txt',`${Date.now()} ${JSON.stringify(entry)}\n`);
+  }catch{/* a trace that fails must never fail the write it traces */}
+}
+
 type ClassDoc={_id:mongoose.Types.ObjectId;name:{bn:string;en?:string}};
 
 /**
@@ -110,8 +121,8 @@ async function upsertMasterDay(classId:string,shift:string,weekday:number,actor:
     {upsert:true,new:true,setDefaultsOnInsert:true,runValidators:true},
   ) as unknown as Promise<MasterDoc|null>;
   const day=await found;
-  console.log('[r9-trace] upsertMasterDay',{classId,shift,weekday,got:day?String(day._id):null,
-    dayShift:day?.shift,dayWeekday:day?.weekday,deletedAt:day?.deletedAt?String(day.deletedAt):day?.deletedAt});
+  trace({where:'upsert',classId,shift,weekday,got:day?String(day._id):null,dayShift:day?.shift,
+    dayWeekday:day?.weekday,deletedAt:day?.deletedAt?String(day.deletedAt):String(day?.deletedAt)});
   return day;
 }
 
@@ -153,8 +164,7 @@ export async function saveMasterPeriod({classId,shift,weekday,draft,force,actor}
 
   const proposed=await proposedSlot(draft,weekday);
   const clashes=clashesFor(proposed,await centreSlots(weekday));
-  console.log('[r9-trace] saveMasterPeriod in',{classId,shift,weekday,force:!!force,
-    subject:draft.subjectBn,clashes:clashes.length});
+  trace({where:'in',classId,shift,weekday,force:!!force,subject:draft.subjectBn,clashes:clashes.length});
   /* The warning is the answer, not a refusal: with `force` the same write goes through unchanged. */
   if(clashes.length&&!force)return {status:'clash',clashes};
 
@@ -209,8 +219,8 @@ export async function saveMasterPeriod({classId,shift,weekday,draft,force,actor}
   }
   const live=await MasterRoutine.countDocuments({_id:target._id,deletedAt:null});
   const binned=await MasterRoutine.countDocuments({_id:target._id,deletedAt:{$ne:null}});
-  console.log('[r9-trace] saveMasterPeriod out',{id:String(target._id),periods:target.periods.length,
-    live,binned});
+  trace({where:'out',id:String(target._id),shift:target.shift,weekday:target.weekday,
+    periods:target.periods.length,live,binned});
   await audit(actor,moving?'routine.period.move':'routine.period.save',String(target._id));
   refreshRoutine();
   return {status:'ok',id:String(target._id),clashes};
