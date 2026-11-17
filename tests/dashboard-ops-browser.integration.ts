@@ -193,10 +193,26 @@ async function run(){
     const metrics=await page.evaluate(()=>({clientWidth:document.documentElement.clientWidth,scrollWidth:document.documentElement.scrollWidth}));
     assert.ok(metrics.scrollWidth<=metrics.clientWidth+1,`${label}: nothing overflows horizontally at ${metrics.clientWidth}px (scrollWidth ${metrics.scrollWidth})`);
   };
-  /** Scrolled to the very bottom: is anything a finger would tap hiding under the fixed bar? */
+  /**
+   * Scrolled to the very bottom: is anything a finger would tap hiding under the fixed bar?
+   *
+   * The site's own `html{scroll-behavior:smooth}` turns a plain `window.scrollTo` into an animation, so a
+   * fixed 300ms wait expires while the page is still travelling — and on a one-CPU runner it is travelling
+   * a long way. Everything below the fold then looks like something under the bar. So the jump asks for
+   * `instant`, and the measurement waits for the offset and the page height to stop moving first:
+   * "scrolled to the very bottom" has to be true before anything can be said about what is under it.
+   */
   const nothingUnderTheBar=async(page:Page,label:string)=>{
-    await page.evaluate(()=>window.scrollTo(0,document.documentElement.scrollHeight));
-    await page.waitForTimeout(300);
+    let last={y:-1,height:-1};
+    for(let attempt=0;attempt<16;attempt++){
+      const now=await page.evaluate(()=>{
+        window.scrollTo({top:document.documentElement.scrollHeight,behavior:'instant'});
+        return {y:Math.round(window.scrollY),height:Math.round(document.documentElement.scrollHeight),view:window.innerHeight};
+      });
+      if(now.y+now.view>=now.height-2&&now.y===last.y&&now.height===last.height)break;
+      last={y:now.y,height:now.height};
+      await page.waitForTimeout(250);
+    }
     const measured=await page.evaluate(()=>{
       const nav=document.querySelector('nav.admin-bottom-nav');
       if(!nav)return null;
@@ -206,26 +222,55 @@ async function run(){
       for(const element of Array.from(document.querySelectorAll<HTMLElement>(targets))){
         const box=element.getBoundingClientRect();
         if(box.height===0||box.width===0)continue;
-        if(box.bottom>top+1&&box.top<view)
-          under.push(`${element.tagName.toLowerCase()}.${String(element.className||'').split(' ')[0]} bottom ${Math.round(box.bottom)}`);
+        if(box.bottom>top+1&&box.top<view){
+          /* Name the offender the way the overflow check does — tag, every class, its data hooks — so a
+             real overlap says which control it is instead of leaving a guess. */
+          let name=element.tagName.toLowerCase();
+          const classes=(element.getAttribute('class')||'').trim();
+          if(classes)name+='.'+classes.split(/\s+/).join('.');
+          let hooks='';
+          for(const attribute of element.attributes)if(attribute.name.startsWith('data-')&&hooks.length<40)hooks+=(hooks?' ':'')+attribute.name;
+          if(hooks)name+=' ['+hooks+']';
+          under.push(`${name} bottom ${Math.round(box.bottom)}`);
+        }
       }
-      return {top:Math.round(top),under:under.slice(0,6)};
+      return {top:Math.round(top),under:under.slice(0,6),y:Math.round(window.scrollY),
+        height:Math.round(document.documentElement.scrollHeight),view};
     });
     assert.ok(measured,`${label}: the phone's bottom bar is on the page`);
-    assert.deepEqual(measured.under,[],`${label}: nothing tappable hides under the bottom bar (its top edge is ${measured.top}px)`);
+    assert.deepEqual(measured.under,[],
+      `${label}: nothing tappable hides under the bottom bar (its top edge is ${measured.top}px; the page is `+
+      `${measured.height}px tall, the window ${measured.view}px, scrolled to ${measured.y}px)`);
   };
-  /** The word above its control, and the control filling the row: the two halves of the 360px fix. */
-  const stacked=async(page:Page,labelSelector:string,controlSelector:string,label:string)=>{
-    const boxes=await page.evaluate(([word,control])=>{
-      const a=document.querySelector(word)?.getBoundingClientRect();
-      const holder=document.querySelector(control)?.parentElement;
-      const b=document.querySelector(control)?.getBoundingClientRect();
-      if(!a||!b||!holder)return null;
-      return {wordBottom:a.bottom,controlTop:b.top,controlWidth:b.width,rowWidth:holder.getBoundingClientRect().width};
-    },[labelSelector,controlSelector]);
-    assert.ok(boxes,`${label}: the word and its control are both on the page`);
+  /**
+   * The word above its control, and the control filling the row: the two halves of the 360px fix.
+   *
+   * The word is measured as its own run of text, not as the label element's box — the label IS the row,
+   * it wraps the control, so its bottom edge sits below the control's top edge by construction and would
+   * call a correct layout an overlap. A Range over the label's first real text node gives the rectangle
+   * the words actually occupy, which is the thing a thumb was landing on before the fix.
+   */
+  const stacked=async(page:Page,controlSelector:string,label:string)=>{
+    const boxes=await page.evaluate(([selector])=>{
+      const control=document.querySelector<HTMLElement>(selector);
+      const holder=control?.parentElement;
+      if(!control||!holder)return null;
+      const b=control.getBoundingClientRect();
+      let wordBottom=0;
+      for(const node of Array.from(holder.childNodes)){
+        if(node.nodeType!==Node.TEXT_NODE)continue;
+        if(!(node.textContent||'').trim())continue;
+        const range=document.createRange();
+        range.selectNodeContents(node);
+        wordBottom=range.getBoundingClientRect().bottom;
+        break;
+      }
+      return {wordBottom,controlTop:b.top,controlWidth:b.width,rowWidth:holder.getBoundingClientRect().width};
+    },[controlSelector]);
+    assert.ok(boxes,`${label}: the control and the row that holds it are both on the page`);
+    assert.ok(boxes.wordBottom>0,`${label}: the row has a word of its own to place above the control`);
     assert.ok(boxes.wordBottom<=boxes.controlTop+1,
-      `${label}: the label sits above its control, not on top of it (label bottom ${Math.round(boxes.wordBottom)}px, control top ${Math.round(boxes.controlTop)}px)`);
+      `${label}: the word sits above its control, not on top of it (the word ends at ${Math.round(boxes.wordBottom)}px, the control starts at ${Math.round(boxes.controlTop)}px)`);
     assert.ok(boxes.controlWidth>=boxes.rowWidth*0.9,
       `${label}: the control fills its row at 360px (${Math.round(boxes.controlWidth)}px of ${Math.round(boxes.rowWidth)}px)`);
   };
@@ -256,8 +301,22 @@ async function run(){
       page.setDefaultTimeout(60000);
       return {context,page,errors};
     }
+    /* Chromium answers a navigation started over a client re-read still in flight with `net::ERR_ABORTED`
+       rather than with a page — the shape the SMS dialog suite already documents. That is not a refusal of
+       the screen, so it is retried once the load settles; anything else fails on the first attempt. */
     const goto=async(page:Page,url:string,waitFor:string)=>{
-      await page.goto(`${origin}${url}`,{waitUntil:'domcontentloaded',timeout:180000});
+      let attempt=0;
+      for(;;){
+        try{
+          await page.goto(`${origin}${url}`,{waitUntil:'domcontentloaded',timeout:180000});
+          break;
+        }catch(navigation){
+          attempt+=1;
+          if(attempt>2||!String(navigation).includes('ERR_ABORTED'))throw navigation;
+          console.error(`DIAG the navigation to ${url} was aborted in flight; retrying (attempt ${attempt+1})`);
+          await page.waitForLoadState('load',{timeout:60000}).catch(()=>{});
+        }
+      }
       await page.locator(waitFor).first().waitFor({state:'visible',timeout:60000});
     };
 
@@ -479,7 +538,7 @@ async function run(){
     // ══ 2. Forms and search line up at 360px ═════════════════════════════════════════════════════
     const phone=await signIn('admin',360,780);
     await goto(phone.page,'/bn/admin/students/collect','label.daily-search-label');
-    await stacked(phone.page,'label.daily-search-label','input.daily-search','the cash desk\'s search');
+    await stacked(phone.page,'input.daily-search','the cash desk\'s search');
     await noOverflow(phone.page,'the cash desk at 360px');
     /* Taken to the end of the screen, because that is where the button a finger needs lives: search for
        a student, pick them from the results, and the month grid and its Save arrive below the fold. */
@@ -493,7 +552,7 @@ async function run(){
     await shot(phone.page,'g2-collect-bn-360');
 
     await goto(phone.page,`/bn/admin/students/dues?class=${groupA._id}`,'form.admin-filter');
-    await stacked(phone.page,'form.admin-filter label','select.admin-select[name="class"]','the dues list\'s class filter');
+    await stacked(phone.page,'select.admin-select[name="class"]','the dues list\'s class filter');
     await noOverflow(phone.page,'the dues list at 360px');
     await nothingUnderTheBar(phone.page,'the dues list at 360px');
     await shot(phone.page,'g2-dues-bn-360');
@@ -502,7 +561,7 @@ async function run(){
        words being shorter than the other's. */
     const phoneEn=await signIn('admin',360,780,'en');
     await goto(phoneEn.page,'/en/admin/students/collect','label.daily-search-label');
-    await stacked(phoneEn.page,'label.daily-search-label','input.daily-search','the English cash desk\'s search');
+    await stacked(phoneEn.page,'input.daily-search','the English cash desk\'s search');
     await noOverflow(phoneEn.page,'the English cash desk at 360px');
     await nothingUnderTheBar(phoneEn.page,'the English cash desk at 360px');
     await shot(phoneEn.page,'g2-collect-en-360');
