@@ -623,7 +623,26 @@ async function run(){
        so restoring it puts the first note back. */
     const sheetHistory=await sheetOf(today);
     const sheetRestore=String((sheetHistory?.history||[])[0]?._id);
+    /* What a stuck sheet can be asked about: the field the operator reads, the drawer's own list, and
+       whether the restore just made is still on the screen to be read. */
+    const sheetState=async():Promise<string>=>{
+      const fields=await page.locator('[data-daily-notes]').count();
+      const held=fields===1
+        ? await page.locator('[data-daily-notes]').inputValue().catch(error=>`unreadable (${String(error)})`)
+        : `${fields} notes fields on the page`;
+      return `the notes field holds "${held}", the drawer lists `
+        +`${await page.locator('[data-history-entry]').count()} entries of which `
+        +`${await page.locator('[data-history-done]').count()} say restored`;
+    };
     await drawer(page).locator(`[data-history-restore="${sheetRestore}"]`).click();
+    /* The drawer keeps the confirmation it earned. A restore re-reads the page and the day's memory comes
+       back one entry longer, so a drawer keyed on that length was thrown away at exactly that moment,
+       taking "restored" with it before anybody could read it. */
+    await until('the drawer to say the sheet went back',async()=>
+      await drawer(page).locator(`[data-history-done="${sheetRestore}"]`).count()===1,
+    90000,async()=>`${await sheetState()}\n  ${await pageState(page)}`);
+    assert.equal((await drawer(page).locator(`[data-history-done="${sheetRestore}"]`).innerText()).trim(),
+      R.history.restored,'and says so in the catalog\u2019s own words');
     await until('the sheet to go back to the first note',async()=>
       (await sheetOf(today))?.notes==='টেস্ট নোট এক');
     assert.equal((await sheetOf(today))?.notes,'টেস্ট নোট এক',
@@ -636,7 +655,8 @@ async function run(){
     /* And the sheet on screen is the sheet that went back: the form posts the operator's own draft, so a
        draft left holding the note they undid is a screen that contradicts the day. */
     await until('the sheet on screen to hold the note that went back',async()=>
-      await page.locator('[data-daily-notes]').inputValue()==='টেস্ট নোট এক',90000,()=>pageState(page));
+      await page.locator('[data-daily-notes]').inputValue()==='টেস্ট নোট এক',
+    90000,async()=>`${await sheetState()}\n  ${await pageState(page)}`);
     assert.equal(await page.locator('[data-daily-notes]').inputValue(),'টেস্ট নোট এক',
       'the notes the operator reads are the restored ones, without anybody asking the page again');
     await drawer(page).locator('[data-drawer-close]').click();

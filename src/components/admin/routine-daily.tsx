@@ -152,10 +152,6 @@ export function RoutineDailySheet(props:RoutineDailyProps){
   /* Slice 2: the sheet's own memory — the last twenty changes to this date, and the tap that puts one
      of them back. */
   const [historyOpen,setHistoryOpen]=useState(false);
-  /* The id of the newest entry when a restore went in. A restore writes inside the drawer, so the draft
-     this form posts — which is the operator's own typing — is suddenly the version they undid; when the
-     refreshed sheet arrives, the draft is re-read from it and the two agree again. */
-  const [restoredFrom,setRestoredFrom]=useState<string|null>(null);
   const [state,action,pending]=useActionState(saveDailySheetAction,idle);
   const [resetState,resetAction]=useActionState(resetDailySheetAction,idle);
 
@@ -165,22 +161,30 @@ export function RoutineDailySheet(props:RoutineDailyProps){
   const now=JSON.stringify({periods:draft,status,holidayReason,notes});
   const dirty=starting!==now;
 
+  /* The day can change underneath this form: a version restored from its own memory, a reset, a write
+     from another screen. The draft is the operator's, so it does not follow the day on its own — and a
+     form still posting the version the operator just undid is a screen contradicting the day it shows.
+     The newest entry in the day's memory is the marker that something was written; the draft is adopted
+     only when it is still the version that was replaced, so nothing anybody is in the middle of typing
+     is thrown away by a write of their own coming back. */
+  const newestEntry=sheet.history[0]?.id||'';
+  const [seen,setSeen]=useState({entry:newestEntry,stored:starting});
+  if(newestEntry!==seen.entry){
+    const stale=now===seen.stored;
+    setSeen({entry:newestEntry,stored:starting});
+    if(stale){
+      setDraft(sheet.periods.map(draftOf));
+      setStatus(sheet.status);
+      setHolidayReason(sheet.holidayReason);
+      setNotes(sheet.notes);
+    }
+  }
+
   useEffect(()=>{
     if(state.status!=='ok')return;
     showRecycleToast({state:{status:'ok'},success:state.stored?state.message||t('daily.saved'):state.message||t('daily.savedCopy'),error:''});
     router.refresh();
   },[state]);
-  useEffect(()=>{
-    if(restoredFrom===null)return;
-    const newest=sheet.history[0]?.id||'';
-    if(!newest||newest===restoredFrom)return;          // the refreshed sheet has not landed yet
-    setDraft(sheet.periods.map(draftOf));
-    setStatus(sheet.status);
-    setHolidayReason(sheet.holidayReason);
-    setNotes(sheet.notes);
-    setEditor(null);
-    setRestoredFrom(null);
-  },[sheet,restoredFrom]);
   useEffect(()=>{
     if(resetState.status!=='ok')return;
     showRecycleToast({state:{status:'ok'},success:resetState.message||t('daily.resetDone'),error:''});
@@ -340,11 +344,15 @@ export function RoutineDailySheet(props:RoutineDailyProps){
     <div key={editor?`${editor.index}:${editor.period.id||'new'}`:'closed'}>
       <DailyPeriodDrawer target={editor} onClose={()=>setEditor(null)} onSave={savePeriod} props={props}/>
     </div>
-    <div key={historyOpen?`history:${sheet.history.length}`:'history:closed'}>
+    {/* Keyed on open and shut only. A restore answers, Next re-reads the page, the day's memory is one
+        entry longer — and a key that counted those entries threw the drawer away at that exact moment,
+        taking the "restored" the operator had just earned with it and never calling the callback that
+        puts the day back on the form. The list is a prop; it does not need a new component to change. */}
+    <div key={historyOpen?'history:open':'history:closed'}>
       <RoutineHistory open={historyOpen} onClose={()=>setHistoryOpen(false)} kind="daily"
         docId={sheet.docId||''} entries={sheet.history} weekdays={props.weekdays} digits={digits}
         canEdit={props.canEdit}
-        onDone={()=>{setRestoredFrom(sheet.history[0]?.id||'');router.refresh()}}/>
+        onDone={()=>router.refresh()}/>
     </div>
   </>;
 }
