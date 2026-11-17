@@ -39,7 +39,7 @@ assert.ok(daily.indexOf('overview')<daily.indexOf('centerDailyCash'),'the Overvi
 
 // ── 2. One item, one place, one real destination ───────────────────────────────────────────────────
 assert.equal(new Set(keys).size,keys.length,'no screen appears in the menu twice');
-assert.equal(keys.length,49,`the menu still carries all 49 screens (found ${keys.length})`);
+assert.equal(keys.length,51,`the menu still carries all 51 screens (found ${keys.length})`);
 for(const {href,key} of items){
   const path=href.split('?')[0];
   const file=join('src','app','[locale]',...path.split('/').filter(Boolean),'page.tsx');
@@ -52,6 +52,11 @@ for(const key of ['leads','followUps','leadsFunnel','importLeads'])
   assert.equal(groupOf(key),'daily',`${key} sits with the visitor list — a collapsed group hides its items`);
 for(const key of ['academics','centerExams','modelTests','practice'])
   assert.equal(groupOf(key),'students',`${key} folds into the exams section of one group`);
+/* R9: the timetable is a students screen, and the week and its day are never separated. */
+for(const key of ['routineMaster','routineDaily'])
+  assert.equal(groupOf(key),'students',`${key} sits with the batches and slots it is written for`);
+assert.equal(groupOf('routineMaster'),groupOf('routineDaily'),
+  'the week and the day that runs it stay in one group');
 /* A role with a narrow menu must find all of it in the group that opens on arrival. */
 assert.equal(groupOf('blog'),groupOf('sheets'),'a content editor\'s two screens share one group');
 assert.equal(groupOf('centerExams'),groupOf('practice'),'an exam manager\'s screens share one group');

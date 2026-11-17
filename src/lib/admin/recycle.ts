@@ -32,6 +32,8 @@ import {User} from '@/models/User';
 import {Exam,Result,Student as AcademicStudent} from '@/models/Academic';
 import {ModelTest,TestAttempt} from '@/models/ModelTest';
 import {TeacherCandidate} from '@/models/TeacherCandidate';
+import {DailyRoutine,MasterRoutine,TeachingAssignment} from '@/models/Routine';
+import {weekdayName} from '@/lib/routine/time';
 import {managedStaffRoles} from '@/schemas/admin-staff';
 import {binFilter,liveFilter,purgeAtFor,RECYCLE_RETENTION_DAYS} from '@/models/recycle';
 import {audit} from '@/lib/admin/helpers';
@@ -177,6 +179,24 @@ export const recycleRegistry:RecycleKindDef[]=[
      ...(d.cvPublicId?[{publicId:String(d.cvPublicId),resource:'raw' as const}]:[]),
      ...(d.photoPublicId?[{publicId:String(d.photoPublicId),resource:'image' as const}]:[]),
    ]},
+  /* R9 · the class routine. None of these three has a public route — a timetable is the centre's own
+     paper, not a page on the website — and none of them is referenced by anything the bin counts: a
+     working sheet holds a COPY of the week's periods rather than a pointer to them, so binning a day of
+     the master routine leaves every sheet that was written from it intact and readable. That is also
+     why a delete here is never blocked, which is what the owner's "nothing is locked" asks for.
+
+     The name is read off the labels the engine wrote when the record was saved (`classLabel`,
+     `teacherLabel`), because `nameOf` is synchronous and the bin page has no language to ask for: a
+     deleted record says what it was called, in the words it was written in. */
+  {kind:'masterRoutine',labelKey:'kindNames.masterRoutine',model:()=>MasterRoutine,
+   nameOf:d=>[localized(d,'classLabel'),d.shift,
+     Number.isFinite(Number(d.weekday))?weekdayName(Number(d.weekday),'bn'):''].filter(Boolean).join(' · '),
+   archiveSet:{active:false}},
+  {kind:'dailyRoutine',labelKey:'kindNames.dailyRoutine',model:()=>DailyRoutine,
+   nameOf:d=>[localized(d,'classLabel'),d.date,d.shift].filter(Boolean).join(' · ')},
+  {kind:'teachingAssignment',labelKey:'kindNames.teachingAssignment',model:()=>TeachingAssignment,
+   nameOf:d=>[d.teacherLabel,localized(d,'subject'),localized(d,'classLabel')].filter(Boolean).join(' · '),
+   archiveSet:{active:false}},
 ];
 
 /**

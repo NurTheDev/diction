@@ -1159,3 +1159,93 @@ html:lang(bn) .public-motion-root:not(.private-motion-disabled) :is(h1,h2,h3,h4)
 .admin-tier-body>.checklist{margin-top:0;border:0;border-top:1px solid #eef0f7;border-radius:0;background:transparent;box-shadow:none}
 .admin-tier-body>.checklist>details>summary{padding:12px 0 8px}
 .admin-tier-body>.checklist .checklist-body{padding:0 0 4px}
+
+/* ── R9 · the class routine: the week, the day, and the drawer that edits either ──────────────────
+   Two screens share one visual grammar. The week is seven day cards laid out in a grid that collapses
+   to a single column on a phone, and each card lists its periods as rows — time on the left, subject and
+   teacher next, and the buttons that change them on the right, always visible. That last part is the
+   point of the screen: an Edit button that only appears inside a collapsed menu is an Edit button nobody
+   finds, so the row carries a real button and keeps the rarely-used things (delete, restore, the day's own
+   shift) in the ⋯ menu beside it.
+   The drawer is a `<dialog>` that slides in from the right on a wide screen and becomes a full-screen
+   touch sheet under 761px, with tall selects and 17px type under 361px, because the operator writing a
+   substitution is holding a phone. Times are two selects (hour, minute) that fold into one hidden
+   `HH:MM` field — never a native time input, which on a Bangladeshi phone reads as a broken mm/dd box.
+   A clash is amber and a delete is red, and neither is allowed to look like a refusal: the warning banner
+   keeps its "Save anyway" beside the ordinary Save, in the same row, the same size. */
+.routine-week{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;align-items:start}
+.routine-day{border:1px solid #d9deee;border-radius:10px;background:#fff;min-width:0;display:grid;gap:10px;padding:14px 16px}
+.routine-day-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap}
+.routine-day-title{margin:0;font-size:18px;color:#1a1d3a}
+.routine-day-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.routine-day-off{background:#f1f3fb;color:#4a5072}
+.routine-periods{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.routine-period{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 10px;padding:10px 12px;border:1px solid #e6e9f4;border-left:4px solid #2e3192;border-radius:9px;background:#fafbfe;min-width:0}
+.routine-period-when{font-weight:700;color:#1a1d3a;white-space:nowrap;font-size:15px}
+.routine-period-what{display:grid;gap:2px;min-width:0}
+.routine-period-what strong{color:#1a1d3a;font-size:16px;overflow-wrap:anywhere}
+.routine-period-what span{font-size:14px;color:#4a5072;overflow-wrap:anywhere}
+.routine-period-actions{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:flex-end}
+.routine-add{justify-self:start}
+.routine-badges{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+.routine-badge-past{background:#eef0f9;color:#4a5072}
+.routine-badge-sent{background:#fff3dd;color:#865000}
+.routine-badge-holiday{background:#e5f6eb;color:#006b34;display:block;padding:10px 14px}
+.routine-badge-adjusted{background:#fff3dd;color:#865000;display:block;padding:10px 14px}
+.routine-badge-source{background:#e6f6fc;color:#0079a3}
+.routine-status{display:flex;gap:14px;flex-wrap:wrap;border:1px solid #d9deee;border-radius:9px;padding:10px 12px}
+.routine-status legend{font-size:15px;font-weight:700;color:#1a1d3a;padding:0 6px}
+.routine-status .admin-check{display:flex;align-items:center;gap:8px;font-weight:600;color:#1a1d3a;min-height:44px}
+.routine-status input{width:22px;height:22px;accent-color:#2e3192}
+.routine-sheet-periods{border-top:1px solid #eef0f7;padding-top:12px}
+.routine-sheet-foot{display:flex;gap:14px;align-items:center;flex-wrap:wrap;border-top:1px solid #eef0f7;margin-top:14px;padding-top:12px}
+.routine-reset{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.routine-quick-days{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.routine-form{max-width:none}
+.routine-form-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.routine-save-anyway{background:#dfa100;color:#1a1d3a;border:2px solid #b57e00;min-height:44px}
+.routine-save-anyway:hover{background:#eab308}
+.routine-time-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.routine-time{display:grid;gap:4px}
+.routine-time-parts{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.routine-time-parts select{min-height:44px;min-width:88px;flex:1 1 88px}
+.routine-time-parts span{font-size:14px;color:#4a5072}
+.routine-warn{border:1px solid #f0d488;border-left:5px solid #dfa100;background:#fffbf2;border-radius:9px;padding:12px 14px;display:grid;gap:6px}
+.routine-warn strong{color:#7a4d00;font-size:16px}
+.routine-warn ul{margin:0;padding-left:20px;display:grid;gap:4px}
+.routine-warn li{font-size:15px;color:#7a4d00}
+.routine-danger{border:1px solid #f3c9cc;border-left:5px solid #b51222;background:#fdf7f7;border-radius:9px;padding:12px 14px;display:grid;gap:8px}
+.routine-danger strong{color:#8f0f1c}
+.routine-drawer{position:fixed;margin:0 0 0 auto;inset:0 0 0 auto;max-width:min(520px,100vw);width:100%;height:100dvh;max-height:none;border:0;border-left:1px solid #d9deee;padding:0;background:#fff;color:#1a1d3a;overflow:auto}
+.routine-drawer::backdrop{background:#10132980}
+.routine-drawer-head{position:sticky;top:0;z-index:2;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px 20px;background:#fff;border-bottom:1px solid #eef0f7}
+.routine-drawer-head h2{margin:0;font-size:19px;color:#1a1d3a}
+.routine-drawer-body{padding:20px}
+.routine-drawer-body .admin-edit{max-width:none}
+.routine-more .admin-more-body{position:static;box-shadow:none;margin-top:6px;min-width:180px}
+.routine-assignments .admin-table td{vertical-align:top}
+@media(max-width:760px){
+  .routine-week{grid-template-columns:minmax(0,1fr)}
+  .routine-day{padding:12px 14px}
+  .routine-period{grid-template-columns:minmax(0,1fr)}
+  .routine-period-when{font-size:16px}
+  .routine-period-actions{justify-content:flex-start}
+  .routine-drawer{width:100%;max-width:100%;border-left:0}
+  .routine-drawer-body{padding:16px}
+  .routine-time-row{grid-template-columns:minmax(0,1fr)}
+  .routine-form-actions .button,.routine-form-actions .admin-mini-button{flex:1 1 calc(50% - 5px);min-height:48px}
+}
+@media(max-width:360px){
+  /* The full-screen touch sheet the brief asks for: everything is thumb-sized, and the time pickers take
+     the whole line so an hour and a minute are never squeezed side by side on a small screen. */
+  .routine-drawer{padding:0}
+  .routine-drawer-body{padding:14px}
+  .routine-drawer-body :is(input,select,textarea){min-height:48px;font-size:17px}
+  .routine-drawer-body textarea{min-height:96px}
+  .routine-time-parts{flex-direction:column;align-items:stretch}
+  .routine-time-parts select{flex:1 1 auto;width:100%}
+  .routine-form-actions{flex-direction:column;align-items:stretch}
+  .routine-form-actions .button,.routine-form-actions .admin-mini-button{flex:1 1 auto;width:100%}
+  .routine-period{padding:12px}
+  .routine-status{flex-direction:column;align-items:stretch}
+}

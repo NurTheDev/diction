@@ -9,7 +9,7 @@ import {z} from 'zod';
  * file, and Next only allows async functions to be exported from one — exporting this schema from
  * there broke every server action at runtime (CI runs 43274692208, twice).
  */
-export const recycleKinds=['editorial','course','material','media','portalNotice','faq','facility','achievementRecord','practiceTest','publicSheet','classGroup','centerExam','slot','trialBooking','admission','contactMessage','heroBanner','teacher','portalAccount','exam','modelTest','lead','teacherCandidate'] as const;
+export const recycleKinds=['editorial','course','material','media','portalNotice','faq','facility','achievementRecord','practiceTest','publicSheet','classGroup','centerExam','slot','trialBooking','admission','contactMessage','heroBanner','teacher','portalAccount','exam','modelTest','lead','teacherCandidate','masterRoutine','dailyRoutine','teachingAssignment'] as const;
 export type RecycleKind=typeof recycleKinds[number];
 
 /**
@@ -19,11 +19,16 @@ export type RecycleKind=typeof recycleKinds[number];
  * (R4) has no published state to fall back on either: it is a private record, so it joins the bin
  * without joining this list, and the statuses it does carry are the operator's own reading of it.
  */
-export const archivableKinds=['editorial','course','material','portalNotice','faq','facility','achievementRecord','practiceTest','publicSheet','classGroup','slot','heroBanner','teacher','portalAccount','exam','modelTest'] as const;
+export const archivableKinds=['editorial','course','material','portalNotice','faq','facility','achievementRecord','practiceTest','publicSheet','classGroup','slot','heroBanner','teacher','portalAccount','exam','modelTest','masterRoutine','teachingAssignment'] as const;
 
 export function canArchiveKind(kind:RecycleKind):boolean{
   return (archivableKinds as readonly string[]).includes(kind);
 }
+
+/* R9 adds the routine's three types. Two of them archive — a day of the week switched off and an
+   assignment marked inactive are both a record that stops being offered without being destroyed. A
+   date's working sheet has no such state: it is either the day's own paper or it is nothing, so it
+   joins the bin without joining this list, the way a media file and a visitor lead do. */
 
 /** What the server actions accept as a kind — derived, never hand-copied (see R1 second wave). */
 export const kindSchema=z.enum(recycleKinds);

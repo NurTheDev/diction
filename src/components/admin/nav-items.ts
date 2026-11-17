@@ -39,6 +39,9 @@ export const navGroups=[
  {key:'students',items:[['/admin/students','centerStudents',UsersRound],['/admin/students/dues','centerDues',Wallet],
   ['/admin/students/fees-grid','centerSheetView',FileText],
   ['/admin/courses','courses',BookOpen],['/admin/batches','batches',CalendarRange],['/admin/slots','slots',CalendarDays],
+  /* R9: the week the centre teaches and the day it actually runs. Both sit beside the batches and slots
+     they are written for, and both in ONE group — a collapsed group must never hide half a timetable. */
+  ['/admin/routine/master','routineMaster',CalendarClock],['/admin/routine/daily','routineDaily',ClipboardCheck],
   ['/admin/materials','materials',FileText],['/admin/faculty','faculty',GraduationCap],
   /* The exam screens fold into one `details` inside this group (the sidebar does that by item key), so
      they read as one subject rather than as four neighbours of the fee grid. */

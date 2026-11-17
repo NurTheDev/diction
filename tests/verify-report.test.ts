@@ -145,7 +145,8 @@ async function run(){
   assert.equal(latestMilestone(),milestones()[milestones().length-1]);
   assert.equal(select('r0').length,select('R0').length,'milestone filter is case insensitive');
   assert.ok(select('all').length>=select('R0').length);
-  assert.deepEqual(select('R9'),[],'an unknown milestone reports nothing rather than everything');
+  /* An unknown milestone, and not merely the newest one: R9 was this test's example until R9 was built. */
+  assert.deepEqual(select('R99'),[],'an unknown milestone reports nothing rather than everything');
 
   console.log('Verify harness: report never claims PASS without evidence, one line per requirement, reasons escaped, ZIP round-trips through yauzl with intact binary content, and every registered requirement points at a real proof.');
 }
