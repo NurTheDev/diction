@@ -469,9 +469,11 @@ async function run(){
     assert.equal(await page.locator('form.admin-filter select[name=class]').first().inputValue(),classB,
       'and the picker arrives on that class');
     /* The screen has two tables — the centre's summary and one class's list — so the wait names the
-       panel it means rather than the first table on the page. */
+       panel it means rather than the first table on the page. The match is exact because the summary's
+       own heading is a sentence that ends in the same word: a substring would pick up both panels and
+       count the summary's rows as this class's. */
     const classPanel=page.locator('section.admin-panel')
-      .filter({has:page.getByRole('heading',{name:bn.dues.list.overdueHeading})});
+      .filter({has:page.getByRole('heading',{name:bn.dues.list.overdueHeading,exact:true})});
     await classPanel.locator('table.admin-table tbody tr').first().waitFor({state:'visible',timeout:90000});
     assert.equal(await classPanel.locator('table.admin-table tbody tr').count(),1,
       'class B\'s own list is the one student it is left with');
@@ -521,6 +523,10 @@ async function run(){
       'and the cash that was taken');
     assert.ok(printed.includes(bn.daily.totalWord)&&printed.includes(bnDigits(FEE_B)),
       'and still shows the fee the month was settled at');
+    /* The drawer is re-read after the receipt paints, so it is waited for rather than read in the same
+       breath as the success note. */
+    await until('the day\'s drawer to count the cash just taken',async()=>
+      (await page.locator('.daily-today').innerText()).includes(bnDigits(FEE_B-DISCOUNT)));
     assert.ok((await page.locator('.daily-today').innerText()).includes(bnDigits(FEE_B-DISCOUNT)),
       'the day\'s drawer counts the cash, not the fee');
     const payment=await CenterPayment.findOne({student:students[PAYER]._id,type:'monthly',discount:DISCOUNT})
