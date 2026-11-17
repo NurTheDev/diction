@@ -1,16 +1,16 @@
-AssertionError [ERR_ASSERTION]: the Bangla dashboard at 360px: nothing tappable hides under the bottom bar (its top edge is 719px)
+AssertionError [ERR_ASSERTION]: the Bangla dashboard at 360px: nothing tappable hides under the bottom bar (its top edge is 719px; the page is 3692px tall, the window 780px, scrolled to 2912px)
 + actual - expected
 
 + [
-+   'input. bottom 729',
++   'input bottom 729',
 +   'a.admin-mini-button bottom 741',
-+   'input. bottom 781',
++   'input bottom 781',
 +   'a.admin-mini-button bottom 793'
 + ]
 - []
 
-    at nothingUnderTheBar (/home/runner/work/diction/diction/tests/dashboard-ops-browser.integration.ts:215:12)
-    at async run (/home/runner/work/diction/diction/tests/dashboard-ops-browser.integration.ts:397:5) {
+    at nothingUnderTheBar (/home/runner/work/diction/diction/tests/dashboard-ops-browser.integration.ts:241:12)
+    at async run (/home/runner/work/diction/diction/tests/dashboard-ops-browser.integration.ts:456:5) {
   generatedMessage: false,
   code: 'ERR_ASSERTION',
   actual: [Array],
