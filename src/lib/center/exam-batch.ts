@@ -24,7 +24,7 @@
 import mongoose from 'mongoose';import {z} from 'zod';import {CenterExam,CenterExamResult,CenterStudent,CenterClassGroup,CenterActivityLog} from '@/models/CenterRecords';import {acquireCenterLocks,studentLock} from './import-locks';import {calculateExam,validateBands} from './exam-marks';import {pointFor} from '@/lib/exams/grading';
 import {positionOf} from '@/lib/exams/grading';
 const id=z.string().regex(/^[a-f0-9]{24}$/i),uuid=z.string().uuid(),validDate=z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(x=>{const d=new Date(x+'T00:00:00Z');return !isNaN(+d)&&d.toISOString().slice(0,10)===x});
-const subjectInput=z.object({name:z.string().trim().min(1).max(100),full:z.number().int().min(1).max(10000),pass:z.number().int().min(0).max(10000)});
+const subjectInput=z.object({name:z.string().trim().min(1).max(100),full:z.number().int().min(1).max(10000),pass:z.number().int().min(0).max(10000),parts:z.array(z.object({name:z.string().trim().min(1).max(100),marks:z.number().int().min(1).max(10000)})).max(8).default([])});
 const bandInput=z.object({min:z.number().int().min(0).max(100),label:z.string().trim().min(1).max(20),point:z.number().min(0).max(5).default(0)});
 const examShape={classIds:z.array(id).min(1).max(12),name:z.string().trim().min(1).max(120),date:validDate,type:z.enum(['monthly','model_test','term','class_test','other']),scaleName:z.string().trim().max(80).default(''),subjects:z.array(subjectInput).min(1).max(8),bands:z.array(bandInput).min(1).max(12)};
 const examShapeSchema=z.object(examShape),examInput=examShapeSchema.extend({requestId:uuid});
@@ -42,9 +42,13 @@ const bandsWithPoints=(exam:Ex)=>{const bands=[...exam.gradeBands].sort((a,b)=>b
    transaction as the write, rather than in the caller — a check made outside the transaction is a check
    against a database that may have moved by the time the mark lands. */
 const allowed=z.array(z.string()).optional();
-const markInput=z.object({examId:id,studentId:id,version:z.number().int().min(-1),allowedClasses:allowed,marks:z.array(z.object({subject:id,obtained:z.number().int().min(0).nullable(),absent:z.boolean()})).min(1).max(8)});
-const batchInput=z.object({examId:id,allowedClasses:allowed,rows:z.array(z.object({studentId:id,version:z.number().int().min(-1),marks:z.array(z.object({subject:id,obtained:z.number().int().min(0).nullable(),absent:z.boolean()})).min(1).max(8)})).min(1).max(500)});
-type Ex={_id:mongoose.Types.ObjectId;requestId?:string;createdBy?:mongoose.Types.ObjectId;name:{bn:string};type:string;date:string;scaleName?:string;classGroups:mongoose.Types.ObjectId[];gradeBands:{min:number;label:string;point?:number}[];subjects:{_id:mongoose.Types.ObjectId;name:{bn:string};fullMarks:number;passMarks:number}[];status:string};
+/* Group 3: a mark may carry its component scores. They are context the grid typed, checked here against
+   the subject's own parts, and stored so a result can show how it was built — never graded twice. */
+const partShape=z.object({name:z.string().trim().min(1).max(200),obtained:z.number().int().min(0).max(10000).nullable()});
+const markShape=z.object({subject:id,obtained:z.number().int().min(0).nullable(),absent:z.boolean(),parts:z.array(partShape).max(12).optional()});
+const markInput=z.object({examId:id,studentId:id,version:z.number().int().min(-1),allowedClasses:allowed,marks:z.array(markShape).min(1).max(8)});
+const batchInput=z.object({examId:id,allowedClasses:allowed,rows:z.array(z.object({studentId:id,version:z.number().int().min(-1),marks:z.array(markShape).min(1).max(8)})).min(1).max(500)});
+type Ex={_id:mongoose.Types.ObjectId;requestId?:string;createdBy?:mongoose.Types.ObjectId;name:{bn:string};type:string;date:string;scaleName?:string;classGroups:mongoose.Types.ObjectId[];gradeBands:{min:number;label:string;point?:number}[];subjects:{_id:mongoose.Types.ObjectId;name:{bn:string};fullMarks:number;passMarks:number;parts?:{name:{bn:string};marks:number}[]}[];status:string};
 type Row={_id:mongoose.Types.ObjectId;student:mongoose.Types.ObjectId;classGroup?:mongoose.Types.ObjectId;revision?:number;marks?:{subject:string;obtained:number|null;absent:boolean}[];total?:number;grade?:string;percentage?:number;position?:number};
 /** An exam may be asked for one class at a time (the old single-class form) or several at once (R5). */
 export function classIdsOf(input:unknown):string[]{const raw=(input as {classIds?:unknown;classId?:unknown})||{};const list=Array.isArray(raw.classIds)?raw.classIds:raw.classId?[raw.classId]:[];return [...new Set(list.map(x=>String(x).toLowerCase()))]}
@@ -63,8 +67,25 @@ function reachable(exam:Ex,allowedClasses?:string[]){
   return classes.filter(group=>slice.has(group));
 }
 /** One student's marks, recalculated, as the row stores them. Shared by the single save and the batch. */
-function applyMarks(exam:Ex,studentId:string,version:number,marks:{subject:string;obtained:number|null;absent:boolean}[],actor:string,classGroup:string){
-  const normalized=marks.map(m=>({...m,subject:m.subject.toLowerCase()})),bands=bandsWithPoints(exam);
+function applyMarks(exam:Ex,studentId:string,version:number,marks:{subject:string;obtained:number|null;absent:boolean;parts?:{name:string;obtained:number|null}[]}[],actor:string,classGroup:string){
+  /* A component score may not exceed the component's own ceiling, and the components may not add up to
+     more than the subject's total: the grid refuses these as they are typed, and the engine refuses them
+     again here, because a stored result is read by people who never saw the grid. */
+  for(const mark of marks){
+    if(!mark.parts?.length)continue;
+    const subject=exam.subjects.find(s=>String(s._id).toLowerCase()===mark.subject.toLowerCase());
+    const defs=subject?.parts||[];
+    if(mark.parts.length>defs.length)throw Error('INVALID_MARKS');
+    let sum=0;
+    for(let i=0;i<mark.parts.length;i+=1){
+      const got=mark.parts[i].obtained;
+      if(got==null)continue;
+      if(got>defs[i].marks)throw Error('INVALID_MARKS');
+      sum+=got;
+    }
+    if(mark.obtained!=null&&mark.parts.every(part=>part.obtained!=null)&&sum!==mark.obtained)throw Error('INVALID_MARKS');
+  }
+  const normalized=marks.map(m=>({...m,parts:m.parts||[],subject:m.subject.toLowerCase()})),bands=bandsWithPoints(exam);
   const calculated=calculateExam(exam.subjects.map(s=>({id:String(s._id),full:s.fullMarks,pass:s.passMarks})),bands,normalized);
   return {value:{classGroup,marks:normalized,total:calculated.total,fullTotal:calculated.fullTotal,percentage:calculated.percentage,grade:calculated.grade,point:pointFor(bands,calculated.percentage,calculated.grade),recordedBy:actor},calculated,bands,normalized};
 }
@@ -78,12 +99,17 @@ export async function createCenterExam(input:unknown,actor:string){
       await acquireCenterLocks([`exam-create:${req}`],session);
       const found=await CenterExam.findOne({requestId:req}).session(session).lean<Ex>();
       if(found){
-        if(String(found.createdBy)!==actor.toLowerCase()||found.name.bn!==p.name||found.type!==p.type||found.date!==p.date||JSON.stringify(sortedIds(found.classGroups))!==JSON.stringify(classIds)||JSON.stringify(found.subjects.map(s=>({name:s.name.bn,full:s.fullMarks,pass:s.passMarks})))!==JSON.stringify(p.subjects)||JSON.stringify(validateBands(found.gradeBands))!==JSON.stringify(validateBands(p.bands.map(b=>({min:b.min,label:b.label})))))throw Error('REQUEST_CONFLICT');
+        /* A replay is the same request asking again, so it is answered with the exam already written —
+           but only if every part of the shape agrees. The comparison carries the subject's components
+           because the input always has them (an empty list for a subject with a single total): a replay
+           that read the stored subject without its parts would answer REQUEST_CONFLICT to the centre's
+           own double-click, which is the one thing a request id exists to prevent. */
+        if(String(found.createdBy)!==actor.toLowerCase()||found.name.bn!==p.name||found.type!==p.type||found.date!==p.date||JSON.stringify(sortedIds(found.classGroups))!==JSON.stringify(classIds)||JSON.stringify(found.subjects.map(s=>({name:s.name.bn,full:s.fullMarks,pass:s.passMarks,parts:(s.parts||[]).map(part=>({name:part.name.bn,marks:part.marks}))})))!==JSON.stringify(p.subjects)||JSON.stringify(validateBands(found.gradeBands))!==JSON.stringify(validateBands(p.bands.map(b=>({min:b.min,label:b.label})))))throw Error('REQUEST_CONFLICT');
         resultId=String(found._id);return;
       }
       const groups=await CenterClassGroup.find({_id:{$in:classIds},active:true}).session(session).select('_id').lean<{_id:mongoose.Types.ObjectId}[]>();
       if(groups.length!==classIds.length)throw Error('CLASS_UNAVAILABLE');
-      const [created]=await CenterExam.create([{requestId:req,createdBy:actor,name:{bn:p.name,en:''},date:p.date,type:p.type,scaleName:p.scaleName,classGroups:groups.map(g=>g._id),subjects:p.subjects.map(s=>({name:{bn:s.name,en:''},fullMarks:s.full,passMarks:s.pass})),gradeBands:validateBands(p.bands.map(b=>({min:b.min,label:b.label}))).map((b,i)=>({...b,point:p.bands.find(x=>x.min===b.min)?.point??0})),status:'draft'}],{session});
+      const [created]=await CenterExam.create([{requestId:req,createdBy:actor,name:{bn:p.name,en:''},date:p.date,type:p.type,scaleName:p.scaleName,classGroups:groups.map(g=>g._id),subjects:p.subjects.map(s=>({name:{bn:s.name,en:''},fullMarks:s.full,passMarks:s.pass,parts:(s.parts||[]).map(part=>({name:{bn:part.name,en:''},marks:part.marks}))})),gradeBands:validateBands(p.bands.map(b=>({min:b.min,label:b.label}))).map((b,i)=>({...b,point:p.bands.find(x=>x.min===b.min)?.point??0})),status:'draft'}],{session});
       resultId=String(created._id);
       await CenterActivityLog.create([{actor,action:'exam.create',target:created._id,after:{classGroups:classIds,name:p.name,date:p.date,type:p.type,subjects:p.subjects.length}}],{session});
     });
@@ -127,7 +153,7 @@ export async function updateCenterExam(input:unknown,actor:string){
       const bandsChanged=JSON.stringify(bands)!==JSON.stringify(before.bands.map(b=>({min:b.min,label:b.label,point:b.point})));
       // Subjects are written only while no result exists: once a mark is stored it points at a subject
       // id, and a subject that moved would leave that mark describing something else.
-      await CenterExam.updateOne({_id:exam._id,status:'draft'},{$set:{name:{bn:p.name,en:''},date:p.date,type:p.type,scaleName:p.scaleName,classGroups:groups.map(g=>g._id),gradeBands:bands,...(results.length?{}:{subjects:p.subjects.map(s=>({name:{bn:s.name,en:''},fullMarks:s.full,passMarks:s.pass}))})}},{session,runValidators:true});
+      await CenterExam.updateOne({_id:exam._id,status:'draft'},{$set:{name:{bn:p.name,en:''},date:p.date,type:p.type,scaleName:p.scaleName,classGroups:groups.map(g=>g._id),gradeBands:bands,...(results.length?{}:{subjects:p.subjects.map(s=>({name:{bn:s.name,en:''},fullMarks:s.full,passMarks:s.pass,parts:(s.parts||[]).map(part=>({name:{bn:part.name,en:''},marks:part.marks}))}))})}},{session,runValidators:true});
       // A boundary that moved moves every grade already stored: recompute inside the same transaction so
       // the exam never holds two different ideas of what 79% is worth.
       let recomputed=0;

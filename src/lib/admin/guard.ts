@@ -1,3 +1,5 @@
+import {redirect} from 'next/navigation';
+import {getLocale} from 'next-intl/server';
 import {getCurrentUser} from '@/lib/current-user';
 import {CenterSettings} from '@/models/CenterRecords';
 
@@ -6,6 +8,23 @@ async function roleDisabled(role:string):Promise<boolean>{try{const settings=awa
 /** Always check the live role and session version rather than trusting the JWT alone. */
 export async function getAdmin(){const user=await getCurrentUser();if(!user||(user.role!=='admin'&&user.role!=='superadmin'))return null;return (await roleDisabled(user.role))?null:user;}
 export async function requireAdmin(){const admin=await getAdmin();if(!admin)throw new Error('UNAUTHORIZED');return admin;}
+
+/**
+ * The same gate, for a SCREEN rather than an action (group 1 · Students).
+ *
+ * The middleware lets every managed role into `/admin` and leaves the refusal to the page, so a staff
+ * account that reaches an administrator's screen has to be sent somewhere: `requireAdmin` throws, and a
+ * throw renders the admin error boundary — "data could not be loaded, check the database connection and
+ * permissions" — which blames the database for a role. A page can redirect; an action cannot, which is
+ * why both exist. The locale is read the way the actions read it, with Bangla as the fallback.
+ */
+export async function requireAdminPage(){
+  const admin=await getAdmin();
+  if(admin)return admin;
+  let locale='bn';
+  try{locale=await getLocale()}catch{/* outside a request the fallback is the default locale */}
+  redirect(`/${locale}/admin`);
+}
 
 /** Restricted roles are distinct from full admins, so legacy guards remain fail-closed. */
 export type StaffPermission='content'|'exams';

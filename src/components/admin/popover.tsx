@@ -13,18 +13,13 @@
 import {useEffect,useRef,useState,type ReactNode} from 'react';
 import {dhakaDay} from '@/lib/admin/today';
 import {formatDigits,formatNumber,type Digits} from '@/lib/admin/format';
-
-type Language='bn'|'en';
-const intl=(language:Language)=>language==='bn'?'bn-BD':'en-GB';
-
+import {dateDigits,dayHeaders,monthWord,shortDate,type Language} from './list-dates';
 /**
  * The digits a date is read in. A Bangla screen uses the digits the operator chose; an English screen
  * uses English digits, because that is what the rest of an English date already does — `shortDate`
  * writes "15 Nov 2026" there whatever the account's digit setting says. Without this the calendar head
  * announced "November 2026" in Bangla digits over cells that read back in English ones.
  */
-const dateDigits=(digits:Digits,language:Language):Digits=>language==='en'?'en':digits;
-
 export function useOutsideClose(onClose:()=>void){
   const ref=useRef<HTMLDivElement>(null);
   useEffect(()=>{
@@ -91,30 +86,6 @@ export function Popover({label,className='',bodyClass='',children,title}:{label:
   </div>;
 }
 
-/** The month's own name, in the account's language, with the year in the operator's digits. */
-export function monthWord(year:number,month:number,digits:Digits,language:Language):string{
-  const at=new Date(Date.UTC(year,month-1,1));
-  const name=new Intl.DateTimeFormat(intl(language),{month:'long',timeZone:'UTC'}).format(at);
-  return `${name} ${formatNumber(year,dateDigits(digits,language))}`;
-}
-
-/** Seven weekday headers starting on Sunday, from `Intl` — the same source the month name comes from. */
-export function dayHeaders(language:Language):string[]{
-  const format=new Intl.DateTimeFormat(intl(language),{weekday:'short',timeZone:'UTC'});
-  return Array.from({length:7},(_,index)=>format.format(new Date(Date.UTC(2024,0,7+index))));
-}
-
-/** dd/mm/yyyy in the operator's digits, or "15 Nov 2026" on an English screen. Never mm/dd/yyyy. */
-export function shortDate(iso:string,digits:Digits,language:Language):string{
-  const [year,month,day]=String(iso).split('-').map(Number);
-  if(!year||!month||!day)return String(iso);
-  if(language==='en'){
-    const name=new Intl.DateTimeFormat('en-GB',{month:'short',timeZone:'UTC'}).format(new Date(Date.UTC(year,month-1,day)));
-    return `${formatNumber(day,'en')} ${name} ${formatNumber(year,'en')}`;
-  }
-  return formatDigits(`${String(day).padStart(2,'0')}/${String(month).padStart(2,'0')}/${year}`,digits);
-}
-
 /** The calendar popover: month grid, today ringed, `‹ ›` for the months, one tap picks a day. */
 export function DatePopover({onPick,digits,language,label}:{onPick:(iso:string)=>void;digits:Digits;language:Language;label:ReactNode}){
   /* Dhaka's own day, not the machine's: the operator's midnight is six hours ahead of UTC, so a calendar
@@ -148,4 +119,23 @@ export function DatePopover({onPick,digits,language,label}:{onPick:(iso:string)=
       </div>
     </>}
   </Popover>;
+}
+
+/**
+ * One day field: the value travels in a hidden input under the name the query or the action already
+ * reads, and what the operator sees is that day in their own format, with Clear beside it rather than a
+ * hunt inside a browser widget. `MonthField` is the same shape for a YYYY-MM value.
+ */
+export function DayField({name,value,placeholder,clearLabel,digits,language,onChange}:{
+  name:string;value:string;placeholder:string;clearLabel:string;digits:Digits;language:Language;
+  onChange?:(value:string)=>void;
+}){
+  const [day,setDay]=useState(value);
+  const pick=(next:string):void=>{setDay(next);onChange?.(next)};
+  return <span className="pop-day-field" data-day-field={name}>
+    <input type="hidden" name={name} value={day}/>
+    <span className="admin-input pop-day-view" aria-live="polite">{day?shortDate(day,digits,language):placeholder}</span>
+    <DatePopover digits={digits} language={language} label={<span className="admin-mini-button" data-day-pick={name}>{placeholder}</span>} onPick={pick}/>
+    {day&&<button type="button" className="admin-mini-button" data-day-clear={name} onClick={()=>pick('')}>{clearLabel}</button>}
+  </span>;
 }

@@ -129,11 +129,13 @@ async function run(){
       if(!session?.user)throw Error(`sign-in as ${role} failed — ${notes.join(' | ')}`);
       const page=await context.newPage(),errors:string[]=[];
       page.on('pageerror',error=>errors.push(error.message));
+      errorsOf.set(page,errors);
       page.on('dialog',dialog=>dialog.accept());
       page.setDefaultTimeout(60000);
       return {context,page,errors};
     }
 
+    const errorsOf=new Map<Page,string[]>();
     const boss=await signIn('admin');
     const desk=await signIn('staff');
     await desk.page.setViewportSize({width:360,height:780});
@@ -144,7 +146,17 @@ async function run(){
 
     const openDrawer=async(page:Page,name:string,where:string=list)=>{
       await page.goto(`${origin}${where}`,{waitUntil:'domcontentloaded',timeout:180000});
-      await page.locator('h1',{hasText:t.title}).first().waitFor({timeout:60000});
+      try{
+        await page.locator('h1',{hasText:t.title}).first().waitFor({timeout:60000});
+      }catch(error){
+        console.error(`DIAG the leads list did not paint: url=${page.url()}`);
+        console.error(`DIAG body=${(await page.locator('body').innerText().catch(()=>'')).slice(0,900)}`);
+        console.error(`DIAG pageerrors=${JSON.stringify(errorsOf.get(page)||[])}`);
+        const probe=await page.context().request.get(`${origin}${where}`,{timeout:45000}).catch(()=>null);
+        const probeHtml=probe?await probe.text().catch(()=>''):'';
+        console.error(`DIAG probe status=${probe?probe.status():'timeout-or-refused'} bytes=${probeHtml.length} rows=${probeHtml.includes('data-visitor-row')} h1=${probeHtml.includes(t.title)}`);
+        throw error;
+      }
       await rows(page).filter({hasText:name}).first().waitFor({timeout:90000});
       await rows(page).filter({hasText:name}).first().locator('[data-visitor-open]').first().click();
       const drawer=page.locator('dialog.overview-drawer[open]');

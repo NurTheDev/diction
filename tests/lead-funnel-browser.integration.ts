@@ -89,7 +89,7 @@ async function run(){
 
       // mounted under Visitors: the sidebar carries it, and the list is one tap away
       const sidebar=await page.locator('.admin-sidebar').innerText();
-      assert.ok(sidebar.includes(bn.adminRedesign.items.leadsFunnel),`the sidebar carries the funnel under ${bn.adminRedesign.groups.visitors}`);
+      assert.ok(sidebar.includes(bn.adminRedesign.items.leadsFunnel),`the sidebar carries the funnel under ${bn.adminRedesign.groups.daily}`);
       assert.ok(sidebar.includes(bn.adminRedesign.items.leads),'beside the Visitors list itself');
       // `exact`: the heading's other link is the import wizard, whose name begins with the same word.
       const back=page.locator('.admin-heading').getByRole('link',{name:bn.leads.title,exact:true});

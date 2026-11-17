@@ -1,78 +1,6 @@
       "scrollWidth": 1440
     },
     {
-      "path": "/bn/admin/leads",
-      "width": 360,
-      "clientWidth": 360,
-      "scrollWidth": 360
-    },
-    {
-      "path": "/bn/admin/leads",
-      "width": 1440,
-      "clientWidth": 1440,
-      "scrollWidth": 1440
-    },
-    {
-      "path": "/bn/admin/leads?new=1",
-      "width": 360,
-      "clientWidth": 360,
-      "scrollWidth": 360
-    },
-    {
-      "path": "/bn/admin/leads?new=1",
-      "width": 1440,
-      "clientWidth": 1440,
-      "scrollWidth": 1440
-    },
-    {
-      "path": "/bn/admin/leads?followUp=today",
-      "width": 360,
-      "clientWidth": 360,
-      "scrollWidth": 360
-    },
-    {
-      "path": "/bn/admin/leads?followUp=today",
-      "width": 1440,
-      "clientWidth": 1440,
-      "scrollWidth": 1440
-    },
-    {
-      "path": "/bn/admin/content?kind=blog",
-      "width": 360,
-      "clientWidth": 360,
-      "scrollWidth": 360
-    },
-    {
-      "path": "/bn/admin/content?kind=blog",
-      "width": 1440,
-      "clientWidth": 1440,
-      "scrollWidth": 1440
-    },
-    {
-      "path": "/bn/admin/recycle-bin",
-      "width": 360,
-      "clientWidth": 360,
-      "scrollWidth": 360
-    },
-    {
-      "path": "/bn/admin/recycle-bin",
-      "width": 1440,
-      "clientWidth": 1440,
-      "scrollWidth": 1440
-    },
-    {
-      "path": "/en/admin/recycle-bin",
-      "width": 360,
-      "clientWidth": 360,
-      "scrollWidth": 360
-    },
-    {
-      "path": "/en/admin/recycle-bin",
-      "width": 1440,
-      "clientWidth": 1440,
-      "scrollWidth": 1440
-    },
-    {
       "path": "/en/admin/students",
       "width": 360,
       "clientWidth": 360,
@@ -392,6 +320,78 @@
     },
     {
       "path": "/en/admin/grading-scale",
+      "width": 1440,
+      "clientWidth": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "path": "/en/admin",
+      "width": 360,
+      "clientWidth": 360,
+      "scrollWidth": 360
+    },
+    {
+      "path": "/en/admin",
+      "width": 1440,
+      "clientWidth": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "path": "/bn/admin/sms",
+      "width": 360,
+      "clientWidth": 360,
+      "scrollWidth": 360
+    },
+    {
+      "path": "/bn/admin/sms",
+      "width": 1440,
+      "clientWidth": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "path": "/bn/admin/center-exams?new=1",
+      "width": 360,
+      "clientWidth": 360,
+      "scrollWidth": 360
+    },
+    {
+      "path": "/bn/admin/center-exams?new=1",
+      "width": 1440,
+      "clientWidth": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "path": "/en/admin/center-exams?new=1",
+      "width": 360,
+      "clientWidth": 360,
+      "scrollWidth": 360
+    },
+    {
+      "path": "/en/admin/center-exams?new=1",
+      "width": 1440,
+      "clientWidth": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "path": "/bn/admin/center-exams/marksheet",
+      "width": 360,
+      "clientWidth": 360,
+      "scrollWidth": 360
+    },
+    {
+      "path": "/bn/admin/center-exams/marksheet",
+      "width": 1440,
+      "clientWidth": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "path": "/en/admin/center-exams/marksheet",
+      "width": 360,
+      "clientWidth": 360,
+      "scrollWidth": 360
+    },
+    {
+      "path": "/en/admin/center-exams/marksheet",
       "width": 1440,
       "clientWidth": 1440,
       "scrollWidth": 1440

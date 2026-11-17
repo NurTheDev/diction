@@ -9,34 +9,22 @@
  * this page has no native date input at all — a day is picked from our calendar popover and read back
  * as dd/mm/yyyy or "15 Nov 2026".
  */
-import {useEffect,useState,type ReactNode} from 'react';
-import {DatePopover,shortDate} from './popover';
+import {type ReactNode} from 'react';
+import {DayField} from './popover';
+import {ListFilters} from './list-pattern';
 import type {Digits} from '@/lib/admin/format';
 
-/** The filter panel: expanded on a desktop, collapsed on a phone, and never hiding an active filter. */
+/** The filter panel: expanded on a desktop, collapsed on a phone, and never hiding an active filter.
+    It is the shared one — this page's own name is what makes it `data-lead-filters` in a test. */
 export function LeadFilters({label,active,children}:{label:string;active:string;children:ReactNode}){
-  const [open,setOpen]=useState(true);
-  useEffect(()=>{if(window.innerWidth<900)setOpen(false)},[]);
-  return <details className="admin-help-panel lead-filters" data-lead-filters="" open={open||undefined}
-    onToggle={event=>setOpen(event.currentTarget.open)}>
-    <summary className="admin-mini-button">{label}{active?` · ${active}`:''}</summary>
-    {children}
-  </details>;
+  return <ListFilters kind="lead" label={label} active={active}>{children}</ListFilters>;
 }
 
 /**
- * One date filter. The value travels in a hidden input under the name the query already reads, and what
- * the operator sees is the day in their own format — so there is nothing native left to misread, and
- * clearing it is a button beside the day rather than a hunt inside a browser widget.
+ * One date filter — the pattern's own day field, named for this page. The value travels in a hidden
+ * input under the name the query already reads, and what the operator sees is the day in their own
+ * format, so there is nothing native left to misread.
  */
-export function FilterDayField({name,value,placeholder,clearLabel,digits,language}:{
-  name:string;value:string;placeholder:string;clearLabel:string;digits:Digits;language:'bn'|'en';
-}){
-  const [day,setDay]=useState(value);
-  return <span className="pop-day-field" data-day-field={name}>
-    <input type="hidden" name={name} value={day}/>
-    <span className="admin-input pop-day-view" aria-live="polite">{day?shortDate(day,digits,language):placeholder}</span>
-    <DatePopover digits={digits} language={language} label={<span className="admin-mini-button" data-day-pick={name}>{placeholder}</span>} onPick={setDay}/>
-    {day&&<button type="button" className="admin-mini-button" data-day-clear={name} onClick={()=>setDay('')}>{clearLabel}</button>}
-  </span>;
+export function FilterDayField(props:{name:string;value:string;placeholder:string;clearLabel:string;digits:Digits;language:'bn'|'en'}){
+  return <DayField {...props}/>;
 }

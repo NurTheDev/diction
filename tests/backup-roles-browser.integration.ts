@@ -201,6 +201,7 @@ async function run(){
     assert.equal(await superBn.page.locator('.daily-save').count(),1,'the Super Admin stands at the cash desk');
     await goto(staffBn.page,`/bn/admin/students/collect?student=${String(student._id)}`);
     assert.equal(await staffBn.page.locator('.daily-save').count(),0,'staff are refused the cash desk');
+    assert.ok(!staffBn.page.url().includes('/students/collect'),`and the refusal is a door closing, not an empty page (${staffBn.page.url()})`);
     await goto(staffBn.page,'/bn/admin/reports/daily?date=2026-02-10');
     assert.equal(await staffBn.page.locator('[data-daily-report]').count(),1,'but staff read the day’s report — the accountant’s screen');
     await goto(teacherBn.page,'/bn/admin/reports/daily?date=2026-02-10');

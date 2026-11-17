@@ -9,7 +9,7 @@ import type {PaymentRow} from './collections';
 
 export type LeanPayment={
   _id:unknown;student:unknown;classGroupAtPayment:unknown;type:string;otherLabel?:string;
-  academicYear:number;month?:number|null;amount:number;receiptNo?:string;paidOn?:string;
+  academicYear:number;month?:number|null;amount:number;discount?:number;receiptNo?:string;paidOn?:string;
   receivedBy?:unknown;note?:string;createdAt:Date;
 };
 
@@ -42,7 +42,9 @@ export async function joinPaymentRows(payments:LeanPayment[],locale:string):Prom
       type:p.type,
       otherLabel:p.otherLabel||'',
       monthKey:p.type==='monthly'&&p.month?`${p.academicYear}-${String(p.month).padStart(2,'0')}`:null,
-      amount:p.amount,
+      /* Group 3: a collection report counts what came in, so a line's discount comes off it. The
+         student's own ledger keeps the fee whole — that is the record of what the month cost. */
+      amount:p.amount-(p.discount||0),
       receiptNo:p.receiptNo||'',
       paidOn:p.paidOn||'',
       operatorId:p.receivedBy?String(p.receivedBy):'',

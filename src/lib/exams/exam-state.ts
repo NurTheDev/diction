@@ -47,12 +47,12 @@ export interface MarksImportState extends ExamState{
 }
 
 /** One student's row as the grid posts it: the marks, and the revision it read them from. */
-export interface GridRow{studentId:string;version:number;marks:{subject:string;obtained:number|null;absent:boolean}[]}
+export interface GridRow{studentId:string;version:number;marks:{subject:string;obtained:number|null;absent:boolean;parts?:{name:string;obtained:number|null}[]}[]}
 
 /** The exam's shape, as a form describes it and the engine stores it. */
 export interface ExamShape{
   name:string;date:string;type:string;classIds:string[];
-  subjects:{name:string;full:number;pass:number}[];bands:GradeBand[];scaleName:string;
+  subjects:{name:string;full:number;pass:number;parts:{name:string;marks:number}[]}[];bands:GradeBand[];scaleName:string;
 }
 
 /** A saved scale, as the exam form's picker and the scale screen both read it. */

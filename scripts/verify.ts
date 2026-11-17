@@ -284,20 +284,36 @@ async function stepBrowserTests(ctx:Context):Promise<void>{
     }
     return [];
   };
+  /* One suite, one run, one verdict — even where several rows are proved by the same suite. Those rows
+     used to run it once each: the second run overwrote the first one's log, so a suite that timed out
+     once and passed once left the registry with a FAIL row, a PASS row and a log that matched neither,
+     and the longest suite in the registry cost the machine twice for one answer. Each row keeps its own
+     wording; the evidence behind them is the same run's, which is the truth the owner reads. */
+  const suites=new Map<string,typeof tests>();
   for(const requirement of tests){
-    if(!ctx.serverUp){mark(ctx,requirement.id,'NOT TESTED','the app is not running, so the browser test cannot attach to it');continue}
-    if(!ctx.mongoUri){mark(ctx,requirement.id,'NOT TESTED','no database URI was published by test mode');continue}
-    if(!ctx.browserReady){mark(ctx,requirement.id,'NOT TESTED','Playwright Chromium is unavailable (see Notes)');continue}
-    const logName=path.basename(requirement.proof.ref,'.ts');
-    const result=await run(process.execPath,[path.join('node_modules','tsx','dist','cli.mjs'),...flagsFor(requirement.proof.ref),requirement.proof.ref],{
+    const group=suites.get(requirement.proof.ref);
+    if(group)group.push(requirement);else suites.set(requirement.proof.ref,[requirement]);
+  }
+  for(const [suite,rows] of suites){
+    if(!ctx.serverUp||!ctx.mongoUri||!ctx.browserReady){
+      const why=!ctx.serverUp?'the app is not running, so the browser test cannot attach to it'
+        :!ctx.mongoUri?'no database URI was published by test mode'
+        :'Playwright Chromium is unavailable (see Notes)';
+      for(const requirement of rows)mark(ctx,requirement.id,'NOT TESTED',why);
+      continue;
+    }
+    const logName=path.basename(suite,'.ts');
+    const result=await run(process.execPath,[path.join('node_modules','tsx','dist','cli.mjs'),...flagsFor(suite),suite],{
       env:{TEST_ORIGIN:ctx.origin,TEST_MONGO_URI:ctx.mongoUri,TEST_MONGO_DB:ctx.mongoDb},timeoutMs:900_000,log:logName,
     });
     const blocked=result.text.includes('BLOCKED (environment');
-    if(result.code===0){
-      const claim=result.text.split(/\r?\n/).filter(l=>l.trim()&&!l.startsWith('>')).pop()||'passed';
-      mark(ctx,requirement.id,'PASS',claim.slice(0,300));
-    }else{
-      mark(ctx,requirement.id,blocked?'NOT TESTED':'FAIL',`${blocked?'blocked before it could start':'failed'} (exit ${result.code}): ${tail(result.text,3).slice(0,400)}`);
+    for(const requirement of rows){
+      if(result.code===0){
+        const claim=result.text.split(/\r?\n/).filter(l=>l.trim()&&!l.startsWith('>')).pop()||'passed';
+        mark(ctx,requirement.id,'PASS',claim.slice(0,300));
+      }else{
+        mark(ctx,requirement.id,blocked?'NOT TESTED':'FAIL',`${blocked?'blocked before it could start':'failed'} (exit ${result.code}): ${tail(result.text,3).slice(0,400)}`);
+      }
     }
   }
 }
@@ -384,6 +400,16 @@ async function main():Promise<void>{
       {needsDb:true,env:{TEST_ORIGIN:ctx.origin,TEST_MONGO_URI:ctx.mongoUri,TEST_MONGO_DB:ctx.mongoDb}});
     await stepUnitSuites(ctx,'test:report:math','R6.1','The four reports\u2019 mathematics and the export engine, without a database');
     await stepUnitSuites(ctx,'test:r7:docs','R7.1','The handover papers: README, env template, deployment notes, go-live and operations, against the code');
+    /* Group 2 is a layout and a wording pass, so its unit proofs are the two things a browser cannot
+       settle on its own: that regrouping the menu moved nobody's permission, and that no sentence the
+       browser receives names a variable instead of telling its reader what to do. */
+    await stepUnitSuites(ctx,'test:g2:menu','G2.5','The menu contract: five operator groups, one place per screen, a real route behind each, both catalogues complete, every role\u2019s visible set frozen');
+    await stepUnitSuites(ctx,'test:g2:copy','G2.6','The copy safeguards: no shipped value names a variable, both catalogues whole, no hardcoded pair in a route file');
+    /* Group 3 rebuilt the centre's own workflow, and its brief named the words as plainly as it named
+       the screens: an owner does not take a snapshot, enable a write or reconcile. So the copy proof is
+       the catalog scan that fails on those three words in either language, beside the parity scan that
+       says every sentence these five screens paint lives in both catalogs and in no route file. */
+    await stepUnitSuites(ctx,'test:g3:copy','G3.6','The plain-language sweep: no shipped value says snapshot, write enabled or reconciliation in either language, both catalogues whole, no hardcoded pair in a route file');
     await stepScreens(ctx);
     await stepBrowserTests(ctx);
     (ctx as Context&{stop?:()=>void}).stop?.();

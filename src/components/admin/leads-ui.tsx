@@ -426,8 +426,14 @@ export function LeadDetailDrawer({seed,initial=null,autoOpen=false,language='bn'
   const t=useTranslations('leads');
   const dialog=useRef<HTMLDialogElement>(null),trigger=useRef<HTMLButtonElement>(null);
   const [mode,setMode]=useState<DrawerMode>('view');
+  /* The body mounts on the first open and not before. A closed drawer that still server-renders its
+     edit, note and hand-off forms puts a useActionState dispatch per row into the flight payload of
+     the whole list — eight rows of forms nobody can see, serialized for a progressive enhancement a
+     closed dialog cannot use. The list page died on exactly that weight; the drawer also opens faster
+     without it, and nothing a closed dialog owes the operator is lost: the header names the visitor. */
+  const [everOpen,setEverOpen]=useState(autoOpen);
   const {detail,loading,load,reload,noteState,noteAction,notePending}=useLeadDetail(seed,initial);
-  function openDialog(how:DrawerMode='view'){setMode(how);dialog.current?.showModal();void load()}
+  function openDialog(how:DrawerMode='view'){setEverOpen(true);setMode(how);dialog.current?.showModal();void load()}
   /* No dependency list on purpose: the row re-renders after every write, and the api the row's own
      buttons hold must open THIS render's drawer — a stale one would load the detail of a row that has
      already changed, which is the same lie a stale list is. */
@@ -443,9 +449,9 @@ export function LeadDetailDrawer({seed,initial=null,autoOpen=false,language='bn'
     <dialog className="overview-drawer" ref={dialog} aria-label={t('fields')} onClose={()=>trigger.current?.focus()}>
       <header><h2>{seed.studentName}</h2><button type="button" className="admin-mini-button" onClick={()=>dialog.current?.close()}>{t('close')}</button></header>
       <p className="admin-help">{t('leadId')} {seed.leadId}</p>
-      {mode==='edit'&&editRow&&<LeadEditForm row={editRow} fullPhone={fullPhone} language={language} digits={digits}
+      {everOpen&&mode==='edit'&&editRow&&<LeadEditForm row={editRow} fullPhone={fullPhone} language={language} digits={digits}
         onDone={()=>{setMode('view');onEditSaved?.()}}/>}
-      <LeadDetailBody seed={seed} detail={detail} loading={loading} noteState={noteState} noteAction={noteAction} notePending={notePending} reload={reload} language={language} digits={digits} sms={sms}/>
+      {everOpen&&<LeadDetailBody seed={seed} detail={detail} loading={loading} noteState={noteState} noteAction={noteAction} notePending={notePending} reload={reload} language={language} digits={digits} sms={sms}/>}
     </dialog>
   </>;
 }

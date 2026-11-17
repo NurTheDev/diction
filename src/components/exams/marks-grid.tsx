@@ -34,11 +34,15 @@ import {isAbsentToken} from '@/lib/exams/vocab';
 import {saveMarksBatchAction,previewMarksAction,commitMarksAction} from '@/actions/center-exams';
 import type {ExamState,MarksImportState,GridRow} from '@/lib/exams/exam-state';
 
-export interface GridSubject{id:string;name:string;full:number;pass:number}
+export interface GridSubject{id:string;name:string;full:number;pass:number;parts:{name:string;marks:number}[]}
 export interface GridStudent{
   id:string;name:string;studentId:string;version:number;
-  marks:Record<string,{obtained:number|null;absent:boolean}>;
+  marks:Record<string,{obtained:number|null;absent:boolean;parts?:{name:string;obtained:number|null}[]}>;
 }
+/** One typed component score, as text: blank is untouched, digits are a mark. Keyed student::subject, then slot. */
+type PartCells=Record<string,Record<string,Record<number,string>>>;
+/** A column of the grid: a subject's component when it has them, otherwise the subject itself. */
+interface GridColumn{subject:string;part:number|null}
 
 /** A cell's text, as typed: `''` is untouched, `A` is absent, digits are a mark. */
 type Cells=Record<string,Record<string,string>>;
@@ -52,6 +56,17 @@ const textOf=(student:GridStudent,subject:string):string=>{
 };
 const initialCells=(students:GridStudent[],subjects:GridSubject[]):Cells=>
   Object.fromEntries(students.map(student=>[student.id,Object.fromEntries(subjects.map(subject=>[subject.id,textOf(student,subject.id)]))]));
+/* Stored component scores come back as the grid typed them: a number, or blank for a component nobody
+   scored. The subject cell they add up to is derived, never stored twice. */
+const initialPartCells=(students:GridStudent[],subjects:GridSubject[]):PartCells=>
+  Object.fromEntries(students.map(student=>[student.id,Object.fromEntries(subjects.filter(subject=>subject.parts.length)
+    .map(subject=>[cellKey(student.id,subject.id),Object.fromEntries((student.marks[subject.id]?.parts||[])
+      .map((part,slot)=>[slot,part.obtained===null||part.obtained===undefined?'':String(part.obtained)]))]))]));
+const columnsOf=(subjects:GridSubject[]):GridColumn[]=>
+  subjects.flatMap((subject):GridColumn[]=>subject.parts.length?subject.parts.map((_,part)=>({subject:subject.id,part})):[{subject:subject.id,part:null}]);
+/** Whatever keyboard typed it: Bangla digits count as digits, so a total can add up either way. */
+const digitsOf=(text:string):number=>Number(String(text).replace(/[\u09e6-\u09ef]/g,c=>String(c.charCodeAt(0)-0x09e6)).trim());
+const partText=(parts:PartCells,studentId:string,subjectId:string,slot:number):string=>parts[studentId]?.[cellKey(studentId,subjectId)]?.[slot]??'';
 
 const AUTO_SAVE_MS=900;
 
@@ -124,6 +139,8 @@ export function MarksGrid({examId,subjects,students,bands,canWrite,digits,publis
   const router=useRouter();
   const table=useRef<HTMLTableElement|null>(null);
   const [cells,setCells]=useState<Cells>(()=>initialCells(students,subjects));
+  const [partCells,setPartCells]=useState<PartCells>(()=>initialPartCells(students,subjects));
+  const columns=useMemo(()=>columnsOf(subjects),[subjects]);
   const [errors,setErrors]=useState<CellErrors>({});
   const [dirty,setDirty]=useState<Record<string,boolean>>({});
   const [versions,setVersions]= useState<Record<string,number>>(()=>Object.fromEntries(students.map(student=>[student.id,student.version])));
@@ -150,6 +167,11 @@ export function MarksGrid({examId,subjects,students,bands,canWrite,digits,publis
       for(const studentId of Object.keys(next))if(unsaved[studentId]&&current[studentId])next[studentId]=current[studentId];
       return next;
     });
+    setPartCells(current=>{
+      const next=initialPartCells(students,subjects);
+      for(const studentId of Object.keys(next))if(unsaved[studentId]&&current[studentId])next[studentId]=current[studentId];
+      return next;
+    });
     setVersions(current=>{
       const next={...current};
       for(const student of students)if(!unsaved[student.id])next[student.id]=student.version;
@@ -160,17 +182,56 @@ export function MarksGrid({examId,subjects,students,bands,canWrite,digits,publis
     // eslint-disable-next-line react-hooks/exhaustive-deps
   },[signature]);
 
-  const focus=(studentId:string,subjectId:string):void=>{
-    const input=table.current?.querySelector<HTMLInputElement>(`[data-student="${studentId}"][data-subject="${subjectId}"]`);
+  const focus=(studentId:string,subjectId:string,part:number|null=null):void=>{
+    const selector=part===null
+      ?`[data-student="${studentId}"][data-subject="${subjectId}"]:not([data-part])`
+      :`[data-student="${studentId}"][data-subject="${subjectId}"][data-part="${part}"]`;
+    const input=table.current?.querySelector<HTMLInputElement>(selector);
     if(input){input.focus();input.scrollIntoView({block:'nearest',inline:'nearest'})}
   };
 
   const move=(from:{row:number;column:number},rowStep:number,columnStep:number):boolean=>{
     const row=from.row+rowStep,column=from.column+columnStep;
-    if(row<0||row>=students.length||column<0||column>=subjects.length)return false;
-    focus(students[row].id,subjects[column].id);
+    if(row<0||row>=students.length||column<0||column>=columns.length)return false;
+    const target=columns[column];
+    focus(students[row].id,target.subject,target.part);
     return true;
   };
+
+  /**
+   * A component score, typed: checked against the component's own ceiling, then folded into the subject's
+   * cell as the sum of its parts — so the engine downstream learns no new shape and the row total moves
+   * the moment a number lands.
+   */
+  const setPartValue=useCallback((studentId:string,subjectId:string,slot:number,value:string)=>{
+    const subject=subjects.find(entry=>entry.id===subjectId);
+    if(!subject)return;
+    const part=subject.parts[slot];
+    const text=value.trim(),key=cellKey(studentId,subjectId),cellErrorKey=`${key}::${slot}`;
+    const asNumber=digitsOf(text);
+    const bad=text!==''&&!Number.isFinite(asNumber);
+    const tooHigh=!bad&&text!==''&&asNumber>part.marks;
+    const nextPartCells:PartCells={...partCells,[studentId]:{...(partCells[studentId]||{}),[key]:{...(partCells[studentId]?.[key]||{}),[slot]:text}}};
+    setPartCells(nextPartCells);
+    setErrors(current=>{
+      const next={...current},student=students.find(entry=>entry.id===studentId)?.name||'';
+      if(bad)next[cellErrorKey]={messageKey:'grid.errors.notANumber',params:{student,subject:`${subject.name} · ${part.name}`}};
+      else if(tooHigh)next[cellErrorKey]={messageKey:'grid.errors.partTooHigh',params:{max:part.marks,part:part.name,student}};
+      else delete next[cellErrorKey];
+      return next;
+    });
+    if(bad||tooHigh)return;
+    const slots=subject.parts.map((_,index)=>index===slot?text:partText(nextPartCells,studentId,subjectId,index));
+    const absent=isAbsentToken((cells[studentId]||{})[subjectId]||'');
+    const every=slots.every(entry=>entry.trim()!=='');
+    const sum=slots.reduce((total,entry)=>total+digitsOf(entry),0);
+    const nextCell=slots.every(entry=>entry.trim()==='')?(absent?'A':''):every?String(sum):(absent?'A':'');
+    setCells(current=>({...current,[studentId]:{...(current[studentId]||{}),[subjectId]:nextCell}}));
+    if(every){
+      setDirty(current=>({...current,[studentId]:true}));
+      setStale(current=>({...current,[studentId]:false}));
+    }
+  },[cells,partCells,subjects,students]);
 
   const setValue=useCallback((studentId:string,subjectId:string,value:string)=>{
     const subject=subjects.find(entry=>entry.id===subjectId);
@@ -200,7 +261,13 @@ export function MarksGrid({examId,subjects,students,bands,canWrite,digits,publis
       const marks=subjects.map(subject=>{
         const read=readMarkCell(values[subject.id]??'',subject.full);
         if(read.ok!==true)return null;
-        return {subject:subject.id,obtained:read.obtained,absent:read.absent};
+        /* The component scores travel with the mark they add up to, so a stored result can show how it
+           was built. Blank stays blank: an unscored component is not a zero. */
+        const parts=subject.parts.length?subject.parts.map((part,slot)=>{
+          const raw=partText(partCells,studentId,subject.id,slot).trim(),asNumber=digitsOf(raw);
+          return {name:part.name,obtained:raw!==''&&Number.isFinite(asNumber)?Math.round(asNumber):null};
+        }):undefined;
+        return {subject:subject.id,obtained:read.obtained,absent:read.absent,...(parts?{parts}:{})};
       });
       // A row is written whole or not at all: a hole in a row is not a mark.
       if(marks.some(mark=>mark===null))continue;
@@ -236,7 +303,7 @@ export function MarksGrid({examId,subjects,students,bands,canWrite,digits,publis
         : {key:'grid.status.saved',params:{saved:outcome.saved??rows.length}});
       router.refresh();
     });
-  },[cells,dirty,editable,examId,router,subjects,versions]);
+  },[cells,partCells,dirty,editable,examId,router,subjects,versions]);
 
   // Debounced autosave: one request for a burst of typing, and never while a save is in flight.
   useEffect(()=>{
@@ -273,13 +340,32 @@ export function MarksGrid({examId,subjects,students,bands,canWrite,digits,publis
     event.preventDefault();
     let filled=0,cut=0,refused=0;
     const nextCells:Cells={...cells},nextErrors:CellErrors={...errors},nextDirty={...dirty};
+    const nextPartCells:PartCells=JSON.parse(JSON.stringify(partCells)) as PartCells;
     block.forEach((line,rowOffset)=>{
       line.forEach((raw,columnOffset)=>{
         const rowIndex=startRow+rowOffset,columnIndex=startColumn+columnOffset;
-        if(rowIndex>=students.length||columnIndex>=subjects.length){cut+=1;return}
-        const student=students[rowIndex],subject=subjects[columnIndex];
+        if(rowIndex>=students.length||columnIndex>=columns.length){cut+=1;return}
+        const student=students[rowIndex],column=columns[columnIndex],subject=subjects.find(entry=>entry.id===column.subject);
+        if(!subject){cut+=1;return}
         const value=String(raw??'').trim();
         if(!value)return;
+        if(column.part!==null){
+          const part=subject.parts[column.part],key=cellKey(student.id,subject.id),errorKey=`${key}::${column.part}`;
+          const row={...(nextPartCells[student.id]||{}),[key]:{...(nextPartCells[student.id]?.[key]||{}),[column.part]:value}};
+          nextPartCells[student.id]=row;
+          const asNumber=digitsOf(value);
+          if(!Number.isFinite(asNumber)||asNumber>part.marks){
+            refused+=1;
+            nextErrors[errorKey]={messageKey:'grid.errors.partTooHigh',params:{max:part.marks,part:part.name,student:student.name}};
+            return;
+          }
+          filled+=1;nextDirty[student.id]=true;delete nextErrors[errorKey];
+          const slots=subject.parts.map((_,slot)=>slot===column.part?value:(row[key]?.[slot]??''));
+          if(slots.every(entry=>entry.trim()!=='')){
+            nextCells[student.id]={...(nextCells[student.id]||{}),[subject.id]:String(slots.reduce((total,entry)=>total+digitsOf(entry),0))};
+          }
+          return;
+        }
         const read=readMarkCell(value,subject.full);
         nextCells[student.id]={...(nextCells[student.id]||{}),[subject.id]:isAbsentToken(value)?'A':value};
         if(read.ok===true){
@@ -290,7 +376,7 @@ export function MarksGrid({examId,subjects,students,bands,canWrite,digits,publis
         }
       });
     });
-    setCells(nextCells);setErrors(nextErrors);setDirty(nextDirty);
+    setCells(nextCells);setErrors(nextErrors);setDirty(nextDirty);setPartCells(nextPartCells);
     setStatus({key:'grid.status.pasted',params:{filled,refused,cut}});
   };
 
@@ -300,7 +386,13 @@ export function MarksGrid({examId,subjects,students,bands,canWrite,digits,publis
     const values=cells[studentId]||{};
     const allAbsent=subjects.every(subject=>isAbsentToken(values[subject.id]||''));
     // Absent for the row is absent for every subject: a student who was not there has no marks at all.
-    const next=Object.fromEntries(subjects.map(subject=>[subject.id,allAbsent?'':'A']));
+    const next=Object.fromEntries(subjects.map(subject=>{
+      if(!allAbsent)return [subject.id,'A'];
+      // Coming back from absent, a subject with components re-adds itself from what was already typed.
+      if(!subject.parts.length)return [subject.id,''];
+      const slots=subject.parts.map((_,slot)=>partText(partCells,studentId,subject.id,slot).trim());
+      return [subject.id,slots.every(entry=>entry!=='')?String(slots.reduce((total,entry)=>total+digitsOf(entry),0)):''];
+    }));
     void values;
     setCells(current=>({...current,[studentId]:next}));
     setErrors(current=>{
@@ -327,7 +419,17 @@ export function MarksGrid({examId,subjects,students,bands,canWrite,digits,publis
       <caption>{t('grid.caption')}</caption>
       <thead><tr>
         <th scope="col">{t('col.student')}</th>
-        {subjects.map(subject=><th scope="col" key={subject.id}>{subject.name}<small>{t('grid.fullOf',{full:formatNumber(subject.full,digits)})}</small></th>)}
+        {columns.map(column=>{
+          const subject=subjects.find(entry=>entry.id===column.subject);
+          if(!subject)return null;
+          const part=column.part===null?null:subject.parts[column.part];
+          /* A subject with components gets a column per component, each named after the subject and the
+             part, each with its own ceiling — the creator's split, visible where the marks are typed. */
+          return <th scope="col" key={`${subject.id}:${column.part}`}>
+            {part?`${subject.name} · ${part.name}`:subject.name}
+            <small>{t('grid.fullOf',{full:formatNumber(part?part.marks:subject.full,digits)})}</small>
+          </th>;
+        })}
         <th scope="col">{t('col.total')}</th><th scope="col">{t('col.percentage')}</th>
         <th scope="col">{t('col.grade')}</th><th scope="col">{t('col.point')}</th><th scope="col">{t('col.rank')}</th>
         {editable&&<th scope="col">{t('col.absent')}</th>}
@@ -336,7 +438,24 @@ export function MarksGrid({examId,subjects,students,bands,canWrite,digits,publis
         const row=live.rows.find(entry=>entry.studentId===student.id);
         return <tr key={student.id} data-row={student.id} data-row-stale={stale[student.id]?'true':undefined} data-row-dirty={dirty[student.id]?'true':undefined}>
           <th scope="row">{student.name}<small>{student.studentId}</small></th>
-          {subjects.map((subject,columnIndex)=>{
+          {columns.map((column,columnIndex)=>{
+            const subject=subjects.find(entry=>entry.id===column.subject);
+            if(!subject)return null;
+            if(column.part!==null){
+              const part=subject.parts[column.part],key=cellKey(student.id,subject.id),slot=column.part;
+              const error=errors[`${key}::${slot}`],value=partText(partCells,student.id,subject.id,slot);
+              const absent=isAbsentToken((cells[student.id]||{})[subject.id]||'');
+              return <td key={`${key}:${slot}`} data-cell={`${key}:${slot}`} data-cell-part={slot}>
+                <input className="admin-input center-exam-cell" data-student={student.id} data-subject={subject.id} data-part={slot}
+                  data-gridrow={rowIndex} data-gridcolumn={columnIndex} data-absent={absent?'true':undefined}
+                  type="text" inputMode="numeric" autoComplete="off" readOnly={!editable}
+                  value={value} maxLength={6} placeholder={t('grid.placeholder')}
+                  aria-label={t('grid.partCellLabel',{student:student.name,subject:subject.name,part:part.name})}
+                  aria-invalid={error?'true':undefined}
+                  onChange={event=>setPartValue(student.id,subject.id,slot,event.target.value)}
+                  onKeyDown={event=>onKeyDown(event,rowIndex,columnIndex)}/>
+              </td>;
+            }
             const key=cellKey(student.id,subject.id),error=errors[key],value=(cells[student.id]||{})[subject.id]??'';
             return <td key={subject.id} data-cell={key}>
               <input className="admin-input center-exam-cell" data-student={student.id} data-subject={subject.id}
@@ -359,9 +478,17 @@ export function MarksGrid({examId,subjects,students,bands,canWrite,digits,publis
       })}</tbody>
       <tfoot><tr>
         <th scope="row">{t('summary.title')}</th>
-        {subjects.map(subject=>{
+        {/* One average per SUBJECT, not per column: a subject split into components gets one cell that
+            spans its own columns, so the footer lines up with a body that has a column per component.
+            A footer counted in subjects under a body counted in columns is a summary printed under the
+            wrong child's marks — the one mistake a marks grid must not make. */}
+        {columns.map(column=>{
+          if(column.part!==null&&column.part>0)return null;
+          const subject=subjects.find(entry=>entry.id===column.subject);
+          if(!subject)return null;
           const row=summary.subjects.find(entry=>entry.subject===subject.id);
-          return <td key={subject.id} data-summary-subject={subject.id} title={t('summary.subjectAverage')}>{number(row?.average??null)}</td>;
+          return <td key={`${subject.id}:${column.part}`} colSpan={column.part===null?1:Math.max(1,subject.parts.length)}
+            data-summary-subject={subject.id} title={t('summary.subjectAverage')}>{number(row?.average??null)}</td>;
         })}
         <td colSpan={5+(editable?1:0)} data-summary-foot>{t('summary.average')}: {number(summary.average)} · {t('summary.passRate')}: {summary.passRate===null?'—':`${formatNumber(summary.passRate,digits)}%`} · {t('summary.counted')}: {formatNumber(summary.counted,digits)}</td>
       </tr></tfoot>

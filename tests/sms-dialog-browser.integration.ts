@@ -377,7 +377,40 @@ async function run(){
        the values it does ship name no secret — both checked statically in tests/i18n-catalog.test.ts. */
     const duesHtml=await worker.page.content();
     for(const needle of [...SERVER_ONLY_NAMES,...SECRET_NAMES])assert.ok(!duesHtml.includes(needle),`a staff member’s due list never mentions ${needle}`);
-    await worker.page.goto(`${origin}/bn/admin/sms`,{waitUntil:'domcontentloaded',timeout:180000});
+    try{
+      /* The due list is still settling when the suite leaves it: its own client re-read can be in
+         flight, and Chromium answers a navigation started over one with `net::ERR_ABORTED` rather than
+         with a page. That is not a refusal of the SMS screen, so the navigation is retried once the load
+         has settled — and anything else, a real refusal among it, still fails on the first attempt. */
+      let attempt=0;
+      for(;;){
+        try{
+          await worker.page.goto(`${origin}/bn/admin/sms`,{waitUntil:'domcontentloaded',timeout:180000});
+          break;
+        }catch(navigation){
+          attempt+=1;
+          if(attempt>2||!String(navigation).includes('ERR_ABORTED'))throw navigation;
+          console.error(`DIAG the navigation to /bn/admin/sms was aborted in flight; retrying (attempt ${attempt+1})`);
+          await worker.page.waitForLoadState('load',{timeout:60000}).catch(()=>{});
+        }
+      }
+    }catch(error){
+      console.error(`DIAG the sms page did not load for staff: url=${worker.page.url()} (${error})`);
+      console.error(`DIAG body=${(await worker.page.locator('body').innerText().catch(()=>'')).slice(0,900)}`);
+      console.error(`DIAG pageerrors=${JSON.stringify(worker.errors)}`);
+      const probe=await worker.context.request.get(`${origin}/bn/admin/students/dues?class=${group._id}`,{timeout:45000}).catch(()=>null);
+      const probeHtml=probe?await probe.text().catch(()=>''):'';
+      console.error(`DIAG probe dues-as-staff status=${probe?probe.status():'timeout-or-refused'} bytes=${probeHtml.length} final=${probe?probe.url():''} smsOpen=${probeHtml.includes('data-sms-open')}`);
+      const browserHtml=await worker.page.content().catch(()=>'');
+      const fs=await import('node:fs');
+      fs.mkdirSync('test-results/ci-latest/logs',{recursive:true});
+      fs.writeFileSync('test-results/ci-latest/logs/diag-dues-probe.html',probeHtml);
+      fs.writeFileSync('test-results/ci-latest/logs/diag-dues-browser.html',browserHtml);
+      console.error(`DIAG probe head=${probeHtml.slice(0,700).replace(/\s+/g,' ')}`);
+      console.error(`DIAG probe bodystart=${probeHtml.slice(probeHtml.indexOf('<body'),probeHtml.indexOf('<body')+700).replace(/\s+/g,' ')}`);
+      console.error(`DIAG browser bodystart=${browserHtml.slice(browserHtml.indexOf('<body'),browserHtml.indexOf('<body')+700).replace(/\s+/g,' ')}`);
+      throw error;
+    }
     assert.equal(await worker.page.locator('[data-sms-open]').count(),0,'and no new-message control on the SMS page');
     await worker.context.close();
 

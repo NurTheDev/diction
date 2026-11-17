@@ -54,10 +54,13 @@ them out of any error text before an operator can read it.
 | `SMS_MOCK_BALANCE` | leave unset | Only read by the mock provider (default `9999`). Irrelevant once you are live. |
 
 After changing them, **redeploy** (Vercel only applies environment changes to a new deployment) and
-then read the SMS page's Connection panel: প্রদানকারী should say `bulksmsbd`, ক্রেডেনশিয়াল should say
-`সেট করা আছে`, পাঠানোর গেট should say `CENTER_SMS_WRITE_ENABLED=true`, and ব্যালেন্স should show a
-number instead of `পড়া যায়নি`. If credentials are missing the panel names exactly which variable is
-absent — it never shows a value.
+then read the SMS page's third card, **প্রোভাইডার ও সংযোগ পরীক্ষা** (Provider & connection diagnostic),
+which holds the Connection panel: প্রদানকারী should say `bulksmsbd`, ক্রেডেনশিয়াল should say `সেট করা আছে`,
+পাঠানোর গেট should say `খোলা — বার্তা পাঠানো যাবে`, and ব্যালেন্স should show a number instead of
+`পড়া যায়নি`. The first card repeats that balance as **বাকি ক্রেডিট**, because the number an operator
+watches every morning is not a diagnostic. If credentials are missing the panel names exactly which
+variable is absent — it never shows a value. Interface text names no variable at all: the gate badge
+reads as a sentence, and `tests/i18n-catalog.test.ts` fails any shipped value that names one.
 
 ---
 
@@ -142,10 +145,10 @@ table in §3. Do not press the button again and again: each press is one paid me
 ## 6. The order to switch on (do not skip steps)
 
 1. **Credentials + gate, provider still mock.** Set the two `BULKSMSBD_*` variables and
-   `CENTER_SMS_WRITE_ENABLED=true`, leave `SMS_PROVIDER=mock`, redeploy. The Connection panel should
-   show provider `mock` with the badge `কিছু পাঠানো হয় না`, credentials `সেট করা আছে`, and a **real**
-   balance (the balance call is not gated). This proves the account without spending a message on the
-   app's path.
+   `CENTER_SMS_WRITE_ENABLED=true`, leave `SMS_PROVIDER=mock`, redeploy. The Connection panel (third
+   card) should show provider `mock` with the badge `কিছু পাঠানো হয় না`, credentials `সেট করা আছে`, and
+   a **real** balance (the balance call is not gated). This proves the account without spending a
+   message on the app's path.
 2. **Provider live.** Set `SMS_PROVIDER=bulksmsbd`, redeploy, and do §5 — one message, your number.
 3. **Quiet hours first, auto-sends second.** Set the quiet window before any toggle, so the first
    automatic send cannot go out at a bad hour.
@@ -252,9 +255,10 @@ never reads them. This is also the state to be in for any future CI run or hand 
 
 Every real send now refuses with `SMS_DISABLED` before touching the network, including the test
 message. Note the consequence: if an auto-send toggle is still on, each refused automatic send is
-recorded as a problem, so the card will fill up with `পাঠানোর গেট বন্ধ — CENTER_SMS_WRITE_ENABLED=true
-নয়।` That is the card doing its job — it is telling you the truth about messages that did not go out.
-Turn the three toggles off as well if you want silence rather than a list.
+recorded as a problem, so the card will fill up with `পাঠানো বন্ধ আছে — যাঁরা এই সাইটটি বসিয়েছেন
+তাঁদের এসএমএস পাঠানো চালু করতে বলুন।` That is the card doing its job — it is telling you the truth
+about messages that did not go out, in the words the operator has rather than the name of the variable
+you just changed. Turn the three toggles off as well if you want silence rather than a list.
 
 Nothing is deleted by either change, and no payment or result is touched.
 

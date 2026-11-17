@@ -199,7 +199,21 @@ async function run(){
 
     // ---- 1. The list, at both widths, in the language the owner reads.
     await boss.page.goto(`${origin}${list}`,{waitUntil:'domcontentloaded',timeout:180000});
-    await boss.page.locator('h1',{hasText:t.title}).first().waitFor({timeout:60000});
+    try{
+      await boss.page.locator('h1',{hasText:t.title}).first().waitFor({timeout:60000});
+    }catch(error){
+      console.error(`DIAG the leads list did not paint: url=${boss.page.url()}`);
+      console.error(`DIAG body=${(await boss.page.locator('body').innerText().catch(()=>'')).slice(0,900)}`);
+      console.error(`DIAG pageerrors=${JSON.stringify(boss.errors)}`);
+      const probe=await boss.context.request.get(`${origin}${list}`,{timeout:45000}).catch(()=>null);
+      const probeHtml=probe?await probe.text().catch(()=>''):'';
+      const probeH1=probeHtml.match(/<h1[^>]*>([^<]{0,40})<\/h1>/)?.[1]||'no-h1';
+      const at=probeHtml.indexOf('list-panel');
+      console.error(`DIAG probe status=${probe?probe.status():'timeout-or-refused'} url=${probe?probe.url():''} bytes=${probeHtml.length} rows=${(probeHtml.match(/data-visitor-row/g)||[]).length} empty=${probeHtml.includes('admin-empty')} h1tag=${probeH1} panel=${probeHtml.slice(at,at+220).replace(/\s+/g,' ')}`);
+      const browserHtml=await boss.page.content().catch(()=>'');
+      console.error(`DIAG browser readyState=${await boss.page.evaluate(()=>document.readyState).catch(()=>'?')} scripts=${(browserHtml.match(/<script/g)||[]).length} bytes=${browserHtml.length} rowsInDom=${(browserHtml.match(/data-visitor-row/g)||[]).length}`);
+      throw error;
+    }
     await rows(boss.page).first().waitFor({timeout:60000});
     const body=await boss.page.locator('body').innerText();
     for(const name of [RAHUL,SISTER,OLD,NO_PHONE,NEXT_WEEK])assert.ok(body.includes(name),`the list shows ${name}`);
@@ -219,7 +233,21 @@ async function run(){
     await shot(boss.page,'b2-visitors-list-1440');
 
     await desk.page.goto(`${origin}${list}`,{waitUntil:'domcontentloaded',timeout:180000});
-    await desk.page.locator('h1',{hasText:t.title}).first().waitFor({timeout:60000});
+    try{
+      await desk.page.locator('h1',{hasText:t.title}).first().waitFor({timeout:60000});
+    }catch(error){
+      console.error(`DIAG the leads list did not paint: url=${desk.page.url()}`);
+      console.error(`DIAG body=${(await desk.page.locator('body').innerText().catch(()=>'')).slice(0,900)}`);
+      console.error(`DIAG pageerrors=${JSON.stringify(desk.errors)}`);
+      const probe=await desk.context.request.get(`${origin}${list}`,{timeout:45000}).catch(()=>null);
+      const probeHtml=probe?await probe.text().catch(()=>''):'';
+      const probeH1=probeHtml.match(/<h1[^>]*>([^<]{0,40})<\/h1>/)?.[1]||'no-h1';
+      const at=probeHtml.indexOf('list-panel');
+      console.error(`DIAG probe status=${probe?probe.status():'timeout-or-refused'} url=${probe?probe.url():''} bytes=${probeHtml.length} rows=${(probeHtml.match(/data-visitor-row/g)||[]).length} empty=${probeHtml.includes('admin-empty')} h1tag=${probeH1} panel=${probeHtml.slice(at,at+220).replace(/\s+/g,' ')}`);
+      const browserHtml=await desk.page.content().catch(()=>'');
+      console.error(`DIAG browser readyState=${await desk.page.evaluate(()=>document.readyState).catch(()=>'?')} scripts=${(browserHtml.match(/<script/g)||[]).length} bytes=${browserHtml.length} rowsInDom=${(browserHtml.match(/data-visitor-row/g)||[]).length}`);
+      throw error;
+    }
     await rows(desk.page).first().waitFor({timeout:60000});
     await noOverflow(desk.page,'the list at 360');
     await shot(desk.page,'b2-visitors-list-360');
@@ -545,7 +573,21 @@ async function run(){
     await boss.page.locator('table.admin-table tbody tr',{hasText:OLD}).first().waitFor({timeout:60000});
     assert.equal(await rows(boss.page).count(),1,'and a second chip filters the same way — one interested lead, and only it');
     await boss.page.goto(`${origin}${list}?q=${P1}`,{waitUntil:'domcontentloaded',timeout:180000});
-    await boss.page.locator('h1',{hasText:t.title}).first().waitFor({timeout:60000});
+    try{
+      await boss.page.locator('h1',{hasText:t.title}).first().waitFor({timeout:60000});
+    }catch(error){
+      console.error(`DIAG the leads list did not paint: url=${boss.page.url()}`);
+      console.error(`DIAG body=${(await boss.page.locator('body').innerText().catch(()=>'')).slice(0,900)}`);
+      console.error(`DIAG pageerrors=${JSON.stringify(boss.errors)}`);
+      const probe=await boss.context.request.get(`${origin}${list}`,{timeout:45000}).catch(()=>null);
+      const probeHtml=probe?await probe.text().catch(()=>''):'';
+      const probeH1=probeHtml.match(/<h1[^>]*>([^<]{0,40})<\/h1>/)?.[1]||'no-h1';
+      const at=probeHtml.indexOf('list-panel');
+      console.error(`DIAG probe status=${probe?probe.status():'timeout-or-refused'} url=${probe?probe.url():''} bytes=${probeHtml.length} rows=${(probeHtml.match(/data-visitor-row/g)||[]).length} empty=${probeHtml.includes('admin-empty')} h1tag=${probeH1} panel=${probeHtml.slice(at,at+220).replace(/\s+/g,' ')}`);
+      const browserHtml=await boss.page.content().catch(()=>'');
+      console.error(`DIAG browser readyState=${await boss.page.evaluate(()=>document.readyState).catch(()=>'?')} scripts=${(browserHtml.match(/<script/g)||[]).length} bytes=${browserHtml.length} rowsInDom=${(browserHtml.match(/data-visitor-row/g)||[]).length}`);
+      throw error;
+    }
     await boss.page.locator('p.admin-feedback.error').first().waitFor({state:'visible',timeout:60000});
     assert.equal(await rows(boss.page).count(),7,'a number typed straight into the address bar is refused as a search, so the whole list is rendered instead of being quietly searched by number');
     assert.ok((await boss.page.locator('p.admin-feedback.error').first().innerText()).length>10,'and the page says why');
@@ -816,9 +858,17 @@ async function run(){
     dupPanel=await typeAdd(M1,P6);
     await dupPanel.locator('p.admin-feedback').first().waitFor({state:'visible',timeout:90000});
     assert.equal(await dupPanel.locator('[data-dup-ask]').count(),0,'a number nobody holds asks nothing');
+    /* Wait for M1's RECORD before typing M2, exactly as the merge below waits for its record: the
+       question for M2 is one indexed lookup on `phones.normalized`, so it can only appear once the
+       first entry is a row somebody else can find. The panel's own feedback paints from the response,
+       which is the same reason the next wait carries the holder count — a refusal and a slow write
+       look identical from the browser, and only the database says which one it was. */
+    await until(async()=>(await Lead.countDocuments({studentName:M1}))===1,'the first merge entry holds the number',90000);
     dupPanel=await typeAdd(M2,P6);
     const ask3=dupPanel.locator('[data-dup-ask]');
-    await ask3.waitFor({state:'visible',timeout:90000});
+    await ask3.waitFor({state:'visible',timeout:90000}).catch(async error=>{
+      throw Error(`the second duplicate question never appeared — ${error.message.split('\n')[0]} · url=${boss.page.url()} · holders of ${P6}=${await Lead.countDocuments({'phones.normalized':P6})} · panel=${JSON.stringify((await dupPanel.innerText().catch(()=>'(none)')).replace(/\s+/g,' ').slice(0,400))} · pageErrors=${JSON.stringify(boss.errors)}`);
+    });
     await ask3.locator('button[name="dupMerge"]').click();
     // Wait for the merge RECORD, not for the absence of a row: "M2 was never written" is true the
     // moment the question appears, so polling it would read the target before the merge commits.

@@ -15,8 +15,10 @@ import {
 import {Pagination} from '@/components/admin/pagination';
 import {LeadQuickAdd,LeadSearch} from '@/components/admin/leads-ui';
 import {LeadSmsBar,LeadSmsPicker} from '@/components/admin/lead-sms';
-import {LeadBulkBar,VisitorRow} from '@/components/admin/visitors-row';
+import {LeadBulkBar,VisitorRows} from '@/components/admin/visitors-row';
 import {FilterDayField,LeadFilters} from '@/components/admin/visitors-filters';
+import {FilterToggle} from '@/components/admin/list-pattern';
+import {listTableClass} from '@/components/admin/list-class';
 
 type Query={q?:string;status?:string;classGroup?:string;group?:string;shift?:string;medium?:string;source?:string;
   followUp?:string;from?:string;to?:string;page?:string;new?:string;closed?:string;stale?:string};
@@ -104,6 +106,7 @@ export default async function Leads({params,searchParams}:{params:Promise<{local
    * from the rule layer (`canContact()`), so a lead marked "do not contact" is not selectable here and is
    * counted as excluded by the bar — and it is checked a third time when the plan is built.
    */
+  const items=result.rows.map(row=>({row:rowView(row),fullPhone:seesNumbers?(row.phones?.[0]?.normalized||''):''}));
   const smsRows=result.rows.map(row=>({id:row.id,studentName:row.studentName,contactable:row.contactable,hasPhone:(row.phones||[]).length>0}));
   const current:LeadListFiltersShape={q:q||undefined,status:status||undefined,classGroup:classGroup||undefined,group:group||undefined,shift:shift||undefined,medium:medium||undefined,source:source||undefined,followUp:followUp||undefined,from:from||undefined,to:to||undefined,
     closed:showClosed||undefined,stale:stale||undefined};
@@ -168,10 +171,8 @@ export default async function Leads({params,searchParams}:{params:Promise<{local
           <option value="">{t('all')}</option>
           {LEAD_SOURCES.map(option=><option key={option} value={option}>{sourceLabel(t,option)}</option>)}
         </select></label>
-        <label className="lead-filter-toggle"><input type="checkbox" name="closed" value="1" defaultChecked={showClosed}/>
-          <span>{t('showClosed')}</span></label>
-        <label className="lead-filter-toggle"><input type="checkbox" name="stale" value="1" defaultChecked={stale}/>
-          <span>{t('staleOnly')}</span></label>
+        <FilterToggle name="closed" label={t('showClosed')} defaultChecked={showClosed}/>
+        <FilterToggle name="stale" label={t('staleOnly')} defaultChecked={stale}/>
         <label>{t('colFollowUp')}<select className="admin-select" name="followUp" defaultValue={followUp}>
           <option value="">{t('all')}</option>
           <option value="today">{t('dueToday')}</option>
@@ -197,29 +198,18 @@ export default async function Leads({params,searchParams}:{params:Promise<{local
         <LeadSmsBar digits={digits}/>
         <LeadBulkBar canDelete={canDelete} canArchive={canArchive} digits={digits} language={language}/>
       </div>
-      {result.rows.length?<div className="admin-table-wrap visitor-wrap"><table className="admin-table admin-responsive-table visitor-table">
+      {result.rows.length?<div className="admin-table-wrap visitor-wrap"><table className={`${listTableClass('visitor')} admin-responsive-table`}>
         <thead><tr>
           {/* The tick column carries no heading: a checkbox needs no name, and the bulk bar that
               appears the moment one is ticked says what the ticks are for. It exists only where a send
               may happen — for a role with no picker there is nothing to tick and no bulk bar to read. */}
-          {sms&&<th className="visitor-check" aria-label={t('row.bulk')}></th>}
-          <th className="visitor-who">{t('colVisitor')}</th><th className="visitor-call">{t('colContact')}</th>
-          <th className="visitor-status">{t('colStatus')}</th><th className="visitor-follow">{t('colFollowUp')}</th>
-          <th className="visitor-note">{t('lastNote')}</th><th className="visitor-act">{t('colActions')}</th>
+          {sms&&<th className="visitor-check list-check" aria-label={t('row.bulk')}></th>}
+          <th className="visitor-who list-who">{t('colVisitor')}</th><th className="visitor-call list-call">{t('colContact')}</th>
+          <th className="visitor-status list-status">{t('colStatus')}</th><th className="visitor-follow list-follow">{t('colFollowUp')}</th>
+          <th className="visitor-note list-note">{t('lastNote')}</th><th className="visitor-act list-act">{t('colActions')}</th>
         </tr></thead>
-        <tbody>{result.rows.map(row=>{
-          const view=rowView(row);
-          /**
-           * The reference row: one line, five visible controls, the badge and the chip doing the work
-           * a dropdown plus a Save button used to do. The printed number is the one raw digit this
-           * screen carries, and it comes from the rule layer's own row — never from a client — for the
-           * signed-in roles that call visitors. It is printed and nothing more: no URL, no log, no
-           * audit target, no analytics event, and every other screen still shows the mask.
-           */
-          return <VisitorRow key={row.id} row={view} canDelete={canDelete} canArchive={canArchive} sms={sms}
-            language={language} digits={digits} hasCheck={Boolean(sms)}
-            fullPhone={seesNumbers?(row.phones?.[0]?.normalized||''):''}/>;
-        })}</tbody>
+        <tbody><VisitorRows items={items}
+          canDelete={canDelete} canArchive={canArchive} sms={sms} language={language} digits={digits} hasCheck={Boolean(sms)}/></tbody>
       </table></div>:<div className="admin-empty">
         <p>{activeFilters||q?t('emptyFilter'):t('empty')}</p>
         <span className="admin-help">{t('emptyHelp')}</span>

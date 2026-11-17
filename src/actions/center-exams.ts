@@ -24,7 +24,7 @@ import {getExamScope} from '@/lib/exams/exam-actor';
 import {createCenterExam,updateCenterExam,publishCenterExam,unpublishCenterExam,saveCenterExamMarksBatch} from '@/lib/center/exam-batch';
 import {CenterExam,CenterExamResult,CenterStudent,CenterClassGroup,CenterGradingScale} from '@/models/CenterRecords';
 import {audit} from '@/lib/admin/helpers';
-import {autoSendClassResults} from '@/lib/center/sms-dialog';
+import {autoSendClassResults,batchCounts} from '@/lib/center/sms-dialog';
 import {readWorkbook} from '@/lib/sheets/workbook';
 import {previewMarksSheet,type RosterEntry} from '@/lib/exams/grid';
 import {rangesToBands,bandsToRanges,DEFAULT_GRADING_RANGES,MAX_EXAM_SUBJECTS,MAX_EXAM_CLASSES,type GradeRange} from '@/lib/exams/vocab';
@@ -77,12 +77,24 @@ async function scope(needs:(scope:ExamScope)=>boolean):Promise<{scope:ExamScope}
 }
 
 /** Subjects as the form posts them: rows are positional, and a row with a name is a subject. */
-function subjectsFromForm(form:FormData):{name:string;full:number;pass:number}[]{
-  const subjects:{name:string;full:number;pass:number}[]=[];
+function subjectsFromForm(form:FormData):{name:string;full:number;pass:number;parts:{name:string;marks:number}[]}[]{
+  const subjects:{name:string;full:number;pass:number;parts:{name:string;marks:number}[]}[]=[];
   for(let index=0;index<MAX_EXAM_SUBJECTS;index+=1){
     const name=String(form.get(`subject-${index}`)||'').trim();
     if(!name&&!form.has(`full-${index}`))continue;
-    subjects.push({name,full:number(form.get(`full-${index}`)),pass:number(form.get(`pass-${index}`))});
+    /* Group 3: the components of a subject, as the creator typed them. Their marks ARE the subject's
+       full marks — a total that disagrees with its own parts is two opinions in one row — so the sum
+       wins over whatever the single-total field still holds. No parts, and the field stands alone. */
+    const parts:{name:string;marks:number}[]=[];
+    for(let part=0;part<8;part+=1){
+      const partName=String(form.get(`part-${index}-${part}-name`)||'').trim();
+      const partMarks=number(form.get(`part-${index}-${part}-marks`));
+      if(!partName||!Number.isFinite(partMarks)||partMarks<1)continue;
+      parts.push({name:partName.slice(0,100),marks:Math.min(10000,Math.round(partMarks))});
+    }
+    const typed=number(form.get(`full-${index}`));
+    const full=parts.length?parts.reduce((sum,entry)=>sum+entry.marks,0):typed;
+    subjects.push({name,full,pass:number(form.get(`pass-${index}`)),parts});
   }
   return subjects;
 }
@@ -236,6 +248,50 @@ export async function publishExamAction(_:ExamState,form:FormData):Promise<ExamS
     refresh(id);
     return {status:'ok',id};
   }catch(error){return refused((error as Error).message)}
+}
+
+/** One class's answer to a result send, as the exam page is allowed to see it. */
+export interface ExamResultSend{classId:string;className:string;batchId:string;sent:number;failed:number;skipped:number;reason:string}
+export interface ResultSendState{status:'idle'|'ok'|'error';messageKey?:string;messageParams?:Record<string,string|number>;sends?:ExamResultSend[]}
+
+/**
+ * Group 3 · "Send result SMS to guardians", as its own button.
+ *
+ * Publishing already asks whether to send, and that question stays where it is. This is the other half of
+ * the operator's day: a mark was corrected after the results went out, or the box was left unticked and
+ * the guardians still have not been told. So the send is available on a published exam on its own, with
+ * the same engine, the same per-class batches and the same rule that a student with no published marks is
+ * skipped rather than texted an empty result — and the answer names the batch each class produced, so the
+ * proof of what went out is one click away instead of a search through the whole SMS history.
+ */
+export async function sendExamResultsAction(_:ResultSendState,form:FormData):Promise<ResultSendState>{
+  const actor=await scope(scope_=>scope_.publish);
+  if('state' in actor)return {status:'error',messageKey:actor.state.messageKey,messageParams:actor.state.messageParams};
+  if(form.get('confirm')!=='YES')return {status:'error',messageKey:'errors.confirm'};
+  const id=String(form.get('exam')||'').trim();
+  const exam=await CenterExam.findById(id).select('classGroups status').lean<{classGroups:unknown[];status:string}|null>();
+  if(!exam)return {status:'error',messageKey:keyFor('EXAM_UNAVAILABLE')};
+  if(!scopeCovers(actor.scope,exam.classGroups))return {status:'error',messageKey:keyFor('UNAUTHORIZED')};
+  /* Results are only sent from a published exam: a draft has no positions in it, and a message quoting a
+     position that has not been frozen would be a message the centre cannot stand behind. */
+  if(exam.status!=='published')return {status:'error',messageKey:'results.publishFirst'};
+  const classIds=exam.classGroups.map(group=>String(group));
+  const names=await CenterClassGroup.find({_id:{$in:classIds}}).select('name').lean<{_id:unknown;name:{bn:string;en?:string}}[]>();
+  const sends:ExamResultSend[]=[];
+  for(const classId of classIds){
+    const className=names.find(entry=>String(entry._id)===classId)?.name.bn||'';
+    try{
+      const outcome=await autoSendClassResults({exam:id,classGroup:classId},{ignoreToggle:true});
+      const counts=outcome.batchId?await batchCounts(outcome.batchId):null;
+      sends.push({classId,className,batchId:outcome.batchId||'',sent:counts?.sent||0,failed:counts?.failed||0,
+        skipped:counts?.skipped||0,reason:outcome.reason||''});
+    }catch(error){
+      sends.push({classId,className,batchId:'',sent:0,failed:0,skipped:0,reason:(error as Error).message||'SEND_FAILED'});
+    }
+  }
+  await audit(actor.scope.userId,'exam.results-sms',id);
+  refresh(id);
+  return {status:'ok',sends};
 }
 
 /** Unpublish: the only way back into a published result, and the log says who took it and how many rows. */

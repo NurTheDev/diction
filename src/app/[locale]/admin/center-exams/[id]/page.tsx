@@ -9,6 +9,7 @@ import {resultSmsAudience} from '@/lib/center/exam-result-audience';
 import {EXAM_TYPE_LABEL_KEYS,EXAM_STATUS_LABEL_KEYS,type ExamType,type ExamStatus} from '@/lib/exams/vocab';
 import {ExamShapeForm,PublishCenterExam} from '@/components/admin/center-exam-forms';
 import {ExamMarksPanel} from '@/components/exams/marks-grid';
+import {SendExamResults} from '@/components/admin/exam-result-send';
 import {ExamResultsTable,ExamSummaryPanel} from '@/components/exams/exam-result-table';
 
 export const dynamic='force-dynamic';
@@ -45,7 +46,7 @@ export default async function ExamDetail({params}:{params:Promise<{locale:string
     <div className="admin-heading"><div>
       <Link href="/admin/center-exams" className="text-link">← {t('detail.crumbExams')}</Link>
       <h1 data-exam-name>{view.name}</h1>
-      <p data-exam-meta>{formatDate(view.date,digits,locale==='en'?'en':'bn')} · {t(EXAM_TYPE_LABEL_KEYS[view.type as ExamType]||'typeLabels.other')} · {t(EXAM_STATUS_LABEL_KEYS[view.status as ExamStatus]||'status.draft')} · {view.classes.join(', ')}</p>
+      <p data-exam-meta>{formatDate(view.date,digits,locale==='en'?'en':'bn')} · {t(EXAM_TYPE_LABEL_KEYS[view.type as ExamType]||'typeLabels.other')} · {t(EXAM_STATUS_LABEL_KEYS[view.status as ExamStatus]||'status.draft')} · {view.classes.map(entry=>entry.name).join(', ')}</p>
       {view.scaleName&&<p className="admin-help" data-exam-scale-name>{t('detail.scaleUsed',{scale:view.scaleName})}</p>}
     </div></div>
     {view.tooMany&&<p role="alert" className="admin-feedback error">{t('detail.tooManyRecords')}</p>}
@@ -71,7 +72,7 @@ export default async function ExamDetail({params}:{params:Promise<{locale:string
                 scales={scales}
                 value={{id:view.id,name:view.name,type:view.type,date:view.date,scaleName:view.scaleName,
                   classIds:view.classes.map(entry=>entry.id),
-                  subjects:view.subjects.map(subject=>({name:subject.name,full:subject.full,pass:subject.pass})),
+                  subjects:view.subjects.map(subject=>({name:subject.name,full:subject.full,pass:subject.pass,parts:subject.parts})),
                   bands:view.bands}}/>
             </details>}
       </div>
@@ -84,6 +85,13 @@ export default async function ExamDetail({params}:{params:Promise<{locale:string
           canWrite={scope.manage||scope.teacher} digits={digits} published={published}/>
       </div>
     </section>
+    {/* Group 3: telling the guardians is its own step, not a checkbox somebody remembers — so the send
+        sits under the marks with the proof of what went out one click past it. */}
+    {scope.publish&&<section className="admin-panel" data-exam-results-sms>
+      <div className="admin-panel-head"><h2>{t('results.heading')}</h2></div>
+      <p className="admin-help" style={{padding:'0 1rem'}}>{t('results.panelHelp')}</p>
+      <div className="admin-panel-body"><SendExamResults exam={view.id} published={published} digits={digits}/></div>
+    </section>}
     {scope.publish&&<section className="admin-panel">
       <div className="admin-panel-head"><h2>{published?t('detail.publishedHeading'):t('detail.publishHeading')}</h2></div>
       <div className="admin-panel-body"><PublishCenterExam exam={view.id} published={published} sms={sms} digits={digits}/></div>
