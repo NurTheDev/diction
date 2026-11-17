@@ -1,5 +1,5 @@
 Error: timed out waiting for class B holds the period it was warned about
-  open drawers=0 warning=0 refused=0 anyway=0 toast="" url=http://localhost:3111/bn/admin/routine/master?classId=6afc377d6a34508b04d56e3c&shift=%E0%A6%AA%E0%A7%8D%E0%A6%B0%E0%A6%AD%E0%A6%BE%E0%A6%A4%E0%A7%80
+  open drawers=0 warning=0 refused=0 anyway=0 toast="" url=http://localhost:3111/bn/admin/routine/master?classId=6afc3c2fac21a61727ec791c&shift=%E0%A6%AA%E0%A7%8D%E0%A6%B0%E0%A6%AD%E0%A6%BE%E0%A6%A4%E0%A7%80
   the drawer says: 
   the server answered: 200 "status":"ok" | 200 "status":"ok" | 200 "status":"ok" | 200 "status":"ok" | 200 "status":"clash" | 200 "status":"ok"
   the page threw: nothing
