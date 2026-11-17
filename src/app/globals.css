@@ -1224,12 +1224,17 @@ html:lang(bn) .public-motion-root:not(.private-motion-disabled) :is(h1,h2,h3,h4)
 .routine-drawer-body .admin-edit{max-width:none}
 .routine-more .admin-more-body{position:static;box-shadow:none;margin-top:6px;min-width:180px}
 .routine-assignments .admin-table td{vertical-align:top}
+@media(max-width:900px){
+  /* The English heading lines run longer than the Bangla ones, so at tablet widths the heading's own
+     action link takes a line of its own instead of standing past the edge of the screen. */
+  .admin-heading[data-routine-daily],.admin-heading[data-routine-master]{flex-wrap:wrap;row-gap:10px}
+}
 @media(max-width:760px){
   .routine-week{grid-template-columns:minmax(0,1fr)}
   .routine-day{padding:12px 14px}
   .routine-period{grid-template-columns:minmax(0,1fr)}
   .routine-period-when{font-size:16px}
-  .routine-period-actions{justify-content:flex-start}
+  .routine-period-actions{justify-content:flex-start;flex-wrap:wrap}
   .routine-drawer{width:100%;max-width:100%;border-left:0}
   .routine-drawer-body{padding:16px}
   .routine-time-row{grid-template-columns:minmax(0,1fr)}
