@@ -24,7 +24,8 @@ import {purgeAtFor} from '@/models/recycle';
 import {audit} from '@/lib/admin/helpers';
 import {clashesFor,type RoutineClash,type RoutineSlot} from './conflicts';
 import {needsDocument,daySignature,sheetSignature,type DayStatus,type PeriodShape} from './day';
-import {centreSlots,masterWeek,shapeOf,type PeriodView} from './read';
+import {recordHistory,type HistoryCarrier,type StoredHistoryEntry} from './history';
+import {actorName,centreSlots,masterWeek,shapeOf,type PeriodView} from './read';
 import {weekdayOf} from './time';
 import type {AssignmentInput,DailySheetInput,RoutinePeriodInput} from '@/schemas/routine';
 
@@ -59,16 +60,17 @@ interface PeriodList extends Array<PeriodSub>{
   push(...items:unknown[]):number;
 }
 type Saved=Promise<unknown>;
-interface MasterDoc{
+interface MasterDoc extends HistoryCarrier{
   _id:mongoose.Types.ObjectId;classGroup:mongoose.Types.ObjectId;classLabel:{bn:string;en:string};
-  shift:string;weekday:number;active:boolean;periods:PeriodList;
+  shift:string;weekday:number;active:boolean;periods:PeriodList;history:StoredHistoryEntry[];
   /* The bin's own three stamps: a day moved out of a shift it no longer holds is binned, not dropped. */
   deletedAt:Date|null;deletedBy:mongoose.Types.ObjectId|null;purgeAt:Date|null;
   save(options?:{session?:mongoose.ClientSession}):Saved;
 }
-interface DailyDoc{
+interface DailyDoc extends HistoryCarrier{
   _id:mongoose.Types.ObjectId;date:string;classGroup:mongoose.Types.ObjectId;shift:string;
   classLabel:{bn:string;en:string};status:DayStatus;holidayReason:string;notes:string;periods:PeriodList;
+  history:StoredHistoryEntry[];
   sentAt:Date|null;sentBy:mongoose.Types.ObjectId|null;sentSignature:string;
   save(options?:{session?:mongoose.ClientSession}):Saved;deleteOne():Saved;
 }
@@ -174,6 +176,12 @@ export async function saveMasterPeriod({classId,shift,weekday,draft,force,actor}
      Mongo re-runs a transaction callback after a transient error, and a callback that pushes blindly
      would come out of the retry holding the same period twice — a day that double-books itself. */
   const newId=new mongoose.Types.ObjectId();
+  /* The day's own memory: one entry for this write, struck before the transaction so a Mongo retry
+     cannot leave the day remembering one change twice. */
+  const who=await actorName(actor);
+  const detail={start:draft.start,end:draft.end,subject:draft.subjectBn};
+  const historyId=new mongoose.Types.ObjectId();
+  const sourceHistoryId=new mongoose.Types.ObjectId();
   const session=await mongoose.startSession();
   try{
     await session.withTransaction(async()=>{
@@ -193,6 +201,10 @@ export async function saveMasterPeriod({classId,shift,weekday,draft,force,actor}
       }else if(!arrived){
         target.periods.push({...periodValues,_id:newId});
       }
+      recordHistory(target,{actor,actorName:who,code:moving?'periodMove':'periodSave',params:detail,
+        entryId:String(historyId)});
+      if(moving&&source)recordHistory(source,{actor,actorName:who,code:'periodMove',params:detail,
+        entryId:String(sourceHistoryId)});
       await target.save({session});
     });
   }catch(error){
@@ -224,6 +236,10 @@ export async function deleteMasterPeriod({classId,shift,periodId,actor}:PeriodDe
   period.deletedAt=now;
   period.deletedBy=new mongoose.Types.ObjectId(actor);
   period.purgeAt=purgeAtFor(now);
+  /* The snapshot is taken after the delete, so it holds the day without this period: a binned period is
+     not part of the day, and the bin — not the history — is what brings it back. */
+  recordHistory(doc,{actor,actorName:await actorName(actor),code:'periodDelete',
+    params:{start:period.start,end:period.end,subject:period.subject?.bn||''}});
   await doc.save();
   await audit(actor,'routine.period.delete',String(doc._id));
   refreshRoutine();
@@ -239,6 +255,8 @@ export async function restoreMasterPeriod({classId,shift,periodId,actor}:PeriodD
   period.deletedAt=null;
   period.deletedBy=null;
   period.purgeAt=null;
+  recordHistory(doc,{actor,actorName:await actorName(actor),code:'periodRestore',
+    params:{start:period.start,end:period.end,subject:period.subject?.bn||''}});
   await doc.save();
   await audit(actor,'routine.period.restore',String(doc._id));
   refreshRoutine();
@@ -264,6 +282,8 @@ export async function saveMasterDay({id,shift,active,actor}:MasterDayWrite):Prom
   /* The case the day drawer is opened for: the day stays where it is and its own two words change. */
   if(doc.shift===nextShift){
     doc.active=active;
+    recordHistory(doc,{actor,actorName:await actorName(actor),code:'daySave',
+      params:{shift:nextShift,count:doc.periods.filter(period=>!(period.deletedAt instanceof Date)).length}});
     await doc.save();
     await audit(actor,'routine.day.save',id);
     refreshRoutine();
@@ -277,6 +297,8 @@ export async function saveMasterDay({id,shift,active,actor}:MasterDayWrite):Prom
   if(!existing){
     doc.shift=nextShift;
     doc.active=active;
+    recordHistory(doc,{actor,actorName:await actorName(actor),code:'daySave',
+      params:{shift:nextShift,count:doc.periods.filter(period=>!(period.deletedAt instanceof Date)).length}});
     await doc.save();
     await audit(actor,'routine.day.shift',id);
     refreshRoutine();
@@ -287,6 +309,9 @@ export async function saveMasterDay({id,shift,active,actor}:MasterDayWrite):Prom
      weekday — that is the unique index — and an emptied day is not a day anybody asked to keep, so it
      takes the same thirty days in the Recycle Bin everything else this app removes takes. */
   const now=new Date();
+  const who=await actorName(actor);
+  const dayHistoryId=new mongoose.Types.ObjectId();
+  const existingHistoryId=new mongoose.Types.ObjectId();
   const session=await mongoose.startSession();
   try{
     await session.withTransaction(async()=>{
@@ -299,6 +324,10 @@ export async function saveMasterDay({id,shift,active,actor}:MasterDayWrite):Prom
           source:period.source,masterPeriod:period.masterPeriod,_id:new mongoose.Types.ObjectId()}));
       existing.periods.push(...(live as unknown as PeriodSub[]));
       existing.active=active;
+      const moved={shift:nextShift,count:live.length};
+      recordHistory(existing,{actor,actorName:who,code:'daySave',params:moved,
+        entryId:String(existingHistoryId)});
+      recordHistory(doc,{actor,actorName:who,code:'daySave',params:moved,entryId:String(dayHistoryId)});
       doc.deletedAt=now;
       doc.deletedBy=new mongoose.Types.ObjectId(actor);
       doc.purgeAt=purgeAtFor(now);
@@ -375,22 +404,30 @@ export async function saveDailySheet({classId,shift,date,status,holidayReason,no
     };
   });
 
+  const who=await actorName(actor);
   if(existing){
     existing.status=status;
     existing.holidayReason=holidayReason.trim();
     existing.notes=notes.trim();
     existing.classLabel=labelOf(group) as never;
     existing.periods=nextPeriods as never;
+    recordHistory(existing,{actor,actorName:who,code:'dailySave',params:{count:nextPeriods.length}});
     await existing.save();
     await audit(actor,'routine.daily.save',String(existing._id));
     refreshRoutine();
     return {status:'ok',id:String(existing._id),stored:true,pruned:false,clashes};
   }
 
+  /* A sheet's very first write is a change too, so the entry is built on the values about to be created
+     and stored with them — one document, one round trip. */
+  const fresh:HistoryCarrier={shift,status,holidayReason:holidayReason.trim(),notes:notes.trim(),
+    periods:nextPeriods};
+  recordHistory(fresh,{actor,actorName:who,code:'dailySave',params:{count:nextPeriods.length}});
   try{
     const created=await DailyRoutine.create({
       date,classGroup:classId,classLabel:labelOf(group),shift,status,
       holidayReason:holidayReason.trim(),notes:notes.trim(),periods:nextPeriods,createdBy:actor,
+      history:fresh.history,
     });
     await audit(actor,'routine.daily.create',String(created._id));
     refreshRoutine();
@@ -429,6 +466,8 @@ export async function resetDailySheet({classId,shift,date,actor}:{classId:string
     room:period.room,jointWith:validId(period.jointWith)?period.jointWith:null,order:period.order,
     note:period.note,source:'master',masterPeriod:period.id,
   })) as never;
+  recordHistory(existing,{actor,actorName:await actorName(actor),code:'dailyReset',
+    params:{count:master.length}});
   await existing.save();
   await audit(actor,'routine.daily.reset',String(existing._id));
   refreshRoutine();

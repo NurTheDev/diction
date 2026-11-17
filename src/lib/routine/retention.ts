@@ -12,6 +12,9 @@
  *     database this runs on is 512 MB.
  *   • **Binned periods.** A period deleted from the week sits in its day's own bin for thirty days — the
  *     window every other record in this app has — and then the job drops it for good.
+ *   • **A day's memory.** Every day keeps the last twenty changes inside itself, and an entry older than
+ *     ninety days is dropped here. The cap is what keeps one day small; this is what keeps an old day from
+ *     carrying the term's whole diary.
  *
  * The counts come back so the job can report them, and nothing here throws: a housekeeping failure must
  * not take the rest of the daily job with it.
@@ -21,8 +24,9 @@ import {dhakaDay} from '@/lib/admin/today';
 import {LOG_RETENTION_MONTHS,logRetentionMonths} from '@/lib/admin/cron';
 import {shiftDate} from './time';
 import {DAILY_RETENTION_DAYS,pruneCutoff} from './day';
+import {HISTORY_RETENTION_DAYS,historyCutoff} from './history';
 
-export {DAILY_RETENTION_DAYS,pruneCutoff};
+export {DAILY_RETENTION_DAYS,HISTORY_RETENTION_DAYS,pruneCutoff,historyCutoff};
 
 export interface RoutineRetentionReport{
   /** Working sheets pruned because their date is older than sixty days and nothing was sent from them. */
@@ -31,11 +35,27 @@ export interface RoutineRetentionReport{
   sentSheets:number;
   /** Binned periods whose thirty days were up, in master weeks and working sheets alike. */
   periods:number;
+  /** History entries older than ninety days, dropped from the days that still held them. */
+  history:number;
 }
 
 /** The oldest date a SENT sheet is kept: the log window, not the sixty-day working-paper window. */
 export function sentSheetCutoff(now:Date=new Date(),retentionMonths:number=LOG_RETENTION_MONTHS):string{
   return shiftDate(dhakaDay(now),-Math.round(retentionMonths*30));
+}
+
+/** The instant an entry ages out: Dhaka's cutoff day, read from the start of that day. */
+export function historyCutoffAt(now:Date=new Date()):Date{
+  return new Date(`${historyCutoff(now)}T00:00:00+06:00`);
+}
+
+/** How many history entries in one collection are due, counted before they are pulled. */
+async function dueHistory(collection:typeof MasterRoutine,cutoff:Date):Promise<number>{
+  const rows=await collection.aggregate<{due:number}>([
+    {$match:{'history.at':{$lt:cutoff}}},
+    {$project:{due:{$size:{$filter:{input:'$history',as:'entry',cond:{$lt:['$$entry.at',cutoff]}}}}}},
+  ]);
+  return rows.reduce((total,row)=>total+(Number(row.due)||0),0);
 }
 
 /** How many binned periods in one collection are due, counted before they are pulled. */
@@ -58,15 +78,23 @@ export async function routineRetention(now:Date=new Date(),months?:number):Promi
   const retentionMonths=months??await logRetentionMonths();
   const cutoff=pruneCutoff(now);
   const sentCutoff=sentSheetCutoff(now,retentionMonths);
-  const [pruned,sentPruned,masterDue,dailyDue]=await Promise.all([
+  const agedOut=historyCutoffAt(now);
+  const [pruned,sentPruned,masterDue,dailyDue,masterHistory,dailyHistory]=await Promise.all([
     DailyRoutine.deleteMany({date:{$lt:cutoff},sentAt:null}),
     DailyRoutine.deleteMany({date:{$lt:sentCutoff},sentAt:{$ne:null}}),
     duePeriods(MasterRoutine,now),
     duePeriods(DailyRoutine,now),
+    dueHistory(MasterRoutine,agedOut),
+    dueHistory(DailyRoutine,agedOut),
   ]);
   await Promise.all([
     MasterRoutine.updateMany({},{$pull:{periods:{purgeAt:{$lte:now}}}}),
     DailyRoutine.updateMany({},{$pull:{periods:{purgeAt:{$lte:now}}}}),
+    /* Only the days that actually hold an aged entry are written to, so a day that has been edited
+       lately is never touched by the job at all. */
+    MasterRoutine.updateMany({'history.at':{$lt:agedOut}},{$pull:{history:{at:{$lt:agedOut}}}}),
+    DailyRoutine.updateMany({'history.at':{$lt:agedOut}},{$pull:{history:{at:{$lt:agedOut}}}}),
   ]);
-  return {dailySheets:pruned.deletedCount||0,sentSheets:sentPruned.deletedCount||0,periods:masterDue+dailyDue};
+  return {dailySheets:pruned.deletedCount||0,sentSheets:sentPruned.deletedCount||0,
+    periods:masterDue+dailyDue,history:masterHistory+dailyHistory};
 }

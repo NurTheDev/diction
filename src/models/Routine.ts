@@ -78,6 +78,30 @@ const period=new Schema({
  */
 const label={bn:{type:String,default:''},en:{type:String,default:''}};
 
+/* One entry of a day's own memory: who changed it, when in wall-clock terms, a catalog code the
+   screen turns into a sentence, and the whole day as it stood once the change was in — twenty of
+   these, no more, pruned after ninety days, which is a memory rather than an archive. */
+const historyPeriod=new Schema({
+  start:{type:String,required:true},end:{type:String,required:true},
+  subjectBn:{type:String,default:''},subjectEn:{type:String,default:''},
+  teacher:{type:String,default:''},room:{type:String,default:''},
+  jointWith:{type:String,default:''},order:{type:Number,default:0},note:{type:String,default:''},
+  source:{type:String,default:'own'},masterPeriod:{type:String,default:''},
+},{_id:false});
+const historyEntry=new Schema({
+  at:{type:Date,default:Date.now},
+  by:userRef,
+  byName:{type:String,default:''},
+  code:{type:String,required:true},
+  params:{type:Object,default:{}},
+  snapshot:{
+    shift:{type:String,default:''},active:{type:Boolean,default:true},
+    status:{type:String,default:'normal'},holidayReason:{type:String,default:''},
+    notes:{type:String,default:''},
+    periods:{type:[historyPeriod],default:[]},
+  },
+});
+
 const masterSchema=new Schema({
   classGroup:classRef,
   classLabel:{...label,_id:false},
@@ -88,6 +112,8 @@ const masterSchema=new Schema({
   periods:{type:[period],default:[]},
   /** Archive, the staff floor: a day switched off stays readable and stops being offered as a template. */
   active:{type:Boolean,default:true},
+  /** The last twenty edits of this day, newest last. Capped in code, pruned by the daily job. */
+  history:{type:[historyEntry],default:[]},
   createdBy:userRef,
 },{timestamps:true});
 addRecycleFields(masterSchema);
@@ -114,6 +140,7 @@ const dailySchema=new Schema({
   sentAt:{type:Date,default:null},
   sentBy:userRef,
   sentSignature:{type:String,default:'',match:/^(?:|[a-f0-9]{64})$/},
+  history:{type:[historyEntry],default:[]},
   createdBy:userRef,
 },{timestamps:true});
 addRecycleFields(dailySchema);

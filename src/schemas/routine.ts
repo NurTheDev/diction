@@ -89,3 +89,83 @@ export const assignmentSchema=z.object({
 });
 
 export type AssignmentInput=z.infer<typeof assignmentSchema>;
+
+/* --------------------------------------------------------- Slice 2 · the tools that write many periods */
+
+/** An integer that may be negative: a clock moved ten minutes *earlier* is a shift of −10. */
+const signedInteger=(min:number,max:number)=>z.union([
+  z.string().transform(fold).pipe(z.string().regex(/^-?\d+$/).transform(Number)),
+  z.number(),
+]).pipe(z.number().int().min(min).max(max));
+
+/**
+ * One bulk edit: the periods ticked in the grid, and what happens to all of them at once.
+ *
+ * The three `set` flags are what makes "leave this field alone" different from "write an empty value
+ * into it" — a room cleared on purpose is a checkbox and an empty box, and a room nobody asked about is
+ * no checkbox at all.
+ */
+export const bulkEditSchema=z.object({
+  classId:id,
+  shift:z.string().trim().min(1).max(100),
+  weekday:weekdaySchema,
+  periodIds:z.array(maybeId).max(80).transform(values=>values.filter(Boolean)),
+  minutes:signedInteger(-240,240).default(0),
+  setRoom:z.boolean().default(false),
+  room:optionalText(80),
+  setTeacher:z.boolean().default(false),
+  teacher:maybeId,
+  setSubject:z.boolean().default(false),
+  subjectBn:optionalText(200),
+  subjectEn:optionalText(200),
+}).refine(input=>input.periodIds.length>0,{path:['periodIds']});
+
+export type BulkEditFormInput=z.infer<typeof bulkEditSchema>;
+
+/**
+ * "Replace teacher X with teacher Y from date A to date B." The range gates the working sheets; the week
+ * itself is rewritten only when `master` is asked for, because a teacher away for a fortnight comes back.
+ */
+export const replaceTeacherSchema=z.object({
+  from:id,
+  to:id,
+  fromDate:dayText,
+  toDate:dayText,
+  master:z.boolean().default(false),
+  daily:z.boolean().default(true),
+  /** Empty means every class, and an empty shift means every shift: a centre-wide replacement. */
+  classId:maybeId,
+  shift:z.string().trim().max(100).default(''),
+}).refine(input=>input.from.toLowerCase()!==input.to.toLowerCase(),{path:['to']})
+  .refine(input=>input.toDate>=input.fromDate,{path:['toDate']})
+  .refine(input=>input.master||input.daily,{path:['scope']});
+
+export type ReplaceTeacherFormInput=z.infer<typeof replaceTeacherSchema>;
+
+/** A whole day, moved to another weekday or duplicated onto one. */
+export const dayOpSchema=z.object({
+  classId:id,
+  shift:z.string().trim().min(1).max(100),
+  from:weekdaySchema,
+  to:weekdaySchema,
+}).refine(input=>input.from!==input.to,{path:['to']});
+
+export type DayOpFormInput=z.infer<typeof dayOpSchema>;
+
+/** One "restore this version" tap: which day, and which of the versions it remembers. */
+export const restoreHistorySchema=z.object({
+  kind:z.enum(['master','daily']),
+  id:id,
+  entryId:z.string().transform(fold).pipe(z.string().regex(/^[a-f0-9]{24}$/i)),
+});
+
+export type RestoreHistoryFormInput=z.infer<typeof restoreHistorySchema>;
+
+/** The dispatch panel's own write: this date's sheet went out. */
+export const dispatchSchema=z.object({
+  classId:id,
+  shift:z.string().trim().min(1).max(100),
+  date:dayText,
+});
+
+export type DispatchFormInput=z.infer<typeof dispatchSchema>;

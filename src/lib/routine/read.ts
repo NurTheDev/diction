@@ -20,7 +20,9 @@ import {CenterClassGroup} from '@/models/CenterRecords';
 import {DailyRoutine,MasterRoutine,TeachingAssignment} from '@/models/Routine';
 import {User} from '@/models/User';
 import {daySignature,changedSinceSent,type DayStatus,type PeriodShape} from './day';
-import {hasPassed,weekdayOf,type Language} from './time';
+import {historyViews,type HistoryView,type StoredHistoryEntry} from './history';
+import {dhakaDay} from '@/lib/admin/today';
+import {hasPassed,shiftDate,weekdayOf,type Language} from './time';
 import {roomKey,type RoutineSlot} from './conflicts';
 
 export interface RoutineClass{id:string;nameBn:string;nameEn:string;name:string;shift:string;active:boolean}
@@ -49,6 +51,8 @@ export interface MasterDayView{
   periods:PeriodView[];
   /** Periods sitting in this day's own bin, so the ⋯ menu can say how many and offer them back. */
   binned:number;
+  /** The day's own memory: the last twenty changes, newest first. */
+  history:HistoryView[];
   updatedAt:string;
 }
 
@@ -70,10 +74,50 @@ export interface DailySheetView{
   masterPeriods:PeriodView[];
   sent:boolean;
   sentAt:string|null;
+  /** Who sent it, named — the dispatch panel says "sent by" beside the time. */
+  sentByName:string;
   changedSinceSent:boolean;
   passed:boolean;
   signature:string;
+  /** The sheet's own memory: the last twenty changes, newest first. */
+  history:HistoryView[];
 }
+
+/** One period of a teacher's own day, whichever class it belongs to. */
+export interface TeacherRow{
+  start:string;
+  end:string;
+  classId:string;
+  className:string;
+  shift:string;
+  room:string;
+  subjectBn:string;
+  subjectEn:string;
+  /** True when the day's working sheet says so rather than the week — a substitute, a moved room. */
+  daily:boolean;
+}
+
+/** One date of a teacher's schedule. */
+export interface TeacherDay{date:string;weekday:number;rows:TeacherRow[]}
+
+/** A teacher's own timetable: today, and the seven days from today. */
+export interface TeacherSchedule{today:TeacherDay;week:TeacherDay[]}
+
+/** One class's day, as the printable notice reads it. */
+export interface NoticeClass{
+  classId:string;
+  className:string;
+  shift:string;
+  status:DayStatus;
+  holidayReason:string;
+  notes:string;
+  periods:PeriodView[];
+  /** True when this date has its own sheet; false when the class simply runs the week. */
+  stored:boolean;
+}
+
+/** The day's routine across every class — the sheet of paper that goes on the bulletin board. */
+export interface DayNotice{date:string;weekday:number;classes:NoticeClass[]}
 
 export interface AssignmentView{
   id:string;
@@ -96,10 +140,11 @@ type StoredPeriod={_id:mongoose.Types.ObjectId;start:string;end:string;subject:{
   note?:string;source?:string;masterPeriod?:mongoose.Types.ObjectId|null;
   deletedAt?:Date|null;purgeAt?:Date|null};
 type MasterDoc={_id:mongoose.Types.ObjectId;classGroup:mongoose.Types.ObjectId;shift:string;weekday:number;
-  active?:boolean;periods:StoredPeriod[];updatedAt:Date};
+  active?:boolean;periods:StoredPeriod[];history?:StoredHistoryEntry[];updatedAt:Date};
 type DailyDoc={_id:mongoose.Types.ObjectId;date:string;classGroup:mongoose.Types.ObjectId;shift:string;
   status?:DayStatus;holidayReason?:string;notes?:string;periods:StoredPeriod[];
-  sentAt?:Date|null;sentSignature?:string;updatedAt:Date};
+  sentAt?:Date|null;sentBy?:mongoose.Types.ObjectId|null;sentSignature?:string;
+  history?:StoredHistoryEntry[];updatedAt:Date};
 type AssignmentDoc={_id:mongoose.Types.ObjectId;teacher:mongoose.Types.ObjectId;classGroup:mongoose.Types.ObjectId;
   subject:{bn:string;en?:string};periodsPerWeek:number;active?:boolean;note?:string;updatedAt:Date};
 
@@ -152,6 +197,12 @@ async function namesFor(ids:string[]):Promise<Map<string,string>>{
   return new Map(docs.map(doc=>[String(doc._id),doc.name]));
 }
 
+/** The name a history entry says made the change — the operator's own, from their account. */
+export async function actorName(actor:string):Promise<string>{
+  if(!mongoose.isValidObjectId(String(actor??'')))return '';
+  return (await namesFor([String(actor)])).get(String(actor))||'';
+}
+
 const live=(period:StoredPeriod):boolean=>!(period.deletedAt instanceof Date);
 
 function viewOf(period:StoredPeriod,teacherNames:Map<string,string>):PeriodView{
@@ -184,7 +235,8 @@ export function shapeOf(period:PeriodView):PeriodShape{
  * to the day's ⋯ menu, which is where it comes back from.
  */
 export async function masterWeek(classId:string,shift:string,language:Language):Promise<MasterDayView[]>{
-  const empty=(weekday:number):MasterDayView=>({weekday,id:null,shift,active:true,periods:[],binned:0,updatedAt:''});
+  const empty=(weekday:number):MasterDayView=>({weekday,id:null,shift,active:true,periods:[],binned:0,
+    history:[],updatedAt:''});
   if(!mongoose.isValidObjectId(classId))return Array.from({length:7},(_,index)=>empty(index));
   const docs=await MasterRoutine.find({classGroup:classId,shift}).lean<MasterDoc[]>();
   const byWeekday=new Map(docs.map(doc=>[doc.weekday,doc]));
@@ -194,7 +246,8 @@ export async function masterWeek(classId:string,shift:string,language:Language):
     if(!doc)return empty(weekday);
     const periods=doc.periods.filter(live).map(period=>viewOf(period,teacherNames)).sort(byDay);
     return {weekday,id:String(doc._id),shift:doc.shift,active:doc.active!==false,periods,
-      binned:doc.periods.length-periods.length,updatedAt:doc.updatedAt.toISOString()};
+      binned:doc.periods.length-periods.length,history:historyViews(doc.history),
+      updatedAt:doc.updatedAt.toISOString()};
   });
 }
 
@@ -306,7 +359,8 @@ export async function dailySheet(classId:string,shift:string,date:string,languag
   ]);
   const masterDay=week.find(day=>day.weekday===weekday);
   const masterPeriods=masterDay?.periods||[];
-  const teacherNames=await namesFor((doc?.periods||[]).filter(live).map(period=>String(period.teacher||'')));
+  const teacherNames=await namesFor([...(doc?.periods||[]).filter(live).map(period=>String(period.teacher||'')),
+    ...(doc?.sentBy?[String(doc.sentBy)]:[])]);
   const periods:DailyPeriodView[]=(doc?doc.periods.filter(live).map(period=>{
     const view=viewOf(period,teacherNames);
     return {...view,source:(period.source==='master'?'master':'own') as 'master'|'own',
@@ -320,10 +374,12 @@ export async function dailySheet(classId:string,shift:string,date:string,languag
     status,holidayReason:doc?.holidayReason||'',notes:doc?.notes||'',
     periods,masterPeriods,
     sent:!!sentAt,sentAt:sentAt?sentAt.toISOString():null,
+    sentByName:doc?.sentBy?teacherNames.get(String(doc.sentBy))||'':'',
     changedSinceSent:changedSinceSent({status,notes:doc?.notes||'',
       holidayReason:doc?.holidayReason||'',periods:periods.map(shapeOf)},doc?.sentSignature||''),
     passed:hasPassed(date),
     signature:daySignature(periods.map(shapeOf)),
+    history:historyViews(doc?.history),
   };
 }
 
@@ -360,4 +416,103 @@ export async function knownRooms():Promise<string[]>{
     if(room)rooms.add(room);
   }
   return [...rooms].sort((a,b)=>roomKey(a).localeCompare(roomKey(b)));
+}
+
+/* ------------------------------------------------------- the day as one person, or as one notice, reads it */
+
+/** The dates a teacher's schedule covers: Dhaka's today, and the six days after it. */
+export function scheduleDates(now:Date=new Date()):string[]{
+  const today=dhakaDay(now);
+  return Array.from({length:7},(_,index)=>shiftDate(today,index));
+}
+
+const classNames=(docs:{classGroup:mongoose.Types.ObjectId}[],language:Language):Promise<Map<string,string>>=>
+  CenterClassGroup.find({_id:{$in:docs.map(doc=>doc.classGroup)}}).lean<ClassDoc[]>()
+    .then(found=>new Map(found.map(doc=>[String(doc._id),
+      (language==='bn'?doc.name.bn:doc.name.en)||doc.name.bn||''])));
+
+/**
+ * One teacher's own timetable: today, then the week ahead.
+ *
+ * A date's working sheet speaks for its class on that date and the week does not — that is the whole
+ * split this collection exists for — so a teacher who has been replaced on Tuesday sees Tuesday as the
+ * sheet says it is, and Wednesday as the week says it is. Periods in a bin are not part of any day.
+ */
+export async function teacherSchedule(teacherId:string,language:Language,now:Date=new Date()):Promise<TeacherSchedule|null>{
+  if(!mongoose.isValidObjectId(String(teacherId??'')))return null;
+  const dates=scheduleDates(now);
+  const weekdays=[...new Set(dates.map(date=>weekdayOf(date)))];
+  const [masters,sheets]=await Promise.all([
+    MasterRoutine.find({weekday:{$in:weekdays}}).lean<MasterDoc[]>(),
+    DailyRoutine.find({date:{$in:dates}}).lean<DailyDoc[]>(),
+  ]);
+  const names=await classNames([...masters,...sheets],language);
+  const wanted=String(teacherId).toLowerCase();
+  const held=new Set(sheets.map(sheet=>[sheet.date,String(sheet.classGroup),sheet.shift].join('~')));
+  const days:TeacherDay[]=dates.map(date=>{
+    const weekday=weekdayOf(date);
+    const rows:TeacherRow[]=[];
+    const push=(period:StoredPeriod,shift:string,classId:string,daily:boolean):void=>{
+      if(String(period.teacher||'').toLowerCase()!==wanted)return;
+      rows.push({start:period.start,end:period.end,classId,
+        className:names.get(classId)||'',shift,room:period.room||'',
+        subjectBn:period.subject?.bn||'',subjectEn:period.subject?.en||'',daily});
+    };
+    for(const doc of masters){
+      if(doc.weekday!==weekday||doc.active===false)continue;
+      const classId=String(doc.classGroup);
+      /* The sheet for this class, shift and date has the last word, so the week stays quiet about it. */
+      if(held.has([date,classId,doc.shift].join('~')))continue;
+      for(const period of doc.periods.filter(live))push(period,doc.shift,classId,false);
+    }
+    for(const sheet of sheets){
+      if(sheet.date!==date)continue;
+      const classId=String(sheet.classGroup);
+      for(const period of sheet.periods.filter(live))push(period,sheet.shift,classId,true);
+    }
+    rows.sort((a,b)=>a.start.localeCompare(b.start)||a.className.localeCompare(b.className));
+    return {date,weekday,rows};
+  });
+  return {today:days[0]||{date:dates[0]||'',weekday:0,rows:[]},week:days};
+}
+
+/**
+ * The day's routine across every class: the bulletin-board notice.
+ *
+ * Same rule as a teacher's own day — a date's sheet speaks for its class, the week speaks where no sheet
+ * does — so one printed sheet is what actually runs, holidays and their reasons included, for every class
+ * and shift the centre wrote.
+ */
+export async function printNotice(date:string,language:Language):Promise<DayNotice|null>{
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(date))return null;
+  const weekday=weekdayOf(date);
+  const [masters,sheets,groups]=await Promise.all([
+    MasterRoutine.find({weekday}).lean<MasterDoc[]>(),
+    DailyRoutine.find({date}).lean<DailyDoc[]>(),
+    routineClasses(language),
+  ]);
+  const teacherNames=await namesFor([...masters,...sheets]
+    .flatMap(doc=>doc.periods.filter(live).map(period=>String(period.teacher||''))));
+  const nameOf=new Map(groups.map(group=>[group.id,group.name]));
+  const held=new Set(sheets.map(sheet=>[String(sheet.classGroup),sheet.shift].join('~')));
+  const notices=new Map<string,NoticeClass>();
+  for(const doc of masters){
+    const classId=String(doc.classGroup);
+    const key=[classId,doc.shift].join('~');
+    if(doc.active===false||held.has(key))continue;
+    notices.set(key,{classId,className:nameOf.get(classId)||'',shift:doc.shift,status:'normal',
+      holidayReason:'',notes:'',stored:false,
+      periods:doc.periods.filter(live).map(period=>viewOf(period,teacherNames)).sort(byDay)});
+  }
+  for(const sheet of sheets){
+    const classId=String(sheet.classGroup);
+    notices.set([classId,sheet.shift].join('~'),{classId,className:nameOf.get(classId)||'',shift:sheet.shift,
+      status:sheet.status||'normal',holidayReason:sheet.holidayReason||'',notes:sheet.notes||'',stored:true,
+      periods:sheet.periods.filter(live).map(period=>viewOf(period,teacherNames)).sort(byDay)});
+  }
+  const order=new Map(groups.map((group,index)=>[group.id,index]));
+  const classes=[...notices.values()].sort((a,b)=>
+    (order.get(a.classId)??Number.MAX_SAFE_INTEGER)-(order.get(b.classId)??Number.MAX_SAFE_INTEGER)
+    ||a.shift.localeCompare(b.shift));
+  return {date,weekday,classes};
 }

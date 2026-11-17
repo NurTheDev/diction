@@ -19,11 +19,15 @@
 'use server';
 import {getTranslations} from 'next-intl/server';
 import {requireAdmin} from '@/lib/admin/guard';
-import {assignmentSchema,dailySheetSchema,routinePeriodSchema} from '@/schemas/routine';
+import {assignmentSchema,bulkEditSchema,dayOpSchema,dispatchSchema,replaceTeacherSchema,
+  restoreHistorySchema,dailySheetSchema,routinePeriodSchema} from '@/schemas/routine';
 import {
-  deleteMasterPeriod,resetDailySheet,restoreMasterPeriod,saveAssignment,saveDailySheet,saveMasterDay,
-  saveMasterPeriod,type RoutineOutcome,
+  deleteMasterPeriod,markDailySheetSent,resetDailySheet,restoreMasterPeriod,saveAssignment,saveDailySheet,
+  saveMasterDay,saveMasterPeriod,type RoutineOutcome,
 } from '@/lib/routine/engine';
+import {applyBulkEdit,applyReplaceTeacher,duplicateMasterDay,moveMasterDay,previewReplaceTeacher,
+  restoreHistory,type BulkOutcome,type DayOpOutcome,type ReplaceOutcome} from '@/lib/routine/bulk';
+import type {ReplaceRow} from '@/lib/routine/bulk';
 import type {RoutineClash} from '@/lib/routine/conflicts';
 
 export type RoutineActionStatus='idle'|'ok'|'invalid'|'clash'|'missing'|'duplicate'|'error';
@@ -36,10 +40,35 @@ export interface RoutineActionState{
   /** Did the day need a document? A sheet that matches the week writes nothing, and says so. */
   stored?:boolean;
   pruned?:boolean;
+  /** What a replacement preview found: every period it will touch, in the order the days run. */
+  rows?:ReplaceRow[];
+  /** How many periods a bulk tool wrote, and how many days it walked to write them. */
+  touched?:number;
+  days?:number;
 }
+
+/** What the bulk tools answer: the same four refusals the single-period writer gives, plus a count. */
+type ToolOutcome=
+  |{status:'ok';touched:number;days?:number;clashes:RoutineClash[]}
+  |{status:'invalid';fields:string[]}
+  |{status:'clash';clashes:RoutineClash[]}
+  |{status:'missing'}
+  |{status:'error'};
 
 const text=(form:FormData,name:string):string=>String(form.get(name)??'').trim();
 const flagged=(form:FormData,name:string):boolean=>form.get(name)==='on';
+const list=(form:FormData,name:string):string[]=>form.getAll(name).map(value=>String(value).trim()).filter(Boolean);
+
+/** A bulk tool's outcome as the state a panel renders, with the operator's own sentence when it wrote. */
+function toolState(outcome:ToolOutcome,message?:string):RoutineActionState{
+  switch(outcome.status){
+    case 'ok':return {status:'ok',message,touched:outcome.touched,days:outcome.days,clashes:outcome.clashes};
+    case 'invalid':return {status:'invalid',fields:outcome.fields};
+    case 'clash':return {status:'clash',clashes:outcome.clashes};
+    case 'missing':return {status:'missing'};
+    default:return {status:'error'};
+  }
+}
 
 /** The outcome the engine gave, as the state a drawer renders — plus the operator's own sentence. */
 function stateFor(outcome:RoutineOutcome,message?:string):RoutineActionState{
@@ -166,6 +195,139 @@ export async function saveAssignmentAction(_:RoutineActionState,form:FormData):P
     });
     if(!parsed.success)return {status:'invalid',fields:parsed.error.issues.map(issue=>String(issue.path[0]))};
     const outcome=await saveAssignment({...parsed.data,actor:admin.id});
+    return stateFor(outcome,outcome.status==='ok'?message:undefined);
+  }catch{return {status:'error'}}
+}
+
+/* ------------------------------------------------- Slice 2 · the tools that change many periods at once */
+
+/**
+ * One bulk edit: the periods ticked in the grid, moved by a number of minutes, or written with one room,
+ * one teacher, one subject. A clash comes back as a warning with the periods still untouched, and the
+ * same form posted with `force` writes all of them — the rule every other routine write follows.
+ */
+export async function bulkEditPeriodsAction(_:RoutineActionState,form:FormData):Promise<RoutineActionState>{
+  let message='';
+  try{
+    const admin=await requireAdmin();
+    const t=await getTranslations('routine');
+    const parsed=bulkEditSchema.safeParse({
+      classId:text(form,'classId'),shift:text(form,'shift'),weekday:text(form,'weekday'),
+      periodIds:list(form,'periodIds'),minutes:text(form,'minutes')||'0',
+      setRoom:flagged(form,'setRoom'),room:text(form,'room'),
+      setTeacher:flagged(form,'setTeacher'),teacher:text(form,'teacher'),
+      setSubject:flagged(form,'setSubject'),subjectBn:text(form,'subjectBn'),subjectEn:text(form,'subjectEn'),
+    });
+    if(!parsed.success)return {status:'invalid',fields:parsed.error.issues.map(issue=>String(issue.path[0]))};
+    message=t('bulk.applied',{count:parsed.data.periodIds.length});
+    const outcome:BulkOutcome=await applyBulkEdit({...parsed.data,force:flagged(form,'force'),actor:admin.id});
+    return toolState(outcome,outcome.status==='ok'?message:undefined);
+  }catch{return {status:'error'}}
+}
+
+/**
+ * What "replace teacher X with teacher Y from date A to date B" will touch — read only. The rows and the
+ * clashes come back as state so the panel can show every affected period, and the name of every teacher
+ * already busy at that minute, before anything is written.
+ */
+export async function previewReplaceTeacherAction(_:RoutineActionState,form:FormData):Promise<RoutineActionState>{
+  try{
+    await requireAdmin();
+    const parsed=replaceTeacherSchema.safeParse({
+      from:text(form,'from'),to:text(form,'to'),
+      fromDate:text(form,'fromDate'),toDate:text(form,'toDate'),
+      master:flagged(form,'master'),daily:flagged(form,'daily'),
+      classId:text(form,'classId'),shift:text(form,'shift'),
+    });
+    if(!parsed.success)return {status:'invalid',fields:parsed.error.issues.map(issue=>String(issue.path[0]))};
+    const preview=await previewReplaceTeacher(parsed.data);
+    if(preview.invalid.length)return {status:'invalid',fields:preview.invalid};
+    /* No rows is not a refusal and not an error: it is the honest answer that nobody teaches those
+       periods, so there is nothing to replace. */
+    return {status:'ok',rows:preview.rows,clashes:preview.clashes,touched:preview.rows.length};
+  }catch{return {status:'error'}}
+}
+
+/** Write the replacement the preview described. */
+export async function applyReplaceTeacherAction(_:RoutineActionState,form:FormData):Promise<RoutineActionState>{
+  let message='';
+  try{
+    const admin=await requireAdmin();
+    const t=await getTranslations('routine');
+    const parsed=replaceTeacherSchema.safeParse({
+      from:text(form,'from'),to:text(form,'to'),
+      fromDate:text(form,'fromDate'),toDate:text(form,'toDate'),
+      master:flagged(form,'master'),daily:flagged(form,'daily'),
+      classId:text(form,'classId'),shift:text(form,'shift'),
+    });
+    if(!parsed.success)return {status:'invalid',fields:parsed.error.issues.map(issue=>String(issue.path[0]))};
+    const outcome:ReplaceOutcome=await applyReplaceTeacher({...parsed.data,force:flagged(form,'force'),
+      actor:admin.id});
+    if(outcome.status==='ok')message=t('replace.applied',{count:outcome.touched,days:outcome.days});
+    return toolState(outcome,outcome.status==='ok'?message:undefined);
+  }catch{return {status:'error'}}
+}
+
+/** Move every period of one weekday to another. */
+export async function moveDayAction(_:RoutineActionState,form:FormData):Promise<RoutineActionState>{
+  let message='';
+  try{
+    const admin=await requireAdmin();
+    const t=await getTranslations('routine');
+    const parsed=dayOpSchema.safeParse({classId:text(form,'classId'),shift:text(form,'shift'),
+      from:text(form,'from'),to:text(form,'to')});
+    if(!parsed.success)return {status:'invalid',fields:parsed.error.issues.map(issue=>String(issue.path[0]))};
+    const outcome:DayOpOutcome=await moveMasterDay({...parsed.data,force:flagged(form,'force'),actor:admin.id});
+    if(outcome.status==='ok')message=t('dayOps.moved',{count:outcome.touched});
+    return toolState(outcome,outcome.status==='ok'?message:undefined);
+  }catch{return {status:'error'}}
+}
+
+/** Duplicate a whole day onto another weekday, leaving the day it came from as it was. */
+export async function duplicateDayAction(_:RoutineActionState,form:FormData):Promise<RoutineActionState>{
+  let message='';
+  try{
+    const admin=await requireAdmin();
+    const t=await getTranslations('routine');
+    const parsed=dayOpSchema.safeParse({classId:text(form,'classId'),shift:text(form,'shift'),
+      from:text(form,'from'),to:text(form,'to')});
+    if(!parsed.success)return {status:'invalid',fields:parsed.error.issues.map(issue=>String(issue.path[0]))};
+    const outcome:DayOpOutcome=await duplicateMasterDay({...parsed.data,force:flagged(form,'force'),
+      actor:admin.id});
+    if(outcome.status==='ok')message=t('dayOps.duplicated',{count:outcome.touched});
+    return toolState(outcome,outcome.status==='ok'?message:undefined);
+  }catch{return {status:'error'}}
+}
+
+/** Put a day back to one of the twenty versions it remembers. */
+export async function restoreHistoryAction(_:RoutineActionState,form:FormData):Promise<RoutineActionState>{
+  let message='';
+  try{
+    const admin=await requireAdmin();
+    const t=await getTranslations('routine');
+    const parsed=restoreHistorySchema.safeParse({kind:text(form,'kind'),id:text(form,'id'),
+      entryId:text(form,'entryId')});
+    if(!parsed.success)return {status:'invalid',fields:parsed.error.issues.map(issue=>String(issue.path[0]))};
+    message=t('history.restored');
+    const outcome=await restoreHistory({...parsed.data,force:flagged(form,'force'),actor:admin.id});
+    return stateFor(outcome,outcome.status==='ok'?message:undefined);
+  }catch{return {status:'error'}}
+}
+
+/**
+ * This date's sheet went out. The write is the sent marks alone — the time, the person, and the day's own
+ * signature — which is what makes "changed since sent" a fact the next edit can be measured against.
+ */
+export async function markDispatchSentAction(_:RoutineActionState,form:FormData):Promise<RoutineActionState>{
+  let message='';
+  try{
+    const admin=await requireAdmin();
+    const t=await getTranslations('routine');
+    const parsed=dispatchSchema.safeParse({classId:text(form,'classId'),shift:text(form,'shift'),
+      date:text(form,'date')});
+    if(!parsed.success)return {status:'invalid',fields:parsed.error.issues.map(issue=>String(issue.path[0]))};
+    message=t('dispatch.markedSent');
+    const outcome=await markDailySheetSent({...parsed.data,actor:admin.id});
     return stateFor(outcome,outcome.status==='ok'?message:undefined);
   }catch{return {status:'error'}}
 }
