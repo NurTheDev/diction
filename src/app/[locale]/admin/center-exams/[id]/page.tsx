@@ -46,7 +46,7 @@ export default async function ExamDetail({params}:{params:Promise<{locale:string
     <div className="admin-heading"><div>
       <Link href="/admin/center-exams" className="text-link">← {t('detail.crumbExams')}</Link>
       <h1 data-exam-name>{view.name}</h1>
-      <p data-exam-meta>{formatDate(view.date,digits,locale==='en'?'en':'bn')} · {t(EXAM_TYPE_LABEL_KEYS[view.type as ExamType]||'typeLabels.other')} · {t(EXAM_STATUS_LABEL_KEYS[view.status as ExamStatus]||'status.draft')} · {view.classes.join(', ')}</p>
+      <p data-exam-meta>{formatDate(view.date,digits,locale==='en'?'en':'bn')} · {t(EXAM_TYPE_LABEL_KEYS[view.type as ExamType]||'typeLabels.other')} · {t(EXAM_STATUS_LABEL_KEYS[view.status as ExamStatus]||'status.draft')} · {view.classes.map(entry=>entry.name).join(', ')}</p>
       {view.scaleName&&<p className="admin-help" data-exam-scale-name>{t('detail.scaleUsed',{scale:view.scaleName})}</p>}
     </div></div>
     {view.tooMany&&<p role="alert" className="admin-feedback error">{t('detail.tooManyRecords')}</p>}
