@@ -532,7 +532,10 @@ async function run(){
     /* The front desk: R3.12 gave staff the visitor queue and nothing else, and a redesign does not get
        to widen that. The new tiers are the administrator's. */
     const deskSession=await signIn('staff',1440);
-    await goto(deskSession.page,'/bn/admin','h2');
+    /* `h2:visible`, not `h2`: the first heading in the desk's DOM is the help popover's own title, which
+       lives in a closed `details` and is painted for nobody until its summary is tapped. Waiting on the
+       bare tag would wait forever on a heading that is, correctly, not there. */
+    await goto(deskSession.page,'/bn/admin','h2:visible');
     assert.equal(await deskSession.page.locator('[data-daily-operations]').count(),0,'a staff session gets no operations tier');
     assert.equal(await deskSession.page.locator('[data-quick-actions]').count(),0,'no toolbar');
     assert.equal(await deskSession.page.locator('[data-site-management]').count(),0,'no site tier');
@@ -542,7 +545,7 @@ async function run(){
       'what a staff session gets is the visitor queue, as R3.12 decided');
     /* Grouping moved nobody's permission: the drawer offers a staff account no cash desk and no SMS. */
     await deskSession.page.setViewportSize({width:360,height:780});
-    await goto(deskSession.page,'/bn/admin','h2');
+    await goto(deskSession.page,'/bn/admin','h2:visible');
     await deskSession.page.locator('.admin-mobilebar button[aria-expanded]').click();
     await deskSession.page.locator('aside.admin-sidebar.open').waitFor({state:'visible',timeout:30000});
     const deskGroups=(await deskSession.page.locator('.admin-nav .admin-group-toggle').allInnerTexts()).map(text=>text.replace(/[＋−]/g,'').trim());
