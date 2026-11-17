@@ -126,7 +126,7 @@ type ExamDoc={_id:mongoose.Types.ObjectId;status:string;
 type ResultDoc={total:number;fullTotal:number;
   marks:{obtained:number|null;absent:boolean;parts:{name:string;obtained:number|null}[]}[]};
 type BatchDoc={_id:mongoose.Types.ObjectId;sentCount:number;skippedCount:number;failedCount:number};
-type LogDoc={student:mongoose.Types.ObjectId;message:string;status:string};
+type LogDoc={student:mongoose.Types.ObjectId;message:string;status:string;reason?:string};
 
 async function run(){
   await preflight({
@@ -724,14 +724,17 @@ async function run(){
     assert.equal(answer,fill(bn.exams.results.sentSummary,{sent:bnDigits(batch.sentCount),
       skipped:bnDigits(batch.skippedCount),failed:bnDigits(batch.failedCount)}),
       'the screen says the same counts the batch wrote');
-    const logs=await CenterSmsLog.find({batch:batch._id}).lean<LogDoc[]>();
-    assert.equal(logs.length,4,'four log rows, one per family told');
-    assert.ok(logs.every(log=>log.status==='sent'&&log.message.trim().length>10),
-      'and not one of them is blank or unsent');
-    assert.ok(!logs.some(log=>String(log.student)===String(students[ABSENT]._id)),
-      'the absent child has no message at all');
-    assert.ok(!logs.some(log=>String(log.student)===String(newcomer._id)),
-      'and neither has the child with no marks yet');
+    /* The batch's record is every row it wrote — the four it told and the two it left out, each left-out
+       row carrying the reason it was left, because a send that quietly drops two children is a send
+       nobody can audit. The told rows are counted apart from the record they live in. */
+    const logs=await CenterSmsLog.find({batch:batch._id,status:'sent'}).lean<LogDoc[]>();
+    assert.equal(logs.length,4,'four messages went out, one per family told');
+    assert.ok(logs.every(log=>log.message.trim().length>10),'and not one of them is blank');
+    const left=await CenterSmsLog.find({batch:batch._id,status:{$ne:'sent'}}).lean<LogDoc[]>();
+    assert.deepEqual(left.map(row=>String(row.student)).sort(),
+      [String(students[ABSENT]._id),String(newcomer._id)].sort(),
+      'the two left out are recorded as left out: the absent child and the child with no marks yet');
+    assert.ok(left.every(row=>String(row.reason||'').trim().length>0),'and each of them says why');
     const classLine=send.locator(`[data-exam-send-class="${classA}"]`);
     assert.ok((await classLine.innerText()).includes(CLASS_A),'the answer names the class it sent to');
     const proof=classLine.locator('[data-exam-send-proof]');
@@ -741,15 +744,24 @@ async function run(){
     await proof.click();
     await page.locator('[data-sms-batch-filter]').waitFor({state:'visible',timeout:90000});
     const filterNote=await page.locator('[data-sms-batch-filter]').innerText();
-    assert.ok(filterNote.includes(fill(bn.sms.page.batchFilter,{count:bnDigits(4)})),
-      `the history says it is showing one send (${filterNote})`);
+    /* The history of one send is the whole record of that send, so the note counts every row the list
+       shows and the list holds the two left out beside the four told — a record that hides the children
+       nobody was told about is a record with a hole in it. */
+    const historyRows=page.locator('[data-sms-card="history"] table.admin-table tbody tr');
+    const listed=await historyRows.count();
+    assert.equal(listed,6,'six rows: the four told and the two left out');
+    assert.ok(filterNote.includes(fill(bn.sms.page.batchFilter,{count:bnDigits(listed)})),
+      `the history says it is showing one send, and counts what it shows (${filterNote})`);
     assert.ok(filterNote.includes(bn.sms.page.batchFilterClear),'and offers the way back to all of them');
-    const listed=await page.locator('[data-sms-card="history"] table.admin-table tbody tr').count();
-    assert.equal(listed,4,'four messages in the history and no fifth');
-    /* Scoped to the history card: the rest of the SMS centre is a send form with its own pickers, and
-       the claim is about the four messages this batch wrote, not about the whole page. */
-    assert.ok(!(await page.locator('[data-sms-card="history"]').innerText()).includes(ABSENT),
-      'which the absent child is not part of');
+    /* Read badge by badge: a row's message is a sentence of its own, and a word inside it must not be
+       mistaken for the word the row wears. */
+    const badges=await historyRows.locator('.admin-badge').allInnerTexts();
+    assert.equal(badges.filter(text=>text.trim()===bn.sms.statuses.sent).length,4,
+      'four rows wear the sent word');
+    const absentHistoryRow=historyRows.filter({hasText:ABSENT});
+    assert.equal(await absentHistoryRow.count(),1,'and the absent child is in the record of the send');
+    assert.equal((await absentHistoryRow.locator('.admin-badge').first().innerText()).trim(),
+      bn.sms.statuses.skipped,'as a row that was left out rather than one that was told');
     await shot(page,'g3-result-sms-proof-bn-1440');
 
     // ══ 5. A month ends in one sheet ═══════════════════════════════════════════════════════════════
