@@ -110,10 +110,14 @@ export interface RoutineHistoryProps{
   weekdays:string[];
   digits:Digits;
   canEdit:boolean;
+  /** Called once a restore has written. The screen holding the day is the one that has to look at the day
+      it just got back, and nothing outside this drawer knows a write happened inside it. */
+  onDone?:()=>void;
 }
 
 /** The day's memory, as a drawer: newest first, and a restore beside every version. */
-export function RoutineHistory({open,onClose,kind,docId,entries,weekdays,digits,canEdit}:RoutineHistoryProps){
+export function RoutineHistory({open,onClose,kind,docId,entries,weekdays,digits,canEdit,
+  onDone}:RoutineHistoryProps){
   const t=useTranslations('routine');
   const sentence=useHistorySentence();
   const language=useLocale()==='en'?'en':'bn';
@@ -130,7 +134,8 @@ export function RoutineHistory({open,onClose,kind,docId,entries,weekdays,digits,
               {historyWhen(entry.at,digits,language)}</span>
             <span className="routine-history-line" data-history-line>{sentence(entry,digits,weekdays)}</span>
             {entry.byName&&<span className="admin-help" data-history-by>{entry.byName}</span>}
-            {canEdit&&docId&&<RestoreControl kind={kind} docId={docId} entry={entry} digits={digits}/>}
+            {canEdit&&docId&&<RestoreControl kind={kind} docId={docId} entry={entry} digits={digits}
+              onDone={onDone}/>}
           </li>)}
         </ol>
       </>}

@@ -152,6 +152,10 @@ export function RoutineDailySheet(props:RoutineDailyProps){
   /* Slice 2: the sheet's own memory — the last twenty changes to this date, and the tap that puts one
      of them back. */
   const [historyOpen,setHistoryOpen]=useState(false);
+  /* The id of the newest entry when a restore went in. A restore writes inside the drawer, so the draft
+     this form posts — which is the operator's own typing — is suddenly the version they undid; when the
+     refreshed sheet arrives, the draft is re-read from it and the two agree again. */
+  const [restoredFrom,setRestoredFrom]=useState<string|null>(null);
   const [state,action,pending]=useActionState(saveDailySheetAction,idle);
   const [resetState,resetAction]=useActionState(resetDailySheetAction,idle);
 
@@ -166,6 +170,17 @@ export function RoutineDailySheet(props:RoutineDailyProps){
     showRecycleToast({state:{status:'ok'},success:state.stored?state.message||t('daily.saved'):state.message||t('daily.savedCopy'),error:''});
     router.refresh();
   },[state]);
+  useEffect(()=>{
+    if(restoredFrom===null)return;
+    const newest=sheet.history[0]?.id||'';
+    if(!newest||newest===restoredFrom)return;          // the refreshed sheet has not landed yet
+    setDraft(sheet.periods.map(draftOf));
+    setStatus(sheet.status);
+    setHolidayReason(sheet.holidayReason);
+    setNotes(sheet.notes);
+    setEditor(null);
+    setRestoredFrom(null);
+  },[sheet,restoredFrom]);
   useEffect(()=>{
     if(resetState.status!=='ok')return;
     showRecycleToast({state:{status:'ok'},success:resetState.message||t('daily.resetDone'),error:''});
@@ -328,7 +343,8 @@ export function RoutineDailySheet(props:RoutineDailyProps){
     <div key={historyOpen?`history:${sheet.history.length}`:'history:closed'}>
       <RoutineHistory open={historyOpen} onClose={()=>setHistoryOpen(false)} kind="daily"
         docId={sheet.docId||''} entries={sheet.history} weekdays={props.weekdays} digits={digits}
-        canEdit={props.canEdit}/>
+        canEdit={props.canEdit}
+        onDone={()=>{setRestoredFrom(sheet.history[0]?.id||'');router.refresh()}}/>
     </div>
   </>;
 }

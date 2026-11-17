@@ -407,7 +407,7 @@ export function RoutineMasterBoard(props:RoutineMasterProps){
     <div key={historyWeekday===null?'history:closed':`history:${historyWeekday}`}>
       <RoutineHistory open={!!historyDay} onClose={()=>setHistoryWeekday(null)} kind="master"
         docId={historyDay?.id||''} entries={historyDay?.history||[]} weekdays={props.weekdays}
-        digits={props.digits} canEdit={props.canEdit}/>
+        digits={props.digits} canEdit={props.canEdit} onDone={()=>router.refresh()}/>
     </div>
   </>;
 }

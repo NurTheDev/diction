@@ -61,6 +61,9 @@ const bnDigits=(value:number):string=>String(value).replace(/[0-9]/g,digit=>'০
 const hasBanglaLetters=(text:string):boolean=>/[\u0980-\u09ff]/.test(text.replace(/[০-৯]/g,''));
 /** A raw catalog key printed instead of its value — the mistake a missing word makes on a live screen. */
 const RAW_KEY=/\broutine\.[a-zA-Z]+\.[a-zA-Z]+/;
+/* `\d` in a JS pattern is ASCII only, and every clock and date on a Bangla screen is painted in Bangla
+   digits — so "there is a digit here" has to be asked in both sets or it fails on a screen that is right. */
+const ANY_DIGIT=/[\d\u09e6-\u09ef]/;
 
 const CLASS_A='র৯ নবম শ্রেণি',CLASS_A_EN='Routine Nine';
 const CLASS_B='র৯ দশম শ্রেণি',CLASS_B_EN='Routine Ten';
@@ -538,7 +541,7 @@ async function run(){
     assert.equal(firstLine,R.history.code.bulkFields.replace('{count}',bnDigits(2)),
       'the newest entry is the write just made, as a sentence from the catalog');
     const firstWhen=(await entries[0].locator('[data-history-when]').innerText()).trim();
-    assert.ok(/\d/.test(firstWhen)&&firstWhen.length>8,
+    assert.ok(ANY_DIGIT.test(firstWhen)&&firstWhen.length>8,
       `an entry says when it happened on Dhaka's clock (${firstWhen})`);
     assert.equal((await entries[0].locator('[data-history-by]').innerText()).trim(),'র৯ মালিক',
       'and who made it');
@@ -573,6 +576,15 @@ async function run(){
        'a restore is itself a change, so the day remembers it too');
      assert.equal((doc?.history||[]).length,HISTORY_CAP,'and still remembers only twenty');
      assert.equal(doc?.weekday,W2,'which class, which weekday and which date are never restored')}
+    /* The grid behind the drawer is looking at the day it got back. A restore that changed only the
+       database would leave an operator staring at the version they just undid. */
+    const roomWord=R.master.roomWord.replace('{room}',ROOM_TWO);
+    await until('the week to be looking at the restored day',async()=>
+      (await page.locator(`[data-routine-day="${W2}"] [data-period-room]`).allInnerTexts())
+        .some(text=>text.trim()===roomWord),90000,()=>pageState(page));
+    assert.deepEqual((await page.locator(`[data-routine-day="${W2}"] [data-period-room]`).allInnerTexts())
+      .map(text=>text.trim()),[roomWord],
+      'the week grid shows the restored room on its own, without anybody asking it again');
     await drawer(page).locator('[data-drawer-close]').click();
     await until('the history drawer to close',async()=>await drawer(page).count()===0);
 
@@ -621,13 +633,22 @@ async function run(){
       'and the sheet remembers the restore');
     assert.equal(((await sheetOf(today))?.history||[]).length,3,
       'a restore is one more entry, not a shorter memory');
+    /* And the sheet on screen is the sheet that went back: the form posts the operator's own draft, so a
+       draft left holding the note they undid is a screen that contradicts the day. */
+    await until('the sheet on screen to hold the note that went back',async()=>
+      await page.locator('[data-daily-notes]').inputValue()==='টেস্ট নোট এক',90000,()=>pageState(page));
+    assert.equal(await page.locator('[data-daily-notes]').inputValue(),'টেস্ট নোট এক',
+      'the notes the operator reads are the restored ones, without anybody asking the page again');
     await drawer(page).locator('[data-drawer-close]').click();
     await until('the sheet\u2019s history drawer to close',async()=>await drawer(page).count()===0);
 
     /* The dispatch panel: one message for the class group, one per teacher, and the two addresses that
        carry them. */
     await goto(page,dailyUrl('bn'),'[data-routine-dispatch]');
-    const classText=(await page.locator('[data-dispatch-class-text]').innerText()).replace(/\r/g,'');
+    /* `textContent`, not `innerText`: the message is one text node inside a <pre>, and innerText answers
+       with what the browser laid out, so a line that wrapped at 360px would come back with a break in it
+       that the message does not have. */
+    const classText=await page.locator('[data-dispatch-class-text]').textContent()||'';
     const sheetNow=await sheetOf(today);
     assert.equal((await page.locator('[data-dispatch-title]').innerText()).trim(),R.dispatch.title);
     assert.equal((await page.locator('[data-dispatch-help]').innerText()).trim(),R.dispatch.help);
@@ -654,8 +675,7 @@ async function run(){
     assert.equal((await page.locator('[data-dispatch-teacher-count]').innerText()).trim(),
       R.dispatch.teacherCount.replace('{count}',bnDigits(2)),'and the panel counts them');
     const teacherBlock=page.locator(`[data-dispatch-teacher="${String(teacherOne._id)}"]`);
-    const teacherText=(await teacherBlock.locator('[data-dispatch-teacher-text]').innerText())
-      .replace(/\r/g,'');
+    const teacherText=await teacherBlock.locator('[data-dispatch-teacher-text]').textContent()||'';
     const ownRooms=liveOf(sheetNow).filter(entry=>String(entry.teacher)===String(teacherOne._id))
       .map(entry=>entry.room||'');
     const otherRooms=liveOf(sheetNow).filter(entry=>String(entry.teacher)!==String(teacherOne._id))
@@ -734,7 +754,7 @@ async function run(){
       &&await page.locator('[data-dispatch-changed]').count()===1);
     assert.equal((await page.locator('[data-dispatch-changed]').innerText()).trim(),R.dispatch.changed,
       'an edit after the send says so beside the message, in the catalog\u2019s own words');
-    const changedText=(await page.locator('[data-dispatch-class-text]').innerText()).replace(/\r/g,'');
+    const changedText=await page.locator('[data-dispatch-class-text]').textContent()||'';
     assert.ok(changedText.includes(ROOM_EIGHT),'and the message on screen is the new one');
     assert.equal(changedText===classText,false,'which is not the message that was sent');
     assert.ok((await sheetOf(today))?.sentAt,'while the record of the send stays where it was');
@@ -785,10 +805,20 @@ async function run(){
     await teach.page.locator('[data-teacher-schedule]').waitFor({state:'visible',timeout:90000});
     assert.ok(teach.page.url().includes('/bn/teacher/routine'),
       'and it goes to the routine, not to an address to remember');
-    const dates=Array.from({length:7},(_,index)=>shiftDate(today,index));
-    assert.equal(await teach.page.locator('[data-teacher-day]').count(),7,'today and the six days after it');
+    /* Which seven days the portal shows is read off the portal rather than computed here. Dhaka's date
+       rolls over at six in the evening UTC, and a suite that runs for a quarter of an hour can straddle
+       it; the claim is "today and the six days after it" on the clock the server reads, which is the only
+       clock a teacher's morning is planned by. */
+    const dates=await teach.page.locator('[data-teacher-day]').evaluateAll(nodes=>
+      nodes.map(node=>String(node.getAttribute('data-teacher-day')||'')));
+    assert.equal(dates.length,7,'today and the six days after it');
+    const portalToday=dates[0];
     assert.equal(await teach.page.locator('[data-teacher-day-today="yes"]').count(),1,
       'one of them is named as today');
+    assert.equal(await teach.page.locator('[data-teacher-day-today="yes"]')
+      .getAttribute('data-teacher-day'),portalToday,'and it is the first of them');
+    assert.deepEqual(dates,Array.from({length:7},(_,index)=>shiftDate(portalToday,index)),
+      'the seven are seven consecutive Dhaka dates, in order, with no gap and no repeat');
     /* What the schedule says is read out of the database, not out of an expectation written here: the
        tools above moved periods, and the portal must be reading what is now true. */
     let total=0;
@@ -813,14 +843,17 @@ async function run(){
       bnDigits(total),'and the card counts the whole seven days in the reader\u2019s own digits');
     assert.ok((await teach.page.locator('[data-teacher-routine-scope]').innerText()).includes(R.portal.sub),
       'the portal says whose schedule this is');
-    {const todayRows=await rowsFor(today,String(teacherOne._id));
-     assert.ok(todayRows.length>=2&&todayRows.every(row=>row.endsWith('|sheet')),
-       `today's periods come from the stored sheet (${todayRows.join(' | ')})`);
-     const tomorrowRows=await teach.page.locator(`[data-teacher-day="${tomorrow}"] [data-teacher-row-subject]`)
+    {const firstRows=await rowsFor(portalToday,String(teacherOne._id));
+     assert.ok(firstRows.length>=1&&firstRows.every(row=>row.endsWith('|sheet')),
+       `the portal's own today is a date this centre wrote a sheet for, and every row on it says so `
+       +`(${firstRows.join(' | ')})`);
+     assert.ok(dates.includes(tomorrow),
+       'and the date the seed handed a period to somebody else is inside the seven');
+     const substituted=await teach.page.locator(`[data-teacher-day="${tomorrow}"] [data-teacher-row-subject]`)
        .allInnerTexts();
-     assert.ok(tomorrowRows.includes(SUBJECT_PHYSICS),
-       'tomorrow shows the substitution the day\u2019s sheet made');
-     assert.equal(tomorrowRows.includes(SUBJECT_ENGLISH),false,
+     assert.ok(substituted.includes(SUBJECT_PHYSICS),
+       'that date shows the substitution the day\u2019s sheet made');
+     assert.equal(substituted.includes(SUBJECT_ENGLISH),false,
        'and not the week\u2019s own period, which the sheet handed to somebody else')}
     assert.equal(hasBanglaLetters(await teach.page.locator('[data-teacher-routine-back]').innerText()),true,
       'and the way back reads in Bangla on a Bangla address');
@@ -863,8 +896,12 @@ async function run(){
       `the portal's own words carry no Bangla on an English address (${englishPortal.join(' | ').slice(0,220)})`);
     assert.equal((await teachEn.page.locator('[data-teacher-routine-total]').innerText()).trim(),
       String(total),'and the count is in ASCII digits for a teacher who asked for them');
-    assert.equal(await teachEn.page.locator('[data-teacher-day]').count(),7,
-      'the same seven days, whichever address reads them');
+    const englishDates=await teachEn.page.locator('[data-teacher-day]').evaluateAll(nodes=>
+      nodes.map(node=>String(node.getAttribute('data-teacher-day')||'')));
+    assert.equal(englishDates.length,7,'the same seven days, whichever address reads them');
+    assert.deepEqual(englishDates,Array.from({length:7},(_,index)=>shiftDate(englishDates[0],index)),
+      'seven consecutive dates on an English address too');
+    assert.ok(englishDates.includes(tomorrow),'and the date the seed substituted into is one of them');
     assert.ok((await teachEn.page.locator(`[data-teacher-day="${tomorrow}"] [data-teacher-row-subject]`)
       .allInnerTexts()).includes('Physics'),'with the subject\u2019s English name');
     assert.equal((await teachEn.page.locator('[data-teacher-routine-back]').innerText()).trim(),
@@ -889,7 +926,14 @@ async function run(){
     await page.locator('[data-replace-master]').check();
     assert.equal(await page.locator('[data-replace-daily]').isChecked(),true,
       'the working sheets inside the range are in scope by default');
-    /* The range the panel opens with is Dhaka's today to a fortnight on, which holds tomorrow's sheet. */
+    /* The range the panel opens with is Dhaka's today to a fortnight on, which holds tomorrow's sheet.
+       "Today" is read off the panel and not off this file's own clock: a suite that runs for a quarter of
+       an hour can straddle midnight in Dhaka, and the range that matters is the one the tool will use. */
+    const rangeFrom=await page.locator('[data-replace-preview] input[name="fromDate"]').inputValue();
+    const rangeTo=await page.locator('[data-replace-preview] input[name="toDate"]').inputValue();
+    assert.ok(rangeFrom===today||rangeFrom===shiftDate(today,1),
+      `the panel opens on Dhaka's today, whichever side of midnight this suite is running on (${rangeFrom})`);
+    assert.equal(rangeTo,shiftDate(rangeFrom,13),'and runs a fortnight on from there');
     await page.locator('[data-replace-show]').click();
     assert.equal(await settle(page,'the replacement preview',
       ['[data-replace-rows]','[data-replace-none]','[data-tool-refused="replace-preview"]']),
@@ -903,7 +947,7 @@ async function run(){
       .lean<MasterDoc[]>();
     const expectedMaster=wantedMasters.reduce((sum,doc)=>sum+liveOf(doc)
       .filter(entry=>String(entry.teacher)===String(teacherOne._id)).length,0);
-    const wantedSheets=await DailyRoutine.find({date:{$gte:today,$lte:shiftDate(today,13)},
+    const wantedSheets=await DailyRoutine.find({date:{$gte:rangeFrom,$lte:rangeTo},
       'periods.teacher':teacherOne._id}).lean<SheetDoc[]>();
     const expectedDaily=wantedSheets.reduce((sum,doc)=>sum+liveOf(doc)
       .filter(entry=>String(entry.teacher)===String(teacherOne._id)).length,0);
@@ -917,7 +961,7 @@ async function run(){
       'the preview counts what it found, in the operator\u2019s own digits');
     const rowText=await page.locator('[data-replace-row]').first().innerText();
     assert.ok(rowText.includes(CLASS_A)||rowText.includes(CLASS_B),'each row names the class it belongs to');
-    assert.ok(/\d/.test(rowText),'and a time');
+    assert.ok(ANY_DIGIT.test(rowText),'and a time');
     assert.equal(await page.locator('[data-replace-apply]').count(),1,
       'and only once the list is on screen does the button that writes appear');
     assert.ok(await page.locator('[data-replace-clashes]').count()>=1,
@@ -980,7 +1024,7 @@ async function run(){
     await english.page.setViewportSize({width:1440,height:900});
 
     await goto(english.page,dailyUrl('en'),'[data-routine-dispatch]');
-    const englishText=(await english.page.locator('[data-dispatch-class-text]').innerText()).replace(/\r/g,'');
+    const englishText=await english.page.locator('[data-dispatch-class-text]').textContent()||'';
     assert.ok(englishText.startsWith(RE.dispatch.classTitle),
       'the message an English screen writes is an English message');
     assert.ok(englishText.includes(formatDate(new Date(`${today}T00:00:00+06:00`),'en','en')),
