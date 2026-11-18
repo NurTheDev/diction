@@ -117,6 +117,8 @@ async function run():Promise<void>{
 
   const browser=await chromium.launch();
   const errors:string[]=[];
+  /** The status of every POST this suite's pages were answered with, most recent last. */
+  const answers:string[]=[];
   let current:Page|null=null;
   const shot=(page:Page,name:string):Promise<Buffer>=>
     page.screenshot({path:path.join(SHOTS,`${name}.png`),fullPage:true});
@@ -197,6 +199,14 @@ async function run():Promise<void>{
         url:`${origin}/`}]);
       const page=await context.newPage();
       page.on('pageerror',error=>errors.push(`${page.url()}: ${error.message}`));
+      /* A form action that answers 404 is a form that was never posted, and one that answers 500 is a
+         write that was refused on the server: both look exactly like silence from the sheet, so the
+         status of every answer this page is given is written down as it arrives. */
+      page.on('response',response=>{
+        if(response.request().method()!=='POST')return;
+        answers.push(`${response.status()} ${response.url().replace(origin,'')}`);
+        if(answers.length>40)answers.shift();
+      });
       page.on('dialog',dialog=>void dialog.accept());
       page.setDefaultTimeout(60000);
       current=page;
@@ -661,15 +671,22 @@ async function run():Promise<void>{
      * reads all of them at once rather than guessing which one to look at.
      */
     const sheetState=async():Promise<string>=>{
-      const facts=await page.evaluate<{dialog:string;invalid:string;sheet:string}>(`(()=>{
-        const dialog=document.querySelector('[data-class-modal="new"]');
+      const facts=await page.evaluate<{dialog:string;invalid:string;sheet:string;forms:string}>(`(()=>{
+        /* Every sheet on the page, not only the one expected: a sheet that came back keyed to a class
+           rather than to "new" is a different failure from a sheet that is gone, and only the key says
+           which one happened. */
+        const sheets=Array.from(document.querySelectorAll('[data-class-modal]'));
+        const dialog=document.querySelector('[data-class-modal="new"]')||sheets[0]||null;
         const invalid=document.querySelector('[data-class-invalid]');
         return {
-          dialog:dialog?dialog.tagName.toLowerCase()+(dialog.open?' open':' closed'):'absent',
+          dialog:(sheets.length?sheets.map(node=>node.getAttribute('data-class-modal')
+            +(node.open?'(open)':'(closed)')).join(' , '):'no sheet on the page at all'),
           invalid:invalid?invalid.textContent:'none',
           sheet:(dialog?dialog.innerText:'').replace(/\\s+/g,' ').slice(0,300),
+          forms:Array.from(document.querySelectorAll('[data-class-form]')).map(node=>
+            node.getAttribute('data-class-form')).join(' , '),
         };
-      })()`).catch(error=>({dialog:String(error).slice(0,80),invalid:'?',sheet:'?'}));
+      })()`).catch(error=>({dialog:String(error).slice(0,80),invalid:'?',sheet:'?',forms:'?'}));
       const fields=await page.evaluate<string[]>(`(()=>{
         const out=[];
         for(const input of document.querySelectorAll('[data-class-form="new"] input,'
@@ -690,10 +707,24 @@ async function run():Promise<void>{
       const toasts=await page.locator('.admin-toast').allInnerTexts().catch(()=>[] as string[]);
       const names=await mongoose.connection.collection('centerclassgroups').find({}).limit(20).toArray()
         .catch(()=>[] as {name?:{bn?:string}}[]);
-      return `dbNames=[${names.map(row=>String(row.name?.bn||'?')).join(' | ')}]
+      /* Both sides of the same question: what this suite's own connection holds, and what the board on
+         the screen holds. A write that landed somewhere the suite is not reading is the one failure
+         that looks like a write that never happened, and only the two counts side by side name it. */
+      /* If the route died into its own boundary, the boundary now says what killed it, and that sentence
+         is the whole diagnosis: a screen that failed to render is not a sheet that failed to write. */
+      const boundary=await page.locator('[data-admin-error]')
+        .getAttribute('data-admin-error').catch(()=>null);
+      const boardCards=await page.locator('[data-class-card]').count().catch(()=>-1);
+      const boardCount=await page.locator('[data-class-count]').textContent().catch(()=>'?');
+      const boardNames=await page.locator('[data-class-name]').allTextContents().catch(()=>[] as string[]);
+      return `db=${mongoose.connection.name} dbNames=[${names.map(row=>String(row.name?.bn||'?')).join(' | ')}]
+  board(cards=${boardCards},count="${boardCount}",names=[${boardNames.join(' | ')}])
+  posts=[${answers.join(' , ')}]
+  boundary="${boundary||'none — the route is alive'}"
   dialog=${facts.dialog} refusal=${facts.invalid}
   toasts=[${toasts.join(' | ')}]
   fields=[${fields.join(' · ')}]
+  forms=[${facts.forms}]
   sheetText="${facts.sheet}"`;
     };
     /* Asked for again while the sheet is still open and the button is not already working: one click on
