@@ -20,9 +20,22 @@ const groupSchema=new Schema({name:text,level:{type:String,trim:true,maxlength:8
    shifts:{type:[{type:String,trim:true,maxlength:40}],default:[]},room:{type:String,trim:true,maxlength:80,default:''},academicYear:{type:Number,required:true,min:1900,max:2200,validate:Number.isSafeInteger},active:{type:Boolean,default:true},/* Group 3: what a month in this class costs. Fees live per student in
    `feeHistory` and stay the truth a receipt is checked against; this is the class's own advertised month,
    the number the hub header shows and a new enrolment starts from. Zero means "not set", not "free". */
-   monthlyFee:{type:Number,default:0,min:0,max:100000000,validate:Number.isSafeInteger},order:{type:Number,default:0,min:0,max:10000,validate:Number.isSafeInteger},teachers:{type:[{type:Schema.Types.ObjectId,ref:'User'}],default:[]}},{timestamps:true});addRecycleFields(groupSchema);
+   monthlyFee:{type:Number,default:0,min:0,max:100000000,validate:Number.isSafeInteger},
+   /* F-16 · a class that costs nothing and a class whose fee nobody has decided both stored 0, so the
+      hub could not tell "free" from "not set" and an operator who cleared a fee by accident had no way
+      to say which they meant. The number stays the number; this flag is the sentence behind a zero. */
+   feeFree:{type:Boolean,default:false},order:{type:Number,default:0,min:0,max:10000,validate:Number.isSafeInteger},teachers:{type:[{type:Schema.Types.ObjectId,ref:'User'}],default:[]}},{timestamps:true});addRecycleFields(groupSchema);
 groupSchema.index({academicYear:1,active:1,order:1});
-groupSchema.index({'name.bn':1,academicYear:1,shift:1},{unique:true});
+/* F-09 · the name rule, and the classes it applies to.
+   Two live classes may not wear the same name in the same session and shift — that is the duplicate an
+   owner means when they say "there are two Class Nines". But a class that has been archived, or filed
+   in the Recycle Bin, is a record of last year rather than a class anybody can enrol into, and while
+   the index covered those too, the name stayed taken: archiving Class Nine and opening this year's
+   Class Nine was refused as a duplicate of a class nobody is running. So the rule is partial — it
+   binds only the classes that are live and running, and an archived or binned class gives its name
+   back. (An old database still carries the wider index under this index's own name; the daily job runs
+   `syncIndexes()` for this model, which drops what the schema no longer declares.) */
+groupSchema.index({'name.bn':1,academicYear:1,shift:1},{unique:true,partialFilterExpression:{deletedAt:null,active:true}});
 groupSchema.index({teachers:1});
 /* S1 · who changed a price or a class, when, and why. Every one of the three is optional with an empty
    default, so a fee written at enrolment — and every row written before this slice — keeps saying

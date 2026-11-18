@@ -8,7 +8,7 @@ import {centerClassSchema,centerStudentSchema,centerStudentEditSchema,
   centerStudentFeeSchema,centerStudentHoldSchema,centerStudentTransferSchema} from '@/schemas/center';
 import {CenterActivityLog,CenterClassGroup,CenterPayment,CenterStudent} from '@/models/CenterRecords';
 import {User} from '@/models/User';
-import {getTranslations} from 'next-intl/server';
+import {getLocale,getTranslations} from 'next-intl/server';
 /* S1 · the rules a pause, a move and a price change are made of. They live in a module of their own and
    take plain records, so what a change means is proved without a database and without this door. */
 import {monthIndexOf,monthWordOf,planClassTransfer,planFeeChange,planHold,planLift,readMonthWord,
@@ -17,10 +17,20 @@ import {dhakaCalendar} from '@/lib/center/month-status';
 import {monthKey} from '@/lib/center/dues';
 import {dashboardDigits} from '@/lib/admin/digits';
 import {formatNumber} from '@/lib/admin/format';
+/* S2 · F-10: a removal is filed with the date it stops being kept, and the nightly job is what drops it. */
+import {removalWindow,studentPurgeAt} from '@/lib/center/student-purge';
+/** The language the operator is reading, so a refusal arrives in it and in their own digits. */
+const languageOf=async():Promise<'bn'|'en'>=>{try{return (await getLocale())==='en'?'en':'bn'}catch{return 'bn'}};
 export type CenterActionState={status:'idle'|'ok'|'invalid'|'duplicate'|'conflict'|'error';studentId?:string;fields?:string[];/** The operator's own sentence for what the write did, in the language they are reading. */message?:string};
 const refresh=()=>{for(const lang of ['bn','en']){revalidatePath(`/${lang}/admin/students`);revalidatePath(`/${lang}/admin/students/dues`);revalidatePath(`/${lang}/admin/students/classes`)}};
 /** Group 3: a class has its own page, so a write to a student re-reads the class that student is on. */
 const refreshClass=(classId:string)=>{if(!mongoose.isValidObjectId(classId))return;for(const lang of ['bn','en'])revalidatePath(`/${lang}/admin/students/classes/${classId}`)};
+/* S2 · F-04 — deprecated: the screens no longer write a class through these two doors. Creation and
+   editing both go through `saveClassGroupAction`, the one editor's action, which carries the fields these
+   never had (the level and the room on a create, the shifts as canonical keys, the fee's two meanings and
+   the teachers) and the rules that travel with them. Both stay exported — a class is written from more
+   than one screen and an integration path may still post here — and both now answer a refused archive the
+   same way the board does, because a guard one door has and the other does not is a guard nobody has. */
 export async function createCenterClass(_:CenterActionState,form:FormData):Promise<CenterActionState>{const admin=await requireAdmin();await CenterClassGroup.init();const parsed=centerClassSchema.safeParse(Object.fromEntries(form));if(!parsed.success)return {status:'invalid'};const p=parsed.data;const session=await mongoose.startSession();try{await session.withTransaction(async()=>{const [created]=await CenterClassGroup.create([{name:{bn:p.nameBn,en:p.nameEn},level:p.level,shift:p.shift,academicYear:p.academicYear,active:true,order:0}],{session});await CenterActivityLog.create([{actor:admin.id,action:'class.create',target:created._id,after:{name:created.name,academicYear:p.academicYear,shift:p.shift}}],{session})});refresh();return {status:'ok'}}catch(e){return {status:(e as {code?:number}).code===11000?'duplicate':'error'}}finally{await session.endSession()}}
 export async function createCenterStudent(_:CenterActionState,form:FormData):Promise<CenterActionState>{const admin=await requireAdmin(),v=centerStudentSchema.safeParse(Object.fromEntries(form));if(!v.success)return {status:'invalid',fields:v.error.issues.map(i=>String(i.path[0]))};const p=v.data;await CenterStudent.init();if(!await CenterClassGroup.exists({_id:p.classGroup,active:true}))return {status:'invalid',fields:['classGroup']};if(form.get('acceptDuplicate')!=='on'&&await CenterStudent.exists({'name.bn':p.nameBn,classGroup:p.classGroup,guardianPhone:p.guardianPhone,status:{$ne:'removed'}}))return {status:'duplicate'};
  for(let attempt=0;attempt<3;attempt++){const code=`DC-${randomInt(10000000,100000000)}`,session=await mongoose.startSession();try{let id='';await session.withTransaction(async()=>{await acquireCenterLocks([identityLock(p.classGroup,p.nameBn,p.guardianPhone)],session);const current=await CenterClassGroup.findOne({_id:p.classGroup,active:true}).select('name').session(session).lean<{name:{bn:string;en:string}}|null>();if(!current)throw new Error('Class unavailable');if(form.get('acceptDuplicate')!=='on'){const candidates=await CenterStudent.find({classGroup:p.classGroup,guardianPhone:p.guardianPhone,status:{$ne:'removed'}}).select('name.bn').session(session).lean<{name:{bn:string}}[]>();if(candidates.some(c=>normalizeIdentityName(c.name.bn)===normalizeIdentityName(p.nameBn)))throw new Error('DUPLICATE')}const start={year:p.startYear,month:p.startMonth};const [created]=await CenterStudent.create([{studentId:code,name:{bn:p.nameBn,en:p.nameEn},classGroup:p.classGroup,roll:p.roll,school:p.school,guardianName:p.guardianName,guardianPhone:p.guardianPhone,studentPhone:p.studentPhone,altPhone:p.altPhone,address:p.address,admissionDate:p.admissionDate,startMonth:start,feeHistory:[{effectiveFrom:start,amount:p.monthlyFee}],classHistory:[{classGroup:p.classGroup,name:{bn:current.name.bn,en:current.name.en||''},effectiveFrom:start,changedBy:admin.id,changedAt:new Date()}],status:'active',notes:p.notes}],{session});id=String(created._id);await CenterActivityLog.create([{actor:admin.id,action:'student.create',target:created._id,after:created.toObject()}],{session})});refresh();refreshClass(p.classGroup);return {status:'ok',studentId:id}}catch(e){if((e as Error).message==='DUPLICATE')return {status:'duplicate'};if((e as {code?:number}).code!==11000)return {status:'error'}}finally{await session.endSession()}}return {status:'error'}
@@ -46,7 +56,10 @@ export type CenterSearchItem={id:string;studentId:string;nameBn:string;nameEn:st
       the arrears the student arrived with, and the months inside the pause are not in it. */
   dues:number|null;dueMonths:{year:number;month:number;due:number}[];
   /** The month the pause the row is inside took effect, as `YYYY-MM`, or empty when there is none. */
-  holdFrom:string};
+  holdFrom:string;
+  /** F-12 · whether the class this row sits on is one the centre is running. Restoring a student whose
+      class is closed or gone offers the classes that are running instead of putting them back on it. */
+  classActive:boolean};
 export type CenterSearchResult={items:CenterSearchItem[];total:number;page:number;error?:boolean;removed?:boolean};
 /** Search uses a server-action POST rather than putting names or phone numbers in the URL. */
 /** What each student on the page owes, read from the same engine the dues list reads, one pass per class. */
@@ -61,6 +74,18 @@ async function duesForStudents(classIds:string[],now:Date):Promise<{byStudent:Ma
   }
   return {byStudent,failed};
 }
+/**
+ * The class a search is scoped to, or an empty string for "all classes" (F-15).
+ *
+ * An empty string is the honest answer for an id that names nothing: the search is not scoped, and the
+ * list the operator gets is the whole centre rather than an error page about one class.
+ */
+async function classScopeOf(classId:string):Promise<string>{
+  const id=String(classId||'').trim();
+  if(!id||!mongoose.isValidObjectId(id))return '';
+  return await CenterClassGroup.exists({_id:id})?id:'';
+}
+
 export async function searchCenterStudents(input:{q:string;classId:string;status:string;page:number;removed?:boolean}):Promise<CenterSearchResult>{
   await requireAdmin();
   const {literalSearch}=await import('@/lib/admin/literal-search');
@@ -75,9 +100,14 @@ export async function searchCenterStudents(input:{q:string;classId:string;status
      same shape as the visitors list's show-closed tick. An explicit status wins over the tick, so
      asking for the removed ones by name needs no tick at all. */
   const removed=input.removed===true;
-  if(classId&&!mongoose.isValidObjectId(classId))return {items:[],total:0,page,error:true,removed};
+  /* F-15 · a class the search cannot name is not a broken screen. An id that is not an id, or one that
+     names a class the centre no longer has — a stale link, a row filed in the Recycle Bin, a number typed
+     into a picker — used to answer with a failure the operator could do nothing about, on a page whose
+     only job was to list children. It now answers with every class, which is the list they were reaching
+     for, and says nothing was wrong with the question. */
+  const scoped=await classScopeOf(classId);
   const filter:Record<string,unknown>={status:status||(removed?{$in:['active','on_hold','removed']}:{$ne:'removed'})};
-  if(classId)filter.classGroup=classId;
+  if(scoped)filter.classGroup=scoped;
   if(q){const re=literalSearch(q),digits=literalSearch(formatDigits(q,'en'));filter.$or=[{'name.bn':re},{'name.en':re},{guardianPhone:digits},{studentId:digits}]}
   try{
     type Row={_id:mongoose.Types.ObjectId;studentId:string;name:{bn:string;en:string};classGroup:mongoose.Types.ObjectId;
@@ -86,15 +116,15 @@ export async function searchCenterStudents(input:{q:string;classId:string;status
       feeHistory:{effectiveFrom:{year:number;month:number};amount:number}[];
       holds:{start:{year:number;month:number};end?:{year:number;month:number};reason:string}[];
       removal?:{leaveDate?:string;reason?:string}};
-    type Group={_id:mongoose.Types.ObjectId;name:{bn:string;en:string}};
+    type Group={_id:mongoose.Types.ObjectId;name:{bn:string;en:string};active?:boolean};
     const [total,students]=await Promise.all([
       CenterStudent.countDocuments(filter),
       CenterStudent.find(filter)
         .select('studentId name classGroup guardianPhone guardianName studentPhone altPhone roll school notes address admissionDate status revision updatedAt feeHistory holds removal')
         .sort({'name.bn':1,_id:1}).skip((page-1)*20).limit(20).lean<Row[]>(),
     ]);
-    const groups=await CenterClassGroup.find({_id:{$in:students.map(s=>s.classGroup)}}).select('name').lean<Group[]>();
-    const byId=new Map(groups.map(g=>[String(g._id),g.name]));
+    const groups=await CenterClassGroup.find({_id:{$in:students.map(s=>s.classGroup)}}).select('name active').lean<Group[]>();
+    const byId=new Map(groups.map(g=>[String(g._id),g]));
     const now=new Date(),today=dhakaCalendar(now),current=today.year*12+today.month;
     const owed=await duesForStudents(students.map(s=>String(s.classGroup)),now);
     return {page,total,removed,items:students.map(s=>{
@@ -111,7 +141,10 @@ export async function searchCenterStudents(input:{q:string;classId:string;status
          the second reads as an account that is settled. */
       const heldNoMonth=s.status==='on_hold'&&!(s.holds||[]).some(h=>h.start);
       return {id:String(s._id),studentId:s.studentId,nameBn:s.name.bn,nameEn:s.name.en||'',
-        classId:String(s.classGroup),classBn:group?.bn||'',classEn:group?.en||'',
+        classId:String(s.classGroup),classBn:group?.name.bn||'',classEn:group?.name.en||'',
+        /* F-12 · a student whose class has been closed, or filed away, has nowhere to be put back to, and
+           the sheet that restores them has to know that before it opens rather than on the write. */
+        classActive:!!group&&group.active!==false,
         guardianPhone:s.guardianPhone,guardianName:s.guardianName||'',studentPhone:s.studentPhone||'',altPhone:s.altPhone||'',
         roll:s.roll||'',school:s.school||'',notes:s.notes||'',address:s.address||'',admissionDate:s.admissionDate||'',
         status:s.status,
@@ -143,7 +176,15 @@ export async function updateCenterClass(_:CenterActionState,form:FormData):Promi
     lets a `teacher` in. Twelve is the same ceiling the exam form puts on classes. */
  const teacherIds=[...new Set(form.getAll('teacherIds').map(value=>String(value)))];
  if(teacherIds.length>12||teacherIds.some(value=>!mongoose.isValidObjectId(value)))return {status:'invalid',fields:['teacherIds']};
- if(teacherIds.length){const allowed=await User.find({_id:{$in:teacherIds},role:'teacher',active:true}).select('_id').lean<{_id:mongoose.Types.ObjectId}[]>();if(allowed.length!==teacherIds.length)return {status:'invalid',fields:['teacherIds']}}const session=await mongoose.startSession();try{await session.withTransaction(async()=>{const before=await CenterClassGroup.findById(id).session(session).lean<{_id:mongoose.Types.ObjectId;updatedAt:Date}>();if(!before||before.updatedAt.toISOString()!==revision)throw Error('STALE');const after=await CenterClassGroup.findOneAndUpdate({_id:id,updatedAt:before.updatedAt},{$set:{name:{bn:nameBn,en:nameEn},shift,active,teachers:teacherIds,...(monthlyFee===null?{}:{monthlyFee})}},{new:true,runValidators:true,session}).lean();if(!after)throw Error('STALE');await CenterActivityLog.create([{actor:admin.id,action:'class.update',target:before._id,before,after}],{session})});refresh();for(const lang of ['bn','en'])revalidatePath(`/${lang}/admin/students/classes`);return {status:'ok'}}catch(e){return {status:(e as Error).message==='STALE'?'conflict':(e as {code?:number}).code===11000?'duplicate':'error'}}finally{await session.endSession()}}
+ if(teacherIds.length){const allowed=await User.find({_id:{$in:teacherIds},role:'teacher',active:true}).select('_id').lean<{_id:mongoose.Types.ObjectId}[]>();if(allowed.length!==teacherIds.length)return {status:'invalid',fields:['teacherIds']}}const session=await mongoose.startSession();try{await session.withTransaction(async()=>{const before=await CenterClassGroup.findById(id).session(session).lean<{_id:mongoose.Types.ObjectId;updatedAt:Date;active?:boolean}>();if(!before||before.updatedAt.toISOString()!==revision)throw Error('STALE');
+ /* F-05 · a class with children on it is not closed from this door either. The board's own editor and
+    this one write the same record, so the same refusal has to be the same refusal: the count is read
+    inside the transaction, and a student who has left does not hold a class open while a paused one
+    does, because a pause is a seat the centre is keeping. */
+ if(!active&&before.active!==false){const running=await CenterStudent.countDocuments({classGroup:before._id,status:{$ne:'removed'}}).session(session);if(running>0)throw Error(`ARCHIVE_REFUSED:${running}`)}
+ const after=await CenterClassGroup.findOneAndUpdate({_id:id,updatedAt:before.updatedAt},{$set:{name:{bn:nameBn,en:nameEn},shift,active,teachers:teacherIds,...(monthlyFee===null?{}:{monthlyFee})}},{new:true,runValidators:true,session}).lean();if(!after)throw Error('STALE');await CenterActivityLog.create([{actor:admin.id,action:'class.update',target:before._id,before,after}],{session})});refresh();for(const lang of ['bn','en'])revalidatePath(`/${lang}/admin/students/classes`);return {status:'ok'}}catch(e){const code=(e as Error).message;
+ if(code.startsWith('ARCHIVE_REFUSED:')){const running=Number(code.slice('ARCHIVE_REFUSED:'.length))||0;const language=(await languageOf())==='en'?'en':'bn';const words=await getTranslations({locale:language,namespace:'classAdmin'});return {status:'error',message:String(words('archiveRefused',{count:formatNumber(running,language)}))}}
+ return {status:code==='STALE'?'conflict':(e as {code?:number}).code===11000?'duplicate':'error'}}finally{await session.endSession()}}
 
 /** Restore a deliberately removed student, without silently billing the absence interval. */
 /**
@@ -350,11 +391,54 @@ export async function updateStudentMonthlyFee(_:CenterActionState,form:FormData)
 }
 export async function removeCenterStudent(_:CenterActionState,form:FormData):Promise<CenterActionState>{const admin=await requireAdmin();if(admin.role!=='admin'&&admin.role!=='superadmin')return {status:'error'};const id=String(form.get('id')||''),leave=String(form.get('leave')||''),reason=String(form.get('reason')||'').trim();if(!mongoose.isValidObjectId(id)||!/^\d{4}-(0[1-9]|1[0-2])$/.test(leave)||reason.length<3||reason.length>500)return {status:'invalid'};
   const removeMessage=(await getTranslations('center'))('row.removeOk');
+  /* F-10 · read before the write, the way every sentence this action answers with is: a removal is filed
+     with the date it stops being kept, so the nightly job can drop it without guessing what the centre
+     meant by "removed". The window is the centre's own setting, and thirty days when it has chosen none. */
+  const purgeAt=studentPurgeAt(new Date(),await removalWindow());
   let classGroup='';
-  const session=await mongoose.startSession();try{await session.withTransaction(async()=>{await acquireCenterLocks([studentLock(id)],session);const student=await CenterStudent.findById(id).session(session);if(!student||student.status==='removed')throw Error('NOT_REMOVABLE');classGroup=String(student.classGroup);student.status='removed';student.removal={removedAt:new Date(),removedBy:new mongoose.Types.ObjectId(admin.id),reason,leaveDate:leave};student.revision+=1;await student.save({session});await CenterActivityLog.create([{actor:admin.id,action:'student.remove',target:student._id,after:{leaveDate:leave,reason}}],{session})});refresh();refreshClass(classGroup);for(const lang of ['bn','en'])revalidatePath(`/${lang}/admin/students/removed`);
+  const session=await mongoose.startSession();try{await session.withTransaction(async()=>{await acquireCenterLocks([studentLock(id)],session);const student=await CenterStudent.findById(id).session(session);if(!student||student.status==='removed')throw Error('NOT_REMOVABLE');classGroup=String(student.classGroup);student.status='removed';student.removal={removedAt:new Date(),removedBy:new mongoose.Types.ObjectId(admin.id),reason,leaveDate:leave,purgeAt};student.revision+=1;await student.save({session});await CenterActivityLog.create([{actor:admin.id,action:'student.remove',target:student._id,after:{leaveDate:leave,reason,purgeAt:purgeAt.toISOString()}}],{session})});refresh();refreshClass(classGroup);for(const lang of ['bn','en'])revalidatePath(`/${lang}/admin/students/removed`);
   return {status:'ok',message:removeMessage}}catch(error){if(process.env.CENTER_DATA_MODE==='test')console.error('Remove test error:',error);return {status:'error'}}finally{await session.endSession()}}
 export async function restoreCenterStudent(_:CenterActionState,form:FormData):Promise<CenterActionState>{const admin=await requireAdmin(),id=String(form.get('id')||''),resume=String(form.get('resume')||''),reason=String(form.get('reason')||'').trim();if(!mongoose.isValidObjectId(id)||!/^\d{4}-(0[1-9]|1[0-2])$/.test(resume)||reason.length<3||reason.length>500)return {status:'invalid'};
-  const restoreMessage=(await getTranslations('center'))('restore.ok');
-  let classGroup='';
-  const session=await mongoose.startSession();try{await session.withTransaction(async()=>{await acquireCenterLocks([studentLock(id)],session);const student=await CenterStudent.findById(id).session(session);if(!student||student.status!=='removed'||!student.removal?.leaveDate||/^(?:Workbook import undo:|Import undo:)/.test(student.removal?.reason||''))throw Error('NOT_RESTORABLE');const leave=String(student.removal.leaveDate).slice(0,7),leaveN=Number(leave.slice(0,4))*12+Number(leave.slice(5,7)),resumeN=Number(resume.slice(0,4))*12+Number(resume.slice(5,7));if(resumeN<=leaveN)throw Error('INVALID_RESUME');await acquireCenterLocks([identityLock(String(student.classGroup),student.name.bn,student.guardianPhone)],session);const same=await CenterStudent.find({classGroup:student.classGroup,guardianPhone:student.guardianPhone,status:{$ne:'removed'},_id:{$ne:student._id}}).select('name.bn').session(session).lean<{name:{bn:string}}[]>();if(same.some(x=>normalizeIdentityName(x.name.bn)===normalizeIdentityName(student.name.bn)))throw Error('DUPLICATE');classGroup=String(student.classGroup);const history=student.removal.toObject?student.removal.toObject():student.removal;student.removalHistory.push({...history,restoredAt:new Date(),restoredBy:admin.id,restoreReason:reason,resumeMonth:resume});if(resumeN>leaveN+1){const start=leaveN+1,end=resumeN-1;student.holds.push({start:{year:Math.floor((start-1)/12),month:(start-1)%12+1},end:{year:Math.floor((end-1)/12),month:(end-1)%12+1},reason:`Removed interval: ${reason}`,recordedBy:admin.id})}student.status='active';student.removal=undefined;student.revision+=1;await student.save({session});await CenterActivityLog.create([{actor:admin.id,action:'student.restore',target:student._id,before:history,after:{resumeMonth:resume,reason}}],{session})});refresh();refreshClass(classGroup);for(const l of ['bn','en'])revalidatePath(`/${l}/admin/students/removed`);
-  return {status:'ok',message:restoreMessage}}catch(e){if(process.env.CENTER_DATA_MODE==='test')console.error('Restore test error:',e);return {status:(e as Error).message==='DUPLICATE'?'duplicate':'error'}}finally{await session.endSession()}}
+  /* F-12 · a student whose class has been closed, or filed in the Recycle Bin, has nowhere to be put
+     back to: restoring them onto it would seat a child on a roll nobody opens and bill them on a class
+     the centre has stopped running. So the sheet that restores such a student offers the classes that
+     ARE running and posts the one the operator picked, and the restore carries the move with it — one
+     write, one timeline line, the same planner the move door uses. */
+  const targetId=String(form.get('classGroup')||'').trim();
+  if(targetId&&!mongoose.isValidObjectId(targetId))return {status:'invalid',fields:['classGroup']};
+  const tRestore=await getTranslations('center');
+  const words={ok:tRestore('restore.ok'),noClass:tRestore('transferDoor.noClass'),
+    before:tRestore('transferDoor.beforeStart'),duplicate:tRestore('restore.duplicate'),
+    failed:tRestore('failure')};
+  let classGroup='',movedTo='';
+  const session=await mongoose.startSession();try{await session.withTransaction(async()=>{await acquireCenterLocks([studentLock(id)],session);const student=await CenterStudent.findById(id).session(session);if(!student||student.status!=='removed'||!student.removal?.leaveDate||/^(?:Workbook import undo:|Import undo:)/.test(student.removal?.reason||''))throw Error('NOT_RESTORABLE');const leave=String(student.removal.leaveDate).slice(0,7),leaveN=Number(leave.slice(0,4))*12+Number(leave.slice(5,7)),resumeN=Number(resume.slice(0,4))*12+Number(resume.slice(5,7));if(resumeN<=leaveN)throw Error('INVALID_RESUME');
+      /* Only a class the centre runs takes a student back — the same rule the move door has always had.
+         A class that has come back to life between the sheet opening and the write landing needs no move
+         at all, so the target is dropped rather than written as a line that says the student moved. */
+      let target=targetId,targetName={bn:'',en:''};
+      if(target){const found=await CenterClassGroup.findOne({_id:target,active:true}).select('name').session(session).lean<{name:{bn:string;en?:string}}|null>();if(!found)throw Error('NO_CLASS');if(String(student.classGroup)===target)target='';else targetName={bn:found.name.bn,en:found.name.en||''}}
+      const onto=target||String(student.classGroup);
+      await acquireCenterLocks([identityLock(onto,student.name.bn,student.guardianPhone)],session);const same=await CenterStudent.find({classGroup:onto,guardianPhone:student.guardianPhone,status:{$ne:'removed'},_id:{$ne:student._id}}).select('name.bn').session(session).lean<{name:{bn:string}}[]>();if(same.some(x=>normalizeIdentityName(x.name.bn)===normalizeIdentityName(student.name.bn)))throw Error('DUPLICATE');classGroup=String(student.classGroup);
+      if(target){
+        const from=mongoose.isValidObjectId(classGroup)?await CenterClassGroup.findById(classGroup).select('name').session(session).lean<{name:{bn:string;en?:string}}|null>():null;
+        const planned=planClassTransfer(
+          {classGroup,startMonth:{year:student.startMonth.year,month:student.startMonth.month},
+            classHistory:((student.classHistory||[]) as ClassStepLike[]).map(entry=>({classGroup:String(entry.classGroup),
+              name:{bn:entry.name?.bn||'',en:entry.name?.en||''},reason:entry.reason||'',
+              changedBy:stampOf(entry.changedBy),changedAt:entry.changedAt,
+              effectiveFrom:{year:entry.effectiveFrom.year,month:entry.effectiveFrom.month}}))},
+          {targetClassId:target,targetClassName:targetName,
+            from:{id:classGroup,name:{bn:from?.name.bn||'',en:from?.name.en||''}},
+            effectiveMonth:{year:Number(resume.slice(0,4)),month:Number(resume.slice(5,7))},
+            reason,actorId:admin.id,now:new Date()});
+        student.classGroup=new mongoose.Types.ObjectId(target);
+        student.set('classHistory',planned.classHistory);
+        movedTo=target;
+      }const history=student.removal.toObject?student.removal.toObject():student.removal;student.removalHistory.push({...history,restoredAt:new Date(),restoredBy:admin.id,restoreReason:reason,resumeMonth:resume});if(resumeN>leaveN+1){const start=leaveN+1,end=resumeN-1;student.holds.push({start:{year:Math.floor((start-1)/12),month:(start-1)%12+1},end:{year:Math.floor((end-1)/12),month:(end-1)%12+1},reason:`Removed interval: ${reason}`,recordedBy:admin.id})}student.status='active';student.removal=undefined;student.revision+=1;await student.save({session});await CenterActivityLog.create([{actor:admin.id,action:'student.restore',target:student._id,before:history,after:{resumeMonth:resume,reason,...(movedTo?{classGroup:movedTo}:{})}}],{session})});refresh();refreshClass(classGroup);refreshClass(movedTo);for(const l of ['bn','en'])revalidatePath(`/${l}/admin/students/removed`);
+  return {status:'ok',message:words.ok}}catch(e){const code=(e as Error).message;
+  if(process.env.CENTER_DATA_MODE==='test')console.error('Restore test error:',e);
+  return code==='DUPLICATE'?{status:'duplicate',message:words.duplicate}
+    :code==='NO_CLASS'?{status:'invalid',fields:['classGroup'],message:words.noClass}
+    :code==='BEFORE_START'?{status:'invalid',fields:['resume'],message:words.before}
+    :code==='INVALID_RESUME'?{status:'invalid',fields:['resume'],message:words.failed}
+    :{status:'error',message:words.failed}}finally{await session.endSession()}}

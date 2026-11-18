@@ -45,6 +45,7 @@ export default async function Classes({params}:{params:Promise<{locale:string}>}
       {t('readFailed')} <span className="admin-help" data-class-error-why>{read.failure}</span>
     </p>}
     <ClassManagement cards={board?.cards||[]} batchOptions={board?.batchOptions||[]}
+      teacherOptions={board?.teacherOptions||[]}
       year={dhakaCalendar(new Date()).year} digits={digits} canEdit={canEdit}/>
   </>;
 }

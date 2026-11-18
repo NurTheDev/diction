@@ -40,6 +40,42 @@ export function shiftWordsOf(card:{shifts:string[];shift:string}):string[]{
   return word?[word]:[];
 }
 
+/**
+ * F-08 · A shift word a class wore before the boxes existed, recognised as one of the three keys.
+ *
+ * The owner's own word is kept exactly as it stands — a class that says "প্রভাতী" is not a morning
+ * class and nothing here may decide that it is. But a word that IS one of the three labels is the same
+ * fact the box would have written, so the first save of such a class puts the canonical key in
+ * `shifts[]` beside it. From then on the boxes are the truth and the derived label always agrees with
+ * them, which is what keeps a routine query, a dues query and a card reading one class one way.
+ */
+export function shiftKeyOfWord(word:string,labels:readonly string[]):ClassShiftKey|undefined{
+  const value=String(word||'').trim();
+  if(!value)return undefined;
+  const at=labels.findIndex(label=>label===value);
+  return at>=0?CLASS_SHIFT_KEYS[at]:undefined;
+}
+
+/**
+ * F-16 · What the fee box on a class form holds, and what the operator meant by it.
+ *
+ * One number cannot say both "this class is free" and "nobody has decided this class's fee yet", so the
+ * form carries the flag beside the box: an empty box with the tick off is the gap, an empty box with the
+ * tick on is a free class, and a number in the box is that number. Clearing a fee that was set is
+ * therefore an act the operator performs — empty the box, leave the tick off — and never something a
+ * half-filled submit does on its way past.
+ */
+export type ClassFeeState={fee:string;free:boolean};
+export function feeStateOf(monthlyFee:number,feeFree:boolean):ClassFeeState{
+  const amount=Number(monthlyFee);
+  if(!Number.isFinite(amount)||amount<=0)return {fee:'',free:feeFree===true};
+  return {fee:String(Math.round(amount)),free:false};
+}
+/** True when a stored class advertises no price at all — neither a number nor the word "free". */
+export function feeUnset(monthlyFee:number,feeFree:boolean):boolean{
+  return !(Number(monthlyFee)>0)&&feeFree!==true;
+}
+
 /** One class as its card shows it. */
 export interface ClassCardView{
   id:string;
@@ -55,11 +91,15 @@ export interface ClassCardView{
   academicYear:number;
   active:boolean;
   monthlyFee:number;
+  /** F-16 · the sentence behind a zero: this class is deliberately free of charge. */
+  feeFree:boolean;
   /** Children enrolled on this class right now — `active`, not held, not removed. */
   students:number;
   /** Batches assigned to this class that are still running. */
   batches:number;
   teachers:string[];
+  /** The same assignment as ids, because the edit form's own boxes have to open already ticked. */
+  teacherIds:string[];
   /** The class's own `updatedAt`, which is what an edit posts back so a stale write is refused. */
   revision:string;
 }
@@ -67,9 +107,14 @@ export interface ClassCardView{
 /** A batch an operator may assign to a class. */
 export interface BatchOption{id:string;name:string;grade:string;classId:string}
 
+/** A teacher account a class may be given. F-04 · the one editor writes the teachers too, so the board
+    hands it the same list the class list has always handed its own fold. */
+export interface TeacherOption{id:string;name:string}
+
 export interface ClassBoardView{
   cards:ClassCardView[];
   batchOptions:BatchOption[];
+  teacherOptions:TeacherOption[];
   /** Every class the centre holds, live ones first — the cards are all of them, in that order. */
   total:number;
 }

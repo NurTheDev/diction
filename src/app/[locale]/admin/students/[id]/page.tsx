@@ -18,10 +18,13 @@ export default async function StudentProfile({params,searchParams}:{params:Promi
  /* S1 · what the three doors write and what the two histories read. The classes offered are the ones
     the centre runs, in the page's own language; the price on the form is the one this month is billed
     at; the pause the sheet may not offer a resume inside is the open one. */
- const choices=(await CenterClassGroup.find({active:true}).select('name academicYear shift')
+ /* F-07 · the price each class advertises travels with the class, so the move door and the fee door can
+    quote it and an enrolment can start from it rather than from an empty box. */
+ const choices=(await CenterClassGroup.find({active:true}).select('name academicYear shift monthlyFee feeFree')
    .sort({academicYear:-1,order:1,'name.bn':1}).limit(200)
-   .lean<{_id:unknown;name:{bn:string;en?:string};academicYear:number;shift?:string}[]>())
-   .map(group=>({id:String(group._id),name:(locale==='en'?group.name.en:group.name.bn)||group.name.bn,year:group.academicYear,shift:group.shift||''}));
+   .lean<{_id:unknown;name:{bn:string;en?:string};academicYear:number;shift?:string;monthlyFee?:number;feeFree?:boolean}[]>())
+   .map(group=>({id:String(group._id),name:(locale==='en'?group.name.en:group.name.bn)||group.name.bn,year:group.academicYear,shift:group.shift||'',
+     monthlyFee:Number(group.monthlyFee)||0,feeFree:group.feeFree===true}));
  const kit={id,digits,language:locale==='en'?'en' as const:'bn' as const};
  const todayIndex=today.year*12+today.month;
  const currentFee=fees.find(fee=>fee.effectiveFrom.year*12+fee.effectiveFrom.month<=todayIndex)?.amount??fees[0]?.amount??null;

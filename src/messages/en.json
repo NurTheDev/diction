@@ -1998,6 +1998,9 @@
     "startYear": "First billable year",
     "startMonth": "First billable month",
     "monthlyFee": "Monthly fee (taka)",
+    "feeNotSet": "Choose a class and its own fee fills in here",
+    "feeFromClass": "Filled in from the class's own monthly fee — change it if this student pays something different.",
+    "feeFreeHint": "Write 0 for a student who pays nothing; the box cannot be left empty.",
     "notes": "Notes (optional)",
     "save": "Save student",
     "saving": "Saving…",
@@ -2111,7 +2114,10 @@
       "submit": "Restore",
       "ok": "Restored.",
       "duplicate": "The same student is already active.",
-      "failed": "Could not restore; check the month and the details."
+      "failed": "Could not restore; check the month and the details.",
+      "classLabel": "The class to return to",
+      "classNote": "The old class is closed or gone, so pick one of the classes that is running — a restored student needs a class to sit in.",
+      "classNone": "No class is running yet; open one first."
     },
     "backup": {
       "title": "Backup",
@@ -2182,6 +2188,12 @@
       "noShift": "No shift set",
       "active": "Running",
       "archived": "Closed",
+      "archivedBanner": "Archived class",
+      "archivedNote": "This class has been closed, so nobody can be enrolled onto it. Its list, its dues and its results are still readable exactly as they were. To run it again, edit it from the class list and tick “The class is running”.",
+      "archivedEdit": "Open this class again",
+      "archivedRecords": "See the historical records",
+      "unknownClass": "That class could not be found",
+      "unknownNote": "The class asked for is not there, or its address is wrong — so the students of every class are listed instead.",
       "collectFee": "Collect fee",
       "more": "More",
       "dueList": "Due list",
@@ -2192,6 +2204,7 @@
       "onHold": "On hold",
       "monthlyFee": "Monthly fee",
       "feeUnknown": "Not set",
+      "feeFree": "Free of charge",
       "owing": "Students owing",
       "totalDue": "Total due",
       "duesUnknown": "Not read",
@@ -5422,6 +5435,14 @@
     "saveBatches": "Save batches",
     "batchesSaved": "Batches assigned.",
     "readFailed": "The board could not be read. Please try again.",
-    "readFailedWhy": "Why"
+    "readFailedWhy": "Why",
+    "archiveRefused": "This class still has {count} active students. Transfer them to another class before archiving.",
+    "archiveRefusedHelp": "Closing a class takes it out of new enrolments, but the students sitting in it are not left behind — move every one of them to another class first.",
+    "teachersHelp": "Tick the teachers who take this class — a ticked teacher is the one who may open its marks.",
+    "feePlaceholder": "Not set yet",
+    "feeFreeCheck": "This class is free of charge (0 taka)",
+    "feeFreeHelp": "Ticked, the class costs nothing a month. An empty box and a zero are not the same words: an empty box means the fee is not set yet.",
+    "feeClearHelp": "To clear a fee that was set, empty the box and save.",
+    "feeFreeWord": "Free of charge"
   }
 }

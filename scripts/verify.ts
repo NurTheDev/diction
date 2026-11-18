@@ -431,6 +431,14 @@ async function main():Promise<void>{
       {needsDb:true,env:{TEST_ORIGIN:ctx.origin,TEST_MONGO_URI:ctx.mongoUri,TEST_MONGO_DB:ctx.mongoDb}});
     await stepUnitSuites(ctx,'test:s1:date','S1.3','The certificate\u2019s date spelled from the catalogs in the operator\u2019s digits, with a day that is not a day refused');
     await stepUnitSuites(ctx,'test:s1:copy','S1.4','The doors\u2019 words belong to the catalogs: both whole, no variable named, no Bangla on an English screen, no hardcoded pair in a route file');
+    /* S2 · the class workflow: what a class is, who may close one, and where a removal comes back
+       to. Three unit rows — the findings as rules with no database behind them, the same findings
+       against the disposable database (the name index and the removal's own end), and the words this
+       slice paints — plus the browser row below, proved by the suite the plan names. */
+    await stepUnitSuites(ctx,'test:s2:core','S2.1','The class workflow as rules: a fee\u2019s two meanings, a shift word derived from its keys, a removal\u2019s own window, the refusal a class with children on it answers with, and the one editor every surface renders');
+    await stepUnitSuites(ctx,'test:s2:db','S2.2','The same workflow against the disposable database: the name rule binds only the classes that are live, the nightly sync brings an older database in line, and a removal is dropped when its window closes',
+      {needsDb:true,env:{TEST_ORIGIN:ctx.origin,TEST_MONGO_URI:ctx.mongoUri,TEST_MONGO_DB:ctx.mongoDb}});
+    await stepUnitSuites(ctx,'test:s2:copy','S2.4','The class workflow\u2019s words belong to the catalogs: both whole, no variable named, no Bangla on an English screen, no hardcoded pair in a route file');
     await stepUnitSuites(ctx,'test:g3:copy','G3.6','The plain-language sweep: no shipped value says snapshot, write enabled or reconciliation in either language, both catalogues whole, no hardcoded pair in a route file');
     await stepScreens(ctx);
     await stepBrowserTests(ctx);

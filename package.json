@@ -97,7 +97,11 @@
     "test:s1:db": "tsx tests/student-money-db.integration.ts",
     "test:s1:screens": "tsx tests/student-money-browser.integration.ts",
     "test:s1:date": "tsx tests/achievement.test.ts",
-    "test:s1:copy": "tsx tests/i18n-catalog.test.ts && tsx tests/i18n-bangla-scan.test.ts"
+    "test:s1:copy": "tsx tests/i18n-catalog.test.ts && tsx tests/i18n-bangla-scan.test.ts",
+    "test:s2:core": "tsx tests/class-workflow-core.test.ts",
+    "test:s2:db": "tsx --conditions=react-server tests/class-workflow-db.integration.ts",
+    "test:s2:screens": "tsx tests/class-workflow-browser.integration.ts",
+    "test:s2:copy": "tsx tests/i18n-catalog.test.ts && tsx tests/i18n-bangla-scan.test.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

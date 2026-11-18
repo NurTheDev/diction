@@ -122,6 +122,12 @@ export function StudentRow({student,kit}:{student:CenterSearchItem;kit:StudentRo
   /* The month a Remove or a Restore carries is picked, and until it is, the verb is a dead button: a
      hidden input is barred from constraint validation, so `required` cannot do this work. */
   const [leaveMonth,setLeaveMonth]=useState(''),[resumeMonth,setResumeMonth]=useState('');
+  /* S2 · F-12: a student whose class has been closed or filed away cannot be put back onto it, so the
+     restore sheet asks which running class they come back to. Both this and the reason are state rather
+     than fields the browser holds: a refusal re-renders the form, and a form that comes back empty is a
+     refusal that costs the operator everything they typed. */
+  const [restoreClass,setRestoreClass]=useState(''),[restoreReason,setRestoreReason]=useState('');
+  const needsClass=student.status==='removed'&&!student.classActive;
   useReread(onChanged,[removeState,restoreState,editState]);
   /* A saved edit closes its own form, the way `MenuForm` closes its menu when the write lands: a form
      left open over the row it has just written is a sheet left across the operator's work, and on a
@@ -245,15 +251,33 @@ export function StudentRow({student,kit}:{student:CenterSearchItem;kit:StudentRo
               /* Restore is Remove's mirror image: the month the fee starts again and the reason, typed
                  by a person, before the row comes back into the list the centre works from. */
               ?<MenuForm marker="restore" action={restoreAction} state={restoreState} onDone={close}
-                submitLabel={t('restore.submit')} disabled={restorePending||!resumeMonth}>
+                submitLabel={t('restore.submit')}
+                disabled={restorePending||!resumeMonth||(needsClass&&!restoreClass)}>
                 <input type="hidden" name="id" value={student.id}/>
                 <label className="admin-help">{t('restore.resumeLabel')}
                   <MonthField name="resume" value="" placeholder={t('row.pickMonth')} clearLabel={t('row.clear')}
                     digits={digits} language={language} onChange={setResumeMonth}/></label>
+                {/* F-12 · the class they come back to, asked for only when the one they left is not there
+                    to come back to: a closed class is a roll nobody opens, and a restore onto it would
+                    seat the student on a list the centre has stopped running and bill them on it. */}
+                {needsClass&&<label className="admin-help" data-restore-class-label>{t('restore.classLabel')}
+                  <span className="admin-help pop-hint" data-restore-class-note>{t('restore.classNote')}</span>
+                  {classes.length===0
+                    ? <span className="admin-help pop-hint" data-restore-class-none>{t('restore.classNone')}</span>
+                    : <select className="admin-select" name="classGroup" data-restore-class required
+                        value={restoreClass} onChange={event=>setRestoreClass(event.target.value)}>
+                        <option value="" disabled>{t('classRequired')}</option>
+                        {classes.map(choice=><option key={choice.id} value={choice.id}
+                          data-restore-class-option={choice.id}>{choice.name}</option>)}
+                      </select>}</label>}
                 <label className="admin-help">{t('restore.reasonLabel')}
-                  <input className="admin-input" name="reason" minLength={3} maxLength={500} required placeholder={t('row.restoreHint')}/></label>
+                  <input className="admin-input" name="reason" minLength={3} maxLength={500} required
+                    value={restoreReason} onChange={event=>setRestoreReason(event.target.value)}
+                    placeholder={t('row.restoreHint')}/></label>
                 {restoreState.status!=='idle'&&restoreState.status!=='ok'
-                  &&<span className="admin-help pop-hint">{restoreState.status==='duplicate'?t('restore.duplicate'):t('restore.failed')}</span>}
+                  &&<span className="admin-help pop-hint" data-restore-refused>
+                    {restoreState.message
+                      ||(restoreState.status==='duplicate'?t('restore.duplicate'):t('restore.failed'))}</span>}
               </MenuForm>
               :<MenuForm marker="remove" action={removeAction} state={removeState} onDone={close}
                 submitLabel={t('remove')} disabled={removePending||!leaveMonth}>

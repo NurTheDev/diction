@@ -19,16 +19,34 @@
  * Both writes answer with the operator's own sentence in the language they are reading, which is what the
  * toast in the corner says; a refusal answers with the fields that were wrong so the form can point at
  * them instead of shaking.
+ *
+ * S2 · this is now the ONE place a class is written (F-04). The class list under Students used to carry
+ * its own smaller editor — a name, a shift word, a fee and the teachers — and the two wrote different
+ * fields to the same record, so a class edited on one screen lost facts the other screen owned. Both
+ * surfaces now post here, this form carries every field the record has (both names, the level, the shifts
+ * and the shift word derived from them, the room, the fee and what a zero means, the teachers, and
+ * whether the class is running), and three rules travel with it:
+ *
+ * · **the shifts are canonical** (F-08) — `shifts[]` holds the keys and `shift` is always the first key's
+ *   own Bangla label, so a routine query, a dues query and a card cannot disagree about one class;
+ * · **a class with children on it is not closed** (F-05) — archiving counts the students first and
+ *   refuses with the number of them and the way out, because a closed class is a class nobody enrols
+ *   into and the children on it would keep owing fees on a roll nobody reads;
+ * · **a fee says which of two things it is** (F-16) — a number is that number, a tick on an empty box is
+ *   a class that is free, an emptied box that held a number is a fee deliberately cleared, and an empty
+ *   box that never held one leaves the stored fee alone.
  */
 import mongoose from 'mongoose';
 import {revalidatePath} from 'next/cache';
-import {getTranslations} from 'next-intl/server';
+import {getLocale,getTranslations} from 'next-intl/server';
 import {requireAdmin} from '@/lib/admin/guard';
 import {classGroupSchema,shiftsOf} from '@/schemas/center';
-import {CenterActivityLog,CenterClassGroup} from '@/models/CenterRecords';
+import {CenterActivityLog,CenterClassGroup,CenterStudent} from '@/models/CenterRecords';
 import {Batch} from '@/models/Academic';
+import {User} from '@/models/User';
 import {appendFileSync,mkdirSync} from 'node:fs';
-import {CLASS_SHIFT_KEYS,isShiftKey} from '@/lib/classes/class-shared';
+import {formatNumber,type Digits} from '@/lib/admin/format';
+import {CLASS_SHIFT_KEYS,isShiftKey,shiftKeyOfWord} from '@/lib/classes/class-shared';
 
 /**
  * The server's own account of a write, appended where the verification run reads its logs.
@@ -51,7 +69,9 @@ const actionLog=(line:string):void=>{
 };
 
 export type ClassActionState={
-  status:'idle'|'ok'|'invalid'|'duplicate'|'conflict'|'error';
+  /* `refused` is F-05's own answer: the write is not wrong, it is not allowed yet, and the screen says
+     what has to happen first rather than shaking at the operator. */
+  status:'idle'|'ok'|'invalid'|'duplicate'|'conflict'|'refused'|'error';
   /** The class the write was about, so the caller can keep its own card open. */
   classId?:string;
   /** Which boxes were wrong: a form points at them rather than saying "something was". */
@@ -64,6 +84,8 @@ export type ClassActionState={
    * the sentence — can see which of the fifty ways that was. The message, never the stack.
    */
   detail?:string;
+  /** How many students are still on a class somebody tried to close, when that is the refusal. */
+  count?:number;
 };
 
 const idle:ClassActionState={status:'idle'};
@@ -87,12 +109,65 @@ async function shiftWord(key:string):Promise<string>{
   return String(word||'');
 }
 
-/** What a class's own shift word becomes when the boxes say otherwise — the first box, in Bangla. */
-async function shiftOf(shifts:string[],current:string):Promise<string>{
-  if(!shifts.length)return current;
-  if(current.trim()&&!isShiftKey(current))return current; // the owner's own word is never overwritten
-  const word=await shiftWord(shifts[0]);
-  return word||current;
+/** The three labels in the day's order, read from the catalog once per write. */
+async function shiftWords():Promise<string[]>{
+  const words:string[]=[];
+  for(const key of CLASS_SHIFT_KEYS)words.push(await shiftWord(key));
+  return words;
+}
+
+/** Which language the operator is reading, so a refusal arrives in it and in their own digits. */
+async function languageOf():Promise<Digits>{
+  try{return (await getLocale())==='en'?'en':'bn'}catch{return 'bn'}
+}
+
+/**
+ * F-05 · The sentence a refused archive answers with — the count in the operator's own digits, and the
+ * way out in the same breath, because "you may not" without "here is what to do" is a dead end.
+ */
+async function archiveRefused(running:number):Promise<string>{
+  const language=await languageOf();
+  const t=await getTranslations({locale:language,namespace:'classAdmin'});
+  return String(t('archiveRefused',{count:formatNumber(running,language)}));
+}
+
+/**
+ * F-08 · The one shift word the routine reads, derived rather than remembered.
+ *
+ * The boxes are the truth: `shifts[]` holds the canonical keys and the word is the first key's own Bangla
+ * label, in the order the day happens. Deriving it is what keeps a routine query, a dues query and a card
+ * from disagreeing about one class — a class written by one screen as `morning` and by another as a word
+ * the owner typed answered two different questions depending on who asked.
+ *
+ * A word the owner typed before the boxes existed is kept while no box is ticked, because dropping it
+ * would leave that class's routine with nothing to read; the moment it IS one of the three labels it
+ * belongs to a box, and an unticked box means the class no longer runs that shift.
+ */
+function shiftOf(words:string[],shifts:string[],current:string):string{
+  if(shifts.length){
+    const at=(CLASS_SHIFT_KEYS as readonly string[]).indexOf(shifts[0]);
+    return (at>=0?words[at]:'')||String(current||'');
+  }
+  const word=String(current||'').trim();
+  if(!word)return '';
+  return words.includes(word)?'':word;
+}
+
+/**
+ * F-16 · What the fee box and the tick beside it write.
+ *
+ * One number cannot say both "this class is free" and "nobody has priced this class yet", and a form that
+ * turned one into the other either started billing a class nobody priced or quietly forgave one the centre
+ * runs for free. So the box carries the number, the tick carries the free class, and the form posts the
+ * fee it OPENED with (`feeWas`) — which is what makes clearing a fee an act the operator performs rather
+ * than something a half-filled submit does on its way past. A form that posts no fee and no `feeWas`
+ * leaves the stored fee exactly as it was, which is what every caller before this one meant.
+ */
+function feeWrite(fee:number|null,free:boolean,hadFee:boolean):{monthlyFee:number;feeFree:boolean}|null{
+  if(fee!==null)return {monthlyFee:fee,feeFree:false};
+  if(free)return {monthlyFee:0,feeFree:true};
+  if(hadFee)return {monthlyFee:0,feeFree:false};
+  return null;
 }
 
 /**
@@ -125,6 +200,24 @@ export async function saveClassGroupAction(previous:ClassActionState,form:FormDa
   const isEdit=mongoose.isValidObjectId(id);
   if(id&&!isEdit)return {status:'invalid',fields:['id']};
   const fee=value.monthlyFee===null||value.monthlyFee===undefined?null:Math.round(value.monthlyFee);
+  /* F-16 · the tick that says a zero is a free class, and the fee the form opened with, which is what
+     tells an emptied box from a box that never held a number. */
+  const feeFree=form.get('feeFree')==='on';
+  const hadFee=/^\d+$/.test(String(form.get('feeWas')||'').trim());
+  const write=feeWrite(fee,feeFree,hadFee);
+  /* F-04 · the teachers travel with the class now, so one form writes the whole record. R5's rule comes
+     with them: an assignment is an authorization, so an id nobody can sign in with is not stored at all,
+     and an id that belongs to another role is a refusal rather than a dead entry that looks live. */
+  const teacherIds=[...new Set(form.getAll('teacherIds').map(entry=>String(entry).trim()))].filter(Boolean);
+  if(teacherIds.length>12||teacherIds.some(entry=>!mongoose.isValidObjectId(entry)))
+    return {status:'invalid',fields:['teacherIds']};
+  if(teacherIds.length){
+    const allowed=await User.find({_id:{$in:teacherIds},role:'teacher',active:true}).select('_id')
+      .lean<{_id:mongoose.Types.ObjectId}[]>();
+    if(allowed.length!==teacherIds.length)return {status:'invalid',fields:['teacherIds']};
+  }
+  const teachers=teacherIds.map(entry=>new mongoose.Types.ObjectId(entry));
+  const words=await shiftWords();
   /* The session is opened inside the try, not before it: a connection that refuses a session is a write
      the operator is told about, not a route that dies under them. A refusal keeps the draft; a death
      loses the screen. */
@@ -136,32 +229,53 @@ export async function saveClassGroupAction(previous:ClassActionState,form:FormDa
     let classId=id;
     await session.withTransaction(async()=>{
       if(!isEdit){
-        const shift=await shiftOf(shifts,'');
+        const shift=shiftOf(words,shifts,'');
         const [created]=await CenterClassGroup.create([{
           name:{bn:value.nameBn,en:value.nameEn},level:value.level,shift,shifts,room:value.room,
-          academicYear:value.academicYear,active:true,monthlyFee:fee??0,order:0,
+          academicYear:value.academicYear,active:true,monthlyFee:write?.monthlyFee??0,
+          feeFree:write?.feeFree===true,order:0,teachers,
         }],{session:tx});
         classId=String(created._id);
         await CenterActivityLog.create([{actor:admin.id,action:'class.create',target:created._id,
           after:{name:created.name,academicYear:value.academicYear,shift,shifts,room:value.room,
-            monthlyFee:created.monthlyFee}}],{session:tx});
+            monthlyFee:created.monthlyFee,feeFree:created.feeFree,teachers:teacherIds}}],{session:tx});
         return;
       }
       /* Somebody else's write is refused rather than overwritten: the form posts the class's own
          `updatedAt`, and a class that has moved since is a conflict the operator is told about. */
       const revision=String(form.get('revision')||'');
       const current=await CenterClassGroup.findOne({_id:id}).session(tx)
-        .lean<{_id:mongoose.Types.ObjectId;updatedAt:Date;academicYear:number;shift:string}>();
+        .lean<{_id:mongoose.Types.ObjectId;updatedAt:Date;academicYear:number;shift:string;
+          shifts?:string[];active?:boolean}>();
       if(!current)throw new Error('MISSING');
       if(!/^\d{4}-\d{2}-\d{2}T/.test(revision)||current.updatedAt.toISOString()!==revision)
         throw new Error('STALE');
       if(Number(value.academicYear)!==Number(current.academicYear))throw new Error('YEAR');
-      const shift=await shiftOf(shifts,String(current.shift||''));
-      const after={name:{bn:value.nameBn,en:value.nameEn},level:value.level,shift,shifts,
-        room:value.room,active,...(fee===null?{}:{monthlyFee:fee})};
+      /* F-05 · closing a class is refused while children are still on it. The count is read inside the
+         transaction, so a student enrolled between the check and the write refuses the archive rather
+         than being left on a roll nobody opens; held students count, because a hold is a pause on a
+         class the centre still runs, and removed ones do not, because they have left it. */
+      if(!active&&current.active!==false){
+        /* The same count the Recycle Bin quotes when it refuses to file a class away — a student who has
+           left does not hold a class open, and one who is paused does, because a pause is a seat kept. */
+        const running=await CenterStudent
+          .countDocuments({classGroup:current._id,status:{$ne:'removed'}}).session(tx);
+        if(running>0)throw new Error(`ARCHIVE_REFUSED:${running}`);
+      }
+      /* F-08 · a class written before the boxes holds its shift as a word and no keys at all; the first
+         save through this form gives it the canonical key that word means, so the boxes open ticked and
+         the word and the keys agree from then on. A class that already has keys keeps whatever the
+         operator ticked, including none of them. */
+      const stored=(current.shifts||[]).map(entry=>String(entry)).filter(Boolean);
+      const picked=shifts.length?shifts
+        :stored.length?[]
+        :(()=>{const key=shiftKeyOfWord(String(current.shift||''),words);return key?[key]:[]})();
+      const shift=shiftOf(words,picked,String(current.shift||''));
+      const after={name:{bn:value.nameBn,en:value.nameEn},level:value.level,shift,shifts:picked,
+        room:value.room,active,teachers,...(write??{})};
       await CenterClassGroup.updateOne({_id:id},{$set:after},{session:tx});
-      await CenterActivityLog.create([{actor:admin.id,action:'class.update',target:current._id,after}],
-        {session:tx});
+      await CenterActivityLog.create([{actor:admin.id,action:'class.update',target:current._id,
+        after:{...after,teachers:teacherIds}}],{session:tx});
     });
     const t=await getTranslations('classAdmin');
     refresh(classId);
@@ -172,6 +286,11 @@ export async function saveClassGroupAction(previous:ClassActionState,form:FormDa
     actionLog(`save threw: ${String((error as Error)?.stack||error).split('\n').slice(0,4).join(' | ')}`);
     const detail=String(message||error).split('\n')[0].slice(0,200);
     if(message==='STALE')return {status:'conflict',classId:id,detail};
+    if(message.startsWith('ARCHIVE_REFUSED:')){
+      const running=Number(message.slice('ARCHIVE_REFUSED:'.length))||0;
+      actionLog(`archive refused classId=${id} running=${running}`);
+      return {status:'refused',classId:id,count:running,message:await archiveRefused(running),detail};
+    }
     if(message==='YEAR')return {status:'invalid',classId:id,fields:['academicYear'],detail};
     if(message==='MISSING')return {status:'error',classId:id,detail};
     return {status:(error as {code?:number}).code===11000?'duplicate':'error',classId:id,detail};
