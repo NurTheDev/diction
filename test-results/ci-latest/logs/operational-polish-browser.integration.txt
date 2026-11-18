@@ -1,10 +1,13 @@
 Error: Error: timed out waiting for the class to be written
   url=http://localhost:3111/bn/admin/classes
-  dbNames=[নমুনা সপ্তম শ্রেণি]
-  dialog=absent refusal=none
+  db=dictioncoaching_test dbNames=[নমুনা সপ্তম শ্রেণি]
+  board(cards=0,count="?",names=[])
+  posts=[200 /bn/admin/routine/master?classId=6afd164e4bde58d5b1da1371 , 200 /bn/admin/routine/master?classId=6afd164e4bde58d5b1da1371 , 200 /bn/admin/center-exams/6afd164e4bde58d5b1da137b , 200 /bn/admin/center-exams/6afd164e4bde58d5b1da137b , 500 /bn/admin/classes]
+  boundary="Minified React error #441; visit https://react.dev/errors/441 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+  dialog=no sheet on the page at all refusal=none
   toasts=[]
   fields=[]
+  forms=[]
   sheetText=""
   pageErrors=none
-    at run (/home/runner/work/diction/diction/tests/operational-polish-browser.integration.ts:714:13)
-    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at run (/home/runner/work/diction/diction/tests/operational-polish-browser.integration.ts:745:13)
