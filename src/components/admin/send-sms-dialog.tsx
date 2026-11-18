@@ -166,7 +166,9 @@ export default function SendSmsDialog({open,onClose,request,templates,title,defa
   const loadPreview=useCallback(async()=>{
     if(!requestId)return;
     setLoadingPreview(true);
-    const {status,data}=await call({mode:'preview',requestId,templateKey,text,subject,target:sendTarget,groupSiblings});
+    // The topic is typed on step 2, so an empty one is previewed as "…": otherwise step 1 counts every
+    // recipient as skipped for missing data before the operator has had a chance to write it.
+    const {status,data}=await call({mode:'preview',requestId,templateKey,text,subject:subject.trim()||'…',target:sendTarget,groupSiblings});
     if(status&&data?.ok&&data.preview){setPreview(data.preview);setDaily(data.daily||null);setPreviewError('')}
     else{setPreview(data?.preview||null);setDaily(data?.daily||null);setPreviewError(String((en?data?.messageEn:data?.messageBn)||data?.detail||data?.error||data?.blocked||(status?'UNAVAILABLE':'NETWORK')))}
     setLoadingPreview(false);
@@ -206,7 +208,8 @@ export default function SendSmsDialog({open,onClose,request,templates,title,defa
       ?ts('dialog.missingValue',{name:planBlocked.slice(planBlocked.indexOf(':')+1)})
       :planBlocked;
   const quietBlocked=!!preview?.quiet&&!force;
-  const canSend=!!preview&&preview.phones>0&&!hardError&&!emptyMessage&&!preview.blocked;
+  const subjectMissing=needsSubject&&!subject.trim();
+  const canSend=!!preview&&preview.phones>0&&!hardError&&!emptyMessage&&!subjectMissing&&!preview.blocked;
 
   const insertChip=(chip:string)=>{
     const token=`{${chip}}`;
@@ -386,6 +389,7 @@ export default function SendSmsDialog({open,onClose,request,templates,title,defa
                   placeholder={ts('dialog.eGNotice')} />
               </label>
             )}
+            {subjectMissing&&<p className="admin-help" role="status" data-sms-need-subject="">{ts('dialog.needSubject')}</p>}
             {institutePhone&&<p className="admin-help">{ts('dialog.institutePhone')}: <span dir="ltr">{institutePhone}</span></p>}
           </section>
         )}
@@ -494,7 +498,7 @@ export default function SendSmsDialog({open,onClose,request,templates,title,defa
             {ts('dialog.back')}
           </button>
           {step<4?(
-            <button type="button" className="button button-navy" onClick={()=>setStep(value=>Math.min(4,value+1))} disabled={!!hardError} data-sms-next="">
+            <button type="button" className="button button-navy" onClick={()=>setStep(value=>Math.min(4,value+1))} disabled={!!hardError||(step===2&&subjectMissing)} data-sms-next="">
               {ts('dialog.next')}
             </button>
           ):!result?(

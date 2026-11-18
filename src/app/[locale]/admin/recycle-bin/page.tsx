@@ -54,7 +54,7 @@ export default async function RecycleBin({params,searchParams}:{params:Promise<{
             <td data-label={t('name')}><span className="admin-bin-name">{entry.name}</span></td>
             <td data-label={t('kind')}>{t(entry.labelKey)}</td>
             <td data-label={t('deleted')}>{entry.deletedAt?formatDate(entry.deletedAt,digits,language):'—'}</td>
-            <td data-label={t('daysLeft')}>{t('daysLeft',{days:formatNumber(days,digits)})}</td>
+            <td data-label={t('daysLeftHeader')}>{t('daysLeft',{days:formatNumber(days,digits)})}</td>
             <td><BinRow kind={entry.kind} id={entry.id} name={entry.name} canPurge={canPurge}/></td>
           </tr>;
         })}</tbody>
