@@ -1072,6 +1072,8 @@
     "conflict": "That email is already used by another account."
   },
   "audit": {
+    "subjects": {"account": "Account", "achievement": "Achievement", "admission": "Admission", "admissions": "Admissions", "attendance": "Attendance", "backup": "Backup", "batch": "Batch", "booking": "Trial booking", "editorial": "Blog/notice", "exam": "Exam", "faculty": "Teacher", "fee": "Fee", "grading": "Grade scale", "hero": "Home banner", "lead": "Visitor", "material": "Study material", "media": "Media", "message": "Contact message", "portal": "Portal account", "practice": "Practice test", "proof": "Milestone", "result": "Result", "role": "Staff role", "routine": "Class routine", "slot": "Trial slot", "sms": "SMS", "staff": "Staff", "student": "Student", "site-content": "Website text", "course": "Course", "teacher-cv": "Teacher CV"},
+    "verbs": {"activate": "turned on", "admission": "admitted", "allowed": "contact allowed", "archive": "archived", "autoretry": "auto retry", "blocked": "contact blocked", "cancel": "cancelled", "capacity": "capacity changed", "create": "created", "deactivate": "turned off", "delete": "deleted", "disable": "disabled", "duplicate": "copied", "edit": "edited", "enable": "enabled", "enroll": "enrolled", "export": "exported", "family": "family linked", "fields": "bulk edit", "import": "imported", "merge": "merged", "move": "moved", "note": "note added", "not_interested": "not interested", "partial": "partly sent", "password_change": "password changed", "prune": "old entries removed", "publish": "published", "queue": "queued", "read": "read", "record": "recorded", "replace": "replaced", "reset": "reset", "restore": "restored", "retry": "retried", "save": "saved", "send": "sent", "sent": "sent out", "settings": "settings changed", "shift": "shift changed", "status": "status changed", "template": "template changed", "test": "test", "toggle": "toggled", "trial": "trial", "undo": "undone", "unenroll": "unenrolled", "unpublish": "unpublished", "update": "updated", "upload": "uploaded", "void": "voided"},
     "section": "Accountability",
     "title": "Activity log",
     "description": "Recent recorded administrative actions.",
@@ -2095,7 +2097,7 @@
     },
     "grid": {
       "loadError": "Could not load the sheet.",
-      "title": "Sheet view",
+      "title": "Monthly fee sheet",
       "scopeNote": "One class and year at a time; removed students are not shown.",
       "classLabel": "Class",
       "chooseClass": "Choose a class",

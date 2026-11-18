@@ -25,7 +25,10 @@ export function Sidebar({preview=false,staffRole='admin',counts,digits='bn',mobi
   * default because content pages omit it for blog.
   */
  const matches=(pair:string)=>{const [key,value]=pair.split('=');const current=params.get(key);return key==='kind'?(current||'blog')===value:current===value};
- const active=(href:string)=>{const [path,q]=href.split('?');if(q)return pathname===path&&q.split('&').every(matches);return pathname===path||(path!=='/admin'&&pathname.startsWith(path+'/'))};
+ const under=(path:string)=>pathname===path||(path!=='/admin'&&pathname.startsWith(path+'/'));
+ /* Only the deepest menu path that contains this page lights up: /admin/students/fees-grid is not also "Student list". */
+ const deepest=navGroups.flatMap(g=>g.items.map(([href])=>href.split('?')[0])).filter(under).sort((a,b)=>b.length-a.length)[0];
+ const active=(href:string)=>{const [path,q]=href.split('?');if(q)return pathname===path&&q.split('&').every(matches);return under(path)&&path===deepest};
  /** On the Visitors screens the bottom bar’s plus is quick-add: one tap, and Enter saves. */
  const onLeads=permitted('leads',staffRole)&&(pathname==='/admin/leads'||pathname.startsWith('/admin/leads/'));
  const groups=navGroups.map(g=>({...g,items:g.items.filter(([,key])=>permitted(key,staffRole)&&t(`items.${key}`).toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()))})).filter(g=>g.items.length);

@@ -45,7 +45,7 @@ import SmsDialogTrigger from './sms-dialog-trigger';
 import {ArchiveRow} from './archive-row';
 import {canArchiveKind} from '@/lib/admin/recycle-kinds';
 import {DeleteRow} from './delete-row';
-import {formatClass,inDigits,type Digits} from '@/lib/admin/format';
+import {formatClass,formatDigits,inDigits,type Digits} from '@/lib/admin/format';
 import {dhakaDay} from '@/lib/admin/today';
 
 type Language='bn'|'en';
@@ -181,7 +181,7 @@ export function VisitorRow({row,fullPhone,canDelete,canArchive,sms,language,digi
     <WhoCell kind={KIND} label={t('colVisitor')} name={row.studentName}
       flags={row.flags.map(flag=>language==='bn'?flag.messageBn:flag.messageEn)}
       sub={[klass,row.school,row.leadId+(row.converted?` · ${t('converted')}`:'')].filter(Boolean).join(' · ')}/>
-    <PhoneCell kind={KIND} label={t('colContact')} printed={fullPhone} masked={row.phones[0]?.masked}
+    <PhoneCell kind={KIND} label={t('colContact')} printed={fullPhone?formatDigits(fullPhone,digits):fullPhone} masked={row.phones[0]?.masked}
       destination={row.phones.length?{tel:row.phones[0].tel,whatsapp:row.phones[0].whatsapp}:null}
       noPhone={t('noPhone')} callLabel={t('call')} whatsappLabel={t('whatsapp')}/>
     <Cell kind={KIND} part="status" label={t('colStatus')}><StatusMenu row={row}/></Cell>

@@ -39,7 +39,7 @@ export default async function Exams({params,searchParams}:{params:Promise<{local
   ]);
   const choices=groups.map(group=>({
     id:String(group._id),
-    name:`${(locale==='en'?group.name.en||group.name.bn:group.name.bn)}${group.shift?` · ${group.shift}`:''} · ${group.academicYear}`,
+    name:`${(locale==='en'?group.name.en||group.name.bn:group.name.bn)}${group.shift?` · ${group.shift}`:''} · ${formatNumber(group.academicYear,digits)}`,
   }));
   const canDelete=scope.role==='admin'||scope.role==='superadmin';
   // Paging keeps the filters: turning to page 2 of "draft model tests" must not quietly show everything.

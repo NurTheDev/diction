@@ -47,7 +47,7 @@ export default async function ExamDetail({params}:{params:Promise<{locale:string
       <Link href="/admin/center-exams" className="text-link">← {t('detail.crumbExams')}</Link>
       <h1 data-exam-name>{view.name}</h1>
       <p data-exam-meta>{formatDate(view.date,digits,locale==='en'?'en':'bn')} · {t(EXAM_TYPE_LABEL_KEYS[view.type as ExamType]||'typeLabels.other')} · {t(EXAM_STATUS_LABEL_KEYS[view.status as ExamStatus]||'status.draft')} · {view.classes.map(entry=>entry.name).join(', ')}</p>
-      {view.scaleName&&<p className="admin-help" data-exam-scale-name>{t('detail.scaleUsed',{scale:view.scaleName})}</p>}
+      {view.scaleName&&<p className="admin-help" data-exam-scale-name>{t('detail.scaleUsed',{scale:view.scaleName==='default'?t('form.scaleDefault'):view.scaleName})}</p>}
     </div></div>
     {view.tooMany&&<p role="alert" className="admin-feedback error">{t('detail.tooManyRecords')}</p>}
     <section className="admin-panel">
@@ -56,9 +56,9 @@ export default async function ExamDetail({params}:{params:Promise<{locale:string
         <table className="admin-table" data-exam-subjects><thead><tr>
           <th>{t('col.subject')}</th><th>{t('col.fullMarks')}</th><th>{t('col.passMarks')}</th>
         </tr></thead><tbody>{view.subjects.map(subject=><tr key={subject.id}>
-          <td>{subject.name}</td><td>{subject.full}</td><td>{subject.pass}</td>
+          <td>{subject.name}</td><td>{formatNumber(subject.full,digits)}</td><td>{formatNumber(subject.pass,digits)}</td>
         </tr>)}</tbody></table>
-        <p className="admin-help" data-exam-bands>{t('detail.bandsHeading')}: {view.bands.map(band=>`${band.min}% ${band.label} (${band.point})`).join(' · ')}</p>
+        <p className="admin-help" data-exam-bands>{t('detail.bandsHeading')}: {view.bands.map(band=>`${formatNumber(band.min,digits)}% ${band.label} (${formatNumber(band.point,digits)})`).join(' · ')}</p>
       </div>
     </section>
     {scope.manage&&<section className="admin-panel">

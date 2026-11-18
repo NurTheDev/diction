@@ -232,7 +232,7 @@ export function PublishCenterExam({exam,published,sms,digits}:{exam:string;publi
     {outcome}
     <ExamError state={state}/>
     <dialog ref={dialog} className="admin-dialog center-publish-dialog" data-publish-dialog>
-      <form action={submit} method="post" data-publish-form>
+      <form action={submit} data-publish-form>
         <input type="hidden" name="exam" value={exam}/>
         <h2>{t('publish.dialogTitle')}</h2>
         <label className="admin-check"><input type="checkbox" name="confirm" value="YES" required data-publish-confirm/> {t('publish.confirmReview')}</label>

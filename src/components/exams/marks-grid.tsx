@@ -159,6 +159,8 @@ export function MarksGrid({examId,subjects,students,bands,canWrite,digits,publis
      ships the `exams` catalog alone — no admin copy, not even in the bytes behind the visible ones — so
      there is no host there and the grid's own status line is the answer, which is the same sentence. */
   const asked=useRef(false);
+  /** One save at a time: a second request with the same row versions is refused as stale, and the operator is told nothing was saved. */
+  const inFlight=useRef(false);
   const [cells,setCells]=useState<Cells>(()=>initialCells(students,subjects));
   const [partCells,setPartCells]=useState<PartCells>(()=>initialPartCells(students,subjects));
   const columns=useMemo(()=>columnsOf(subjects),[subjects]);
@@ -273,7 +275,7 @@ export function MarksGrid({examId,subjects,students,bands,canWrite,digits,publis
   },[subjects,students]);
 
   const save=useCallback(async()=>{
-    if(!editable)return;
+    if(!editable||inFlight.current)return;
     const ids=Object.keys(dirty).filter(id=>dirty[id]);
     if(!ids.length)return;
     const rows:GridRow[]=[];
@@ -300,8 +302,9 @@ export function MarksGrid({examId,subjects,students,bands,canWrite,digits,publis
     form.set('exam',examId);
     form.set('rows',JSON.stringify(rows));
     let outcome:ExamState={status:'idle'};
+    inFlight.current=true;
     startTransition(async()=>{
-      outcome=await saveMarksBatchAction({status:'idle'},form);
+      try{outcome=await saveMarksBatchAction({status:'idle'},form)}finally{inFlight.current=false}
       const savedIds=rows.filter(row=>!(outcome.refusals||[]).some(refusal=>refusal.studentId===row.studentId)).map(row=>row.studentId);
       setVersions(current=>{
         const next={...current};

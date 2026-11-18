@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { monthNames, type MonthTable } from "@/lib/admin/months";
 import { Link } from "@/i18n/navigation";
+import { formatNumber } from "@/lib/admin/format";
 import {requireAdminPage} from '@/lib/admin/guard';
 import { CenterClassGroup } from "@/models/CenterRecords";
 import { getCenterSheet } from "@/lib/center/sheet-view";
@@ -76,7 +77,7 @@ export default async function Grid({
             <option value="">{t("grid.chooseClass")}</option>
             {groups.map((g) => (
               <option key={String(g._id)} value={String(g._id)}>
-                {g.name.bn} · {g.academicYear} · {g.shift}
+                {g.name.bn} · {formatNumber(g.academicYear, locale === "en" ? "en" : "bn")}{g.shift ? ` · ${g.shift}` : ""}
               </option>
             ))}
           </select>
@@ -104,7 +105,7 @@ export default async function Grid({
         <section className="admin-panel sheet-print">
           <div className="admin-panel-head">
             <h2>
-              {sheet.groupName} · {sheet.year}
+              {sheet.groupName} · {formatNumber(sheet.year, locale === "en" ? "en" : "bn")}
             </h2>
             <CenterPrintButton />
           </div>
