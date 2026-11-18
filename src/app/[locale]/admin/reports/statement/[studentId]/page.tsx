@@ -2,7 +2,7 @@ import {getTranslations} from 'next-intl/server';
 import mongoose from 'mongoose';
 import {notFound} from 'next/navigation';
 import {Link} from '@/i18n/navigation';
-import {requireArchiver} from '@/lib/admin/guard';
+import {requireArchiverPage} from '@/lib/admin/guard';
 import {dashboardDigits} from '@/lib/admin/digits';
 import {formatDate,formatDigits,formatNumber} from '@/lib/admin/format';
 import {monthNames,type MonthTable} from '@/lib/admin/months';
@@ -11,7 +11,7 @@ import {ledgerKindLabelKey,studentStatusLabelKey,typeLabelKey} from '@/lib/repor
 import {PrintButton} from '@/components/exams/print-button';
 export const dynamic='force-dynamic';
 export default async function StudentStatement({params}:{params:Promise<{locale:string;studentId:string}>}){
-  const admin=await requireArchiver();
+  const admin=await requireArchiverPage();
   const {locale,studentId}=await params;
   if(!mongoose.isValidObjectId(studentId))notFound();
   const t=await getTranslations('reports');

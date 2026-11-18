@@ -1,9 +1,9 @@
 import {getTranslations} from 'next-intl/server';
 import {Link} from '@/i18n/navigation';
-import {requireArchiver} from '@/lib/admin/guard';
+import {requireArchiverPage} from '@/lib/admin/guard';
 export const dynamic='force-dynamic';
 export default async function ReportsHub({params}:{params:Promise<{locale:string}>}){
-  await requireArchiver();
+  await requireArchiverPage();
   const {locale}=await params;
   const t=await getTranslations('reports');
   const cards:[string,string,string][]=[

@@ -1,13 +1,13 @@
 import {getTranslations} from 'next-intl/server';
 import {Link} from '@/i18n/navigation';
-import {requireArchiver} from '@/lib/admin/guard';
+import {requireArchiverPage} from '@/lib/admin/guard';
 import {dashboardDigits} from '@/lib/admin/digits';
 import {formatDate,formatDigits,formatNumber} from '@/lib/admin/format';
 import {loadReceiptAudit} from '@/lib/reports/receipt-audit-data';
 import {PrintButton} from '@/components/exams/print-button';
 export const dynamic='force-dynamic';
 export default async function ReceiptAudit({params}:{params:Promise<{locale:string}>}){
-  const admin=await requireArchiver();
+  const admin=await requireArchiverPage();
   const {locale}=await params;
   const t=await getTranslations('reports');
   const common=await getTranslations('common');

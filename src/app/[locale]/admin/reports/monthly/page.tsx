@@ -1,6 +1,6 @@
 import {getTranslations} from 'next-intl/server';
 import {Link} from '@/i18n/navigation';
-import {requireArchiver} from '@/lib/admin/guard';
+import {requireArchiverPage} from '@/lib/admin/guard';
 import {dashboardDigits} from '@/lib/admin/digits';
 import {formatNumber} from '@/lib/admin/format';
 import {monthNames,type MonthTable} from '@/lib/admin/months';
@@ -10,7 +10,7 @@ import {typeLabelKey} from '@/lib/reports/vocab';
 import {PrintButton} from '@/components/exams/print-button';
 export const dynamic='force-dynamic';
 export default async function MonthlyReport({params,searchParams}:{params:Promise<{locale:string}>;searchParams:Promise<{year?:string;month?:string}>}){
-  const admin=await requireArchiver();
+  const admin=await requireArchiverPage();
   const {locale}=await params;
   const query=await searchParams;
   const t=await getTranslations('reports');

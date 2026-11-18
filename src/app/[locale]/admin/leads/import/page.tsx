@@ -1,4 +1,4 @@
-import {requireArchiver} from '@/lib/admin/guard';
+import {requireArchiverPage} from '@/lib/admin/guard';
 import {leadImportHistory} from '@/lib/leads/import-commit';
 import {LeadImportWizard} from '@/components/admin/lead-import-wizard';
 
@@ -8,7 +8,7 @@ import {LeadImportWizard} from '@/components/admin/lead-import-wizard';
  * every word it paints comes from the `leads` catalog in the language of the address.
  */
 export default async function VisitorImportPage(){
-  await requireArchiver();
+  await requireArchiverPage();
   const history=await leadImportHistory(20);
   return <LeadImportWizard history={history}/>;
 }

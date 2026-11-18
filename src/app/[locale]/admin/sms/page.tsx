@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import {getTranslations} from 'next-intl/server';
 import {Link} from '@/i18n/navigation';
-import {requireAdmin} from '@/lib/admin/guard';
+import {requireAdminPage} from '@/lib/admin/guard';
 import {dashboardDigits} from '@/lib/admin/digits';
 import {formatNumber,formatDate,formatTime,formatDigits} from '@/lib/admin/format';
 import {CenterClassGroup,CenterSmsBatch,CenterSmsLog} from '@/models/CenterRecords';
@@ -47,7 +47,7 @@ const STATUSES=['sent','failed','skipped','queued'] as const;
  * is fetched server-side and rendered as a number.
  */
 export default async function SmsPage({params,searchParams}:{params:Promise<{locale:string}>;searchParams:Promise<{status?:string;template?:string;q?:string;batch?:string}>}){
-  const actor=await requireAdmin();
+  const actor=await requireAdminPage();
   const {locale}=await params;
   const query=await searchParams;
   const bn=locale!=='en';
