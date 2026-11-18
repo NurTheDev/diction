@@ -1,1 +1,12 @@
-Group 3 in the browser, photographed at 360 px and 1440 px into screenshots/g3: a class opens into its own page naming গ৩ নবম শ্রেণি, its প্রভাতী shift, ৫ students and a ৳৬০০ month — while গ৩ দশম শ্রেণি, with no amount of its own, quotes the ৳৫০০ its students are on, enrolled গ৩ নতুন ভর্তি from the hub and dropped নমুনা ছাত্র ছ behind a picked month and a typed reason; the due list leads with one line per class (২ of them, ৳১৪৬০০ owed centre-wide) above the picker that opens one; a fee taken with a ৳১০০ discount settled the month at ৳৫০০, stored both numbers, printed the discount and counted ৳৪০০ in the day's drawer; an exam split into সৃজনশীল ও বহুনির্বাচনী added its own ১০০ up, marked each part in its own column, refused ৬১ against a ৬০ ceiling without writing it, kept the components inside the stored result, and told ৪ families by one button while the absent child and the child with no marks were left out — the proof one click away in the SMS history filtered to that batch; and the month's marksheet printed ২ exams across ৬ students, ১ম to the top of the class, ২য় · যুগ্ম shared by the two level on ১২০, and no position at all for a child with no marks — in Bangla and in English, with no jargon and nothing overflowing at 360, 768 or 1440 px.
+AssertionError [ERR_ASSERTION]: enrolling from the hub is accepted (সংরক্ষণ হয়নি। আবার চেষ্টা করুন।)
+
+1 !== 0
+
+    at run (/home/runner/work/diction/diction/tests/classroom-hub-browser.integration.ts:431:12) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: 1,
+  expected: 0,
+  operator: 'strictEqual',
+  diff: 'simple'
+}
