@@ -1,13 +1,38 @@
-Error: Error: timed out waiting for the class to be written
-  url=http://localhost:3111/bn/admin/classes
-  db=dictioncoaching_test dbNames=[নমুনা সপ্তম শ্রেণি]
-  board(cards=0,count="?",names=[])
-  posts=[200 /bn/admin/routine/master?classId=6afd21bd28364825627d0c9a , 200 /bn/admin/routine/master?classId=6afd21bd28364825627d0c9a , 200 /bn/admin/center-exams/6afd21bd28364825627d0ca4 , 200 /bn/admin/center-exams/6afd21bd28364825627d0ca4 , 500 /bn/admin/classes]
-  boundary="Minified React error #441; visit https://react.dev/errors/441 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
-  dialog=no sheet on the page at all refusal=none
-  toasts=[]
-  fields=[]
-  forms=[]
-  sheetText=""
-  pageErrors=none
-    at run (/home/runner/work/diction/diction/tests/operational-polish-browser.integration.ts:756:13)
+locator.click: Timeout 60000ms exceeded.
+Call log:
+  - waiting for locator('[data-class-modal="6afd2963ed88dc87c88ca8a8"]').locator('[data-class-close]')
+    - locator resolved to <button type="button" aria-label="বন্ধ করুন" data-class-close="true" class="admin-drawer-close">×</button>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not visible
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not visible
+    - retrying click action
+      - waiting 100ms
+    116 × waiting for element to be visible, enabled and stable
+        - element is not visible
+      - retrying click action
+        - waiting 500ms
+
+    at run (/home/runner/work/diction/diction/tests/operational-polish-browser.integration.ts:839:46) {
+  log: [
+    `  - waiting for locator('[data-class-modal="6afd2963ed88dc87c88ca8a8"]').locator('[data-class-close]')`,
+    '    - locator resolved to <button type="button" aria-label="বন্ধ করুন" data-class-close="true" class="admin-drawer-close">×</button>',
+    '  - attempting click action',
+    '    2 × waiting for element to be visible, enabled and stable',
+    '      - element is not visible',
+    '    - retrying click action',
+    '    - waiting 20ms',
+    '    2 × waiting for element to be visible, enabled and stable',
+    '      - element is not visible',
+    '    - retrying click action',
+    '      - waiting 100ms',
+    '    116 × waiting for element to be visible, enabled and stable',
+    '        - element is not visible',
+    '      - retrying click action',
+    '        - waiting 500ms'
+  ],
+  name: 'TimeoutError'
+}
