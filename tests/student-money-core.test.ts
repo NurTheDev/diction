@@ -26,6 +26,7 @@ import {
 import {calculateStudentDues,monthKey,type DueInput} from '../src/lib/center/dues';
 import {monthStatus,type YearMonth} from '../src/lib/center/month-status';
 import {achievementDateBn} from '../src/lib/achievement-date';
+import {monthNames,type MonthTable} from '../src/lib/admin/months';
 import bnMessages from '../src/messages/bn.json';
 
 const ym=(year:number,month:number):YearMonth=>({year,month});
@@ -316,20 +317,44 @@ assert.ok(desk.includes("{t('heldNote')}"),'with the sentence that says which mo
 
 /* ── F-18 · a month is spelled from the catalogs, not from the host's ICU tables ───────────────── */
 const months=(bnMessages.common.months as Record<string,string>);
+/* The twelve words the provider hands a screen: the formatter takes them as an argument, because the
+   module that formats is reached from a client component and must not import the catalog itself. */
+const monthWords=monthNames(months as MonthTable);
 const order=['january','february','march','april','may','june','july','august','september','october','november','december'];
 for(const [index,key] of order.entries()){
   const date=`2026-${String(index+1).padStart(2,'0')}-14`;
-  assert.equal(achievementDateBn(date),`১৪ ${months[key]} ২০২৬`,
+  assert.equal(achievementDateBn(date,monthWords),`১৪ ${months[key]} ২০২৬`,
     `${date} reads the catalog's own spelling of ${key}`);
 }
-assert.equal(achievementDateBn('2026-01-01'),'১ জানুয়ারি ২০২৬','a day is read in Bangla digits and without a leading zero');
-assert.equal(achievementDateBn('2026-02-31'),'','a day that did not happen is no date at all');
+assert.equal(achievementDateBn('2026-01-01',monthWords),'১ জানুয়ারি ২০২৬','a day is read in Bangla digits and without a leading zero');
+assert.equal(achievementDateBn('2026-02-31',monthWords),'','a day that did not happen is no date at all');
 for(const refused of ['','2026-1-14','14-01-2026','2026-01','not-a-date'])
-  assert.equal(achievementDateBn(refused),'',`"${refused}" is refused rather than formatted into something plausible`);
+  assert.equal(achievementDateBn(refused,monthWords),'',`"${refused}" is refused rather than formatted into something plausible`);
 const dateSource=readFileSync('src/lib/achievement-date.ts','utf8');
 assert.ok(!dateSource.includes('new Intl.DateTimeFormat'),
   'the card\'s date no longer asks a locale what a month is called: ICU writes জানুয়ারী where the catalog writes জানুয়ারি');
-assert.ok(dateSource.includes("@/messages/bn.json"),'and it reads the catalog instead');
+assert.ok(!dateSource.includes('@/messages/bn.json'),
+  'and it does not import the catalog to get them: this module is reached from a client component, so an '
+  +'import here would ship every sentence in bn.json to the browser and answer the build with a warning '
+  +'per key \u2014 which is how a build that succeeded stopped saying "Compiled successfully"');
+assert.equal(monthWords.length,12,'the twelve names a provider hands over are the twelve the formatter wants');
+/* A class timeline line has to be storable for the records the centre already has: both import paths
+   write one with no name on it, so the name is optional with an empty default and the doors fill it. */
+const model=readFileSync('src/models/CenterRecords.ts','utf8');
+assert.ok(model.includes('name:wornName'),'the timeline stores the name a class wore as an optional word');
+assert.ok(model.includes("const wornName={bn:{type:String,default:''"),
+  'and a line written before this slice — or by an import — is not refused for want of one');
+const enrol=readFileSync('src/actions/center-students.ts','utf8');
+assert.ok(enrol.includes('classHistory:[{classGroup:p.classGroup,name:{bn:current.name.bn'),
+  'and an enrolment writes the first line of the timeline with the name the class wore that day, so the '
+  +'line a profile prints never has to guess it');
+const cardSource=readFileSync('src/components/achievements/card.tsx','utf8');
+assert.ok(cardSource.includes("monthNames(useTranslations('common').raw('months')")
+  &&cardSource.includes('achievementDateBn(data.date,months)'),
+  'the card asks the provider it is already under for the twelve names and hands them to the formatter');
+const published=readFileSync('src/app/[locale]/achievements/[slug]/page.tsx','utf8');
+assert.ok(published.includes("getTranslations('common')")&&published.includes('achievementDateBn(item.date,monthWords)'),
+  'and the published page reads the same twelve from its own catalog');
 
 console.log('Student money core: a pause is a range that stops the meter without forgiving the arrears before it, '+
   'lifting one back-bills nothing, a move writes the class timeline and moves the roll, a price takes effect from its '+

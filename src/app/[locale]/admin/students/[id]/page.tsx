@@ -30,7 +30,12 @@ export default async function StudentProfile({params,searchParams}:{params:Promi
  const openHold=[...holds].reverse().find(hold=>!hold.end);
  const holdFrom=openHold?`${openHold.start.year}-${String(openHold.start.month).padStart(2,'0')}`:'';
  const steps=(x.classHistory as {classGroup:unknown;name?:{bn?:string;en?:string}|null;effectiveFrom:{year:number;month:number};reason?:string}[]||[])
-   .map(step=>({name:(locale==='en'?step.name?.en:step.name?.bn)||step.name?.bn||'',from:step.effectiveFrom,reason:step.reason||''}));
+   .map(step=>({
+      /* A line an older write left nameless is named from the class the student is in today, which is
+         the only name the record can offer for it: the timeline reads instead of printing a blank. */
+      name:(locale==='en'?step.name?.en:step.name?.bn)||step.name?.bn
+        ||(String(step.classGroup)===String(x.classGroup)&&g?(locale==='en'?g.name.en:g.name.bn)||g.name.bn:''),
+      from:step.effectiveFrom,reason:step.reason||''}));
  /* A student nobody has moved yet has one class and one month it started: the timeline says so rather
     than printing an empty panel, because the question "which class was this child in in March?" has an
     answer for every child the centre has ever run. */

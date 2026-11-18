@@ -380,13 +380,17 @@ async function run(){
       assert.equal(await owedCells.count(),2,'the two months before the pause are owed on this desk too');
       for(const cell of await owedCells.all())
         assert.ok(await cell.isEnabled(),'and each of them is open, because a pause does not forgive what ran up before it');
-      const deskTotal=boss.page.locator('.daily-total');
-      assert.ok(!(ascii(await deskTotal.innerText()).includes(formatNumber(FEE,'en'))),
-        'nothing is on the receipt before a month is picked');
+      assert.equal(await boss.page.locator('[data-daily-total]').count(),0,
+        'and nothing is on the receipt before a month is picked');
       await owedCells.first().click();
       await boss.page.locator('.daily-months button.daily-due.chosen').first().waitFor({state:'visible',timeout:60000});
-      await until(async()=>ascii(await deskTotal.innerText().catch(()=>'')).includes(formatNumber(FEE,'en')),
-        'the month an operator picks to carry its own amount onto the receipt');
+      const deskTotal=boss.page.locator('[data-daily-total]');
+      await deskTotal.waitFor({state:'visible',timeout:60000});
+      /* The desk's own money formatter groups its digits, so the receipt is read as digits alone: what
+         is being proved is that the month an operator picked put its own amount on the receipt, and the
+         only numbers on it are the count of months picked and the amount each one is owed. */
+      await until(async()=>ascii(await deskTotal.innerText().catch(()=>'')).replace(/[^0-9]/g,'').includes(String(FEE)),
+        'so the month an operator picks carries its own amount onto the receipt');
     }
     assert.ok(await boss.page.locator('button.daily-save').isEnabled(),
       'and the pause no longer deadens Save: the desk takes the money the student still owes');

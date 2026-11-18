@@ -154,7 +154,9 @@ async function run(){
 
     // ── 3. lifting the pause closes the range and back-bills nothing ──────────────────────────────
     const beforeLift=await owed(String(classA._id),arrears._id);
-    const lifted=planLift({status:'on_hold',holds:afterHold!.holds.map(hold=>({start:hold.start,end:hold.end??undefined,reason:hold.reason}))},
+    /* Whole rows, not a picked-over copy: a range carries the operator who wrote it, and the schema
+       requires that name, so a lift that dropped it would be refused by the record it is closing. */
+    const lifted=planLift({status:'on_hold',holds:afterHold!.holds as unknown as HoldRow[]},
       {resumeMonth:RESUME,actorId:actorId,now});
     const liftDoc=await CenterStudent.findById(arrears._id);
     liftDoc!.set('status',lifted.status);

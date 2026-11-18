@@ -114,6 +114,12 @@ async function run(){
   const back=new Date(Date.UTC(today.year,today.month-1-3,1));
   const startMonth={year:back.getUTCFullYear(),month:back.getUTCMonth()+1};
   const lastMonth=startMonth.month===1?{year:startMonth.year-1,month:12}:{year:startMonth.year,month:startMonth.month-1};
+  /* S1 · F-01: the month a seeded pause starts from, and the month the Hold→Unhold proof picks. It
+     has to be a month AFTER enrolment: a pause that starts before the student arrived covers the whole
+     fee run, so the student owes nothing and there is nothing for the finding to be about. One month
+     back from Dhaka's own leaves the two months before it owed, which is what both proofs assert. */
+  const pausedFrom=new Date(Date.UTC(today.year,today.month-2,1));
+  const holdFrom={year:pausedFrom.getUTCFullYear(),month:pausedFrom.getUTCMonth()+1};
   /* S1 · the month after Dhaka's own: the month a hold is lifted into, so the last month the fee run
      skipped is Dhaka's own and the resume month is a month the centre bills. */
   const nextMonth=today.month===12?{year:today.year+1,month:1}:{year:today.year,month:today.month+1};
@@ -136,7 +142,7 @@ async function run(){
         feeHistory:[{effectiveFrom:startMonth,amount:FEE[name]}],
         notes:name===FIXTURES.dues?'প্রথম নোট — অভিভাবকের সঙ্গে কথা হয়েছে':name===FIXTURES.paid?'ভর্তির সময় লেখা নোট':'',
         status:name===FIXTURES.held?'on_hold':name===FIXTURES.removed?'removed':'active',
-        ...(name===FIXTURES.held?{holds:[{start:lastMonth,reason:'পরীক্ষার জন্য তিন মাসের বিরতি',recordedBy:bossId}]}:{}),
+        ...(name===FIXTURES.held?{holds:[{start:holdFrom,reason:'পরীক্ষার জন্য তিন মাসের বিরতি',recordedBy:bossId}]}:{}),
         ...(name===FIXTURES.removed?{removal:{leaveDate:ym(lastMonth.year,lastMonth.month),reason:'পরিবার ঢাকার বাইরে চলে গেছে',removedAt:new Date(),removedBy:bossId,purgeAt:new Date(Date.now()+365*86400000)}}:{}),
       });
       return [name,doc.toObject() as unknown as Stored];
@@ -391,14 +397,14 @@ async function run(){
     assert.ok(await holdSheet.locator('[data-hold-submit]').isDisabled(),
       'and the verb is a dead button until one has been: the field that carries it is hidden');
     await shot(boss.page,'g1-students-hold-door-1440',false);
-    await pickMonth(holdSheet,'fromMonth',ym(lastMonth.year,lastMonth.month));
+    await pickMonth(holdSheet,'fromMonth',ym(holdFrom.year,holdFrom.month));
     assert.ok(await holdSheet.locator('[data-hold-submit]').isEnabled(),'picking the month is what arms the verb');
     await holdSheet.locator('[data-hold-submit]').click();
     await toast(boss.page,row.holdOk).waitFor({state:'visible',timeout:TOAST_MS});
     await until(async()=>{
       const student=await stored(FIXTURES.heldBack);
       return student?.status==='on_hold'&&student.holds.length===1
-        &&ym(student.holds[0].start.year,student.holds[0].start.month)===ym(lastMonth.year,lastMonth.month)
+        &&ym(student.holds[0].start.year,student.holds[0].start.month)===ym(holdFrom.year,holdFrom.month)
         &&!student.holds[0].end;
     },'the hold is written as an open range of months, from the month that was picked');
     await until(async()=>(await rowOf(boss.page,FIXTURES.heldBack).locator('[data-status-badge]').innerText())===c.onHold,'and the row re-reads with the new badge');
@@ -410,7 +416,7 @@ async function run(){
     const holdLog=await CenterActivityLog.findOne({action:'student.hold',target:(await stored(FIXTURES.heldBack))!._id})
       .lean<{actor:unknown;after:{fromMonth:string}}|null>();
     assert.ok(holdLog&&String(holdLog.actor)===String(bossId),'the hold writes its audit line against the operator who made it');
-    assert.equal(holdLog?.after.fromMonth,ym(lastMonth.year,lastMonth.month),'and the line carries the month it takes effect from');
+    assert.equal(holdLog?.after.fromMonth,ym(holdFrom.year,holdFrom.month),'and the line carries the month it takes effect from');
     // …and back: the same badge, and a sheet that asks which month the student resumes in.
     await rowOf(boss.page,FIXTURES.heldBack).locator('[data-status-badge]').click();
     await rowOf(boss.page,FIXTURES.heldBack).locator('[data-status-option="active"]').click();
@@ -423,10 +429,10 @@ async function run(){
     /* The picker will not offer a month inside the hold, because a range cannot end before it began. */
     for(let step=0;step<8;step++){
       const shown=Number(ascii(await liftSheet.locator('[data-month-year]').innerText()));
-      if(shown===lastMonth.year)break;
-      await liftSheet.locator(shown>lastMonth.year?'[data-month-back]':'[data-month-forward]').click();
+      if(shown===holdFrom.year)break;
+      await liftSheet.locator(shown>holdFrom.year?'[data-month-back]':'[data-month-forward]').click();
     }
-    assert.ok(await liftSheet.locator(`[data-month-pick="${ym(lastMonth.year,lastMonth.month)}"]`).isDisabled(),
+    assert.ok(await liftSheet.locator(`[data-month-pick="${ym(holdFrom.year,holdFrom.month)}"]`).isDisabled(),
       'and it will not offer a resume month inside the hold it is closing');
     await shot(boss.page,'g1-students-lift-door-1440',false);
     await liftSheet.locator('[data-month-choose="resume"]').click();
@@ -578,7 +584,7 @@ async function run(){
     await profileHold.waitFor({state:'visible',timeout:60000});
     assert.equal(await profileHold.locator('[data-month-choose="fromMonth"]').count(),1,
       'and the profile opens the same sheet the row does, asking the same month');
-    await pickMonth(profileHold,'fromMonth',ym(lastMonth.year,lastMonth.month));
+    await pickMonth(profileHold,'fromMonth',ym(holdFrom.year,holdFrom.month));
     await profileHold.locator('[data-hold-submit]').click();
     await toast(boss.page,row.holdOk).waitFor({state:'visible',timeout:TOAST_MS});
     await until(async()=>(await stored(FIXTURES.paid))?.status==='on_hold','the profile holds a student the same way');

@@ -156,6 +156,14 @@ export function planClassTransfer(student:{classGroup:string;startMonth:YearMont
   if(!history.length&&HEX24.test(input.from.id)&&input.from.name.bn)
     history.push({classGroup:input.from.id,name:{bn:input.from.name.bn,en:input.from.name.en||''},
       effectiveFrom:{...student.startMonth}});
+  /* An enrolment written before this slice put a line in the timeline with no name on it, and a line
+     that cannot name itself is a line nobody can print. The door is standing in front of the class the
+     student is leaving, so it knows the name that line is missing, and the timeline gets it here. */
+  for(let index=0;index<history.length;index++){
+    const line=history[index];
+    if(String(line.classGroup)===input.from.id&&input.from.name.bn&&!(line.name&&line.name.bn))
+      history[index]={...line,name:{bn:input.from.name.bn,en:input.from.name.en||''}};
+  }
   const target:ClassStepRow={classGroup:input.targetClassId,
     name:{bn:input.targetClassName.bn,en:input.targetClassName.en||''},
     effectiveFrom:{...input.effectiveMonth},...step(input.reason,input.actorId,now)};

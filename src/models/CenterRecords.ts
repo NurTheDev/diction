@@ -35,7 +35,12 @@ const history=new Schema({effectiveFrom:{type:ym(),required:true},amount:money,.
 /* F-02 · one step of the classes a student has sat in: the class, the month it became theirs, the name
    the class wore that day (a class can be renamed or archived, and a history line that has to join to
    read itself is a history nobody prints), and the same stamp. */
-const classStep=new Schema({classGroup:ref('CenterClassGroup'),name:text,effectiveFrom:{type:ym(),required:true},...stamp},{_id:false});
+/* The name a class wore is allowed to be missing: both import paths and every enrolment written before
+   this slice put a line in the timeline with no name on it, and a required name would refuse to store
+   the record the centre already has. A line with no name still answers which class and from which
+   month, and the transfer door fills the name in the day the student moves. */
+const wornName={bn:{type:String,default:'',trim:true,maxlength:200},en:{type:String,default:'',trim:true,maxlength:200}};
+const classStep=new Schema({classGroup:ref('CenterClassGroup'),name:wornName,effectiveFrom:{type:ym(),required:true},...stamp},{_id:false});
 /* F-01 · a pause the fee run honours. `start` is the first month the centre did not bill, `end` the last
    one it did not bill — empty while the pause is open, and written as the month BEFORE the one the
    student resumes in, so the resume month itself is a month the centre bills. `reason` is what the
