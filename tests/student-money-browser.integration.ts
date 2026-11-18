@@ -367,7 +367,8 @@ async function run(){
     await boss.page.locator('.daily-student').waitFor({state:'visible',timeout:90000});
     assert.ok((await boss.page.locator('.daily-student').innerText()).includes(PAUSE_STUDENT),
       'the cash desk opens for a paused student rather than refusing to load one');
-    assert.ok((await boss.page.locator('.daily-months').innerText()).length>0,'and paints the year\u2019s months');
+    assert.equal(await boss.page.locator('.daily-months button.daily-month').count(),12,
+      'and lays the year\u2019s twelve months out as cells an operator picks from');
     assert.ok((await boss.page.locator('body').innerText()).includes(bn.daily.heldNote),
       'with the sentence that says what a pause does here: the months inside it are not billed');
     const heldCells=boss.page.locator('.daily-months button.daily-held');
@@ -379,10 +380,13 @@ async function run(){
       assert.equal(await owedCells.count(),2,'the two months before the pause are owed on this desk too');
       for(const cell of await owedCells.all())
         assert.ok(await cell.isEnabled(),'and each of them is open, because a pause does not forgive what ran up before it');
+      const deskTotal=boss.page.locator('.daily-total');
+      assert.ok(!(ascii(await deskTotal.innerText()).includes(formatNumber(FEE,'en'))),
+        'nothing is on the receipt before a month is picked');
       await owedCells.first().click();
       await boss.page.locator('.daily-months button.daily-due.chosen').first().waitFor({state:'visible',timeout:60000});
-      assert.ok(ascii(await boss.page.locator('.daily-student').innerText()).includes(formatNumber(FEE,'en')),
-        'picking one carries its own amount into the receipt');
+      await until(async()=>ascii(await deskTotal.innerText().catch(()=>'')).includes(formatNumber(FEE,'en')),
+        'the month an operator picks to carry its own amount onto the receipt');
     }
     assert.ok(await boss.page.locator('button.daily-save').isEnabled(),
       'and the pause no longer deadens Save: the desk takes the money the student still owes');
