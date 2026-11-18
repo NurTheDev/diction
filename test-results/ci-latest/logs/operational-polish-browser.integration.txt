@@ -1,15 +1,5 @@
-Error: Error: timed out waiting for the class the centre already has to be a card on the board
-  board: document: url=http://localhost:3111/bn/admin/classes (locator saw http://localhost:3111/bn/admin/classes) title="ডিকশন কোচিং সেন্টার | ২০১১ সাল থেকে" ready=complete
-  counts={"board":0,"card":0,"name":0,"count":0,"empty":0,"h1":0,"title":0,"loading":0,"readFailed":0,"bodyChildren":13} heading="" counted=""
-  viewport=1440x900 visibility={"[data-class-board]":"absent","[data-class-title]":"absent","[data-class-count]":"absent","[data-class-card]":"absent","[data-class-empty]":"absent","main":"block,visible,visible,1,1rects,shown",".admin-content":"block,visible,visible,1,1rects,shown"}
-  hiddenBy="no card and no board in the document"
-  names=[] readFailed="" nameInDocument=2
-  pageErrors=http://localhost:3111/bn/admin/classes: Cannot read properties of undefined (reading 'CenterClassGroup') | http://localhost:3111/bn/admin/classes: Cannot read properties of undefined (reading 'CenterClassGroup') | http://localhost:3111/bn/admin/classes: Cannot read properties of undefined (reading 'CenterClassGroup')
-  bodyText="মূল বিষয়বস্তুতে যান ডিকশন কোচিং সেন্টার ম্যানেজমেন্ট প্যানেল দৈনন্দিন কাজ ＋ শিক্ষার্থী ও একাডেমিক − শ্রেণি ও ব্যাচ শিক্ষার্থী তালিকা বকেয়া তালিকা মাসিক ফি তালিকা কোর্স ব্যাচ ট্রায়াল ক্লাসের সময় ক্লাস রুটিন দৈনিক কর্মপত্র পাঠ্য উপকরণ শিক্ষকমণ্ডলী গ্রেড স্কেল পরীক্ষা যোগাযোগ ＋ রিপোর্ট ও হিসাব ＋ সেটিংস ＋ আপনি এখানে / ওভারভিউ / শ্রেণি ও ব্যাচ সাহায্য ওয়েবসাইট দেখুন নমুনা মালিক ▾ টেস্ট মোড — আলাদা dictioncoaching_test ডাটাবেস তথ্য লোড করা যায়নি। ডাটাবেস সংযোগ ও অনুমতি যাচাই করুন। ফিরে যান"
-  boardHtml="no board element"
-  bodyHtml="<div hidden=""><!--$--><!--/$--></div><a class="skip-link" href="#main-content">মূল বিষয়বস্তুতে যান</a><noscript><div class="noscript-note" role="status">ফর্ম, ফিল্টার ও অন্যান্য ইন্টারেক্টিভ সুবিধা ব্যবহার করতে আপনার ব্রাউজারে জাভাস্ক্রিপ্ট চালু করুন। মেনুর লিংকগুলো ব্যবহার করতে পারবেন।</div></noscript><div class="topbar"><div class="wrap topinner"><div class="top-left"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sun"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg><span class="top-desktop-copy">২০১১ সাল থেকে শিক্ষার্থীদের স্বপ্নপূরণে পাশে আছি</span><span class="top-mobile-copy">২০১১ সাল থেকে</span></div><div class="top-right"><span class="top-address"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin" aria-hidden="true"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"></path><circle cx="12" cy="10" r="3"></circle></svg>বাসা ১/৭, রোড-১৯, ব্লক-বি, সেকশন-১০, ঢাকা-১২১৬ (গার্লস আইডিয়াল স্কুলের ৩নং গেটের বিপরীতে)</span><span>✦ &nbsp; <!-- -->২০১১ সাল থে"
-  locatorSawInPageContent=true contentLength=267430
-  db(mongoose)=1 db(driver)=1 classId=6afd0354aa9dc16549c74f27
-  dbNames=[নমুনা সপ্তম শ্রেণি]
-    at run (/home/runner/work/diction/diction/tests/operational-polish-browser.integration.ts:608:15)
+Error: timed out waiting for the class to be written
+  url=http://localhost:3111/en/admin/center-exams/6afd09db23cd644d04664297 errors=none
+    at until (/home/runner/work/diction/diction/tests/operational-polish-browser.integration.ts:130:15)
     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async run (/home/runner/work/diction/diction/tests/operational-polish-browser.integration.ts:651:5)

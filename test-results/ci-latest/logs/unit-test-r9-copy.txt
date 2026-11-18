@@ -9,6 +9,6 @@ A.7 · the catalogs are whole: parity both ways, no mis-nested keys, no leftover
 
 
 --- tests/i18n-bangla-scan.test.ts (exit 0) ---
-Bangla scan: 0 lines in 0 files (571 walked).
+Bangla scan: 0 lines in 0 files (572 walked).
   most: 
-Bangla scan: 571 files walked, nothing left outside the allow blocks.
+Bangla scan: 572 files walked, nothing left outside the allow blocks.
