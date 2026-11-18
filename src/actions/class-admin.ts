@@ -94,9 +94,14 @@ export async function saveClassGroupAction(previous:ClassActionState,form:FormDa
   const isEdit=mongoose.isValidObjectId(id);
   if(id&&!isEdit)return {status:'invalid',fields:['id']};
   const fee=value.monthlyFee===null||value.monthlyFee===undefined?null:Math.round(value.monthlyFee);
-  await CenterClassGroup.init();
-  const session=await mongoose.startSession();
+  /* The session is opened inside the try, not before it: a connection that refuses a session is a write
+     the operator is told about, not a route that dies under them. A refusal keeps the draft; a death
+     loses the screen. */
+  let session:mongoose.ClientSession|null=null;
   try{
+    await CenterClassGroup.init();
+    session=await mongoose.startSession();
+    const tx=session;
     let classId=id;
     await session.withTransaction(async()=>{
       if(!isEdit){
@@ -104,17 +109,17 @@ export async function saveClassGroupAction(previous:ClassActionState,form:FormDa
         const [created]=await CenterClassGroup.create([{
           name:{bn:value.nameBn,en:value.nameEn},level:value.level,shift,shifts,room:value.room,
           academicYear:value.academicYear,active:true,monthlyFee:fee??0,order:0,
-        }],{session});
+        }],{session:tx});
         classId=String(created._id);
         await CenterActivityLog.create([{actor:admin.id,action:'class.create',target:created._id,
           after:{name:created.name,academicYear:value.academicYear,shift,shifts,room:value.room,
-            monthlyFee:created.monthlyFee}}],{session});
+            monthlyFee:created.monthlyFee}}],{session:tx});
         return;
       }
       /* Somebody else's write is refused rather than overwritten: the form posts the class's own
          `updatedAt`, and a class that has moved since is a conflict the operator is told about. */
       const revision=String(form.get('revision')||'');
-      const current=await CenterClassGroup.findOne({_id:id}).session(session)
+      const current=await CenterClassGroup.findOne({_id:id}).session(tx)
         .lean<{_id:mongoose.Types.ObjectId;updatedAt:Date;academicYear:number;shift:string}>();
       if(!current)throw new Error('MISSING');
       if(!/^\d{4}-\d{2}-\d{2}T/.test(revision)||current.updatedAt.toISOString()!==revision)
@@ -123,9 +128,9 @@ export async function saveClassGroupAction(previous:ClassActionState,form:FormDa
       const shift=await shiftOf(shifts,String(current.shift||''));
       const after={name:{bn:value.nameBn,en:value.nameEn},level:value.level,shift,shifts,
         room:value.room,active,...(fee===null?{}:{monthlyFee:fee})};
-      await CenterClassGroup.updateOne({_id:id},{$set:after},{session});
+      await CenterClassGroup.updateOne({_id:id},{$set:after},{session:tx});
       await CenterActivityLog.create([{actor:admin.id,action:'class.update',target:current._id,after}],
-        {session});
+        {session:tx});
     });
     const t=await getTranslations('classAdmin');
     refresh(classId);
@@ -136,7 +141,7 @@ export async function saveClassGroupAction(previous:ClassActionState,form:FormDa
     if(message==='YEAR')return {status:'invalid',classId:id,fields:['academicYear']};
     if(message==='MISSING')return {status:'error',classId:id};
     return {status:(error as {code?:number}).code===11000?'duplicate':'error',classId:id};
-  }finally{await session.endSession()}
+  }finally{await session?.endSession()}
 }
 
 /**
@@ -156,24 +161,26 @@ export async function assignClassBatchesAction(previous:ClassActionState,form:Fo
     .filter(value=>mongoose.isValidObjectId(value));
   if(form.getAll('batchIds').some(value=>!mongoose.isValidObjectId(String(value))))
     return {status:'invalid',fields:['batchIds']};
-  const session=await mongoose.startSession();
+  let session:mongoose.ClientSession|null=null;
   try{
+    session=await mongoose.startSession();
     await session.withTransaction(async()=>{
-      const group=await CenterClassGroup.findOne({_id:classId}).session(session).select('_id')
+      const group=await CenterClassGroup.findOne({_id:classId}).session(session!).select('_id')
         .lean<{_id:mongoose.Types.ObjectId}|null>();
       if(!group)throw new Error('MISSING');
-      await Batch.updateMany({_id:{$in:picked}},{$set:{classGroup:group._id}},{session});
+      await Batch.updateMany({_id:{$in:picked}},{$set:{classGroup:group._id}},{session:session!});
       /* Let go of what this class held and is no longer ticked — and only that. */
-      await Batch.updateMany({classGroup:group._id,_id:{$nin:picked}},{$set:{classGroup:null}},{session});
+      await Batch.updateMany({classGroup:group._id,_id:{$nin:picked}},{$set:{classGroup:null}},
+        {session:session!});
       await CenterActivityLog.create([{actor:admin.id,action:'class.batches',target:group._id,
-        after:{batches:picked}}],{session});
+        after:{batches:picked}}],{session:session!});
     });
     const t=await getTranslations('classAdmin');
     refresh(classId);
     return {status:'ok',classId,message:String(t('batchesSaved'))};
   }catch(error){
     return {status:(error as Error).message==='MISSING'?'error':'error',classId};
-  }finally{await session.endSession()}
+  }finally{await session?.endSession()}
 }
 
 export {idle as classActionIdle};
