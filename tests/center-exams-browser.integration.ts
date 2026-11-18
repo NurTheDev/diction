@@ -330,10 +330,25 @@ async function run(){
     /* O1: the import is a folded second door in the grid's own toolbar now — one button beside the save,
        rather than a panel standing between an operator and the marks. The suite opens the fold to drive
        it; nothing about the preview, the commit or the rows it writes changed. */
-    await page.locator('[data-grid-import-toggle]').click();
+    /* The fold's summary sits in the toolbar that follows the grid down the screen, so the click goes
+       to the element itself and keeps trying while the fold reports itself closed — a pointer must not
+       be at the mercy of landing on a row beneath a sticky bar, and neither must this suite be. */
+    const fold=page.locator('[data-import-fold]');
+    await until('the import fold opens',async()=>{
+      if((await fold.getAttribute('open'))===null)
+        await page.locator('[data-grid-import-toggle]').click({force:true}).catch(()=>undefined);
+      return (await fold.getAttribute('open'))!==null;
+    },20000);
     await importPanel.locator('[data-import-file]').waitFor({state:'visible',timeout:60000});
     await importPanel.locator('[data-import-file]').setInputFiles(csvPath);
-    await importPanel.locator('[data-import-preview]').click();
+    /* The preview button wakes up the moment a sheet is chosen: if the first click arrives before the
+       component has seen the file it lands on a disabled button, so the click is retried until the
+       preview is on the screen. */
+    await until('the sheet is previewed',async()=>{
+      if(await importPanel.locator('[data-import-table]').count())return true;
+      await importPanel.locator('[data-import-preview]').click({force:true}).catch(()=>undefined);
+      return Boolean(await importPanel.locator('[data-import-table]').count());
+    },30000);
     await importPanel.locator('[data-import-table]').waitFor({timeout:90000});
     assert.ok((await importPanel.locator('[data-import-counts]').innerText()).includes(bnDigits(4)),'the preview counts the four rows of the sheet');
     assert.ok((await importPanel.locator('[data-import-unused]').innerText()).includes('মন্তব্য'),'a column that is not a subject of this exam is left unread, and named');

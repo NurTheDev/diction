@@ -387,15 +387,22 @@ async function run():Promise<void>{
     assert.equal((await page.locator('[data-grid-import-toggle]').innerText()).trim(),E.grid.importToggle);
     assert.equal(await page.locator('[data-import-file]').isVisible().catch(()=>false),false,
       'and no file picker is standing between the operator and the marks');
-    await page.locator('[data-grid-import-toggle]').click();
-    await until('the fold to open when it is asked for',async()=>
-      await page.locator('[data-import-file]').isVisible().catch(()=>false));
+    /* The fold's summary lives in the toolbar that follows the grid down the screen, so the click goes
+       to the element and keeps trying while the fold reports itself shut: a pointer must not be at the
+       mercy of landing on a row beneath a sticky bar, and neither must this suite be. */
+    await until('the fold to open when it is asked for',async()=>{
+      if((await fold.getAttribute('open'))===null)
+        await page.locator('[data-grid-import-toggle]').click({force:true}).catch(()=>undefined);
+      return await page.locator('[data-import-file]').isVisible().catch(()=>false);
+    },30000);
     assert.ok((await page.locator('[data-grid-import-help]').innerText()).includes(E.grid.importToggleHelp),
       'where it says plainly that typing is the way and a file is the alternative');
     await shot(page,'o1-marks-import-folded-bn-1440');
-    await page.locator('[data-grid-import-toggle]').click();
-    await until('and to fold away again',async()=>
-      !(await page.locator('[data-import-file]').isVisible().catch(()=>false)));
+    await until('and to fold away again',async()=>{
+      if((await fold.getAttribute('open'))!==null)
+        await page.locator('[data-grid-import-toggle]').click({force:true}).catch(()=>undefined);
+      return !(await page.locator('[data-import-file]').isVisible().catch(()=>false));
+    },30000);
 
     /* 25 of 30 — the brief's guaranteed case — typed into the first row. */
     const firstCell=rows.nth(0).locator('input[data-student]').first();
