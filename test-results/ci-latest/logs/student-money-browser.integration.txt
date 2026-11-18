@@ -1,15 +1,9 @@
-AssertionError [ERR_ASSERTION]: with the reason beside it
-+ actual - expected
-
-+ ''
-- 'S1 বার্ষিক বৃদ্ধি'
-
-    at run (/home/runner/work/diction/diction/tests/student-money-browser.integration.ts:536:12)
-    at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {
+AssertionError [ERR_ASSERTION]: and reads the class it offers in English, from the class's own English name
+    at run (/home/runner/work/diction/diction/tests/student-money-browser.integration.ts:665:12) {
   generatedMessage: false,
   code: 'ERR_ASSERTION',
-  actual: '',
-  expected: 'S1 বার্ষিক বৃদ্ধি',
-  operator: 'strictEqual',
+  actual: false,
+  expected: true,
+  operator: '==',
   diff: 'simple'
 }
