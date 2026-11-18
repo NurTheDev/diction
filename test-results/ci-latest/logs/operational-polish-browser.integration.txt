@@ -1,5 +1,10 @@
-Error: timed out waiting for the class to be written
-  url=http://localhost:3111/en/admin/center-exams/6afd09db23cd644d04664297 errors=none
-    at until (/home/runner/work/diction/diction/tests/operational-polish-browser.integration.ts:130:15)
+Error: Error: timed out waiting for the class to be written
+  url=http://localhost:3111/bn/admin/classes
+  dbNames=[নমুনা সপ্তম শ্রেণি]
+  dialog=absent refusal=none
+  toasts=[]
+  fields=[]
+  sheetText=""
+  pageErrors=none
+    at run (/home/runner/work/diction/diction/tests/operational-polish-browser.integration.ts:714:13)
     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
-    at async run (/home/runner/work/diction/diction/tests/operational-polish-browser.integration.ts:651:5)
