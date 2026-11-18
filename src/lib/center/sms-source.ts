@@ -113,7 +113,9 @@ async function withFeeValues(docs:StudentDoc[],now:Date):Promise<SmsCandidateStu
   const duesByStudent=new Map<string,{months:YearMonth[];total:number}>();
   for(const group of groups){
     try{
-      const dues=await liveClassDues(group,now);
+      /* `held:false`: a fee message never goes to a paused student, and their arrears are not a reason
+         to hand the composer a due amount it would then have to take back. */
+      const dues=await liveClassDues(group,now,undefined,{held:false});
       for(const row of dues.rows)duesByStudent.set(String(row.student._id),{months:row.months,total:row.total});
     }catch{
       // A class too big to price live must not block a notice or a thank-you message.
@@ -142,7 +144,7 @@ export async function candidatesFromDues(classGroup:string,now=new Date()):Promi
   if(!mongoose.isValidObjectId(classGroup))throw Error('INVALID_CLASS');
   const [group,dues]=await Promise.all([
     CenterClassGroup.findById(classGroup).select('name').lean<{name:{bn:string;en?:string}}|null>(),
-    liveClassDues(classGroup,now),
+    liveClassDues(classGroup,now,undefined,{held:false}),
   ]);
   const className=group?.name.bn||'';
   const allMonths=[...new Set(dues.rows.flatMap(row=>row.months.map(item=>`${item.year}-${item.month}`)))].map(key=>{

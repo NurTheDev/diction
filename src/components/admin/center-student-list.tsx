@@ -66,7 +66,7 @@ export function CenterStudentList({initial,classes,digits,sms,canManage,maySendS
   const allPicked=pageIds.length>0&&pageIds.every(id=>picked.includes(id));
   const toggle=(id:string,on:boolean):void=>setPicked(current=>on?[...new Set([...current,id])]:current.filter(x=>x!==id));
   const kit:StudentRowKit={digits,language,currency:common('currency'),canManage,maySendSms,
-    templates:sms.templates,institutePhone:sms.institutePhone,smsTitle:ts('titles.students'),
+    templates:sms.templates,institutePhone:sms.institutePhone,smsTitle:ts('titles.students'),classes,
     onChanged,picked,onTick:toggle};
   /* What the panel's own summary says while a filter is on: a collapsed panel must never be the only
      sign that the list in front of the operator is not the whole list. */

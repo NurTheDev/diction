@@ -47,3 +47,22 @@ export function shiftsOf(form:FormData):string[]{
 export const centerStudentSchema=z.object({nameBn:required,nameEn:z.string().trim().max(120),classGroup:z.string().regex(/^[a-f\d]{24}$/i),roll:z.string().trim().max(40),school:z.string().trim().max(160),guardianName:required,guardianPhone:phone,studentPhone:optPhone,altPhone:optPhone,address:optional,admissionDate:date,startYear:integer(1900,2200),startMonth:integer(1,12),monthlyFee:integer(0,100000000),notes:z.string().trim().max(3000)});
 
 export const centerStudentEditSchema=centerStudentSchema.omit({classGroup:true,startYear:true,startMonth:true,monthlyFee:true});
+
+/* S1 · the three doors that change a student over time. Each one is a month and a reason, and the month
+   is what makes the write honest: a pause, a move and a price all say "from this month", so the record
+   keeps the months before the change exactly as they were. */
+const hex24=z.string().regex(/^[a-f\d]{24}$/i);
+/** A `YYYY-MM` month as a form carries it. Bangla digits are folded first, because a screen that counts
+    in Bangla digits is a screen an operator may type them into. */
+const monthWord=z.preprocess(v=>typeof v==='string'?v.trim().replace(/[\u09e6-\u09ef]/g,c=>String(c.charCodeAt(0)-0x09e6)):v,
+  z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/));
+/** The reason is the operator's own and may be left blank: a pause, a move or a price is a fact whether
+    or not anybody wrote down why, and a required reason is a reason invented to get past the form. */
+const reason=z.string().trim().max(500).optional();
+
+/** F-01 · a pause asks for the month it takes effect; lifting one asks for the month the student resumes. */
+export const centerStudentHoldSchema=z.object({id:hex24,hold:z.string(),fromMonth:monthWord.optional(),resume:monthWord.optional(),reason});
+/** F-02 · a move asks for the class, the month it takes effect, and why. */
+export const centerStudentTransferSchema=z.object({id:hex24,classGroup:hex24,month:monthWord,reason});
+/** F-03 · a price asks for the taka, the month it takes effect, and why. */
+export const centerStudentFeeSchema=z.object({id:hex24,fee:integer(0,100000000),month:monthWord,reason});

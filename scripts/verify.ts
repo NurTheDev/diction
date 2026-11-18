@@ -421,6 +421,16 @@ async function main():Promise<void>{
     await stepUnitSuites(ctx,'test:o1:feedback','O1.4','Every write says it is writing and is answered top-right: one button behind fourteen controls, one skeleton above every admin address, and a toast for every mutation');
     await stepUnitSuites(ctx,'test:o1:menu','O1.5','One door to exams and results, the old addresses forwarding to it, and the class screen with its own gated door');
     await stepUnitSuites(ctx,'test:o1:classes','O1.6','A class is a place, a set of hours, a roll and its batches: the record, the shape of a write, the guards behind it and the screen that reads them');
+    /* S1 · a student's money over time: what a pause, a move and a price are. Four unit rows, each its
+       own script because each names a different claim — the three findings as rules with no database
+       behind them, the same three against the disposable database and the two reads the centre looks at,
+       the certificate's own date spelled from the catalogs, and the words the doors paint. The two
+       browser rows below are proved by suites the plan already names, run once each. */
+    await stepUnitSuites(ctx,'test:s1:money','S1.1','A pause is a range, a move is a timeline, a price is a line: the three findings as rules and the doors that write them');
+    await stepUnitSuites(ctx,'test:s1:db','S1.2','The same three changes against the disposable database: the record reads them back and both dues reads answer for a paused student',
+      {needsDb:true,env:{TEST_ORIGIN:ctx.origin,TEST_MONGO_URI:ctx.mongoUri,TEST_MONGO_DB:ctx.mongoDb}});
+    await stepUnitSuites(ctx,'test:s1:date','S1.3','The certificate\u2019s date spelled from the catalogs in the operator\u2019s digits, with a day that is not a day refused');
+    await stepUnitSuites(ctx,'test:s1:copy','S1.4','The doors\u2019 words belong to the catalogs: both whole, no variable named, no Bangla on an English screen, no hardcoded pair in a route file');
     await stepUnitSuites(ctx,'test:g3:copy','G3.6','The plain-language sweep: no shipped value says snapshot, write enabled or reconciliation in either language, both catalogues whole, no hardcoded pair in a route file');
     await stepScreens(ctx);
     await stepBrowserTests(ctx);

@@ -11,11 +11,12 @@ import {smsDialogData} from '@/lib/center/sms-dialog-data';
 import {dashboardDigits} from '@/lib/admin/digits';
 import {dhakaCalendar} from '@/lib/center/month-status';
 import {liveClassDues} from '@/lib/center/dues-query';
+import {feeInMonth} from '@/lib/center/student-changes';
 import {formatNumber} from '@/lib/admin/format';
 export const dynamic='force-dynamic';
 type Group={_id:mongoose.Types.ObjectId;name:{bn:string;en?:string};academicYear:number;shift?:string;
   active:boolean;monthlyFee?:number;updatedAt:Date};
-type RollRow={feeHistory:{amount:number}[]};
+type RollRow={feeHistory:{amount:number;effectiveFrom:{year:number;month:number}}[]};
 
 /**
  * Group 3 · the classroom hub: one class, one page.
@@ -53,7 +54,10 @@ export default async function ClassHub({params}:{params:Promise<{locale:string;i
      amount most of the roll is already on — the number a phone call about this class would quote. */
   const counted=new Map<number,number>();
   for(const student of roll){
-    const amount=student.feeHistory.length?Number(student.feeHistory[student.feeHistory.length-1].amount):0;
+    /* S1 · the price the roll is on TODAY: a line written for a month nobody has reached is a price
+       this class will run at, not one it runs at, and quoting it would quote a number no receipt has
+       been checked against yet. */
+    const amount=feeInMonth(student.feeHistory,{year,month});
     if(amount>0)counted.set(amount,(counted.get(amount)||0)+1);
   }
   let fee=Number(group.monthlyFee)||0,best=0;

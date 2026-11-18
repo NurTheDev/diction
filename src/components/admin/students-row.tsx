@@ -25,7 +25,7 @@ import {useActionState,useEffect,useRef,useState,type FormEvent,type ReactNode} 
 import {useTranslations} from 'next-intl';
 import {Link} from '@/i18n/navigation';
 import {
-  removeCenterStudent,restoreCenterStudent,setStudentHold,updateCenterStudent,
+  removeCenterStudent,restoreCenterStudent,updateCenterStudent,
   type CenterActionState,type CenterSearchItem,
 } from '@/actions/center-students';
 import {toastOnWrite} from './recycle-toast-host';
@@ -38,16 +38,18 @@ import {
 } from './list-pattern';
 import {attr} from './list-class';
 import SendSmsDialog,{type SmsTemplateOption} from './send-sms-dialog';
+import {FeeDoor,HoldDoor,TransferDoor} from './student-money-doors';
+import type {ClassChoice} from './center-forms';
 import {formatDigits,formatNumber,type Digits} from '@/lib/admin/format';
 
 /** This list's own name in the pattern's markers and classes: `data-student-edit`, `.student-who`. */
 const KIND='student';
 const idle:CenterActionState={status:'idle'};
 
-/* Hold and Edit keep their row on screen; Remove and Restore file it away, so those two raise their
-   toast on the way back from the write rather than from an effect that would never run. All four go
-   through `toastOnWrite` so a row answers the same way whichever verb it was. */
-const holdWrite=toastOnWrite<CenterActionState,CenterActionState>(setStudentHold);
+/* Edit keeps its row on screen; Remove and Restore file it away, so those two raise their toast on the
+   way back from the write rather than from an effect that would never run. All of them go through
+   `toastOnWrite` so a row answers the same way whichever verb it was — including the three month doors
+   in `student-money-doors.tsx`, which own their own writes. */
 const removeWrite=toastOnWrite<CenterActionState,CenterActionState>(removeCenterStudent);
 const restoreWrite=toastOnWrite<CenterActionState,CenterActionState>(restoreCenterStudent);
 const editWrite=toastOnWrite<CenterActionState,CenterActionState>(updateCenterStudent);
@@ -59,6 +61,9 @@ export type StudentRowKit={
   canManage:boolean;
   /** The kit the SMS dialog needs, and the title the caller gives it. */
   maySendSms:boolean;templates:SmsTemplateOption[];institutePhone:string;smsTitle:string;
+  /** S1 · the classes the centre runs, which is what a move offers — the same list the class filter is
+      built from, so a row can never offer a class the centre has archived. */
+  classes:ClassChoice[];
   /** Re-read the list: a row's status, dues and notes all live in the parent's search result. */
   onChanged:()=>void;
   /** The bulk bar's selection, which the row's own tick belongs to. */
@@ -104,18 +109,20 @@ type TypedField=typeof TYPED_FIELDS[number];
 
 export function StudentRow({student,kit}:{student:CenterSearchItem;kit:StudentRowKit}){
   const t=useTranslations('center');
-  const {digits,language,currency,canManage,maySendSms,templates,institutePhone,smsTitle,onChanged}=kit;
-  const [holdState,holdAction,holdPending]=useActionState(holdWrite,idle);
+  const {digits,language,currency,canManage,maySendSms,templates,institutePhone,smsTitle,classes,onChanged}=kit;
   const [removeState,removeAction,removePending]=useActionState(removeWrite,idle);
   const [restoreState,restoreAction,restorePending]=useActionState(restoreWrite,idle);
   const [editState,editAction,editPending]=useActionState(editWrite,idle);
   const [editing,setEditing]=useState(false);
   const [draft,setDraft]=useState<CenterSearchItem|null>(null);
   const [smsOpen,setSmsOpen]=useState(false);
+  /* S1 · which of the three month doors is open, if any: a pause and its lifting, a move to another
+     class, a change of price. Each one is a sheet that asks for a month before it writes anything. */
+  const [door,setDoor]=useState<'hold'|'lift'|'transfer'|'fee'|null>(null);
   /* The month a Remove or a Restore carries is picked, and until it is, the verb is a dead button: a
      hidden input is barred from constraint validation, so `required` cannot do this work. */
   const [leaveMonth,setLeaveMonth]=useState(''),[resumeMonth,setResumeMonth]=useState('');
-  useReread(onChanged,[holdState,removeState,restoreState,editState]);
+  useReread(onChanged,[removeState,restoreState,editState]);
   /* A saved edit closes its own form, the way `MenuForm` closes its menu when the write lands: a form
      left open over the row it has just written is a sheet left across the operator's work, and on a
      phone it covers the list. A refusal leaves it open, with what they typed still in it. */
@@ -157,13 +164,16 @@ export function StudentRow({student,kit}:{student:CenterSearchItem;kit:StudentRo
   const statusLabel=(status:string):string=>t(status==='on_hold'?'onHold':status==='removed'?'removed':'active');
   const months=t.raw('monthNames') as string[];
 
-  /** One write of the hold switch, from the badge or from the ⋯ menu — the same action, the same words. */
-  const submitHold=(next:'active'|'on_hold'):void=>{
-    const form=new FormData();
-    form.set('id',student.id);
-    form.set('hold',next==='on_hold'?'1':'');
-    holdAction(form);
-  };
+  /**
+   * The hold switch, from the badge or from the ⋯ menu — one sheet, one write, the same words.
+   *
+   * S1 took the write out of the second tap: a pause is a range of months, so the tap that used to
+   * change the status now opens the sheet that asks which month it takes effect from, and lifting one
+   * asks which month the student resumes in. The badge is still the switch an operator reaches for.
+   */
+  const openHoldDoor=(next:'active'|'on_hold'):void=>setDoor(next==='on_hold'?'hold':'lift');
+  /** Whose record the open sheet writes, in the operator's own digits and words. */
+  const doorKit={id:student.id,digits,language};
 
   const dues=student.dues;
   const dueChip=dues==null
@@ -193,7 +203,7 @@ export function StudentRow({student,kit}:{student:CenterSearchItem;kit:StudentRo
           ?<span className="list-status-cell"><span className={`admin-badge ${statusBadge(student.status)}`} {...attr('data-status-badge')}>{statusLabel(student.status)}</span></span>
           :<StatusChipMenu<Status> kind={KIND} value={student.status==='on_hold'?'on_hold':'active'} options={STATUS_OPTIONS}
             labelOf={statusLabel} badgeOf={statusBadge} title={t('row.statusCol')}
-            onPick={option=>submitHold(option)}/>}
+            onPick={option=>openHoldDoor(option)}/>}
       </Cell>
       <Cell kind={KIND} part="dues" label={t('row.duesCol')}>
         {/* The chip is the total; one tap opens the months behind it, because a number with no months
@@ -203,7 +213,9 @@ export function StudentRow({student,kit}:{student:CenterSearchItem;kit:StudentRo
             {student.dueMonths.length
               ?student.dueMonths.map(due=><span key={`${due.year}-${due.month}`} className="pop-item admin-help">
                 {months[due.month-1]} {formatNumber(due.year,digits)} — {formatNumber(due.due,digits)} {currency}</span>)
-              :<span className="pop-item admin-help">{dues==null?t('row.notCounted'):t('row.noDues')}</span>}
+              :<span className="pop-item admin-help">{dues==null
+                ?t(student.status==='on_hold'?'row.holdNoMonth':'row.notCounted')
+                :t('row.noDues')}</span>}
           </div>
         </ChipPopover>
       </Cell>
@@ -221,8 +233,13 @@ export function StudentRow({student,kit}:{student:CenterSearchItem;kit:StudentRo
           {maySendSms&&<MenuItem marker="sms" onClick={()=>{setSmsOpen(true);close()}}>{t('row.sendSms')}</MenuItem>}
           <span className="pop-item"><Link className="admin-mini-button" href={`/admin/students/${student.id}/collect`}
             {...attr('data-more-payment')} onClick={close}>{t('row.payment')}</Link></span>
-          {!removed&&<MenuItem marker="hold" disabled={holdPending} onClick={()=>{submitHold(held?'active':'on_hold');close()}}>
+          {!removed&&<MenuItem marker="hold" onClick={()=>{openHoldDoor(held?'active':'on_hold');close()}}>
             {held?t('unhold'):t('hold')}</MenuItem>}
+          {/* S1 · the two doors that change a student from a month: the class they sit in, and what a
+              month costs. Both are a sheet with a month in it, not a field on the inline edit. */}
+          {!removed&&classes.some(choice=>choice.id!==student.classId)
+            &&<MenuItem marker="transfer" onClick={()=>{setDoor('transfer');close()}}>{t('row.transfer')}</MenuItem>}
+          {!removed&&<MenuItem marker="fee" onClick={()=>{setDoor('fee');close()}}>{t('row.fee')}</MenuItem>}
           {canManage
             ?removed
               /* Restore is Remove's mirror image: the month the fee starts again and the reason, typed
@@ -253,13 +270,25 @@ export function StudentRow({student,kit}:{student:CenterSearchItem;kit:StudentRo
               </MenuForm>
             :<MenuHint adminOnly text={t('row.removeAdminOnly')}/>}
           {/* The reason a row looks the way it does is read where the verb is, not on another page. */}
-          {held&&student.holdReason&&<MenuHint text={t('row.holdReason',{reason:student.holdReason})}/>}
+          {/* A pause is read where the verb is: the month it took effect, and the reason if there is
+              one. The months inside it are the months the fee run skips, and the row says so. */}
+          {held&&student.holdFrom&&<MenuHint text={student.holdReason
+            ?t('row.holdReasonMonth',{month:shortMonth(student.holdFrom,digits,language),reason:student.holdReason})
+            :t('row.holdFrom',{month:shortMonth(student.holdFrom,digits,language)})}/>}
           {removed&&student.removalReason&&<MenuHint text={t('row.removedNote',{
             month:shortMonth(student.leaveMonth,digits,language),reason:student.removalReason})}/>}
         </>}</RowMenu>}>
         {smsOpen&&<SendSmsDialog open onClose={()=>setSmsOpen(false)} request={{source:'students',ids:[student.id]}}
           templates={templates} institutePhone={institutePhone} title={smsTitle} defaultTemplateKey="due_reminder"
           en={language==='en'} onSent={onChanged}/>}
+        {/* One sheet at a time, mounted by the tap that asked for it and closed by the write that
+           answered. A move can lift the row out of a filtered list, so the toast is raised on the way
+           back from the action and the re-read is the list's own. */}
+        {door&&(door==='hold'||door==='lift')
+          &&<HoldDoor mode={door} kit={doorKit} holdFrom={student.holdFrom} onDone={onChanged} onClose={()=>setDoor(null)}/>}
+        {door==='transfer'&&<TransferDoor kit={doorKit} classes={classes} currentClassId={student.classId}
+          onDone={onChanged} onClose={()=>setDoor(null)}/>}
+        {door==='fee'&&<FeeDoor kit={doorKit} fee={student.fee} currency={currency} onDone={onChanged} onClose={()=>setDoor(null)}/>}
       </ActCell>
     </ListRow>
     {/* The inline edit is its own row: the display row keeps its height budget and its four controls

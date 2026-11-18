@@ -4,10 +4,19 @@ import mongoose from 'mongoose';
 import {revalidatePath} from 'next/cache';
 import {requireAdmin} from '@/lib/admin/guard';
 import {acquireCenterLocks,identityLock,studentLock,normalizeIdentityName} from '@/lib/center/import-locks';
-import {centerClassSchema,centerStudentSchema,centerStudentEditSchema} from '@/schemas/center';
-import {CenterActivityLog,CenterClassGroup,CenterStudent} from '@/models/CenterRecords';
+import {centerClassSchema,centerStudentSchema,centerStudentEditSchema,
+  centerStudentFeeSchema,centerStudentHoldSchema,centerStudentTransferSchema} from '@/schemas/center';
+import {CenterActivityLog,CenterClassGroup,CenterPayment,CenterStudent} from '@/models/CenterRecords';
 import {User} from '@/models/User';
 import {getTranslations} from 'next-intl/server';
+/* S1 · the rules a pause, a move and a price change are made of. They live in a module of their own and
+   take plain records, so what a change means is proved without a database and without this door. */
+import {monthIndexOf,monthWordOf,planClassTransfer,planFeeChange,planHold,planLift,readMonthWord,
+  settledMonthInRange} from '@/lib/center/student-changes';
+import {dhakaCalendar} from '@/lib/center/month-status';
+import {monthKey} from '@/lib/center/dues';
+import {dashboardDigits} from '@/lib/admin/digits';
+import {formatNumber} from '@/lib/admin/format';
 export type CenterActionState={status:'idle'|'ok'|'invalid'|'duplicate'|'conflict'|'error';studentId?:string;fields?:string[];/** The operator's own sentence for what the write did, in the language they are reading. */message?:string};
 const refresh=()=>{for(const lang of ['bn','en']){revalidatePath(`/${lang}/admin/students`);revalidatePath(`/${lang}/admin/students/dues`);revalidatePath(`/${lang}/admin/students/classes`)}};
 /** Group 3: a class has its own page, so a write to a student re-reads the class that student is on. */
@@ -31,9 +40,13 @@ export type CenterSearchItem={id:string;studentId:string;nameBn:string;nameEn:st
   revision:string;version:number;
   /** What a removed row is described by, and the reason behind the hold a held row is inside. */
   leaveMonth:string;removalReason:string;holdReason:string;
-  /** What the student owes now. `null` is "not counted" — a held or removed student is outside the dues
-      engine, and a class too big to read costs the row its total rather than reporting a wrong one. */
-  dues:number|null;dueMonths:{year:number;month:number;due:number}[]};
+  /** What the student owes now. `null` is "not counted" — a removed student is outside the dues engine,
+      and a class too big to read costs the row its total rather than reporting a wrong one. A paused
+      student IS counted, because S1 stopped a pause from forgiving the months before it: the chip reads
+      the arrears the student arrived with, and the months inside the pause are not in it. */
+  dues:number|null;dueMonths:{year:number;month:number;due:number}[];
+  /** The month the pause the row is inside took effect, as `YYYY-MM`, or empty when there is none. */
+  holdFrom:string};
 export type CenterSearchResult={items:CenterSearchItem[];total:number;page:number;error?:boolean;removed?:boolean};
 /** Search uses a server-action POST rather than putting names or phone numbers in the URL. */
 /** What each student on the page owes, read from the same engine the dues list reads, one pass per class. */
@@ -92,6 +105,11 @@ export async function searchCenterStudents(input:{q:string;classId:string;status
          the row owes the operator, because a held student looks idle and is not. */
       const holds=[...(s.holds||[])].reverse();
       const hold=holds.find(h=>!h.end)||holds[0];
+      const holdFrom=hold&&hold.start?`${hold.start.year}-${String(hold.start.month).padStart(2,'0')}`:'';
+      /* A pause with no month on it is a pause the fee run cannot place, so the row reads "not counted"
+         rather than "no dues": the first names a gap somebody can close by giving the pause its month,
+         the second reads as an account that is settled. */
+      const heldNoMonth=s.status==='on_hold'&&!(s.holds||[]).some(h=>h.start);
       return {id:String(s._id),studentId:s.studentId,nameBn:s.name.bn,nameEn:s.name.en||'',
         classId:String(s.classGroup),classBn:group?.bn||'',classEn:group?.en||'',
         guardianPhone:s.guardianPhone,guardianName:s.guardianName||'',studentPhone:s.studentPhone||'',altPhone:s.altPhone||'',
@@ -100,8 +118,8 @@ export async function searchCenterStudents(input:{q:string;classId:string;status
         fee:history.find(f=>f.effectiveFrom.year*12+f.effectiveFrom.month<=current)?.amount??history[history.length-1]?.amount??null,
         revision:s.updatedAt.toISOString(),version:s.revision??0,
         leaveMonth:s.removal?.leaveDate||'',removalReason:s.removal?.reason||'',holdReason:hold?.reason||'',
-        dues:s.status==='active'&&!owed.failed.has(String(s.classGroup))?(due?.total??0):null,
-        dueMonths:due?.months??[]};
+        dues:s.status==='removed'||heldNoMonth||owed.failed.has(String(s.classGroup))?null:(due?.total??0),
+        dueMonths:due?.months??[],holdFrom};
     })};
   }catch{return {items:[],total:0,page,error:true,removed}}
 }
@@ -133,16 +151,190 @@ export async function updateCenterClass(_:CenterActionState,form:FormData):Promi
  * losing them, and Remove is the deliberate door to the removed list — a leave month and a reason
  * are required, only admin and super admin may walk it, and both write the activity log.
  */
-export async function setStudentHold(_:CenterActionState,form:FormData):Promise<CenterActionState>{const admin=await requireAdmin(),id=String(form.get('id')||''),hold=form.get('hold')==='1';if(!mongoose.isValidObjectId(id))return {status:'invalid'};
-  /* The success sentence is fetched BEFORE the write, not after it. Everything after `withTransaction`
-     runs on a write that has already committed, so a throw while fetching the sentence — or while
-     revalidating a path — used to land in the same `catch` as a refused write and answer `error`: the
-     student was held, and the operator was told it was not, with no toast because a toast is raised only
-     for `ok`. A sentence that cannot be fetched is a 500, honestly; a committed write is `ok`, always. */
-  const holdMessage=(await getTranslations('center'))(hold?'row.holdOk':'row.unholdOk');
+/* The three histories a student carries, read as plain records. The model infers `any` for a subdocument
+   array, and a planner that receives `any` is a planner nobody can prove: each is named here, and the
+   door hands its planners these shapes and nothing else. */
+type HoldLike={start:{year:number;month:number};end?:{year:number;month:number}|null;reason?:string;createdAt?:Date};
+type ClassStepLike={classGroup:unknown;name?:{bn?:string;en?:string}|null;reason?:string;effectiveFrom:{year:number;month:number}};
+type FeeStepLike={amount?:number;effectiveFrom:{year:number;month:number}};
+
+/* S1 · F-01: a pause is a range of months, not a flag. The badge and the ⋯ menu both arrive here with
+   the month the operator picked — `fromMonth` for a pause, `resume` for lifting one — and the record
+   keeps one open range at a time: a pause appends it, a lift closes it at the month BEFORE the one the
+   student resumes in, so the resume month is billed and every month inside the range stays unbilled for
+   good. Nothing here touches what the student owed before the pause, which is why a paused student's
+   arrears are still on the class's due list: a pause stops the meter, it does not forgive the run. */
+export async function setStudentHold(_:CenterActionState,form:FormData):Promise<CenterActionState>{
+  const admin=await requireAdmin(),v=centerStudentHoldSchema.safeParse(Object.fromEntries(form));
+  if(!v.success)return {status:'invalid',fields:v.error.issues.map(issue=>String(issue.path[0]||''))};
+  const {id,reason}=v.data,hold=v.data.hold==='1',month=readMonthWord(hold?v.data.fromMonth:v.data.resume);
+  if(!month)return {status:'invalid',fields:[hold?'fromMonth':'resume']};
+  const t=await getTranslations('center');
+  /* Every sentence this action can answer with is fetched BEFORE the write, the way the class door does
+     it: a throw after a committed transaction must never turn an `ok` into an `error` and leave the
+     operator with a write they were told had failed. */
+  const words={ok:t(hold?'row.holdOk':'row.unholdOk'),already:t('holdDoor.already'),notHeld:t('holdDoor.notHeld'),
+    tooEarly:t('holdDoor.tooEarly'),removed:t('holdDoor.removed'),failed:t('failure')};
   let classGroup='';
-  const session=await mongoose.startSession();try{await session.withTransaction(async()=>{const student=await CenterStudent.findById(id).session(session);if(!student||student.status==='removed')throw Error('NOT_HOLDABLE');classGroup=String(student.classGroup);student.status=hold?'on_hold':'active';student.revision+=1;await student.save({session});await CenterActivityLog.create([{actor:admin.id,action:hold?'student.hold':'student.unhold',target:student._id,after:{status:student.status}}],{session})});refresh();refreshClass(classGroup);
-  return {status:'ok',message:holdMessage}}catch(error){if(process.env.CENTER_DATA_MODE==='test')console.error('Hold test error:',error);return {status:'error'}}finally{await session.endSession()}}
+  const session=await mongoose.startSession();
+  try{
+    await session.withTransaction(async()=>{
+      await acquireCenterLocks([studentLock(id)],session);
+      const student=await CenterStudent.findById(id).session(session);
+      if(!student||student.status==='removed')throw Error('NOT_HOLDABLE');
+      classGroup=String(student.classGroup||'');
+      /* Read as plain months, not spread out of Mongoose: a subdocument carries its fields behind
+         getters, so spreading one copies its internals and the planner would read an empty record. */
+      const holds=((student.holds||[]) as HoldLike[]).map(entry=>({start:{year:entry.start.year,month:entry.start.month},
+        end:entry.end?{year:entry.end.year,month:entry.end.month}:undefined,reason:entry.reason||'',createdAt:entry.createdAt}));
+      const now=new Date();
+      let heldUntil='';
+      if(hold){
+        const planned=planHold({status:student.status,holds},{fromMonth:month,reason,actorId:admin.id,now});
+        student.set('status',planned.status);student.set('holds',planned.holds);
+      }else{
+        const planned=planLift({status:student.status,holds},{resumeMonth:month,actorId:admin.id,now});
+        student.set('status',planned.status);student.set('holds',planned.holds);
+        heldUntil=planned.closed&&planned.closed.end?monthWordOf(planned.closed.end):'';
+      }
+      student.revision+=1;
+      await student.save({session});
+      await CenterActivityLog.create([{actor:admin.id,action:hold?'student.hold':'student.unhold',target:student._id,
+        after:hold?{status:'on_hold',fromMonth:monthWordOf(month),reason:reason||''}
+          :{status:'active',resumeMonth:monthWordOf(month),heldUntil}}],{session});
+    });
+    refresh();refreshClass(classGroup);
+    return {status:'ok',message:words.ok};
+  }catch(error){
+    const code=(error as Error).message;
+    if(process.env.CENTER_DATA_MODE==='test')console.error('Hold test error:',error);
+    /* Each refusal is the planner's own rule, named: a second open pause, a lift with nothing to lift,
+       and a resume month that would close the range backwards. */
+    return code==='ALREADY_HELD'?{status:'invalid',fields:['fromMonth'],message:words.already}
+      :code==='NOT_HELD'?{status:'invalid',fields:['resume'],message:words.notHeld}
+      :code==='RESUME_TOO_EARLY'?{status:'invalid',fields:['resume'],message:words.tooEarly}
+      :code==='NOT_HOLDABLE'?{status:'error',message:words.removed}
+      :{status:'error',message:words.failed};
+  }finally{await session.endSession()}
+}
+
+/* S1 · F-02: a student moves to another class from a month, and the classes they sat in before it stay
+   on the record. `classGroup` is the class they are in — the roll, the dues and the routine all read it
+   — and `classHistory` is the timeline behind it, one line per move, so a month's class context is a
+   fact somebody can print rather than a memory. Both class pages are re-read: the one the student left
+   loses a row and the one they arrived on gains one. */
+export async function transferStudentClass(_:CenterActionState,form:FormData):Promise<CenterActionState>{
+  const admin=await requireAdmin(),v=centerStudentTransferSchema.safeParse(Object.fromEntries(form));
+  if(!v.success)return {status:'invalid',fields:v.error.issues.map(issue=>String(issue.path[0]||''))};
+  const {id,classGroup:targetId,reason}=v.data,month=readMonthWord(v.data.month);
+  if(!month)return {status:'invalid',fields:['month']};
+  const t=await getTranslations('center');
+  const words={ok:t('transferDoor.ok'),same:t('transferDoor.same'),noClass:t('transferDoor.noClass'),
+    before:t('transferDoor.beforeStart'),removed:t('transferDoor.removed'),failed:t('failure')};
+  let from='',to='';
+  const session=await mongoose.startSession();
+  try{
+    await session.withTransaction(async()=>{
+      await acquireCenterLocks([studentLock(id)],session);
+      const student=await CenterStudent.findById(id).session(session);
+      if(!student||student.status==='removed')throw Error('NOT_TRANSFERABLE');
+      /* Only a class the centre runs takes a student: an archived class is a history line, not a roll. */
+      const target=await CenterClassGroup.findOne({_id:targetId,active:true}).select('name').session(session)
+        .lean<{name:{bn:string;en?:string}}|null>();
+      if(!target)throw Error('NO_CLASS');
+      from=String(student.classGroup||'');to=targetId;
+      const current=mongoose.isValidObjectId(from)
+        ?await CenterClassGroup.findById(from).select('name').session(session).lean<{name:{bn:string;en?:string}}|null>()
+        :null;
+      const planned=planClassTransfer(
+        {classGroup:from,startMonth:{year:student.startMonth.year,month:student.startMonth.month},
+          classHistory:((student.classHistory||[]) as ClassStepLike[]).map(entry=>({classGroup:String(entry.classGroup),
+            name:{bn:entry.name?.bn||'',en:entry.name?.en||''},reason:entry.reason||'',
+            effectiveFrom:{year:entry.effectiveFrom.year,month:entry.effectiveFrom.month}}))},
+        {targetClassId:targetId,targetClassName:{bn:target.name.bn,en:target.name.en||''},
+          from:{id:from,name:{bn:current?.name.bn||'',en:current?.name.en||''}},
+          effectiveMonth:month,reason,actorId:admin.id,now:new Date()});
+      student.classGroup=new mongoose.Types.ObjectId(targetId);
+      student.set('classHistory',planned.classHistory);
+      student.revision+=1;
+      await student.save({session});
+      await CenterActivityLog.create([{actor:admin.id,action:'student.transfer',target:student._id,
+        before:{classGroup:from},after:{classGroup:to,effectiveMonth:monthWordOf(month),reason:reason||''}}],{session});
+    });
+    refresh();refreshClass(from);refreshClass(to);
+    return {status:'ok',message:words.ok};
+  }catch(error){
+    const code=(error as Error).message;
+    if(process.env.CENTER_DATA_MODE==='test')console.error('Transfer test error:',error);
+    return code==='SAME_CLASS'?{status:'invalid',fields:['classGroup'],message:words.same}
+      :code==='NO_CLASS'?{status:'invalid',fields:['classGroup'],message:words.noClass}
+      :code==='BEFORE_START'?{status:'invalid',fields:['month'],message:words.before}
+      :code==='NOT_TRANSFERABLE'?{status:'error',message:words.removed}
+      :{status:'error',message:words.failed};
+  }finally{await session.endSession()}
+}
+
+/* S1 · F-03: the price moves from a month, and the months before it keep the price they were billed at.
+   The dues engine already reads `feeHistory` that way — each month takes the newest line whose
+   `effectiveFrom` has arrived — so this door adds a line and changes nothing else. The one thing it
+   refuses is reaching back over money the centre has taken: a month that was settled at a price was
+   settled at that price, and the refusal names the month that stopped it. */
+export async function updateStudentMonthlyFee(_:CenterActionState,form:FormData):Promise<CenterActionState>{
+  const admin=await requireAdmin(),v=centerStudentFeeSchema.safeParse(Object.fromEntries(form));
+  if(!v.success)return {status:'invalid',fields:v.error.issues.map(issue=>String(issue.path[0]||''))};
+  const {id,fee,reason}=v.data,month=readMonthWord(v.data.month);
+  if(!month)return {status:'invalid',fields:['month']};
+  const t=await getTranslations('center');
+  /* The month a refusal is about is printed in the operator's own words and digits: a Bangla screen that
+     answers "2026-02" is an answer nobody can read against the receipt in their hand. */
+  const digits=await dashboardDigits(admin.id),months=t.raw('monthNames') as string[];
+  const monthLabel=(value:{year:number;month:number}):string=>
+    `${months[value.month-1]||''} ${formatNumber(value.year,digits)}`;
+  const words={ok:t('feeDoor.ok'),before:t('feeDoor.beforeStart'),removed:t('feeDoor.removed'),failed:t('failure'),
+    settled:t('feeDoor.settled')};
+  let classGroup='',settledLabel='';
+  const session=await mongoose.startSession();
+  try{
+    await session.withTransaction(async()=>{
+      await acquireCenterLocks([studentLock(id)],session);
+      const student=await CenterStudent.findById(id).session(session);
+      if(!student||student.status==='removed')throw Error('NOT_BILLABLE');
+      classGroup=String(student.classGroup||'');
+      /* What the centre has already taken, month by month — the same sum the dues engine reads. */
+      const paid=await CenterPayment.aggregate<{_id:{year:number;month:number};paid:number}>([
+        {$match:{student:new mongoose.Types.ObjectId(id),type:'monthly',status:'valid'}},
+        {$group:{_id:{year:'$academicYear',month:'$month'},paid:{$sum:'$amount'}}},
+      ]).session(session);
+      const payments:Record<string,number>={};
+      for(const row of paid)payments[monthKey(row._id.year,row._id.month)]=row.paid;
+      const today=dhakaCalendar(new Date()),now=new Date();
+      const settled=settledMonthInRange(payments,month,today);
+      if(settled)settledLabel=monthLabel(settled);
+      const history=((student.feeHistory||[]) as FeeStepLike[]).map(entry=>({amount:Number(entry.amount)||0,
+        effectiveFrom:{year:entry.effectiveFrom.year,month:entry.effectiveFrom.month}}));
+      const was=history.filter(entry=>monthIndexOf(entry.effectiveFrom)<=monthIndexOf(today))
+        .sort((a,b)=>monthIndexOf(b.effectiveFrom)-monthIndexOf(a.effectiveFrom))[0]?.amount??0;
+      const planned=planFeeChange(
+        {startMonth:{year:student.startMonth.year,month:student.startMonth.month},feeHistory:history},
+        {amount:fee,effectiveMonth:month,today,payments,reason,actorId:admin.id,now});
+      student.set('feeHistory',planned.feeHistory);
+      student.revision+=1;
+      await student.save({session});
+      await CenterActivityLog.create([{actor:admin.id,action:'student.fee',target:student._id,
+        before:{amount:was},after:{amount:fee,effectiveMonth:monthWordOf(month),reason:reason||''}}],{session});
+    });
+    refresh();refreshClass(classGroup);
+    return {status:'ok',message:words.ok};
+  }catch(error){
+    const code=(error as Error).message;
+    if(process.env.CENTER_DATA_MODE==='test')console.error('Fee test error:',error);
+    return code==='SETTLED_MONTH'
+      ?{status:'invalid',fields:['month'],message:settledLabel?t('feeDoor.settledMonth',{month:settledLabel}):words.settled}
+      :code==='BEFORE_START'?{status:'invalid',fields:['month'],message:words.before}
+      :code==='NOT_BILLABLE'?{status:'error',message:words.removed}
+      :{status:'error',message:words.failed};
+  }finally{await session.endSession()}
+}
 export async function removeCenterStudent(_:CenterActionState,form:FormData):Promise<CenterActionState>{const admin=await requireAdmin();if(admin.role!=='admin'&&admin.role!=='superadmin')return {status:'error'};const id=String(form.get('id')||''),leave=String(form.get('leave')||''),reason=String(form.get('reason')||'').trim();if(!mongoose.isValidObjectId(id)||!/^\d{4}-(0[1-9]|1[0-2])$/.test(leave)||reason.length<3||reason.length>500)return {status:'invalid'};
   const removeMessage=(await getTranslations('center'))('row.removeOk');
   let classGroup='';
