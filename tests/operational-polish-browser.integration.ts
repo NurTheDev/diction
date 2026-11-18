@@ -485,6 +485,30 @@ async function run():Promise<void>{
      * middleware, so it says what the collection holds rather than what a query shape was allowed to see.
      */
     const boardState=async():Promise<string>=>{
+      /* One read of the document itself, rather than a locator at a time: the last run answered that the
+         served HTML held the class while every locator on the page found nothing, and the only way to
+         tell those two facts apart is to ask the document what it holds in a single breath. */
+      const dom=await page.evaluate<{title:string;ready:string;text:string;counts:Record<string,number>;
+        board:string;flight:number}>(`(function(){
+        const count=selector=>document.querySelectorAll(selector).length;
+        const board=document.querySelector('[data-class-board]');
+        const html=document.documentElement.innerHTML;
+        return {
+          title:document.title,
+          ready:document.readyState,
+          text:(document.body&&document.body.innerText||'').replace(/\\s+/g,' ').slice(0,400),
+          counts:{
+            board:count('[data-class-board]'),card:count('[data-class-card]'),
+            name:count('[data-class-name]'),count:count('[data-class-count]'),
+            empty:count('[data-class-empty]'),h1:count('h1'),
+            loading:count('[data-admin-loading]'),error:count('[data-class-error]'),
+            bodyChildren:document.body?document.body.children.length:-1,
+          },
+          board:board?board.outerHTML.replace(/\\s+/g,' ').slice(0,700):'no board element',
+          flight:html.split('${CLASS_BN}').length-1,
+        };
+      })()`).catch(error=>({title:'evaluate failed',ready:String(error).slice(0,80),text:'',
+        counts:{},board:'',flight:-1}));
       const heading=await page.locator('h1').first().innerText().catch(()=>'no heading');
       const counted=await page.locator('[data-class-count]').innerText().catch(()=>'no count');
       const cards=await page.locator('[data-class-card]').count().catch(()=>-1);
@@ -495,8 +519,11 @@ async function run():Promise<void>{
       const throughMongoose=await CenterClassGroup.countDocuments({}).catch(()=>-1);
       const throughDriver=await mongoose.connection.collection('centerclassgroups')
         .countDocuments({}).catch(()=>-1);
-      return `url=${page.url()} h1="${heading}" count="${counted}" cards=${cards} emptyState=${empty}`
-        +` readFailed="${why}"`
+      return `url=${page.url()} title="${dom.title}" ready=${dom.ready} h1="${heading}" count="${counted}"`
+        +` cards=${cards} emptyState=${empty} readFailed="${why}"
+  dom=${JSON.stringify(dom.counts)} nameInDocument=${dom.flight} pageErrors=${errors.join(' | ')||'none'}
+  bodyText="${dom.text}"
+  boardHtml="${dom.board}"`
         +` names=[${names.join(' | ')}] servedNameInHtml=${html.includes(CLASS_BN)}`
         +` db(mongoose)=${throughMongoose} db(driver)=${throughDriver} classId=${classId}`;
     };
@@ -520,7 +547,12 @@ async function run():Promise<void>{
         await until('the card to be there on a cold read',async()=>await seeded.count()===1,20000)
           .catch(()=>{});
       }
-      if(await seeded.count()!==1)throw Error(`${String(error).split('\n')[0]}\n  board: ${await boardState()}`);
+      if(await seeded.count()!==1){
+        /* And a photograph of it, committed with the evidence: a screen nobody can see is a screen
+           nobody can argue with. */
+        await shot(page,'o1-class-board-missing-card-bn-1440').catch(()=>Buffer.from(''));
+        throw Error(`${String(error).split('\n')[0]}\n  board: ${await boardState()}`);
+      }
     }
     assert.equal(await seeded.count(),1,'the class the centre already has is a card');
     assert.ok((await seeded.locator('[data-class-name]').innerText()).includes(CLASS_BN),

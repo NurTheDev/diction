@@ -634,7 +634,11 @@ async function run(){
       'one average per subject in the footer, however many columns that subject has');
     const footerCells=await grid.locator('tfoot tr').first().evaluate(
       (row:HTMLElement)=>[...row.children].reduce((sum,cell)=>sum+(Number(cell.getAttribute('colspan'))||1),0));
-    assert.equal(footerCells,9,'and the footer spans exactly the columns the body has');
+    /* Eleven, not nine: the footer's leading cell spans the roll and the student, one cell spans the
+       subject's two components, and the summary spans the total, the percentage, the grade, the point,
+       the rank, the absent switch and the row's own status — the two columns O1 added to the body are
+       columns the footer has to reach, or the average is printed under the wrong child's marks. */
+    assert.equal(footerCells,11,'and the footer spans exactly the columns the body has');
 
     const cellOf=(student:string,part:number)=>
       grid.locator(`[data-student="${String(students[student]._id)}"][data-subject="${oneSubject}"][data-part="${part}"]`);

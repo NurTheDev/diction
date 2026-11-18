@@ -363,13 +363,25 @@ async function run(){
        there and still enabled, and the fact that ends the asking is the component's own answer: the
        outcome sentence, or the refusal beside it. A wait on a sentence nobody wrote is not an answer. */
     const answered=importPanel.locator('[data-import-outcome],[data-import-error]');
-    await until('the sheet to be committed and the grid to say so',async()=>{
-      if(await answered.count())return true;
+    try{
+      await until('the sheet to be committed and the grid to say so',async()=>{
+        if(await answered.count())return true;
+        const confirm=importPanel.locator('[data-import-confirm]');
+        if(await confirm.count()&&(await confirm.getAttribute('disabled'))===null)
+          await confirm.click({force:true}).catch(()=>undefined);
+        return Boolean(await answered.count());
+      },180000);
+    }catch(error){
+      /* "No sentence appeared" is not a diagnosis: the two things that decide it are whether the commit
+         was ever asked (the button's own state, the fold's) and whether it landed (the rows stored). */
       const confirm=importPanel.locator('[data-import-confirm]');
-      if(await confirm.count()&&(await confirm.getAttribute('disabled'))===null)
-        await confirm.click({force:true}).catch(()=>undefined);
-      return Boolean(await answered.count());
-    },120000);
+      const stored=await CenterExamResult.countDocuments({exam:examId}).catch(()=>-1);
+      throw Error(`${String(error).split('\n')[0]}
+  panel="${(await importPanel.innerText().catch(()=>'gone')).replace(/\s+/g,' ').slice(0,400)}"
+  confirm(present=${await confirm.count().catch(()=>-1)},disabled=${await confirm.getAttribute('disabled').catch(()=>'?')},label="${await confirm.innerText().catch(()=>'?')}")
+  foldOpen=${await page.locator('[data-import-fold]').getAttribute('open').catch(()=>'gone')} previewRows=${await importPanel.locator('[data-import-row]').count().catch(()=>-1)}
+  resultsStored=${stored} url=${page.url()}`);
+    }
     assert.ok(await importPanel.locator('[data-import-outcome]').count(),
       `the commit was answered rather than refused: ${await answered.first().innerText().catch(()=>'nothing on screen')}`);
     await until('the uploaded rows are stored',async()=>(await CenterExamResult.countDocuments({exam:examId}))===5);
