@@ -1,6 +1,6 @@
-Error: Error: timed out waiting for the sheet to be committed and the grid to say so
+Error: Error: timed out waiting for the sheet to be committed, and the grid to be the grid that was written
   panel=""
   confirm(present=0,disabled=?,label="?")
-  foldOpen=null previewRows=0
-  resultsStored=5 url=http://localhost:3111/bn/admin/center-exams/6afcf986beb7342e89588e11
-    at run (/home/runner/work/diction/diction/tests/center-exams-browser.integration.ts:379:13)
+  doors=1 foldOpen=null previewRows=0
+  resultsStored=5 url=http://localhost:3111/bn/admin/center-exams/6afd005eaeb4a41edeb1a08c
+    at run (/home/runner/work/diction/diction/tests/center-exams-browser.integration.ts:386:13)
