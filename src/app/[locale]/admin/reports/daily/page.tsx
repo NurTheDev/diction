@@ -32,11 +32,11 @@ export default async function DailyReport({params,searchParams}:{params:Promise<
       <p>{t('daily.desc')}</p>
     </div></div>
     <form method="get" className="report-filters" data-daily-filters>
-      <label>{t('daily.dateLabel')}<input className="admin-input" type="date" name="date" value={date}/></label>
+      <label>{t('daily.dateLabel')}<input className="admin-input" type="date" name="date" defaultValue={date}/></label>
       <label>{t('daily.operatorLabel')}
-        <select className="admin-input" name="operator" data-operator-filter>
+        <select className="admin-input" name="operator" data-operator-filter defaultValue={operator||""}>
           <option value="">{t('daily.operatorAll')}</option>
-          {options.map(option=><option key={option.id} value={option.id} selected={option.id===operator}>{option.name}</option>)}
+          {options.map(option=><option key={option.id} value={option.id}>{option.name}</option>)}
         </select>
       </label>
       <button className="admin-mini-button" type="submit">{t('daily.apply')}</button>

@@ -3,7 +3,7 @@
  * the wording in docs/SPEC.md, and that variable substitution never silently invents a value.
  */
 import assert from 'node:assert/strict';
-import {SMS_TEMPLATE_DEFAULTS,SMS_VARIABLES,defaultTemplate,hasUnknownChip,isSmsTemplateKey,renderSmsTemplate,templateVariablesOf} from '../src/lib/center/sms-templates';
+import {SMS_TEMPLATE_DEFAULTS,SMS_VARIABLES,defaultTemplate,smsTemplateName,hasUnknownChip,isSmsTemplateKey,renderSmsTemplate,templateVariablesOf} from '../src/lib/center/sms-templates';
 
 function run(){
   // 1. The exact bodies the owner's spec lists. A wording drift here changes what families read.
@@ -58,3 +58,8 @@ function run(){
 }
 
 run();
+
+// A default template's stored name is its catalog key ("templates.notice"); it must paint as the word.
+assert.equal(smsTemplateName({notice:'Notice'},'templates.notice'),'Notice');
+assert.equal(smsTemplateName({notice:'Notice'},'notice'),'Notice');
+assert.equal(smsTemplateName({notice:'Notice'},'My own name'),'My own name');

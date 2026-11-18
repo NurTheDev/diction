@@ -33,10 +33,10 @@ export default async function MonthlyReport({params,searchParams}:{params:Promis
       <p>{t('monthly.desc')}</p>
     </div></div>
     <form method="get" className="report-filters" data-monthly-filters>
-      <label>{t('monthly.yearLabel')}<input className="admin-input" type="number" name="year" min={1900} max={2200} value={String(year)}/></label>
+      <label>{t('monthly.yearLabel')}<input className="admin-input" type="number" name="year" min={1900} max={2200} defaultValue={String(year)}/></label>
       <label>{t('monthly.monthLabel')}
-        <select className="admin-input" name="month" data-month-filter>
-          {months.map((name,index)=><option key={index} value={String(index+1)} selected={index+1===month}>{name}</option>)}
+        <select className="admin-input" name="month" data-month-filter defaultValue={String(month)}>
+          {months.map((name,index)=><option key={index} value={String(index+1)}>{name}</option>)}
         </select>
       </label>
       <button className="admin-mini-button" type="submit">{t('monthly.apply')}</button>

@@ -28,7 +28,7 @@ export default async function YearSummaryPage({params,searchParams}:{params:Prom
       <p>{t('year.desc')}</p>
     </div></div>
     <form method="get" className="report-filters" data-year-filters>
-      <label>{t('year.yearLabel')}<input className="admin-input" type="number" name="year" min={1900} max={2200} value={String(year)}/></label>
+      <label>{t('year.yearLabel')}<input className="admin-input" type="number" name="year" min={1900} max={2200} defaultValue={String(year)}/></label>
       <button className="admin-mini-button" type="submit">{t('year.apply')}</button>
     </form>
     <div className="report-toolbar no-print">

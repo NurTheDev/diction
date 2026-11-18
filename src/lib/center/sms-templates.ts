@@ -12,7 +12,7 @@
  * `templates` group. A name that is not a key reads as itself: that is an operator's own wording,
  * and it is the only case where the stored string is the sentence.
  */
-export function smsTemplateName(names:Record<string,string>,value:string):string{return names[value]||value}
+export function smsTemplateName(names:Record<string,string>,value:string):string{return names[value]||names[value.replace(/^templates\./,'')]||value}
 
 /* `exam`, `marks`, `total` and `rank` are the result message's own chips, and all four are per student:
    a result SMS that said the class's marks would be worse than none, so `autoSendClassResults` fills each
