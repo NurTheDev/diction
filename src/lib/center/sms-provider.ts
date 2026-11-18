@@ -206,6 +206,8 @@ export interface SmsProvider{
 }
 
 export function smsProviderName():SmsProviderName{
+  // Test mode never reaches the real gateway, even when .env.local (which Next loads anyway) names it.
+  if(process.env.CENTER_DATA_MODE==='test')return 'mock';
   return process.env.SMS_PROVIDER==='bulksmsbd'?'bulksmsbd':'mock';
 }
 

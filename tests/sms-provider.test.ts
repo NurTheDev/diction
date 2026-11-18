@@ -135,6 +135,10 @@ async function run(){
   assert.equal(createSmsProvider().configured,true);
   process.env.SMS_PROVIDER='nonsense';
   assert.equal(smsProviderName(),'mock','an unrecognized provider falls back to mock, never to a real gateway');
+  process.env.SMS_PROVIDER='bulksmsbd';
+  process.env.CENTER_DATA_MODE='test';
+  assert.equal(createSmsProvider().name,'mock','test mode is mock even when .env.local names the real gateway');
+  delete process.env.CENTER_DATA_MODE;
 
   // 10. The write gate still stands: without it, even a configured provider refuses.
   process.env.SMS_PROVIDER='bulksmsbd';
