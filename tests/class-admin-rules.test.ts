@@ -17,13 +17,20 @@
  *   assigning batches is total for the class being edited, so one batch can never sit on two cards.
  */
 import assert from 'node:assert/strict';
-import {existsSync,readFileSync} from 'node:fs';
+import {existsSync,readdirSync,readFileSync,statSync} from 'node:fs';
 import {CenterClassGroup} from '../src/models/CenterRecords';
 import {Batch} from '../src/models/Academic';
 import {classGroupSchema,shiftsOf} from '../src/schemas/center';
 import {CLASS_SHIFT_KEYS,isShiftKey,shiftWordsOf} from '../src/lib/classes/class-shared';
 
 const read=(file:string):string=>readFileSync(file,'utf8');
+const walk=(dir:string,out:string[]=[]):string[]=>{
+  for(const entry of readdirSync(dir)){
+    const next=`${dir}/${entry}`;
+    if(statSync(next).isDirectory())walk(next,out);else if(/\.(ts|tsx)$/.test(entry))out.push(next);
+  }
+  return out;
+};
 
 // ── 1. The record holds what a card shows ────────────────────────────────────────────────────────
 const group=CenterClassGroup.schema;
@@ -206,6 +213,27 @@ for(const entry of CLIENT_FILES){
   assert.deepEqual(offenders,[],
     `${entry} is a client component, and everything it imports lands in the browser bundle: `
     +`${offenders.join(', ')} hold a database`);
+}
+
+// ── 7. A "use server" file may only export async functions ───────────────────────────────────────
+/**
+ * The write side of the class board died in verification twice before this rule existed, and it died
+ * before its own first line: a `'use server'` module that exports anything but an async function is
+ * refused by the server at the moment the action is loaded — "A use server file can only export async
+ * functions, found object" — so every call to any action in that file answers 500, the sheet hears
+ * nothing, the route falls into its boundary, and the typecheck, the build and the server render all
+ * stay green, because none of them loads the module the way an action call does. One dead re-export of
+ * a plain object cost three runs; the rule below reads every `'use server'` file in `src/` and refuses
+ * any export that is not an async function or a type.
+ */
+for(const file of walk('src')){
+  const text=read(file);
+  if(!/^\s*['"]use server['"]/.test(text))continue;
+  const offenders=[...text.matchAll(/^export\s+(?!async function|type|interface)(.+)$/gm)]
+    .map(match=>match[1].trim().slice(0,60));
+  assert.deepEqual(offenders,[],
+    `${file} is a "use server" module: the server loads it only when an action is called, and it `
+    +`refuses to load a module that exports anything but async functions — ${offenders.join(', ')}`);
 }
 
 console.log(`Class and batch management: a class holds its own room, its shifts and its month, a batch `+

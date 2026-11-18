@@ -41,6 +41,9 @@ import {CLASS_SHIFT_KEYS,isShiftKey} from '@/lib/classes/class-shared';
  * written is not a reason to lose the write itself.
  */
 const actionLog=(line:string):void=>{
+  /* A test-mode channel only: in production the server's console is the right place for a stack, and a
+     file in the working directory is not. */
+  if(process.env.CENTER_DATA_MODE!=='test')return;
   const text=`${new Date().toISOString()} ${line}\n`;
   for(const dir of ['verify-output/logs','test-results/ci-latest/logs']){
     try{mkdirSync(dir,{recursive:true});appendFileSync(`${dir}/class-admin-action.txt`,text)}catch{void 0}
@@ -221,4 +224,3 @@ export async function assignClassBatchesAction(previous:ClassActionState,form:Fo
   }finally{await session?.endSession()}
 }
 
-export {idle as classActionIdle};
