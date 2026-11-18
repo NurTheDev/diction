@@ -61,6 +61,9 @@ const SHOTS=path.join('screenshots','s1');
 const FEE=1000,RAISED=1500,DUE_DAY=10;
 const PAUSE_REASON='S1 পরীক্ষার জন্য বিরতি',MOVE_REASON='S1 শ্রেণি বদল',FEE_REASON='S1 বার্ষিক বৃদ্ধি';
 const CLASS_A='S1 নবম শ্রেণি',CLASS_B='S1 দশম শ্রেণি';
+/** The same two classes as an English screen reads them: a class carries both names and a screen reads
+    the one its own language spells. */
+const CLASS_A_EN='S1 Class Nine',CLASS_B_EN='S1 Class Ten';
 const PAUSE_STUDENT='S1 বিরতি শিক্ষার্থী',SETTLED_STUDENT='S1 পরিশোধিত শিক্ষার্থী';
 /** A pause written by the flag S1 replaced: a status and no months, which is every pause on the record
     before this slice, and the shape the fee run cannot place. */
@@ -118,8 +121,8 @@ async function run(){
   const bossId=(await User.findOne({email}).lean<{_id:mongoose.Types.ObjectId}>())!._id;
   await CenterSettings.updateOne({key:'main'},{$set:{key:'main',quietStart:'00:00',quietEnd:'00:00',
     institutePhone:'01733330000',dueDay:DUE_DAY,smsUnitCost:0.5}},{upsert:true});
-  const classA=await CenterClassGroup.create({name:{bn:CLASS_A,en:'S1 Class Nine'},academicYear:today.year,shift:'প্রভাতী',active:true});
-  const classB=await CenterClassGroup.create({name:{bn:CLASS_B,en:'S1 Class Ten'},academicYear:today.year,shift:'দিবা',active:true});
+  const classA=await CenterClassGroup.create({name:{bn:CLASS_A,en:CLASS_A_EN},academicYear:today.year,shift:'প্রভাতী',active:true});
+  const classB=await CenterClassGroup.create({name:{bn:CLASS_B,en:CLASS_B_EN},academicYear:today.year,shift:'দিবা',active:true});
   const feeHistory=[{effectiveFrom:START,amount:FEE}];
   const paused=await CenterStudent.create({studentId:'S1-PAUSE',name:{bn:PAUSE_STUDENT,en:PAUSE_EN},classGroup:classA._id,
     startMonth:START,admissionDate:`${ym(START)}-05`,guardianName:'অভিভাবক',guardianPhone:'01711000201',
@@ -662,8 +665,12 @@ async function run(){
     const enMove=english.page.locator('[data-transfer-dialog]');
     await enMove.waitFor({state:'visible',timeout:60000});
     assert.ok((await enMove.innerText()).includes(enDoors.transferDoor.class),'the English move door asks for the class');
-    assert.ok((await enMove.locator('[data-transfer-class]').innerText()).includes('S1 Class Nine'),
-      'and reads the class it offers in English, from the class\'s own English name');
+    const enOffered=await enMove.locator('[data-transfer-class]').innerText();
+    assert.ok(enOffered.includes(CLASS_B_EN),
+      'and reads the class it offers in English, from the class\'s own English name — this student sits '
+      +'in the Nine, so the Ten is the class on offer');
+    assert.ok(!enOffered.includes(CLASS_A_EN),
+      'leaving out the class the student is already in, in either language');
     await shot(english.page,'s1-transfer-door-en-1440');
     await enMove.locator('[data-transfer-close]').click();
     await until(async()=>await enMove.count()===0,'the English move sheet to go');
