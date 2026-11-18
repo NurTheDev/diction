@@ -222,15 +222,20 @@ async function run(){
       }
       await cell.click();
     };
-    /** Walk the month picker to a year and leave it open, so what a month cell does can be read. */
-    const walkTo=async(scope:Locator,name:string,year:number):Promise<void>=>{
-      await scope.locator(`[data-month-choose="${name}"]`).click();
-      await scope.locator('[data-month-year]').waitFor({state:'visible',timeout:60000});
+    /** Walk an OPEN picker's year ring to a year, so one of its month cells can be read rather than
+        taken: the grid holds one year at a time, and a proof that reads a cell has to say which. */
+    const walkYear=async(scope:Locator,year:number):Promise<void>=>{
       for(let step=0;step<8;step++){
         const shown=Number(ascii(await scope.locator('[data-month-year]').innerText()));
         if(shown===year)return;
         await scope.locator(shown>year?'[data-month-back]':'[data-month-forward]').click();
       }
+    };
+    /** Open the month picker and walk it to a year, leaving it open. */
+    const walkTo=async(scope:Locator,name:string,year:number):Promise<void>=>{
+      await scope.locator(`[data-month-choose="${name}"]`).click();
+      await scope.locator('[data-month-year]').waitFor({state:'visible',timeout:60000});
+      await walkYear(scope,year);
     };
     const noOverflow=async(page:Page,label:string):Promise<void>=>{
       const metrics=await page.evaluate(()=>({clientWidth:document.documentElement.clientWidth,
@@ -560,8 +565,12 @@ async function run(){
     await walkTo(formA,'resume',LAST.year);
     assert.equal(await formA.locator(`[data-month-pick="${ym(LAST)}"]`).isDisabled(),true,
       'the month they left in cannot be picked as the month they come back in (F-13)');
+    /* Walked to, rather than assumed to be on the same grid: the picker holds one year at a time and the
+       month after a December leave is in the next one, so a proof that reads both cells reads them where
+       each of them is. */
+    await walkYear(formA,THIS.year);
     assert.equal(await formA.locator(`[data-month-pick="${ym(THIS)}"]`).isDisabled(),false,
-      'and the first month that can be is the one after it, which is the month the fee starts again');
+      'and the first month that can be picked is the one after it, which is the month the fee starts again');
     await formA.locator('[data-month-choose="resume"]').click();
     await pickMonth(formA,'resume',ym(THIS));
     assert.equal(await formA.locator('[data-restore-submit]').isDisabled(),false,
