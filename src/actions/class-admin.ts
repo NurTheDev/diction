@@ -37,6 +37,12 @@ export type ClassActionState={
   fields?:string[];
   /** The operator's own sentence for what happened. */
   message?:string;
+  /**
+   * The failure's own first line, for the sheet's `title` and for nothing else on the screen: an
+   * operator is told "the write did not land", and the next reader — a test, a log, a cursor resting on
+   * the sentence — can see which of the fifty ways that was. The message, never the stack.
+   */
+  detail?:string;
 };
 
 const idle:ClassActionState={status:'idle'};
@@ -137,10 +143,11 @@ export async function saveClassGroupAction(previous:ClassActionState,form:FormDa
     return {status:'ok',classId,message:String(isEdit?t('saved'):t('created'))};
   }catch(error){
     const message=(error as Error).message;
-    if(message==='STALE')return {status:'conflict',classId:id};
-    if(message==='YEAR')return {status:'invalid',classId:id,fields:['academicYear']};
-    if(message==='MISSING')return {status:'error',classId:id};
-    return {status:(error as {code?:number}).code===11000?'duplicate':'error',classId:id};
+    const detail=String(message||error).split('\n')[0].slice(0,200);
+    if(message==='STALE')return {status:'conflict',classId:id,detail};
+    if(message==='YEAR')return {status:'invalid',classId:id,fields:['academicYear'],detail};
+    if(message==='MISSING')return {status:'error',classId:id,detail};
+    return {status:(error as {code?:number}).code===11000?'duplicate':'error',classId:id,detail};
   }finally{await session?.endSession()}
 }
 
@@ -179,7 +186,8 @@ export async function assignClassBatchesAction(previous:ClassActionState,form:Fo
     refresh(classId);
     return {status:'ok',classId,message:String(t('batchesSaved'))};
   }catch(error){
-    return {status:(error as Error).message==='MISSING'?'error':'error',classId};
+    return {status:(error as Error).message==='MISSING'?'error':'error',classId,
+      detail:String((error as Error).message||error).split('\n')[0].slice(0,200)};
   }finally{await session?.endSession()}
 }
 

@@ -671,6 +671,12 @@ async function run():Promise<void>{
      * reads all of them at once rather than guessing which one to look at.
      */
     const sheetState=async():Promise<string>=>{
+      const refusal=await page.evaluate<string>(`(()=>{
+        const nodes=Array.from(document.querySelectorAll('[data-class-error],[data-class-invalid],'
+          +'[data-class-duplicate],[data-class-conflict]'));
+        return nodes.map(node=>(node.getAttribute('data-class-error')!==null?'error:'
+          +(node.getAttribute('title')||''):node.textContent)||'').join(' | ')||'none';
+      })()`).catch(()=>'?');
       const facts=await page.evaluate<{dialog:string;invalid:string;sheet:string;forms:string}>(`(()=>{
         /* Every sheet on the page, not only the one expected: a sheet that came back keyed to a class
            rather than to "new" is a different failure from a sheet that is gone, and only the key says
@@ -721,7 +727,7 @@ async function run():Promise<void>{
   board(cards=${boardCards},count="${boardCount}",names=[${boardNames.join(' | ')}])
   posts=[${answers.join(' , ')}]
   boundary="${boundary||'none — the route is alive'}"
-  dialog=${facts.dialog} refusal=${facts.invalid}
+  dialog=${facts.dialog} refusal=${refusal}
   toasts=[${toasts.join(' | ')}]
   fields=[${fields.join(' · ')}]
   forms=[${facts.forms}]
@@ -733,8 +739,13 @@ async function run():Promise<void>{
     const written=async():Promise<boolean>=>
       (await CenterClassGroup.countDocuments({'name.bn':NEW_CLASS_BN}).catch(()=>-1))===1;
     try{
+      const refused=page.locator('[data-class-error],[data-class-invalid],[data-class-duplicate],'
+        +'[data-class-conflict]');
       await until('the class to be written',async()=>{
         if(await written())return true;
+        /* A sheet that has already answered no is not asked again: its refusal is the fact now, and
+           clicking through it would only bury the sentence that says why. */
+        if(await refused.count())return false;
         if(await modal.count()
           &&(await modal.locator('[data-class-save]').getAttribute('aria-busy').catch(()=>null))!=='true')
           await modal.locator('[data-class-save]').click().catch(()=>undefined);

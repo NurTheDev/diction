@@ -268,13 +268,15 @@ function ClassModal({draft,isNew,year,digits,batchOptions,onClose}:{
       {!isNew&&<label className="admin-check"><input type="checkbox" name="active" data-class-active-box
         checked={value.active} onChange={event=>write({active:event.target.checked})}/> {t('activeCheck')}</label>}
       {isNew&&<input type="hidden" name="active" value="on"/>}
-      {state.status==='invalid'&&<p className="admin-feedback error" role="alert" data-class-invalid>
+      {state.status==='invalid'&&<p className="admin-feedback error" role="alert" data-class-invalid
+        title={state.detail||''}>
         {t('invalid')}{state.fields?.length?` — ${state.fields.join(', ')}`:''}</p>}
       {state.status==='duplicate'&&<p className="admin-feedback error" role="alert" data-class-duplicate>
         {t('duplicate')}</p>}
       {state.status==='conflict'&&<p className="admin-feedback error" role="alert" data-class-conflict>
         {t('conflict')}</p>}
-      {state.status==='error'&&<p className="admin-feedback error" role="alert" data-class-error>
+      {state.status==='error'&&<p className="admin-feedback error" role="alert" data-class-error
+        title={state.detail||''}>
         {t('saveFailed')}</p>}
       <div className="routine-form-actions">
         <SubmitButton pending={pending} data-class-save busyLabel={t('saving')} label={t('save')}/>
