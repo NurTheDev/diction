@@ -154,9 +154,14 @@ export async function updateCenterClass(_:CenterActionState,form:FormData):Promi
 /* The three histories a student carries, read as plain records. The model infers `any` for a subdocument
    array, and a planner that receives `any` is a planner nobody can prove: each is named here, and the
    door hands its planners these shapes and nothing else. */
-type HoldLike={start:{year:number;month:number};end?:{year:number;month:number}|null;reason?:string;createdAt?:Date};
-type ClassStepLike={classGroup:unknown;name?:{bn?:string;en?:string}|null;reason?:string;effectiveFrom:{year:number;month:number}};
-type FeeStepLike={amount?:number;effectiveFrom:{year:number;month:number}};
+/* An actor's id read off a stored row: the record holds an ObjectId where a planner's row declares the
+   string it plans with. */
+const stampOf=(value:unknown):string|undefined=>value?String(value):undefined;
+type HoldLike={start:{year:number;month:number};end?:{year:number;month:number}|null;reason?:string;
+  recordedBy?:unknown;endedBy?:unknown;createdAt?:Date;closedAt?:Date};
+type ClassStepLike={classGroup:unknown;name?:{bn?:string;en?:string}|null;reason?:string;
+  changedBy?:unknown;changedAt?:Date;effectiveFrom:{year:number;month:number}};
+type FeeStepLike={amount?:number;reason?:string;changedBy?:unknown;changedAt?:Date;effectiveFrom:{year:number;month:number}};
 
 /* S1 · F-01: a pause is a range of months, not a flag. The badge and the ⋯ menu both arrive here with
    the month the operator picked — `fromMonth` for a pause, `resume` for lifting one — and the record
@@ -184,9 +189,15 @@ export async function setStudentHold(_:CenterActionState,form:FormData):Promise<
       if(!student||student.status==='removed')throw Error('NOT_HOLDABLE');
       classGroup=String(student.classGroup||'');
       /* Read as plain months, not spread out of Mongoose: a subdocument carries its fields behind
-         getters, so spreading one copies its internals and the planner would read an empty record. */
+         getters, so spreading one copies its internals and the planner would read an empty record.
+         Whole rows all the same. A pause the record already holds carries the name of whoever wrote it,
+         and the schema requires that name, so a lift that handed the planner a picked-over copy was
+         refused by the very record it was closing: the door answered "not saved" and no lift of a stored
+         pause could ever be written. The stamps of an older move or an older price travel for the same
+         reason — a timeline that forgets who made its earlier lines is a timeline nobody can trust. */
       const holds=((student.holds||[]) as HoldLike[]).map(entry=>({start:{year:entry.start.year,month:entry.start.month},
-        end:entry.end?{year:entry.end.year,month:entry.end.month}:undefined,reason:entry.reason||'',createdAt:entry.createdAt}));
+        end:entry.end?{year:entry.end.year,month:entry.end.month}:undefined,reason:entry.reason||'',
+        recordedBy:stampOf(entry.recordedBy),endedBy:stampOf(entry.endedBy),createdAt:entry.createdAt,closedAt:entry.closedAt}));
       const now=new Date();
       let heldUntil='';
       if(hold){
@@ -250,6 +261,7 @@ export async function transferStudentClass(_:CenterActionState,form:FormData):Pr
         {classGroup:from,startMonth:{year:student.startMonth.year,month:student.startMonth.month},
           classHistory:((student.classHistory||[]) as ClassStepLike[]).map(entry=>({classGroup:String(entry.classGroup),
             name:{bn:entry.name?.bn||'',en:entry.name?.en||''},reason:entry.reason||'',
+            changedBy:stampOf(entry.changedBy),changedAt:entry.changedAt,
             effectiveFrom:{year:entry.effectiveFrom.year,month:entry.effectiveFrom.month}}))},
         {targetClassId:targetId,targetClassName:{bn:target.name.bn,en:target.name.en||''},
           from:{id:from,name:{bn:current?.name.bn||'',en:current?.name.en||''}},
@@ -311,6 +323,7 @@ export async function updateStudentMonthlyFee(_:CenterActionState,form:FormData)
       const settled=settledMonthInRange(payments,month,today);
       if(settled)settledLabel=monthLabel(settled);
       const history=((student.feeHistory||[]) as FeeStepLike[]).map(entry=>({amount:Number(entry.amount)||0,
+        reason:entry.reason||'',changedBy:stampOf(entry.changedBy),changedAt:entry.changedAt,
         effectiveFrom:{year:entry.effectiveFrom.year,month:entry.effectiveFrom.month}}));
       const was=history.filter(entry=>monthIndexOf(entry.effectiveFrom)<=monthIndexOf(today))
         .sort((a,b)=>monthIndexOf(b.effectiveFrom)-monthIndexOf(a.effectiveFrom))[0]?.amount??0;

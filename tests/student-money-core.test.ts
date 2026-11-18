@@ -260,6 +260,14 @@ assert.ok(hold.includes("student.set('holds'")&&hold.includes("student.set('stat
 assert.ok(hold.includes('centerStudentHoldSchema.safeParse'),'the month it is handed is parsed, not trusted');
 assert.ok(hold.includes(`'student.hold'`)&&hold.includes(`'student.unhold'`),'each direction writes its own audit line');
 assert.ok(hold.includes('acquireCenterLocks'),'and the write is taken under the lock the student is written by');
+/* A door hands the planner the record's own rows whole. A pause carries the name of whoever wrote it and
+   the record requires that name, so the picked-over copy the hold door used to hand over — start, end,
+   reason, when — was refused by the very record it was closing: the door answered "not saved" and no
+   lift of a stored pause could be written at all. The other two doors carry their stamps for the same
+   reason, because a timeline or a price history that forgets who made its earlier lines is a record
+   nobody can trust. */
+assert.ok(hold.includes('recordedBy:stampOf(entry.recordedBy),endedBy:stampOf(entry.endedBy)'),
+  'the hold door reads a stored pause whole: the operator who wrote it, and whoever closed it');
 const transfer=door('transferStudentClass');
 assert.ok(transfer.includes('planClassTransfer('),'the transfer door is the planner');
 assert.ok(transfer.includes('student.classGroup=new mongoose.Types.ObjectId'),'it moves the roll the student is on');
@@ -275,6 +283,10 @@ assert.ok(feeDoor.includes('planFeeChange(')&&feeDoor.includes('settledMonthInRa
 assert.ok(feeDoor.includes("student.set('feeHistory'"),'it adds a line to the price history');
 assert.ok(feeDoor.includes("type:'monthly',status:'valid'"),'and it reads the money the centre has actually taken');
 assert.ok(feeDoor.includes("'student.fee'"),'the change of price writes its audit line');
+assert.ok(transfer.includes('changedBy:stampOf(entry.changedBy),changedAt:entry.changedAt'),
+  'the move door keeps the stamp on every line the timeline already held');
+assert.ok(feeDoor.includes('changedBy:stampOf(entry.changedBy),changedAt:entry.changedAt'),
+  'and the price door keeps the stamp on every price already written');
 for(const name of ['setStudentHold','transferStudentClass','updateStudentMonthlyFee'])
   assert.ok(door(name).includes('revision+=1'),`${name} moves the revision a concurrent edit is refused by`);
 

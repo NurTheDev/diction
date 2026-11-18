@@ -484,8 +484,10 @@ async function run(){
     assert.equal((await owed(PAUSE_STUDENT)).total,FEE*2,'the arrears are the same money in the class the student arrived on');
     const summaryAfterMove=(await liveClassDueSummary()).rows.find(entry=>entry.classId===String(classB._id));
     assert.equal(summaryAfterMove?.total,FEE*2,'and the summary puts them on the new class\'s line');
-    assert.equal(summaryAfterMove?.active,0,
-      'a class whose only student is paused runs nobody today and is still owed what they left behind');
+    assert.equal(summaryAfterMove?.active,1,
+      'and the class the student arrived on counts them as running, because the pause was lifted before '
+      +'the move: the arrears came with a student this class is running today');
+    assert.equal(summaryAfterMove?.owing,1,'one student on it owes, and it is the one who arrived');
     const transferLog=await CenterActivityLog.findOne({action:'student.transfer',target:paused._id})
       .lean<{before:{classGroup:string};after:{classGroup:string;effectiveMonth:string;reason:string}}|null>();
     assert.equal(transferLog?.before.classGroup,String(classA._id),'the move writes where the student was');

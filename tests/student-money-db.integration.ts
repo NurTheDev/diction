@@ -168,6 +168,9 @@ async function run(){
     assert.equal(ymWord(afterLift!.holds[0].end!),ymWord(at(0)),
       'the pause ends the month BEFORE the one the student resumes in, so the resume month is a month the centre bills');
     assert.equal(String(afterLift!.holds[0].endedBy),actorId,'and the record says who lifted it');
+    assert.equal(String(afterLift!.holds[0].recordedBy),actorId,
+      'while keeping the name of whoever wrote the pause: the record requires it of every line it holds, '
+      +'which is why a door that hands back a picked-over copy cannot save a lift at all');
     assert.ok(afterLift!.holds[0].closedAt instanceof Date,'and when');
     assert.deepEqual(await owed(String(classA._id),arrears._id),beforeLift,
       'lifting the pause changes nothing that was owed: the months inside the closed range are never billed again');
