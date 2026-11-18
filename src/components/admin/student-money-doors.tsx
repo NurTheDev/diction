@@ -95,7 +95,7 @@ export function HoldDoor({mode,kit,holdFrom,onDone,onClose}:{
   onDone:()=>void;onClose:()=>void;
 }){
   const t=useTranslations('center'),[state,action,pending]=useActionState(holdWrite,idle);
-  const [month,setMonth]=useState('');
+  const [month,setMonth]=useState(''),[reason,setReason]=useState('');
   const hold=mode==='hold';
   return <Door marker="hold" state={state} action={action} pending={pending} disabled={!month} onDone={onDone} onClose={onClose}
     title={hold?t('holdDoor.title'):t('holdDoor.liftTitle')} submitLabel={hold?t('holdDoor.submit'):t('holdDoor.liftSubmit')}>
@@ -107,8 +107,8 @@ export function HoldDoor({mode,kit,holdFrom,onDone,onClose}:{
         notBefore={hold?undefined:nextMonthWord(holdFrom)||undefined} digits={kit.digits} language={kit.language}
         onChange={setMonth}/></label>
     <label>{t('holdDoor.reason')}
-      <textarea className="admin-input" name="reason" rows={2} maxLength={500}
-        placeholder={t('holdDoor.reasonHint')}/></label>
+      <textarea className="admin-input" name="reason" rows={2} maxLength={500} value={reason}
+        onChange={event=>setReason(event.target.value)} placeholder={t('holdDoor.reasonHint')}/></label>
   </Door>;
 }
 
@@ -123,7 +123,7 @@ export function TransferDoor({kit,classes,currentClassId,onDone,onClose}:{
   kit:DoorKit;classes:ClassChoice[];currentClassId:string;onDone:()=>void;onClose:()=>void;
 }){
   const t=useTranslations('center'),[state,action,pending]=useActionState(transferWrite,idle);
-  const [month,setMonth]=useState(''),[picked,setPicked]=useState('');
+  const [month,setMonth]=useState(''),[picked,setPicked]=useState(''),[reason,setReason]=useState('');
   const options=classes.filter(choice=>choice.id!==currentClassId);
   return <Door marker="transfer" state={state} action={action} pending={pending} disabled={!month||!picked}
     onDone={onDone} onClose={onClose} title={t('transferDoor.title')} submitLabel={t('transferDoor.submit')}>
@@ -141,7 +141,8 @@ export function TransferDoor({kit,classes,currentClassId,onDone,onClose}:{
       <MonthField name="month" value="" placeholder={t('row.pickMonth')} clearLabel={t('row.clear')}
         digits={kit.digits} language={kit.language} onChange={setMonth}/></label>
     <label>{t('transferDoor.reason')}
-      <input className="admin-input" name="reason" maxLength={500} placeholder={t('transferDoor.reasonHint')}/></label>
+      <input className="admin-input" name="reason" maxLength={500} value={reason}
+        onChange={event=>setReason(event.target.value)} placeholder={t('transferDoor.reasonHint')}/></label>
   </Door>;
 }
 
@@ -158,7 +159,8 @@ export function FeeDoor({kit,fee,currency,onDone,onClose}:{
   currency:string;onDone:()=>void;onClose:()=>void;
 }){
   const t=useTranslations('center'),[state,action,pending]=useActionState(feeWrite,idle);
-  const [month,setMonth]=useState(''),[amount,setAmount]=useState(fee==null?'':String(fee));
+  const [month,setMonth]=useState(''),[amount,setAmount]=useState(fee==null?'':String(fee)),
+    [reason,setReason]=useState('');
   return <Door marker="fee" state={state} action={action} pending={pending} disabled={!month||!amount.trim()}
     onDone={onDone} onClose={onClose} title={t('feeDoor.title')} submitLabel={t('feeDoor.submit')}>
     <input type="hidden" name="id" value={kit.id}/>
@@ -172,7 +174,8 @@ export function FeeDoor({kit,fee,currency,onDone,onClose}:{
       <MonthField name="month" value="" placeholder={t('row.pickMonth')} clearLabel={t('row.clear')}
         digits={kit.digits} language={kit.language} onChange={setMonth}/></label>
     <label>{t('feeDoor.reason')}
-      <input className="admin-input" name="reason" maxLength={500} placeholder={t('feeDoor.reasonHint')}/></label>
+      <input className="admin-input" name="reason" maxLength={500} value={reason}
+        onChange={event=>setReason(event.target.value)} placeholder={t('feeDoor.reasonHint')}/></label>
   </Door>;
 }
 

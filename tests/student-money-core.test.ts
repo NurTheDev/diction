@@ -287,6 +287,13 @@ assert.ok(transfer.includes('changedBy:stampOf(entry.changedBy),changedAt:entry.
   'the move door keeps the stamp on every line the timeline already held');
 assert.ok(feeDoor.includes('changedBy:stampOf(entry.changedBy),changedAt:entry.changedAt'),
   'and the price door keeps the stamp on every price already written');
+/* A refusal has to leave what the operator typed in the sheet, and React resets an uncontrolled field
+   the moment a form action settles — so all three doors hold the reason in state beside the month and
+   the amount they already held. */
+const doors=readFileSync('src/components/admin/student-money-doors.tsx','utf8');
+assert.equal((doors.match(/value={reason}/g)||[]).length,3,
+  'each of the three sheets keeps the reason the operator typed after a refusal');
+assert.equal((doors.match(/name="reason"/g)||[]).length,3,'one reason field per door, and no more');
 for(const name of ['setStudentHold','transferStudentClass','updateStudentMonthlyFee'])
   assert.ok(door(name).includes('revision+=1'),`${name} moves the revision a concurrent edit is refused by`);
 

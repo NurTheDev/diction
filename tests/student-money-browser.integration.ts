@@ -521,6 +521,10 @@ async function run(){
     assert.equal((await stored(SETTLED_STUDENT))!.feeHistory.length,1,'a refusal writes nothing');
     assert.equal(await feeSheet.locator('[data-fee-amount]').inputValue(),String(RAISED),
       'and leaves the sheet open with what the operator typed still in it');
+    assert.equal(await feeSheet.locator('[name="reason"]').inputValue(),FEE_REASON,
+      'the reason too: a refusal is an answer about the month, not a form the operator has to fill in '
+      +'again \u2014 and React resets an uncontrolled field the moment an action settles, so all three doors '
+      +'keep what was typed in state');
     await shot(boss.page,'s1-fee-refused-bn-1440');
     /* A month nobody has reached is a month a price may be written for — and it changes nothing today. */
     await pickMonth(feeSheet,'month',ym(RESUME));
