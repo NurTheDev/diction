@@ -327,6 +327,11 @@ async function run(){
       'নমুনা-২,A,,',
     ].join('\n'),'utf8');
     const importPanel=page.locator('[data-marks-import]');
+    /* O1: the import is a folded second door in the grid's own toolbar now — one button beside the save,
+       rather than a panel standing between an operator and the marks. The suite opens the fold to drive
+       it; nothing about the preview, the commit or the rows it writes changed. */
+    await page.locator('[data-grid-import-toggle]').click();
+    await importPanel.locator('[data-import-file]').waitFor({state:'visible',timeout:60000});
     await importPanel.locator('[data-import-file]').setInputFiles(csvPath);
     await importPanel.locator('[data-import-preview]').click();
     await importPanel.locator('[data-import-table]').waitFor({timeout:90000});

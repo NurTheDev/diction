@@ -617,8 +617,11 @@ async function run(){
 
     await goto(page,`/bn/admin/center-exams/${examOneId}`,'[data-exam-grid]');
     const grid=page.locator('[data-exam-grid]');
-    assert.equal(await grid.locator('thead th').count(),9,
-      'the grid has a column per component, then the student, the total, the percentage, the grade, the point, the rank and the absent switch');
+    /* O1 added two columns to this grid: the roll the class is marked by, which leads the row, and the
+       row's own status, which says whether a mark has been sent — a grid that saves itself has to be
+       readable about it. Everything the component split proved is still here, between them. */
+    assert.equal(await grid.locator('thead th').count(),11,
+      'the grid has the roll, then a column per component, then the student, the total, the percentage, the grade, the point, the rank, the absent switch and the row\'s own status');
     const headText=await grid.locator('thead').innerText();
     for(const part of EXAM_ONE.parts){
       assert.ok(headText.includes(part.name),`a component names its own column (${headText})`);

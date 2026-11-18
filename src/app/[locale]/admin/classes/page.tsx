@@ -25,8 +25,13 @@ export default async function Classes({params}:{params:Promise<{locale:string}>}
   const admin=await requireAdminPage();
   const {locale}=await params;
   const t=await getTranslations('classAdmin');
-  const [digits,board]=await Promise.all([dashboardDigits(admin.id),classBoard(locale)]);
-  const canEdit=admin.role==='admin'||admin.role==='superadmin';
+  const [digits,read]=await Promise.all([dashboardDigits(admin.id),
+    /* A board that cannot be read says so, with the reason beside it, rather than arriving as an empty
+       screen — an empty screen and a broken read look the same to the person standing at the desk, and
+       only one of them is a fact about the centre. */
+    classBoard(locale).then(board=>({board,failure:''})).catch(error=>
+      ({board:null,failure:String((error as Error)?.message||error)}))]);
+  const board=read.board,canEdit=admin.role==='admin'||admin.role==='superadmin';
   return <>
     <div className="admin-heading">
       <div>
@@ -35,7 +40,11 @@ export default async function Classes({params}:{params:Promise<{locale:string}>}
         <p data-class-desc>{t('desc')}</p>
       </div>
     </div>
-    <ClassManagement cards={board.cards} batchOptions={board.batchOptions}
+    {read.failure&&<p className="admin-feedback error" role="alert" data-class-error
+      title={read.failure}>
+      {t('readFailed')} <span className="admin-help" data-class-error-why>{read.failure}</span>
+    </p>}
+    <ClassManagement cards={board?.cards||[]} batchOptions={board?.batchOptions||[]}
       year={dhakaCalendar(new Date()).year} digits={digits} canEdit={canEdit}/>
   </>;
 }

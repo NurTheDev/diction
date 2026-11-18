@@ -5359,6 +5359,8 @@
     "batchesHelp": "Tick the batches that belong to this class. Unticking one lets it go.",
     "noBatchOptions": "No running batches yet.",
     "saveBatches": "Save batches",
-    "batchesSaved": "Batches assigned."
+    "batchesSaved": "Batches assigned.",
+    "readFailed": "The board could not be read. Please try again.",
+    "readFailedWhy": "Why"
   }
 }

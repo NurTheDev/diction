@@ -471,7 +471,40 @@ async function run():Promise<void>{
 
     // ══ 3. A class is written from its own board ═══════════════════════════════════════════════════
     await goto(page,'/bn/admin/classes','[data-class-board]');
+    /**
+     * What the board shows and what the database holds at the same moment, because "no card" is two
+     * different failures and only one of them is this screen's: a board that cannot read a class the
+     * centre has, or a class that is no longer there to read. The driver count bypasses every Mongoose
+     * middleware, so it says what the collection holds rather than what a query shape was allowed to see.
+     */
+    const boardState=async():Promise<string>=>{
+      const heading=await page.locator('h1').first().innerText().catch(()=>'no heading');
+      const counted=await page.locator('[data-class-count]').innerText().catch(()=>'no count');
+      const cards=await page.locator('[data-class-card]').count().catch(()=>-1);
+      const names=await page.locator('[data-class-name]').allInnerTexts().catch(()=>[] as string[]);
+      const empty=await page.locator('[data-class-empty]').count().catch(()=>-1);
+      const why=await page.locator('[data-class-error-why]').innerText().catch(()=>'');
+      const html=await page.content().catch(()=>'');
+      const throughMongoose=await CenterClassGroup.countDocuments({}).catch(()=>-1);
+      const throughDriver=await mongoose.connection.collection('centerclassgroups')
+        .countDocuments({}).catch(()=>-1);
+      return `url=${page.url()} h1="${heading}" count="${counted}" cards=${cards} emptyState=${empty}`
+        +` readFailed="${why}"`
+        +` names=[${names.join(' | ')}] servedNameInHtml=${html.includes(CLASS_BN)}`
+        +` db(mongoose)=${throughMongoose} db(driver)=${throughDriver} classId=${classId}`;
+    };
     const seeded=page.locator(`[data-class-card="${classId}"]`);
+    try{
+      await until('the class the centre already has to be a card on the board',async()=>
+        await seeded.count()===1,45000);
+    }catch(error){
+      /* One more look, with a fresh document: a first render that arrived before this suite's own write
+         is a caching question, and a second read answers it without guessing. */
+      await goto(page,'/bn/admin/classes','[data-class-board]').catch(()=>{});
+      await until('the card to be there on a second read',async()=>await seeded.count()===1,20000)
+        .catch(()=>{});
+      if(await seeded.count()!==1)throw Error(`${String(error).split('\n')[0]}\n  board: ${await boardState()}`);
+    }
     assert.equal(await seeded.count(),1,'the class the centre already has is a card');
     assert.ok((await seeded.locator('[data-class-name]').innerText()).includes(CLASS_BN),
       'named as the centre names it');
