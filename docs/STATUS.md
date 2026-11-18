@@ -1181,7 +1181,10 @@ with the timeline line and the audit row that follow. F-13: the month a restore 
 *after* the one the student left — `monthAfterWord` in `src/lib/center/student-changes.ts`, read by both
 restore doors and by the lift door beside them — because the picker's `notBefore` names the first month
 that *is* allowed while `restoreCenterStudent` refuses the leave month itself (`INVALID_RESUME`), and a
-picker that offers a month the door refuses costs the operator the reason they typed with it. F-14: the
+picker that offers a month the door refuses costs the operator the reason they typed with it; the
+browser proof walks the picker to the year the student left in and reads the leave month as a dead
+button and the month after it as a live one, and the helper reads the month out of a removal whether the
+door filed it as a month or an import filed it as a date. F-14: the
 pager and the read count a page by the same number, and a page that has emptied under the operator's feet
 is stepped back from rather than shown. F-15: a wrong class address lists every class instead of
 dead-ending. F-16: a fee distinguishes a class the centre runs for free from one nobody has priced
@@ -1207,6 +1210,8 @@ the date `tests/achievement.test.ts`. S1 closed on run
 [44289817070](https://github.com/NurTheDev/diction/actions/runs/44289817070), tag `s1-verified`; S2
 closed on run [44310354466](https://github.com/NurTheDev/diction/actions/runs/44310354466) with **115
 PASS, 0 FAIL, 0 NOT TESTED of 115 requirements**, tag `s2-verified`. The deletion of the two legacy class
-doors and the F-13 polish above were put through the same harness again on this branch: the run that
-closed them is the one the tag `s2-final-verified` points at, and its report is
-`test-results/ci-latest/verify-report.md`.
+doors and the F-13 polish above went through the same harness again on this branch and closed at **115
+PASS, 0 FAIL, 0 NOT TESTED of 115 requirements** on run
+[44327804671](https://github.com/NurTheDev/diction/actions/runs/44327804671) at commit `d10928f`, whose
+report is `test-results/ci-latest/verify-report.md` and which is the commit the tag `s2-final-verified`
+points at.
