@@ -1,4 +1,4 @@
-2026-11-18T10:43:27.998Z enter save nameBn="নমুনা অষ্টম শ্রেণি" id=""
-2026-11-18T10:43:28.014Z created classId=6afd81508845219997fd1bd5
-2026-11-18T10:43:28.549Z enter batches id="6afd81463781c944944915f3"
-2026-11-18T10:43:28.563Z batches assigned classId=6afd81463781c944944915f3
+2026-11-18T11:09:04.273Z enter save nameBn="নমুনা অষ্টম শ্রেণি" id=""
+2026-11-18T11:09:04.284Z created classId=6afd8750594341aaf894869c
+2026-11-18T11:09:04.807Z enter batches id="6afd8747a88735d8638175bf"
+2026-11-18T11:09:04.819Z batches assigned classId=6afd8747a88735d8638175bf

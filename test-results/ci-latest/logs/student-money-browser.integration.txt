@@ -1,9 +1,1 @@
-AssertionError [ERR_ASSERTION]: and reads the class it offers in English, from the class's own English name
-    at run (/home/runner/work/diction/diction/tests/student-money-browser.integration.ts:665:12) {
-  generatedMessage: false,
-  code: 'ERR_ASSERTION',
-  actual: false,
-  expected: true,
-  operator: '==',
-  diff: 'simple'
-}
+Student money doors: a pause asks its month and leaves the arrears before it on the row, on the class due list and on the all-class summary; lifting one asks a resume month it cannot pick inside the pause and back-bills nothing; a move writes the class timeline and moves the roll with the money; a price is refused over a settled month with that month named and writes a line for a month nobody has reached; and all three doors read the same in Bangla and English at 360px and 1440px.
