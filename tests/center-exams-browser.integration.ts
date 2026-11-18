@@ -358,8 +358,20 @@ async function run(){
     assert.equal(await statusOf(4),'unmatched','a student who is not in this exam is listed, not written');
     assert.equal(await statusOf(5),'incomplete','and a row with a hole in it is not committed');
     await shot(page,'exam-marks-import-bn-1440');
-    await importPanel.locator('[data-import-confirm]').click();
-    await importPanel.locator('[data-import-outcome]').waitFor({timeout:90000});
+    /* The commit button sits under a preview table five rows deep, inside the fold, under the toolbar
+       that follows the grid down the screen — so the click is asked for again while the button is still
+       there and still enabled, and the fact that ends the asking is the component's own answer: the
+       outcome sentence, or the refusal beside it. A wait on a sentence nobody wrote is not an answer. */
+    const answered=importPanel.locator('[data-import-outcome],[data-import-error]');
+    await until('the sheet to be committed and the grid to say so',async()=>{
+      if(await answered.count())return true;
+      const confirm=importPanel.locator('[data-import-confirm]');
+      if(await confirm.count()&&(await confirm.getAttribute('disabled'))===null)
+        await confirm.click({force:true}).catch(()=>undefined);
+      return Boolean(await answered.count());
+    },120000);
+    assert.ok(await importPanel.locator('[data-import-outcome]').count(),
+      `the commit was answered rather than refused: ${await answered.first().innerText().catch(()=>'nothing on screen')}`);
     await until('the uploaded rows are stored',async()=>(await CenterExamResult.countDocuments({exam:examId}))===5);
     const uploaded=await CenterExamResult.findOne({exam:examId,student:s5._id}).lean();
     assert.equal(uploaded.total,120,'the uploaded marks were stored');

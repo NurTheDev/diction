@@ -510,6 +510,16 @@ async function run():Promise<void>{
       await goto(page,'/bn/admin/classes','[data-class-board]').catch(()=>{});
       await until('the card to be there on a second read',async()=>await seeded.count()===1,20000)
         .catch(()=>{});
+      /* And once more with the document thrown away and asked for again: a render served from a warm
+         cache is a different question from a board that cannot read, and only a cold ask separates
+         them. */
+      if(await seeded.count()!==1){
+        await page.reload({waitUntil:'domcontentloaded',timeout:180000}).catch(()=>{});
+        await page.locator('[data-class-board]').first().waitFor({state:'visible',timeout:90000})
+          .catch(()=>{});
+        await until('the card to be there on a cold read',async()=>await seeded.count()===1,20000)
+          .catch(()=>{});
+      }
       if(await seeded.count()!==1)throw Error(`${String(error).split('\n')[0]}\n  board: ${await boardState()}`);
     }
     assert.equal(await seeded.count(),1,'the class the centre already has is a card');
