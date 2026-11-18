@@ -27,7 +27,25 @@ import {requireAdmin} from '@/lib/admin/guard';
 import {classGroupSchema,shiftsOf} from '@/schemas/center';
 import {CenterActivityLog,CenterClassGroup} from '@/models/CenterRecords';
 import {Batch} from '@/models/Academic';
+import {appendFileSync,mkdirSync} from 'node:fs';
 import {CLASS_SHIFT_KEYS,isShiftKey} from '@/lib/classes/class-shared';
+
+/**
+ * The server's own account of a write, appended where the verification run reads its logs.
+ *
+ * A server action that answers 500 leaves no trace an operator or a test can read: the console of the
+ * app process is not part of the evidence, the sheet shows nothing because nothing came back, and the
+ * route's boundary shows a minified recovery error rather than the failure underneath it. Two runs in
+ * a row ended that way. So each write writes down its entry, its answer and — if it throws anywhere,
+ * even outside its own catch — the failure's first lines, best-effort, because evidence that cannot be
+ * written is not a reason to lose the write itself.
+ */
+const actionLog=(line:string):void=>{
+  const text=`${new Date().toISOString()} ${line}\n`;
+  for(const dir of ['verify-output/logs','test-results/ci-latest/logs']){
+    try{mkdirSync(dir,{recursive:true});appendFileSync(`${dir}/class-admin-action.txt`,text)}catch{void 0}
+  }
+};
 
 export type ClassActionState={
   status:'idle'|'ok'|'invalid'|'duplicate'|'conflict'|'error';
@@ -84,8 +102,12 @@ async function shiftOf(shifts:string[],current:string):Promise<string>{
  */
 export async function saveClassGroupAction(previous:ClassActionState,form:FormData):Promise<ClassActionState>{
   void previous;
+  actionLog(`enter save nameBn="${String(form.get('nameBn')||'')}" id="${String(form.get('id')||'')}"`);
   let admin:{id:string;role:string};
-  try{admin=await requireAdmin()}catch{return {status:'error'}}
+  try{admin=await requireAdmin()}catch(error){
+    actionLog(`requireAdmin threw: ${String((error as Error)?.stack||error).split('\n').slice(0,3).join(' | ')}`);
+    return {status:'error'};
+  }
   if(admin.role!=='admin'&&admin.role!=='superadmin')return {status:'error'};
   const parsed=classGroupSchema.safeParse(Object.fromEntries(form));
   if(!parsed.success){
@@ -140,9 +162,11 @@ export async function saveClassGroupAction(previous:ClassActionState,form:FormDa
     });
     const t=await getTranslations('classAdmin');
     refresh(classId);
+    actionLog(`${isEdit?'updated':'created'} classId=${classId}`);
     return {status:'ok',classId,message:String(isEdit?t('saved'):t('created'))};
   }catch(error){
     const message=(error as Error).message;
+    actionLog(`save threw: ${String((error as Error)?.stack||error).split('\n').slice(0,4).join(' | ')}`);
     const detail=String(message||error).split('\n')[0].slice(0,200);
     if(message==='STALE')return {status:'conflict',classId:id,detail};
     if(message==='YEAR')return {status:'invalid',classId:id,fields:['academicYear'],detail};
@@ -159,8 +183,12 @@ export async function saveClassGroupAction(previous:ClassActionState,form:FormDa
  */
 export async function assignClassBatchesAction(previous:ClassActionState,form:FormData):Promise<ClassActionState>{
   void previous;
+  actionLog(`enter batches id="${String(form.get('id')||'')}"`);
   let admin:{id:string;role:string};
-  try{admin=await requireAdmin()}catch{return {status:'error'}}
+  try{admin=await requireAdmin()}catch(error){
+    actionLog(`requireAdmin threw: ${String((error as Error)?.stack||error).split('\n').slice(0,3).join(' | ')}`);
+    return {status:'error'};
+  }
   if(admin.role!=='admin'&&admin.role!=='superadmin')return {status:'error'};
   const classId=String(form.get('id')||'');
   if(!mongoose.isValidObjectId(classId))return {status:'invalid',fields:['id']};
@@ -184,8 +212,10 @@ export async function assignClassBatchesAction(previous:ClassActionState,form:Fo
     });
     const t=await getTranslations('classAdmin');
     refresh(classId);
+    actionLog(`batches assigned classId=${classId}`);
     return {status:'ok',classId,message:String(t('batchesSaved'))};
   }catch(error){
+    actionLog(`batches threw: ${String((error as Error)?.stack||error).split('\n').slice(0,4).join(' | ')}`);
     return {status:(error as Error).message==='MISSING'?'error':'error',classId,
       detail:String((error as Error).message||error).split('\n')[0].slice(0,200)};
   }finally{await session?.endSession()}
