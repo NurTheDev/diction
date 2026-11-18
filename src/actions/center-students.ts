@@ -4,11 +4,11 @@ import mongoose from 'mongoose';
 import {revalidatePath} from 'next/cache';
 import {requireAdmin} from '@/lib/admin/guard';
 import {acquireCenterLocks,identityLock,studentLock,normalizeIdentityName} from '@/lib/center/import-locks';
-import {centerClassSchema,centerStudentSchema,centerStudentEditSchema,
+import {centerStudentSchema,centerStudentEditSchema,
   centerStudentFeeSchema,centerStudentHoldSchema,centerStudentTransferSchema} from '@/schemas/center';
 import {CenterActivityLog,CenterClassGroup,CenterPayment,CenterStudent} from '@/models/CenterRecords';
 import {User} from '@/models/User';
-import {getLocale,getTranslations} from 'next-intl/server';
+import {getTranslations} from 'next-intl/server';
 /* S1 · the rules a pause, a move and a price change are made of. They live in a module of their own and
    take plain records, so what a change means is proved without a database and without this door. */
 import {monthIndexOf,monthWordOf,planClassTransfer,planFeeChange,planHold,planLift,readMonthWord,
@@ -19,19 +19,10 @@ import {dashboardDigits} from '@/lib/admin/digits';
 import {formatNumber} from '@/lib/admin/format';
 /* S2 · F-10: a removal is filed with the date it stops being kept, and the nightly job is what drops it. */
 import {removalWindow,studentPurgeAt} from '@/lib/center/student-purge';
-/** The language the operator is reading, so a refusal arrives in it and in their own digits. */
-const languageOf=async():Promise<'bn'|'en'>=>{try{return (await getLocale())==='en'?'en':'bn'}catch{return 'bn'}};
 export type CenterActionState={status:'idle'|'ok'|'invalid'|'duplicate'|'conflict'|'error';studentId?:string;fields?:string[];/** The operator's own sentence for what the write did, in the language they are reading. */message?:string};
 const refresh=()=>{for(const lang of ['bn','en']){revalidatePath(`/${lang}/admin/students`);revalidatePath(`/${lang}/admin/students/dues`);revalidatePath(`/${lang}/admin/students/classes`)}};
 /** Group 3: a class has its own page, so a write to a student re-reads the class that student is on. */
 const refreshClass=(classId:string)=>{if(!mongoose.isValidObjectId(classId))return;for(const lang of ['bn','en'])revalidatePath(`/${lang}/admin/students/classes/${classId}`)};
-/* S2 · F-04 — deprecated: the screens no longer write a class through these two doors. Creation and
-   editing both go through `saveClassGroupAction`, the one editor's action, which carries the fields these
-   never had (the level and the room on a create, the shifts as canonical keys, the fee's two meanings and
-   the teachers) and the rules that travel with them. Both stay exported — a class is written from more
-   than one screen and an integration path may still post here — and both now answer a refused archive the
-   same way the board does, because a guard one door has and the other does not is a guard nobody has. */
-export async function createCenterClass(_:CenterActionState,form:FormData):Promise<CenterActionState>{const admin=await requireAdmin();await CenterClassGroup.init();const parsed=centerClassSchema.safeParse(Object.fromEntries(form));if(!parsed.success)return {status:'invalid'};const p=parsed.data;const session=await mongoose.startSession();try{await session.withTransaction(async()=>{const [created]=await CenterClassGroup.create([{name:{bn:p.nameBn,en:p.nameEn},level:p.level,shift:p.shift,academicYear:p.academicYear,active:true,order:0}],{session});await CenterActivityLog.create([{actor:admin.id,action:'class.create',target:created._id,after:{name:created.name,academicYear:p.academicYear,shift:p.shift}}],{session})});refresh();return {status:'ok'}}catch(e){return {status:(e as {code?:number}).code===11000?'duplicate':'error'}}finally{await session.endSession()}}
 export async function createCenterStudent(_:CenterActionState,form:FormData):Promise<CenterActionState>{const admin=await requireAdmin(),v=centerStudentSchema.safeParse(Object.fromEntries(form));if(!v.success)return {status:'invalid',fields:v.error.issues.map(i=>String(i.path[0]))};const p=v.data;await CenterStudent.init();if(!await CenterClassGroup.exists({_id:p.classGroup,active:true}))return {status:'invalid',fields:['classGroup']};if(form.get('acceptDuplicate')!=='on'&&await CenterStudent.exists({'name.bn':p.nameBn,classGroup:p.classGroup,guardianPhone:p.guardianPhone,status:{$ne:'removed'}}))return {status:'duplicate'};
  for(let attempt=0;attempt<3;attempt++){const code=`DC-${randomInt(10000000,100000000)}`,session=await mongoose.startSession();try{let id='';await session.withTransaction(async()=>{await acquireCenterLocks([identityLock(p.classGroup,p.nameBn,p.guardianPhone)],session);const current=await CenterClassGroup.findOne({_id:p.classGroup,active:true}).select('name').session(session).lean<{name:{bn:string;en:string}}|null>();if(!current)throw new Error('Class unavailable');if(form.get('acceptDuplicate')!=='on'){const candidates=await CenterStudent.find({classGroup:p.classGroup,guardianPhone:p.guardianPhone,status:{$ne:'removed'}}).select('name.bn').session(session).lean<{name:{bn:string}}[]>();if(candidates.some(c=>normalizeIdentityName(c.name.bn)===normalizeIdentityName(p.nameBn)))throw new Error('DUPLICATE')}const start={year:p.startYear,month:p.startMonth};const [created]=await CenterStudent.create([{studentId:code,name:{bn:p.nameBn,en:p.nameEn},classGroup:p.classGroup,roll:p.roll,school:p.school,guardianName:p.guardianName,guardianPhone:p.guardianPhone,studentPhone:p.studentPhone,altPhone:p.altPhone,address:p.address,admissionDate:p.admissionDate,startMonth:start,feeHistory:[{effectiveFrom:start,amount:p.monthlyFee}],classHistory:[{classGroup:p.classGroup,name:{bn:current.name.bn,en:current.name.en||''},effectiveFrom:start,changedBy:admin.id,changedAt:new Date()}],status:'active',notes:p.notes}],{session});id=String(created._id);await CenterActivityLog.create([{actor:admin.id,action:'student.create',target:created._id,after:created.toObject()}],{session})});refresh();refreshClass(p.classGroup);return {status:'ok',studentId:id}}catch(e){if((e as Error).message==='DUPLICATE')return {status:'duplicate'};if((e as {code?:number}).code!==11000)return {status:'error'}}finally{await session.endSession()}}return {status:'error'}
 }
@@ -156,35 +147,6 @@ export async function searchCenterStudents(input:{q:string;classId:string;status
     })};
   }catch{return {items:[],total:0,page,error:true,removed}}
 }
-
-/** Update class labels/shift or archive; academic year remains immutable to protect financial history.
-    R5: the same form assigns the teachers who take this class, because a teacher's whole exam scope is
-    this list and nothing else in the app writes it. */
-export async function updateCenterClass(_:CenterActionState,form:FormData):Promise<CenterActionState>{const admin=await requireAdmin(),id=String(form.get('id')||''),revision=String(form.get('revision')||''),nameBn=String(form.get('nameBn')||'').trim(),nameEn=String(form.get('nameEn')||'').trim(),shift=String(form.get('shift')||'').trim(),active=form.get('active')==='on';
-  /* Group 3: what this class costs a month. It is the number the class page quotes and the number a
-     new student's fee starts from, so it is written here with the rest of the class's own facts. An
-     empty box means "leave it as it is" rather than "free". */
-  const {formatDigits}=await import('@/lib/admin/format');
-  const feeRaw=String(form.get('monthlyFee')??'').trim();
-  const feeNumber=feeRaw===''?null:Number(formatDigits(feeRaw,'en'));
-  if(feeNumber!==null&&(!Number.isFinite(feeNumber)||feeNumber<0||feeNumber>100000000))return {status:'invalid',fields:['monthlyFee']};
-  const monthlyFee=feeNumber===null?null:Math.round(feeNumber);
-  if(!mongoose.isValidObjectId(id)||!/^\d{4}-\d{2}-\d{2}T/.test(revision)||!nameBn||nameBn.length>120||nameEn.length>120||shift.length>100)return {status:'invalid'};
- /* The assigned teachers, in the order the form listed them, each one a live `teacher` account. An
-    assignment is an authorization, so an id nobody can sign in with is not stored at all, and an id that
-    belongs to another role is a refusal rather than a dead entry that looks live — the portal only ever
-    lets a `teacher` in. Twelve is the same ceiling the exam form puts on classes. */
- const teacherIds=[...new Set(form.getAll('teacherIds').map(value=>String(value)))];
- if(teacherIds.length>12||teacherIds.some(value=>!mongoose.isValidObjectId(value)))return {status:'invalid',fields:['teacherIds']};
- if(teacherIds.length){const allowed=await User.find({_id:{$in:teacherIds},role:'teacher',active:true}).select('_id').lean<{_id:mongoose.Types.ObjectId}[]>();if(allowed.length!==teacherIds.length)return {status:'invalid',fields:['teacherIds']}}const session=await mongoose.startSession();try{await session.withTransaction(async()=>{const before=await CenterClassGroup.findById(id).session(session).lean<{_id:mongoose.Types.ObjectId;updatedAt:Date;active?:boolean}>();if(!before||before.updatedAt.toISOString()!==revision)throw Error('STALE');
- /* F-05 · a class with children on it is not closed from this door either. The board's own editor and
-    this one write the same record, so the same refusal has to be the same refusal: the count is read
-    inside the transaction, and a student who has left does not hold a class open while a paused one
-    does, because a pause is a seat the centre is keeping. */
- if(!active&&before.active!==false){const running=await CenterStudent.countDocuments({classGroup:before._id,status:{$ne:'removed'}}).session(session);if(running>0)throw Error(`ARCHIVE_REFUSED:${running}`)}
- const after=await CenterClassGroup.findOneAndUpdate({_id:id,updatedAt:before.updatedAt},{$set:{name:{bn:nameBn,en:nameEn},shift,active,teachers:teacherIds,...(monthlyFee===null?{}:{monthlyFee})}},{new:true,runValidators:true,session}).lean();if(!after)throw Error('STALE');await CenterActivityLog.create([{actor:admin.id,action:'class.update',target:before._id,before,after}],{session})});refresh();for(const lang of ['bn','en'])revalidatePath(`/${lang}/admin/students/classes`);return {status:'ok'}}catch(e){const code=(e as Error).message;
- if(code.startsWith('ARCHIVE_REFUSED:')){const running=Number(code.slice('ARCHIVE_REFUSED:'.length))||0;const language=(await languageOf())==='en'?'en':'bn';const words=await getTranslations({locale:language,namespace:'classAdmin'});return {status:'error',message:String(words('archiveRefused',{count:formatNumber(running,language)}))}}
- return {status:code==='STALE'?'conflict':(e as {code?:number}).code===11000?'duplicate':'error'}}finally{await session.endSession()}}
 
 /** Restore a deliberately removed student, without silently billing the absence interval. */
 /**

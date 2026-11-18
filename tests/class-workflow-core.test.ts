@@ -27,6 +27,7 @@ import {
   CLASS_SHIFT_KEYS,feeStateOf,feeUnset,isShiftKey,shiftKeyOfWord,shiftWordsOf,
 } from '../src/lib/classes/class-shared';
 import {STUDENT_PURGE_RETENTION_DAYS,retentionDaysOf,studentPurgeAt} from '../src/lib/center/student-purge';
+import {monthAfterWord,nextMonth} from '../src/lib/center/student-changes';
 import bnMessages from '../src/messages/bn.json';
 import enMessages from '../src/messages/en.json';
 
@@ -107,9 +108,14 @@ assert.ok(action.includes("throw new Error(`ARCHIVE_REFUSED:${running}`)")
 assert.ok(/if\(!active&&current\.active!==false\)/.test(action),
   'only a class that is being closed is counted: a class already closed has nothing to refuse');
 const doors=read('src/actions/center-students.ts');
-assert.ok(doors.includes("if(!active&&before.active!==false)"),
-  'and the older class door refuses the same archive with the same sentence, because a guard one door has '
-  +'and the other does not is a guard nobody has');
+/* The older class doors were kept in step with this one for as long as they existed, and keeping two
+   doors in step is the work itself: every guard had to be written twice and every refusal worded twice.
+   S2 deleted them instead — see section 11 — so the sentence a closed class is refused with now has one
+   place to live and one action to be proved against. */
+assert.ok(!/export async function (?:createCenterClass|updateCenterClass)/.test(doors)
+  &&!doors.includes('ARCHIVE_REFUSED'),
+  'and no second class door is left to keep in step with it: a class is written by one action, so the '
+  +'refusal that protects a roll has one home rather than two that can drift');
 
 /* ── 5. F-04 · one editor, and the fields it owns ─────────────────────────────────────────────────── */
 const EDITOR='src/components/admin/class-management.tsx';
@@ -285,9 +291,59 @@ walk('src/components/admin/center-restore-form.tsx');
 assert.ok(seen.has('src/components/admin/class-management.tsx'),
   'the walk reached the one editor from the row that renders it');
 
+/* ── 11. F-13 · the month a restore may offer, and the two doors that were deleted ─────────────── */
+/* A resume month is never the month the student left in: `restoreCenterStudent` refuses it, and a picker
+   that offers a month the door refuses costs the operator the reason they typed beside it. The picker's
+   `notBefore` names the first month that IS allowed, so what the rule hands it is the month after. */
+const LEAVE='2026-03';
+assert.equal(monthAfterWord(LEAVE),'2026-04',
+  'the month a restore offers starts the month after the one the student left, so the leave month itself '
+  +'is a dead button rather than a refusal after a submit (F-13)');
+assert.equal(monthAfterWord('2026-12'),'2027-01','and a year ends by opening the next one');
+assert.equal(monthAfterWord('\u09e8\u09e6\u09e8\u09ec-\u09e6\u09e9'),'2026-04',
+  'a month read off a screen that counts in Bangla digits is the same month');
+assert.equal(monthAfterWord(''),'',
+  'with no month filed there is nothing to constrain by, and an empty bound constrains nothing');
+assert.equal(monthAfterWord('not a month'),'',
+  'and a word that is not a month is answered with no bound rather than with a guess');
+assert.deepEqual(nextMonth({year:2026,month:12}),{year:2027,month:1},
+  'the arithmetic behind it is the mirror of the one a pause already used');
+const popover=read('src/components/admin/month-popover.tsx');
+assert.ok(popover.includes('if(notBefore&&value<monthNumber(notBefore))return true;'),
+  'the picker switches off the months BEFORE the bound and leaves the bound itself live, which is why '
+  +'the rule hands it the month after the one it refuses');
+assert.ok(row.includes('notBefore={monthAfterWord(student.leaveMonth)||undefined}'),
+  'the row\u2019s restore sheet offers the month after the leave month it already read for its badge');
+assert.ok(restoreForm.includes('notBefore={monthAfterWord(leaveMonth)||undefined}')
+  &&restoreForm.includes('leaveMonth:string;'),
+  'and the removed list\u2019s own door is given the same month rather than reading the removal again');
+const removedPage=read('src/app/[locale]/admin/students/removed/page.tsx');
+assert.ok(removedPage.includes("leaveMonth={String(x.removal?.leaveDate||'').slice(0,7)}"),
+  'handed over by the page that read the removal, as the `YYYY-MM` month the picker wants');
+assert.ok(doors.includes("if(resumeN<=leaveN)throw Error('INVALID_RESUME')"),
+  'the door behind it refuses the same months the picker has already switched off, so the two cannot '
+  +'disagree about what a restore may say');
+const moneyDoors=read('src/components/admin/student-money-doors.tsx');
+assert.ok(moneyDoors.includes('notBefore={hold?undefined:monthAfterWord(holdFrom)||undefined}')
+  &&!moneyDoors.includes('function nextMonthWord'),
+  'the lift door reads the same helper it used to keep a private copy of, because one rule held in two '
+  +'files is a rule that drifts the first time one of them is edited');
+/* The two doors S2 · F-04 left behind. They wrote halves of a class — no level, no room, no fee
+   meanings, shifts as free words — and every screen had already moved to the one editor, so what
+   remained was an exported write that no screen reached and no test drove: a door left open in a wall
+   everybody walks past is a door somebody will eventually walk through. */
+assert.ok(!doors.includes('centerClassSchema'),
+  'the shape only those two doors parsed is gone with them');
+assert.ok(!read('src/schemas/center.ts').includes('centerClassSchema'),
+  'and gone from the schemas too, so nothing is left that only a deleted door could read');
+assert.ok(!doors.includes('const languageOf='),
+  'with the refusal that needed the operator\u2019s own language deleted, the helper that fetched it goes '
+  +'as well: an unused import in a server action is a module loaded for nothing on every write');
+
 console.log('Class workflow core: a fee says which of two things it is and clears only on purpose, a shift '
   +'word is derived from the keys a class runs, a removal is filed with the date it stops being kept and the '
   +'window is the centre\u2019s own, a class with children on it is refused in the brief\u2019s own two sentences, '
   +'one editor owns every field a class has and all three surfaces render it, the name rule binds only the '
-  +'classes that are live, a closed class says so instead of offering enrolment, and a wrong address lists '
-  +'every class instead of dead-ending.');
+  +'classes that are live, a closed class says so instead of offering enrolment, a wrong address lists '
+  +'every class instead of dead-ending, a restore offers only the months the door would take, and the two '
+  +'doors that used to write half a class are gone.');

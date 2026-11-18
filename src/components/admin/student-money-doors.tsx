@@ -27,6 +27,10 @@ import {toastOnWrite} from './recycle-toast-host';
 import {attr} from './list-class';
 import type {ClassChoice} from './center-forms';
 import {formatNumber,type Digits} from '@/lib/admin/format';
+/* S1 · F-01, and S2 · F-13 beside it: a resume month is never the month the pause began, and the
+   month that rule names is read the same way here as it is on the restore doors, so the rule lives
+   in the module the rest of the month arithmetic lives in rather than in this file. */
+import {monthAfterWord} from '@/lib/center/student-changes';
 
 const idle:CenterActionState={status:'idle'};
 const holdWrite=toastOnWrite<CenterActionState,CenterActionState>(setStudentHold);
@@ -36,14 +40,6 @@ const feeWrite=toastOnWrite<CenterActionState,CenterActionState>(updateStudentMo
 export type Language='bn'|'en';
 /** What every one of these sheets needs to know: whose record, in whose digits and words. */
 export type DoorKit={id:string;digits:Digits;language:Language};
-
-/** The month after a `YYYY-MM` month: a resume month is never the month the pause began. */
-function nextMonthWord(value:string):string{
-  const match=/^(\d{4})-(\d{2})$/.exec(String(value).trim());
-  if(!match)return '';
-  const index=Number(match[1])*12+Number(match[2]);
-  return `${Math.floor(index/12)}-${String((index%12)+1).padStart(2,'0')}`;
-}
 
 /**
  * The sheet itself. `marker` is the name its controls are read by — `data-hold-dialog`,
@@ -104,7 +100,7 @@ export function HoldDoor({mode,kit,holdFrom,onDone,onClose}:{
     <p className="admin-help">{hold?t('holdDoor.help'):t('holdDoor.liftHelp')}</p>
     <label>{hold?t('holdDoor.month'):t('holdDoor.resumeMonth')}
       <MonthField name={hold?'fromMonth':'resume'} value="" placeholder={t('row.pickMonth')} clearLabel={t('row.clear')}
-        notBefore={hold?undefined:nextMonthWord(holdFrom)||undefined} digits={kit.digits} language={kit.language}
+        notBefore={hold?undefined:monthAfterWord(holdFrom)||undefined} digits={kit.digits} language={kit.language}
         onChange={setMonth}/></label>
     <label>{t('holdDoor.reason')}
       <textarea className="admin-input" name="reason" rows={2} maxLength={500} value={reason}

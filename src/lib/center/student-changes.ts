@@ -48,6 +48,7 @@ export const monthIndexOf=(month:YearMonth):number=>month.year*12+month.month-1;
 export const monthAt=(index:number):YearMonth=>({year:Math.floor(index/12),month:(index%12)+1});
 export const monthWordOf=(month:YearMonth):string=>`${month.year}-${String(month.month).padStart(2,'0')}`;
 export const priorMonth=(month:YearMonth):YearMonth=>monthAt(monthIndexOf(month)-1);
+export const nextMonth=(month:YearMonth):YearMonth=>monthAt(monthIndexOf(month)+1);
 /**
  * A `YYYY-MM` month as a form carries it. The digits are folded from Bangla first, because an operator
  * whose screen counts in Bangla digits types what they read, and a picker is not the only way a month
@@ -60,6 +61,24 @@ export function readMonthWord(value:unknown):YearMonth|null{
   const month={year:Number(match[1]),month:Number(match[2])};
   return isMonth(month)?month:null;
 }
+/**
+ * S2 · F-13: the month AFTER a `YYYY-MM` word, or `''` when there is no month in it to read.
+ *
+ * A month picker's `notBefore` names the first month that IS allowed: it switches off every month
+ * before that one and leaves that one selectable. So a rule that refuses a month has to hand the
+ * picker the month after it, and a caller that hands over the refused month itself has built a
+ * picker that offers a choice the door throws away. Both of this centre's resume doors are that
+ * rule: a student who paused in a month does not resume in it, and a student who was removed in a
+ * month does not come back in it — the removal already accounts for that month, and a restore that
+ * names it is refused by `restoreCenterStudent` (`INVALID_RESUME`) after the operator has typed a
+ * reason for it. One helper here, so the lift door and the two restore doors cannot drift apart
+ * about what "after" means, and the empty answer means "no month to constrain by", which is what a
+ * picker with nothing filed against it should be.
+ */
+export const monthAfterWord=(value:unknown):string=>{
+  const month=readMonthWord(value);
+  return month?monthWordOf(nextMonth(month)):'';
+};
 /** The pause the record is inside: the last line with no end, which is the one a lift closes. */
 export function openHoldOf(holds:readonly HoldRow[]):HoldRow|undefined{
   for(let index=holds.length-1;index>=0;index--)if(!holds[index].end)return holds[index];

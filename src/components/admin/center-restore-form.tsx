@@ -8,6 +8,12 @@
  * has stopped counting, so this door asks which running class they come back to and the write carries the
  * move with it: one restore, one timeline line, the same planner the move door uses.
  *
+ * S2 · F-13: the month this door offers starts the month AFTER the one the student left. The leave month
+ * is a month the removal already accounts for, so `restoreCenterStudent` refuses a resume in it or before
+ * it — and a picker that offers a month the door refuses is a refusal that costs the operator the reason
+ * they typed with it. The month is handed over as `leaveMonth` rather than read again here, because the
+ * list that renders this form is the one that read the removal.
+ *
  * The month and the reason are state rather than fields the browser holds, for the reason every refusable
  * door in this app has one: a refusal re-renders the form, and a form that comes back empty is a refusal
  * that costs the operator everything they typed.
@@ -16,6 +22,7 @@ import {useActionState,useState} from 'react';
 import {useTranslations} from 'next-intl';
 import {restoreCenterStudent,type CenterActionState} from '@/actions/center-students';
 import {MonthField} from './month-popover';
+import {monthAfterWord} from '@/lib/center/student-changes';
 import {toastOnWrite} from './recycle-toast-host';
 import type {ClassChoice} from './center-forms';
 import type {Digits} from '@/lib/admin/format';
@@ -23,12 +30,14 @@ import type {Digits} from '@/lib/admin/format';
 const restoreWrite=toastOnWrite<CenterActionState,CenterActionState>(restoreCenterStudent);
 const idle:CenterActionState={status:'idle'};
 
-export function CenterRestoreForm({id,digits,language,classActive,classes}:{
+export function CenterRestoreForm({id,digits,language,classActive,classes,leaveMonth}:{
   id:string;digits:Digits;language:'bn'|'en';
   /** Whether the class this student was removed from is one the centre is still running. */
   classActive:boolean;
   /** The classes that are running, offered when the one they left is not. */
   classes:ClassChoice[];
+  /** The month they left in, as `YYYY-MM`: the first month this door may offer is the one after it. */
+  leaveMonth:string;
 }){
   const t=useTranslations('center');
   const [state,action,pending]=useActionState(restoreWrite,idle);
@@ -40,6 +49,7 @@ export function CenterRestoreForm({id,digits,language,classActive,classes}:{
     <input type="hidden" name="id" value={id}/>
     <label>{t('restore.resumeLabel')}
       <MonthField name="resume" value="" placeholder={t('row.pickMonth')} clearLabel={t('row.clear')}
+        notBefore={monthAfterWord(leaveMonth)||undefined}
         digits={digits} language={language} onChange={setResume}/></label>
     {needsClass&&<label data-restore-class-label>{t('restore.classLabel')}
       <span className="admin-help" data-restore-class-note>{t('restore.classNote')}</span>

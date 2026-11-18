@@ -45,7 +45,7 @@ renders no destructive control.
 
 | Record type (brief R1.1) | Actions that exist today | Missing for R1 |
 | --- | --- | --- |
-| Class groups / classrooms (Center) | `createCenterClass`, `updateCenterClass` | delete, archive (`active:false` exists in the schema but no action/UI), restore |
+| Class groups / classrooms (Center) | `createCenterClass`, `updateCenterClass` (both deleted in S2 · F-04 — one editor writes a class now, see `docs/STATUS.md` §23) | delete, archive (`active:false` exists in the schema but no action/UI), restore |
 | Courses and packages | `saveCourse`, `deleteCourse` | archive, restore, reference check (batches/enrolments) |
 | Trial class slots | `createSlot`, `editSlot`, `toggleSlot`, `updateCapacity` | delete (soft), archive with booking counts, restore |
 | Trial bookings | `cancelBooking` | delete (soft, admin only) |

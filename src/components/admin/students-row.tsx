@@ -31,6 +31,10 @@ import {
 import {toastOnWrite} from './recycle-toast-host';
 import {DayField} from './popover';
 import {MonthField} from './month-popover';
+/* S2 · F-13: the month a removed student comes back in is offered from the month AFTER the one they
+   left, because the door refuses the leave month itself and a picker that offers a refused month is
+   a picker that costs the operator the reason they typed. */
+import {monthAfterWord} from '@/lib/center/student-changes';
 import {shortMonth} from './list-dates';
 import {
   ActCell,Cell,ChipPopover,ListChip,ListRow,MenuForm,MenuHint,NoteCell,PhoneCell,RowEditForm,RowMenu,
@@ -256,6 +260,7 @@ export function StudentRow({student,kit}:{student:CenterSearchItem;kit:StudentRo
                 <input type="hidden" name="id" value={student.id}/>
                 <label className="admin-help">{t('restore.resumeLabel')}
                   <MonthField name="resume" value="" placeholder={t('row.pickMonth')} clearLabel={t('row.clear')}
+                    notBefore={monthAfterWord(student.leaveMonth)||undefined}
                     digits={digits} language={language} onChange={setResumeMonth}/></label>
                 {/* F-12 · the class they come back to, asked for only when the one they left is not there
                     to come back to: a closed class is a roll nobody opens, and a restore onto it would
