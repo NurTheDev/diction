@@ -848,8 +848,20 @@ async function run():Promise<void>{
         return !!node&&node.open;
       })()`).catch(()=>false);
       if(!open)return true;
-      await edit.locator('[data-class-close]').click({force:true}).catch(()=>undefined);
-      return false;
+      /* Ask the button the way an operator would; if something covers it — a toast arriving where the
+         eye already is, a sheet mid-layout — a click can land on the cover, and this step is about the
+         board being the board again, not about the button. The dialog's own close() is the second
+         ask, and it cannot be covered. */
+      await edit.locator('[data-class-close]').click({timeout:4000}).catch(()=>undefined);
+      const stillOpen=await page.evaluate<boolean>(`(function(){
+        const node=document.querySelector('[data-class-modal="${classId}"]');
+        return !!node&&node.open;
+      })()`).catch(()=>false);
+      if(stillOpen)await page.evaluate(`(function(){
+        const node=document.querySelector('[data-class-modal="${classId}"]');
+        if(node&&node.open)node.close();
+      })()`).catch(()=>undefined);
+      return !stillOpen;
     },30000,page);
 
     const classEnglish=await signIn('en',1440);
