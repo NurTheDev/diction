@@ -112,7 +112,7 @@ export default async function Grid({
             <table className="admin-table center-fee-grid sheet-table">
               <thead>
                 <tr>
-                  <th>Sl</th>
+                  <th>{t("serialShort")}</th>
                   <th>{t("grid.namePhoneColumn")}</th>
                   <th>{t("grid.admissionColumn")}</th>
                   {months.map((m) => (

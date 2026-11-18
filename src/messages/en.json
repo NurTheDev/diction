@@ -1968,6 +1968,7 @@
     "changeSaved": "Changes saved."
   },
   "center": {
+    "serialShort": "No.",
     "title": "Students",
     "desc": "See every student, add a new one, and open the class they are on.",
     "new": "New student",
@@ -3721,6 +3722,7 @@
     }
   },
   "daily": {
+    "editAmount": "Edit",
     "title": "Collect fee",
     "dueDaySummary": "Due day of the month (current: {dueDay})",
     "dayLabel": "Day 1–31",
@@ -3740,7 +3742,7 @@
     "takaUnit": "Taka",
     "monthsTimes": " months × ",
     "totalEquals": "Total = ",
-    "receiptLabel": "Cashbook page number",
+    "receiptLabel": "Receipt no. (cashbook page)",
     "dateLabel": "Payment date",
     "otherDescLabel": "Other fee description",
     "extraLabel": "Extra or partial payment (a note is required)",
@@ -3780,7 +3782,7 @@
       "due": "Due"
     },
     "errors": {
-      "receiptRequired": "Enter the receipt number.",
+      "receiptRequired": "Write the receipt no. (cashbook page).",
       "pickAMonth": "Choose at least one month or an extra fee.",
       "validAmount": "Enter a valid amount.",
       "saveFailed": "Could not save. Try again with the same details.",
@@ -4892,6 +4894,8 @@
     "help": "The latest 50 batches are shown. The history is kept in the database."
   },
   "payHistory": {
+    "void": "Void",
+    "edit": "Edit",
     "status": {
       "NOT_APPLICABLE": "Not applicable",
       "HELD": "Held",

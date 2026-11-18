@@ -249,7 +249,7 @@ export default function SendSmsDialog({open,onClose,request,templates,title,defa
         <header className="sms-head">
           <div>
             <h2>{title}</h2>
-            <p className="admin-help">{ts('dialog.step')} {step} / 4 — {(ts.raw('steps') as string[])[step-1]}</p>
+            <p className="admin-help">{ts('dialog.step')} {formatNumber(step,digits)} / {formatNumber(4,digits)} — {(ts.raw('steps') as string[])[step-1]}</p>
           </div>
           <button type="button" className="admin-mini-button" onClick={onClose} disabled={sending} aria-label={ts('dialog.close')}>
             <X aria-hidden="true" size={14} />
@@ -336,7 +336,7 @@ export default function SendSmsDialog({open,onClose,request,templates,title,defa
                   </thead>
                   <tbody>
                     {(preview?.recipients||[]).map(item=>(
-                      <tr key={item.phone}><td>{item.studentName||'—'}</td><td dir="ltr">{item.phone}</td><td>{item.segments}</td></tr>
+                      <tr key={item.phone}><td>{item.studentName||'—'}</td><td dir="ltr">{formatDigits(item.phone,digits)}</td><td>{formatNumber(item.segments,digits)}</td></tr>
                     ))}
                     {!(preview?.recipients||[]).length&&(
                       <tr><td colSpan={3} className="admin-empty">{ts('dialog.nobodyMessage')}</td></tr>
@@ -399,9 +399,9 @@ export default function SendSmsDialog({open,onClose,request,templates,title,defa
             <div className="sms-previews" data-sms-previews="">
               {(preview?.recipients||[]).map(item=>(
                 <article className="sms-preview" key={item.phone} data-sms-preview="">
-                  <header><strong>{item.studentName||item.phone}</strong><span dir="ltr">{item.phone}</span></header>
+                  <header><strong>{item.studentName||formatDigits(item.phone,digits)}</strong><span dir="ltr">{formatDigits(item.phone,digits)}</span></header>
                   <p className="admin-cell-message" dir="auto">{item.preview}</p>
-                  <footer className="admin-help">{item.segments} {ts('dialog.segments')} · {tc('currency')}{item.cost.toFixed(2)}</footer>
+                  <footer className="admin-help">{formatNumber(item.segments,digits)} {ts('dialog.segments')} · {tc('currency')}{formatDigits(item.cost.toFixed(2),digits)}</footer>
                 </article>
               ))}
               {!(preview?.recipients||[]).length&&<p className="admin-empty">{ts('dialog.thereNothingSend')}</p>}
@@ -424,7 +424,7 @@ export default function SendSmsDialog({open,onClose,request,templates,title,defa
             )}
             {preview?.quiet&&(
               <p className="admin-feedback" role="status" data-sms-quiet="">
-                {ts('dialog.quietHoursNow')} ({preview.quietUntil}) — {ts('dialog.sendingNowQueues')}
+                {ts('dialog.quietHoursNow')} ({formatDigits(preview.quietUntil,digits)}) — {ts('dialog.sendingNowQueues')}
                 <label className="admin-check">
                   <input type="checkbox" name="smsForce" checked={force} onChange={event=>setForce(event.target.checked)} data-sms-force="" />
                   {ts('dialog.sendAnyway')}
@@ -439,7 +439,7 @@ export default function SendSmsDialog({open,onClose,request,templates,title,defa
             {!result&&(
               <>
                 <p className="admin-help" data-sms-confirm="">
-                  {ts('dialog.costLine',{count:formatNumber(preview?.messages??0,digits),cost:(preview?.cost??0).toFixed(2)})}
+                  {ts('dialog.costLine',{count:formatNumber(preview?.messages??0,digits),cost:formatDigits((preview?.cost??0).toFixed(2),digits)})}
                   {quietBlocked?` ${ts('dialog.queued')}`:''}
                   {preview?.skippedCount?` ${ts('dialog.skippedDot',{count:formatNumber(preview.skippedCount,digits)})}`:''}
                 </p>
@@ -469,15 +469,15 @@ export default function SendSmsDialog({open,onClose,request,templates,title,defa
                   <p className="admin-help" data-sms-result-text="">
                     {result.ok
                       ?result.status==='queued'
-                        ?`${ts('dialog.goOutWhen')} (${result.quietUntil||''}). ${ts('dialog.skipped')}: ${result.skipped??0}`
-                        :`${ts('dialog.resultSent')}: ${result.sent??0} · ${ts('dialog.failed')}: ${result.failed??0} · ${ts('dialog.skipped')}: ${result.skipped??0}`
+                        ?`${ts('dialog.goOutWhen')} (${formatDigits(result.quietUntil||'',digits)}) · ${ts('dialog.skipped')}: ${formatNumber(result.skipped??0,digits)}`
+                        :`${ts('dialog.resultSent')}: ${formatNumber(result.sent??0,digits)} · ${ts('dialog.failed')}: ${formatNumber(result.failed??0,digits)} · ${ts('dialog.skipped')}: ${formatNumber(result.skipped??0,digits)}`
                       // A sentence the server wrote for the operator outranks the code it filed the
                       // refusal under (R3.11): "DAILY_LIMIT" is a fact for a log, not an answer for a
                       // person who just pressed send and needs to know when they may press it again.
                       :String((en?result.messageEn:result.messageBn)||result.message||result.blocked||result.error||'UNAVAILABLE')}
                   </p>
                   {result.ok&&result.monthTotals&&(
-                    <p className="admin-help" data-sms-month="">{ts('dialog.month')}: {result.monthTotals.sent} {ts('dialog.monthSentUnit')} · {tc('currency')}{result.monthTotals.cost.toFixed(2)}</p>
+                    <p className="admin-help" data-sms-month="">{ts('dialog.month')}: {formatNumber(result.monthTotals.sent,digits)} {ts('dialog.monthSentUnit')} · {tc('currency')}{formatDigits(result.monthTotals.cost.toFixed(2),digits)}</p>
                   )}
                 </div>
                 {result.ok&&(result.failed??0)>0&&(
