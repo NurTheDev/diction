@@ -19,6 +19,10 @@
  *   all stay, because a cashbook that loses a line when a child leaves is a cashbook nobody can audit.
  *   The purge writes one more row of its own, in the name of the administrator who removed the student —
  *   an unattended job with no actor would be a deletion nobody can answer for, and `actor` is required.
+ *
+ * The window is the only condition this purge answers to. A student record is not one the Recycle Bin
+ * tracks — `addRecycleFields` is applied to a class and to an exam, never to a child — so nothing here
+ * has to opt out of the bin's own query filter, and nothing else in the record is touched.
  */
 import {CenterActivityLog,CenterSettings,CenterStudent} from '@/models/CenterRecords';
 

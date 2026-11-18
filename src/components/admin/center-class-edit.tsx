@@ -30,7 +30,10 @@ export function CenterClassEdit({item,teacherOptions,digits}:{
 }){
   const t=useTranslations('exams');
   const assigned=teacherOptions.filter(option=>item.teachers.includes(option.id)).map(option=>option.name);
-  return <details className="center-preview-row">
+  /* `data-class-edit` is the marker this fold has always been driven by — the exam suite opens the row,
+     ticks a teacher inside it and clicks its first button, which is the save. It sits on the fold rather
+     than on the form so that it names the whole thing the operator opened, whichever form is inside. */
+  return <details className="center-preview-row" data-class-edit={item.id}>
     <summary data-class-summary={item.id}>{item.nameBn} · {item.year} {item.shift} ·{' '}
       {item.active?t('classEdit.active'):t('classEdit.archived')} ·{' '}
       {assigned.length?assigned.join(', '):t('classEdit.teacherNone')}</summary>

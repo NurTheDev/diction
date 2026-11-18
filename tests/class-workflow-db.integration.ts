@@ -40,6 +40,11 @@ type Stored={_id:mongoose.Types.ObjectId;name:{bn:string;en?:string};shift:strin
   room:string;academicYear:number;active:boolean;monthlyFee:number;feeFree:boolean;teachers:mongoose.Types.ObjectId[];
   deletedAt:Date|null};
 const read=(id:unknown):Promise<Stored|null>=>CenterClassGroup.findOne({_id:id}).lean<Stored|null>();
+/* The Recycle Bin's own filter is a query hook: a `deleteMany` that does not mention `deletedAt` leaves a
+   binned row exactly where it was. This suite bins one of its own fixtures on purpose, so its cleanups go
+   straight to the collection — a leftover from an aborted run would otherwise be a duplicate that has
+   nothing to do with the rule being proved. */
+const wipeClasses=():Promise<unknown>=>CenterClassGroup.collection.deleteMany({'name.bn':/^S2DB/});
 
 /** The error a duplicate write answers with, or null when the write landed. */
 async function duplicateOf(write:()=>Promise<unknown>):Promise<number|null>{
@@ -53,7 +58,7 @@ async function run(){
   await mongoose.connect(mongo.getUri(),{dbName:testDbName()});
   try{
     await CenterStudent.deleteMany({studentId:/^S2DB-/});
-    await CenterClassGroup.deleteMany({'name.bn':/^S2DB/});
+    await wipeClasses();
     await CenterPayment.deleteMany({groupId:'s2db'});
     await CenterActivityLog.deleteMany({action:'student.purge'});
     const stamp=Date.now();
@@ -102,6 +107,10 @@ async function run(){
       +'can enrol into');
 
     /* ── 3. F-09 · an index is not a schema, so the nightly job brings one in line ────────────────── */
+    /* The wide index below is unique over EVERY class, and section 2 has just proved that an archived
+       class and a binned one both give their name back — so it would be refused by the very rows that
+       demonstrate the rule. They are cleared first: what this section is about is the index, not the rows. */
+    await wipeClasses();
     await CenterClassGroup.collection.dropIndexes();
     await CenterClassGroup.collection.createIndex({'name.bn':1,academicYear:1,shift:1},{unique:true});
     const legacy=await CenterClassGroup.create({name:{bn:`${NAME} পুরোনো`,en:`${NAME_EN} legacy`},
@@ -123,6 +132,11 @@ async function run(){
       'so the archived class gives its name back on the database the centre is actually running');
 
     /* ── 4. F-10 · the window a removal is kept for is the centre's own ──────────────────────────── */
+    /* The centre's settings are one document the whole app shares, so this section reads what it is
+       about to change and puts it back: a suite that proves a window by leaving one behind is a suite
+       that decides the next one's arithmetic. */
+    const settingsBefore=await CenterSettings.findOne({key:'main'}).select('purgeRetentionDays')
+      .lean<{purgeRetentionDays?:number}|null>();
     await CenterSettings.updateOne({key:'main'},{$set:{key:'main',purgeRetentionDays:45}},{upsert:true});
     const window=await removalWindow();
     const now=new Date();
@@ -131,7 +145,10 @@ async function run(){
     await CenterSettings.updateOne({key:'main'},{$unset:{purgeRetentionDays:''}});
     assert.equal(studentPurgeAt(now,await removalWindow()).getTime(),now.getTime()+30*DAY,
       'and for thirty when it has chosen none');
-    await CenterSettings.deleteOne({key:'main'});
+    if(settingsBefore&&Number.isSafeInteger(Number(settingsBefore.purgeRetentionDays)))
+      await CenterSettings.updateOne({key:'main'},{$set:{purgeRetentionDays:settingsBefore.purgeRetentionDays}});
+    else if(settingsBefore)await CenterSettings.updateOne({key:'main'},{$unset:{purgeRetentionDays:''}});
+    else await CenterSettings.deleteOne({key:'main'});
 
     /* ── 5. F-10 · and the nightly job drops what the window has closed on ───────────────────────── */
     const feeHistory=[{effectiveFrom:START,amount:900}];
@@ -140,8 +157,8 @@ async function run(){
       removal:{removedAt:new Date(now.getTime()-40*DAY),removedBy:actor._id,reason:'S2DB পরীক্ষা',
         leaveDate:`${today.year}-01`,purgeAt:new Date(now.getTime()-10*DAY)}});
     await CenterPayment.create({student:due._id,classGroupAtPayment:first._id,type:'monthly',academicYear:START.year,
-      month:START.month,amount:900,receiptNo:'S2DB-1',receiptKey:'s2db-1',receivedBy:actor._id,groupId:'s2db',
-      status:'valid'});
+      month:START.month,amount:900,receiptNo:'S2DB-1',receiptKey:'s2db-1',paidOn:`${today.year}-01-05`,
+      receivedBy:actor._id,groupId:'s2db',status:'valid'});
     /* A removal nobody attributed: the record still goes, but there is no name to write it in. */
     const orphan=await CenterStudent.create({studentId:'S2DB-ORPHAN',name:{bn:'S2DB বেওয়ারিশ'},classGroup:first._id,
       startMonth:START,guardianPhone:'01711000304',feeHistory,status:'removed',
@@ -201,7 +218,7 @@ async function run(){
       'the teachers who take it — which is what decides whose marks grid opens');
 
     await CenterStudent.deleteMany({studentId:/^S2DB-/});
-    await CenterClassGroup.deleteMany({'name.bn':/^S2DB/});
+    await wipeClasses();
     await CenterPayment.deleteMany({groupId:'s2db'});
     await CenterActivityLog.deleteMany({action:'student.purge'});
     await User.deleteMany({email:new RegExp(`^s2db-.*-${stamp}@example\\.test$`)});

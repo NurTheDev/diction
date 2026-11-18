@@ -132,6 +132,12 @@ for(const surface of ['src/components/admin/center-class-edit.tsx','src/componen
   assert.ok(!/updateCenterClass|createCenterClass/.test(text),
     'and posts to the one action rather than to the door that wrote half a class');
 }
+/* The exam suite has always driven the teacher assignment through this marker: it opens the row by its
+   summary, ticks a teacher inside `[data-class-edit="<id>"]` and clicks the first button in it, which is
+   the save. A rewrite that moves the marker, or puts it inside the editor instead of around it, breaks a
+   suite that has nothing to do with the class workflow — so the fold keeps it as the editor's ancestor. */
+assert.ok(read('src/components/admin/center-class-edit.tsx').includes('data-class-edit={item.id}'),
+  'the fold keeps the marker the teacher assignment is driven by, around the one editor');
 assert.ok(/teacherIds=\[\.\.\.new Set\(form\.getAll\('teacherIds'\)/.test(action)
   &&action.includes("role:'teacher',active:true"),
   'the teachers travel with the class, and an assignment is still an authorization: only a live teacher '
