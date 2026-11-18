@@ -204,8 +204,15 @@ async function run():Promise<void>{
          status of every answer this page is given is written down as it arrives. */
       page.on('response',response=>{
         if(response.request().method()!=='POST')return;
-        answers.push(`${response.status()} ${response.url().replace(origin,'')}`);
+        const where=`${response.status()} ${response.url().replace(origin,'')}`;
+        answers.push(where);
         if(answers.length>40)answers.shift();
+        /* A write that answers 4xx or 5xx carries its reason in its body, and the body of a failed
+           action POST is the only place the server's own sentence about it survives. */
+        if(response.status()>=400)void response.text().then(body=>{
+          answers.push(`  body: ${body.replace(/\s+/g,' ').slice(0,300)}`);
+          if(answers.length>40)answers.shift();
+        }).catch(()=>undefined);
       });
       page.on('dialog',dialog=>void dialog.accept());
       page.setDefaultTimeout(60000);
