@@ -1,38 +1,10 @@
-locator.click: Timeout 30000ms exceeded.
+locator.waitFor: Timeout 90000ms exceeded.
 Call log:
-  - waiting for locator('[data-marks-import]').locator('[data-import-preview]')
-    - locator resolved to <button type="button" class="admin-mini-button" data-import-preview="true">শিট যাচাই করুন</button>
-  - attempting click action
-    2 × waiting for element to be visible, enabled and stable
-      - element is not visible
-    - retrying click action
-    - waiting 20ms
-    2 × waiting for element to be visible, enabled and stable
-      - element is not visible
-    - retrying click action
-      - waiting 100ms
-    58 × waiting for element to be visible, enabled and stable
-       - element is not visible
-     - retrying click action
-       - waiting 500ms
+  - waiting for locator('[data-marks-import]').locator('[data-import-outcome]') to be visible
 
-    at run (/home/runner/work/diction/diction/tests/center-exams-browser.integration.ts:331:56) {
+    at run (/home/runner/work/diction/diction/tests/center-exams-browser.integration.ts:347:56) {
   log: [
-    "  - waiting for locator('[data-marks-import]').locator('[data-import-preview]')",
-    '    - locator resolved to <button type="button" class="admin-mini-button" data-import-preview="true">শিট যাচাই করুন</button>',
-    '  - attempting click action',
-    '    2 × waiting for element to be visible, enabled and stable',
-    '      - element is not visible',
-    '    - retrying click action',
-    '    - waiting 20ms',
-    '    2 × waiting for element to be visible, enabled and stable',
-    '      - element is not visible',
-    '    - retrying click action',
-    '      - waiting 100ms',
-    '    58 × waiting for element to be visible, enabled and stable',
-    '       - element is not visible',
-    '     - retrying click action',
-    '       - waiting 500ms'
+    "  - waiting for locator('[data-marks-import]').locator('[data-import-outcome]') to be visible"
   ],
   name: 'TimeoutError'
 }
