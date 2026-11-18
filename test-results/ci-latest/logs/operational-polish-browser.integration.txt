@@ -1,12 +1,4 @@
-AssertionError [ERR_ASSERTION]: the class the centre already has is a card
-
-0 !== 1
-
-    at run (/home/runner/work/diction/diction/tests/operational-polish-browser.integration.ts:475:12) {
-  generatedMessage: false,
-  code: 'ERR_ASSERTION',
-  actual: 0,
-  expected: 1,
-  operator: 'strictEqual',
-  diff: 'simple'
-}
+Error: Error: timed out waiting for the class the centre already has to be a card on the board
+  board: url=http://localhost:3111/bn/admin/classes h1="no heading" count="no count" cards=0 emptyState=0 readFailed="" names=[] servedNameInHtml=true db(mongoose)=1 db(driver)=1 classId=6afcf654500e67f84c1d9a50
+    at run (/home/runner/work/diction/diction/tests/operational-polish-browser.integration.ts:523:41)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)

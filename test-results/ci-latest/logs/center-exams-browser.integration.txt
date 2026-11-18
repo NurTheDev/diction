@@ -1,10 +1,3 @@
-locator.waitFor: Timeout 90000ms exceeded.
-Call log:
-  - waiting for locator('[data-marks-import]').locator('[data-import-outcome]') to be visible
-
-    at run (/home/runner/work/diction/diction/tests/center-exams-browser.integration.ts:347:56) {
-  log: [
-    "  - waiting for locator('[data-marks-import]').locator('[data-import-outcome]') to be visible"
-  ],
-  name: 'TimeoutError'
-}
+Error: timed out waiting for the sheet to be committed and the grid to say so
+    at until (/home/runner/work/diction/diction/tests/center-exams-browser.integration.ts:76:34)
+    at async run (/home/runner/work/diction/diction/tests/center-exams-browser.integration.ts:366:5)
