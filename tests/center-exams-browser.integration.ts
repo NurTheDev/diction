@@ -360,30 +360,38 @@ async function run(){
     await shot(page,'exam-marks-import-bn-1440');
     /* The commit button sits under a preview table five rows deep, inside the fold, under the toolbar
        that follows the grid down the screen — so the click is asked for again while the button is still
-       there and still enabled, and the fact that ends the asking is the component's own answer: the
-       outcome sentence, or the refusal beside it. A wait on a sentence nobody wrote is not an answer. */
+       there and still enabled.
+
+       What ends the asking is not one sentence but either of two facts, because a commit that landed
+       takes the door off its hinges: `onImported` remounts the grid so the marks on screen are the marks
+       that were just written, and a fresh door is folded, empty and holds no answer. A commit that was
+       refused leaves the door standing with its refusal on it. So "the door is gone" and "the door says
+       what it refused" are the two answers, and a wait on the sentence alone would wait forever on the
+       one that succeeded. */
     const answered=importPanel.locator('[data-import-outcome],[data-import-error]');
+    const doors=page.locator('[data-marks-import]');
     try{
-      await until('the sheet to be committed and the grid to say so',async()=>{
+      await until('the sheet to be committed, and the grid to be the grid that was written',async()=>{
         if(await answered.count())return true;
         const confirm=importPanel.locator('[data-import-confirm]');
         if(await confirm.count()&&(await confirm.getAttribute('disabled'))===null)
           await confirm.click({force:true}).catch(()=>undefined);
-        return Boolean(await answered.count());
+        return (await doors.count())===0||Boolean(await answered.count());
       },180000);
     }catch(error){
-      /* "No sentence appeared" is not a diagnosis: the two things that decide it are whether the commit
-         was ever asked (the button's own state, the fold's) and whether it landed (the rows stored). */
+      /* "Nothing happened" is not a diagnosis: the two things that decide it are whether the commit was
+         ever asked (the button's own state, the fold's) and whether it landed (the rows stored). */
       const confirm=importPanel.locator('[data-import-confirm]');
       const stored=await CenterExamResult.countDocuments({exam:examId}).catch(()=>-1);
       throw Error(`${String(error).split('\n')[0]}
   panel="${(await importPanel.innerText().catch(()=>'gone')).replace(/\s+/g,' ').slice(0,400)}"
   confirm(present=${await confirm.count().catch(()=>-1)},disabled=${await confirm.getAttribute('disabled').catch(()=>'?')},label="${await confirm.innerText().catch(()=>'?')}")
-  foldOpen=${await page.locator('[data-import-fold]').getAttribute('open').catch(()=>'gone')} previewRows=${await importPanel.locator('[data-import-row]').count().catch(()=>-1)}
+  doors=${await doors.count().catch(()=>-1)} foldOpen=${await fold.getAttribute('open').catch(()=>'gone')} previewRows=${await importPanel.locator('[data-import-row]').count().catch(()=>-1)}
   resultsStored=${stored} url=${page.url()}`);
     }
-    assert.ok(await importPanel.locator('[data-import-outcome]').count(),
-      `the commit was answered rather than refused: ${await answered.first().innerText().catch(()=>'nothing on screen')}`);
+    assert.equal(await answered.locator('[data-import-error]').count(),0,
+      `the commit was answered rather than refused: ${await answered.first().innerText().catch(()=>'the door came off its hinges, which is what a landed commit does')}`);
+    await until('the uploaded rows are stored',async()=>(await CenterExamResult.countDocuments({exam:examId}))===5);
     await until('the uploaded rows are stored',async()=>(await CenterExamResult.countDocuments({exam:examId}))===5);
     const uploaded=await CenterExamResult.findOne({exam:examId,student:s5._id}).lean();
     assert.equal(uploaded.total,120,'the uploaded marks were stored');

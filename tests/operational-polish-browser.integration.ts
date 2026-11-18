@@ -478,54 +478,108 @@ async function run():Promise<void>{
 
     // ══ 3. A class is written from its own board ═══════════════════════════════════════════════════
     await goto(page,'/bn/admin/classes','[data-class-board]');
+    /* Photographed the moment it arrives, before anything is asked of it: if the board's own elements
+       are on the page but hidden, a picture says so and a locator never does. */
+    await shot(page,'o1-class-board-arrival-bn-1440').catch(()=>Buffer.from(''));
     /**
      * What the board shows and what the database holds at the same moment, because "no card" is two
      * different failures and only one of them is this screen's: a board that cannot read a class the
      * centre has, or a class that is no longer there to read. The driver count bypasses every Mongoose
      * middleware, so it says what the collection holds rather than what a query shape was allowed to see.
      */
+    /**
+     * Which ancestor, if any, is the one hiding the card: `count()` sees a hidden element and
+     * `innerText()` refuses to read one, so "the card is there and the name is not readable" is a
+     * question about an ancestor, and the walk below names it.
+     */
     const boardState=async():Promise<string>=>{
-      /* One read of the document itself, rather than a locator at a time: the last run answered that the
-         served HTML held the class while every locator on the page found nothing, and the only way to
-         tell those two facts apart is to ask the document what it holds in a single breath. */
-      const dom=await page.evaluate<{title:string;ready:string;text:string;counts:Record<string,number>;
-        board:string;flight:number}>(`(function(){
-        const count=selector=>document.querySelectorAll(selector).length;
+      /* One read of the document itself, in a single breath and with no locator in it: a locator that
+         matches twice throws, and a throw caught into "no heading" says nothing about the page. The last
+         run answered that the served document held the class while every locator found nothing, and the
+         only way to tell those two facts apart is to ask the document what it holds rather than ask the
+         page whether one particular element is in it. */
+      const dom=await page.evaluate<{url:string;title:string;ready:string;text:string;body:string;
+        counts:Record<string,number>;heading:string;counted:string;names:string[];why:string;
+        board:string;flight:number;hidden:Record<string,string>;viewport:string;hidBy:string}>(`(function(){
+        const all=selector=>Array.from(document.querySelectorAll(selector));
+        const text=selector=>all(selector).map(node=>(node.textContent||'').replace(/\\s+/g,' ').trim());
         const board=document.querySelector('[data-class-board]');
         const html=document.documentElement.innerHTML;
         return {
+          url:location.href,
           title:document.title,
           ready:document.readyState,
-          text:(document.body&&document.body.innerText||'').replace(/\\s+/g,' ').slice(0,400),
-          counts:{
-            board:count('[data-class-board]'),card:count('[data-class-card]'),
-            name:count('[data-class-name]'),count:count('[data-class-count]'),
-            empty:count('[data-class-empty]'),h1:count('h1'),
-            loading:count('[data-admin-loading]'),error:count('[data-class-error]'),
+          text:((document.body&&document.body.innerText)||'').replace(/\\s+/g,' ').slice(0,500),
+          body:((document.body&&document.body.innerHTML)||'').replace(/\\s+/g,' ').slice(0,1600),
+          hidden:(function(){
+          const facts={};
+          for(const selector of ['[data-class-board]','[data-class-title]','[data-class-count]',
+            '[data-class-card]','[data-class-empty]','main','.admin-content']){
+            const node=document.querySelector(selector);
+            if(!node){facts[selector]='absent';continue}
+            const style=getComputedStyle(node);
+            facts[selector]=[style.display,style.visibility,style.contentVisibility||'-',
+              style.opacity,node.getClientRects().length+'rects',
+              (node.closest('[hidden],[aria-hidden="true"]')?'inside-hidden-ancestor':'shown'),
+            ].join(',');
+          }
+          return facts;
+        })(),
+        viewport:[window.innerWidth,window.innerHeight].join('x'),
+        hidBy:(function(){
+          const node=document.querySelector('[data-class-card]')||document.querySelector('[data-class-board]');
+          if(!node)return 'no card and no board in the document';
+          const chain=[];
+          for(let element=node;element;element=element.parentElement){
+            const style=getComputedStyle(element);
+            const fact=[element.tagName.toLowerCase()+(element.id?'#'+element.id:'')
+              +(element.className&&typeof element.className==='string'?'.'+element.className.trim().split(/\\s+/)[0]:''),
+              'display:'+style.display,'visibility:'+style.visibility,
+              style.contentVisibility&&style.contentVisibility!=='visible'?'contentVisibility:'+style.contentVisibility:'',
+              Number(style.opacity)<1?'opacity:'+style.opacity:'',
+              node.getClientRects().length?'':'',
+            ].filter(Boolean).join(' ');
+            chain.push(fact);
+            if(style.display==='none'||style.visibility==='hidden')break;
+          }
+          return chain.join(' ⊂ ');
+        })(),
+        counts:{
+            board:all('[data-class-board]').length,card:all('[data-class-card]').length,
+            name:all('[data-class-name]').length,count:all('[data-class-count]').length,
+            empty:all('[data-class-empty]').length,h1:all('h1').length,
+            title:all('[data-class-title]').length,loading:all('[data-admin-loading]').length,
+            readFailed:all('[data-class-error]').length,
             bodyChildren:document.body?document.body.children.length:-1,
           },
-          board:board?board.outerHTML.replace(/\\s+/g,' ').slice(0,700):'no board element',
+          heading:text('h1').join(' / '),
+          counted:text('[data-class-count]').join(' / '),
+          names:text('[data-class-name]'),
+          why:text('[data-class-error-why]').join(' / '),
+          board:board?board.outerHTML.replace(/\\s+/g,' ').slice(0,900):'no board element',
           flight:html.split('${CLASS_BN}').length-1,
         };
-      })()`).catch(error=>({title:'evaluate failed',ready:String(error).slice(0,80),text:'',
-        counts:{},board:'',flight:-1}));
-      const heading=await page.locator('h1').first().innerText().catch(()=>'no heading');
-      const counted=await page.locator('[data-class-count]').innerText().catch(()=>'no count');
-      const cards=await page.locator('[data-class-card]').count().catch(()=>-1);
-      const names=await page.locator('[data-class-name]').allInnerTexts().catch(()=>[] as string[]);
-      const empty=await page.locator('[data-class-empty]').count().catch(()=>-1);
-      const why=await page.locator('[data-class-error-why]').innerText().catch(()=>'');
+      })()`).catch(error=>({url:page.url(),title:'evaluate failed',ready:String(error).slice(0,120),
+        text:'',body:'',counts:{},heading:'',counted:'',names:[],why:'',board:'',flight:-1,
+        hidden:{},viewport:'?',hidBy:'?'}));
       const html=await page.content().catch(()=>'');
       const throughMongoose=await CenterClassGroup.countDocuments({}).catch(()=>-1);
       const throughDriver=await mongoose.connection.collection('centerclassgroups')
         .countDocuments({}).catch(()=>-1);
-      return `url=${page.url()} title="${dom.title}" ready=${dom.ready} h1="${heading}" count="${counted}"`
-        +` cards=${cards} emptyState=${empty} readFailed="${why}"
-  dom=${JSON.stringify(dom.counts)} nameInDocument=${dom.flight} pageErrors=${errors.join(' | ')||'none'}
+      const everyClass=await mongoose.connection.collection('centerclassgroups')
+        .find({}).limit(10).toArray().catch(()=>[] as {_id?:unknown;name?:{bn?:string}}[]);
+      return `document: url=${dom.url} (locator saw ${page.url()}) title="${dom.title}" ready=${dom.ready}
+  counts=${JSON.stringify(dom.counts)} heading="${dom.heading}" counted="${dom.counted}"
+  viewport=${dom.viewport} visibility=${JSON.stringify(dom.hidden)}
+  hiddenBy="${dom.hidBy}"
+  names=[${dom.names.join(' | ')}] readFailed="${dom.why}" nameInDocument=${dom.flight}
+  pageErrors=${errors.join(' | ')||'none'}
   bodyText="${dom.text}"
-  boardHtml="${dom.board}"`
-        +` names=[${names.join(' | ')}] servedNameInHtml=${html.includes(CLASS_BN)}`
-        +` db(mongoose)=${throughMongoose} db(driver)=${throughDriver} classId=${classId}`;
+  boardHtml="${dom.board}"
+  bodyHtml="${dom.body}"
+  locatorSawInPageContent=${html.includes(CLASS_BN)} contentLength=${html.length}
+  db(mongoose)=${throughMongoose} db(driver)=${throughDriver} classId=${classId}
+  dbNames=[${everyClass.map(row=>String((row as {name?:{bn?:string}}).name?.bn||'?')).join(' | ')}]`;
     };
     const seeded=page.locator(`[data-class-card="${classId}"]`);
     try{
