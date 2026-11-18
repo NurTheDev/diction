@@ -121,13 +121,20 @@ async function run():Promise<void>{
   const shot=(page:Page,name:string):Promise<Buffer>=>
     page.screenshot({path:path.join(SHOTS,`${name}.png`),fullPage:true});
 
-  /** Wait for something to be true, and say what the page looked like when it never became true. */
-  const until=async(what:string,check:()=>Promise<boolean>,timeoutMs=90000):Promise<void>=>{
+  /**
+   * Wait for something to be true, and say what the page looked like when it never became true.
+   *
+   * The page it reports is the page it was given, falling back to the last one that signed in: a suite
+   * that reads several screens at once reported the English marks grid as the address of a failure on
+   * the Bangla class board, and an address that points somewhere else sends the reader somewhere else.
+   */
+  const until=async(what:string,check:()=>Promise<boolean>,timeoutMs=90000,on?:Page):Promise<void>=>{
     const deadline=Date.now()+timeoutMs;
     for(;;){
       if(await check().catch(()=>false))return;
       if(Date.now()>deadline)
-        throw Error(`timed out waiting for ${what}\n  url=${current?.url()||'?'} errors=${errors.join(' | ')||'none'}`);
+        throw Error(`timed out waiting for ${what}\n  url=${(on||current)?.url()||'?'}`
+          +` errors=${errors.join(' | ')||'none'}`);
       await new Promise(resolve=>setTimeout(resolve,400));
     }
   };
@@ -584,12 +591,12 @@ async function run():Promise<void>{
     const seeded=page.locator(`[data-class-card="${classId}"]`);
     try{
       await until('the class the centre already has to be a card on the board',async()=>
-        await seeded.count()===1,45000);
+        await seeded.count()===1,45000,page);
     }catch(error){
       /* One more look, with a fresh document: a first render that arrived before this suite's own write
          is a caching question, and a second read answers it without guessing. */
       await goto(page,'/bn/admin/classes','[data-class-board]').catch(()=>{});
-      await until('the card to be there on a second read',async()=>await seeded.count()===1,20000)
+      await until('the card to be there on a second read',async()=>await seeded.count()===1,20000,page)
         .catch(()=>{});
       /* And once more with the document thrown away and asked for again: a render served from a warm
          cache is a different question from a board that cannot read, and only a cold ask separates
@@ -598,7 +605,7 @@ async function run():Promise<void>{
         await page.reload({waitUntil:'domcontentloaded',timeout:180000}).catch(()=>{});
         await page.locator('[data-class-board]').first().waitFor({state:'visible',timeout:90000})
           .catch(()=>{});
-        await until('the card to be there on a cold read',async()=>await seeded.count()===1,20000)
+        await until('the card to be there on a cold read',async()=>await seeded.count()===1,20000,page)
           .catch(()=>{});
       }
       if(await seeded.count()!==1){
@@ -647,11 +654,73 @@ async function run():Promise<void>{
     await noOverflow(page,'the add-class sheet');
     await page.setViewportSize({width:1440,height:900});
 
-    await modal.locator('[data-class-save]').click();
-    await until('the class to be written',async()=>
-      (await CenterClassGroup.countDocuments({'name.bn':NEW_CLASS_BN}))===1);
-    await until('and the answer to arrive in the corner',async()=>
-      await page.locator('.admin-toast').filter({hasText:C.created}).count()>0);
+    /**
+     * A write that never lands is three different failures wearing one silence: the browser refused to
+     * submit the sheet and is saying why in a bubble of its own, the request is still in flight, or the
+     * server refused and the sheet is showing the refusal. Each of the three is on the screen; this
+     * reads all of them at once rather than guessing which one to look at.
+     */
+    const sheetState=async():Promise<string>=>{
+      const facts=await page.evaluate<{dialog:string;invalid:string;sheet:string}>(`(()=>{
+        const dialog=document.querySelector('[data-class-modal="new"]');
+        const invalid=document.querySelector('[data-class-invalid]');
+        return {
+          dialog:dialog?dialog.tagName.toLowerCase()+(dialog.open?' open':' closed'):'absent',
+          invalid:invalid?invalid.textContent:'none',
+          sheet:(dialog?dialog.innerText:'').replace(/\\s+/g,' ').slice(0,300),
+        };
+      })()`).catch(error=>({dialog:String(error).slice(0,80),invalid:'?',sheet:'?'}));
+      const fields=await page.evaluate<string[]>(`(()=>{
+        const out=[];
+        for(const input of document.querySelectorAll('[data-class-form="new"] input,'
+          +'[data-class-form="new"] select')){
+          const node=input;
+          out.push((node.getAttribute('name')||node.getAttribute('data-class-name-bn')||'?')
+            +'='+String(node.type==='checkbox'?node.checked:node.value)
+            +(node.disabled?'(disabled)':'')
+            +(node.validity&&!node.validity.valid?'(invalid:'+node.validationMessage+')':''));
+        }
+        const save=document.querySelector('[data-class-save]');
+        if(save)out.push('save:disabled='+save.disabled+',busy='+save.getAttribute('aria-busy')
+          +',type='+save.getAttribute('type'));
+        const form=document.querySelector('[data-class-form="new"]');
+        if(form)out.push('form:action='+form.getAttribute('action'));
+        return out;
+      })()`).catch(error=>[String(error).slice(0,120)]);
+      const toasts=await page.locator('.admin-toast').allInnerTexts().catch(()=>[] as string[]);
+      const names=await mongoose.connection.collection('centerclassgroups').find({}).limit(20).toArray()
+        .catch(()=>[] as {name?:{bn?:string}}[]);
+      return `dbNames=[${names.map(row=>String(row.name?.bn||'?')).join(' | ')}]
+  dialog=${facts.dialog} refusal=${facts.invalid}
+  toasts=[${toasts.join(' | ')}]
+  fields=[${fields.join(' · ')}]
+  sheetText="${facts.sheet}"`;
+    };
+    /* Asked for again while the sheet is still open and the button is not already working: one click on
+       a sheet that has just been laid out for a new viewport can land on nothing at all, and the answer
+       to "was it written" is the database, not the landing of a pointer. */
+    const written=async():Promise<boolean>=>
+      (await CenterClassGroup.countDocuments({'name.bn':NEW_CLASS_BN}).catch(()=>-1))===1;
+    try{
+      await until('the class to be written',async()=>{
+        if(await written())return true;
+        if(await modal.count()
+          &&(await modal.locator('[data-class-save]').getAttribute('aria-busy').catch(()=>null))!=='true')
+          await modal.locator('[data-class-save]').click().catch(()=>undefined);
+        return await written();
+      },120000,page);
+    }catch(error){
+      await shot(page,'o1-class-add-never-written-bn-1440').catch(()=>Buffer.from(''));
+      throw Error(`${String(error).split('\n')[0]}\n  url=${page.url()}\n  ${await sheetState()}`
+        +`\n  pageErrors=${errors.join(' | ')||'none'}`);
+    }
+    try{
+      await until('and the answer to arrive in the corner',async()=>
+        await page.locator('.admin-toast').filter({hasText:C.created}).count()>0,60000,page);
+    }catch(error){
+      throw Error(`${String(error).split('\n')[0]}\n  the class was written, and the screen said:`
+        +`\n  ${await sheetState()}`);
+    }
     const toastBox=await page.locator('.admin-toast').first().boundingBox();
     assert.ok(toastBox,'the answer is on the screen');
     if(toastBox){
@@ -677,7 +746,7 @@ async function run():Promise<void>{
       .lean<{_id:mongoose.Types.ObjectId}|null>();
     const newId=String(newCard?._id);
     await until('the new class to be a card on the board',async()=>
-      await page.locator(`[data-class-card="${newId}"]`).count()===1);
+      await page.locator(`[data-class-card="${newId}"]`).count()===1,90000,page);
     assert.equal(await page.locator('[data-class-card]').count(),2,'and the board now holds two classes');
     assert.equal(await page.locator('[data-class-modal]').count(),0,
       'the sheet closed when its write landed, rather than staying open over the card it just made');
@@ -695,14 +764,22 @@ async function run():Promise<void>{
     assert.equal(await edit.locator('[data-class-shift-box="day"]').isChecked(),false,
       'while the one it does not run is not');
     await edit.locator(`[data-class-batch-box="${batchId}"]`).check();
-    await edit.locator('[data-class-batch-save]').click();
-    await until('the batch to belong to the class',async()=>{
+    /* The same asking again, for the same reason: the fact is the database, and a click that lands on a
+       sheet mid-layout lands on nothing. */
+    const belongs=async():Promise<boolean>=>{
       const row=await Batch.findOne({_id:batch._id}).lean<{classGroup?:mongoose.Types.ObjectId|null}>();
       return String(row?.classGroup||'')===classId;
-    });
+    };
+    await until('the batch to belong to the class',async()=>{
+      if(await belongs())return true;
+      if(await edit.count()
+        &&(await edit.locator('[data-class-batch-save]').getAttribute('aria-busy').catch(()=>null))!=='true')
+        await edit.locator('[data-class-batch-save]').click().catch(()=>undefined);
+      return await belongs();
+    },120000,page);
     await until('and the card to count it',async()=>
-      (await page.locator(`[data-class-card="${classId}"] [data-class-batches]`).innerText())
-        .includes('১'));
+      (await page.locator(`[data-class-card="${classId}"] [data-class-batches]`).innerText()
+        .catch(()=>'')).includes('১'),90000,page);
     assert.ok((await page.locator(`[data-class-card="${classId}"] [data-class-batches]`).innerText())
       .includes(C.batches.split(' ')[0]),'in the operator\'s own word for a batch');
     await shot(page,'o1-class-board-bn-1440');
