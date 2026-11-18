@@ -27,7 +27,7 @@ import {requireAdmin} from '@/lib/admin/guard';
 import {classGroupSchema,shiftsOf} from '@/schemas/center';
 import {CenterActivityLog,CenterClassGroup} from '@/models/CenterRecords';
 import {Batch} from '@/models/Academic';
-import {CLASS_SHIFT_KEYS,isShiftKey} from '@/lib/classes/class-view';
+import {CLASS_SHIFT_KEYS,isShiftKey} from '@/lib/classes/class-shared';
 
 export type ClassActionState={
   status:'idle'|'ok'|'invalid'|'duplicate'|'conflict'|'error';

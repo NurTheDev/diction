@@ -21,7 +21,7 @@ import {existsSync,readFileSync} from 'node:fs';
 import {CenterClassGroup} from '../src/models/CenterRecords';
 import {Batch} from '../src/models/Academic';
 import {classGroupSchema,shiftsOf} from '../src/schemas/center';
-import {CLASS_SHIFT_KEYS,isShiftKey,shiftWordsOf} from '../src/lib/classes/class-view';
+import {CLASS_SHIFT_KEYS,isShiftKey,shiftWordsOf} from '../src/lib/classes/class-shared';
 
 const read=(file:string):string=>readFileSync(file,'utf8');
 
@@ -140,8 +140,73 @@ assert.ok(/useState<ClassDraft>/.test(view)&&/value=\{value\.nameBn\}/.test(view
 assert.ok(view.includes('showRecycleToast'),
   'and the answer to the write — saved, duplicate, somebody changed it first — is raised in the corner');
 
+// ── 6. What the browser bundle is allowed to hold ────────────────────────────────────────────────
+/**
+ * A client component may only import modules that hold nothing but words, shapes and arithmetic.
+ *
+ * The class screen broke this once, and the way it broke is the reason this rule is a test rather than
+ * a note: the board's read lives in `class-view.ts`, which registers Mongoose models when it is
+ * imported. One helper taken from it by the screen dragged the whole module into the browser bundle,
+ * where a model has nothing to register against. The server rendered the board perfectly, the browser
+ * received it, and hydration died on a sentence about a model that does not exist — so the operator was
+ * told the data could not be read on a screen whose data had been read, and the only trace was a
+ * client-side error nobody was looking at. Type checking passes, the build passes, and the screen works
+ * until it is opened in a browser.
+ *
+ * So: walk every module a client component of this delivery imports, and stop only where the bundle
+ * genuinely stops — a server action, which the browser holds a reference to rather than the code of, a
+ * module marked `server-only`, a type-only import, or a package outside `src/`. Anything else that
+ * touches Mongoose or a model is a screen that will arrive blank.
+ */
+const SHARED='src/lib/classes/class-shared.ts';
+assert.ok(existsSync(SHARED),`${SHARED} exists`);
+const shared=read(SHARED);
+assert.ok(!/from\s+'mongoose'|models\//.test(shared),
+  'the words and shapes the screen and its action share hold no database, so either may import them');
+
+const CLIENT_FILES=['src/components/admin/class-management.tsx','src/components/admin/submit-button.tsx',
+  'src/components/admin/toast-bus.ts','src/components/exams/marks-grid.tsx',
+  'src/components/admin/send-sms-dialog.tsx','src/components/admin/routine-drawer.tsx',
+  'src/components/admin/routine-master.tsx','src/components/admin/routine-daily.tsx',
+  'src/components/admin/routine-tools.tsx','src/components/admin/center-exam-forms.tsx',
+  'src/components/admin/sidebar.tsx'];
+const IMPORT=/^\s*import\s+(?!type\b)[^;]*?from\s+['"]([^'"]+)['"]/gm;
+const resolveFrom=(from:string,spec:string):string|null=>{
+  if(!spec.startsWith('.')&&!spec.startsWith('@/'))return null;      // a package: not this repo's rule
+  const base=spec.startsWith('@/')?`src/${spec.slice(2)}`
+    :`${from.split('/').slice(0,-1).join('/')}/${spec}`;
+  const normal=base.replace(/\/\.\//g,'/');
+  for(const candidate of [`${normal}.ts`,`${normal}.tsx`,`${normal}/index.ts`,`${normal}/index.tsx`])
+    if(existsSync(candidate))return candidate;
+  return existsSync(normal)?normal:null;
+};
+for(const entry of CLIENT_FILES){
+  assert.ok(existsSync(entry),`${entry} exists`);
+  const seen=new Set<string>(),offenders:string[]=[];
+  const queue=[entry];
+  while(queue.length&&seen.size<600){
+    const file=queue.shift()!;
+    if(seen.has(file))continue;
+    seen.add(file);
+    const text=read(file);
+    if(file!==entry&&(/^\s*['"]use server['"]/m.test(text)||/^\s*import\s+['"]server-only['"]/m.test(text)
+      ||/^\s*['"]server-only['"]/m.test(text)))continue;   // the bundle stops here
+    if(/from\s+'mongoose'|from\s+"mongoose"/.test(text)||/src\/models\//.test(text)
+      ||/from\s+'[^']*\/models\//.test(text))offenders.push(file);
+    for(const match of text.matchAll(IMPORT)){
+      const next=resolveFrom(file,match[1]);
+      if(next&&!seen.has(next))queue.push(next);
+    }
+  }
+  assert.deepEqual(offenders,[],
+    `${entry} is a client component, and everything it imports lands in the browser bundle: `
+    +`${offenders.join(', ')} hold a database`);
+}
+
 console.log(`Class and batch management: a class holds its own room, its shifts and its month, a batch `+
   `holds the class it runs in, the three shift boxes are all counted and a word that is not one of them `+
   `is dropped, an empty fee is "not decided" rather than free, an edit is refused when the class moved, `+
   `the session year never moves, assigning batches is total for one class, and the screen carries both `+
-  `counts and the three ways in.`);
+  `counts and the three ways in. The words and shapes the screen shares with its own server action hold `+
+  `no database, and nothing a client component of this delivery imports — through every module between `+
+  `— registers a model in the browser.`);

@@ -362,21 +362,25 @@ async function run(){
        that follows the grid down the screen — so the click is asked for again while the button is still
        there and still enabled.
 
-       What ends the asking is not one sentence but either of two facts, because a commit that landed
-       takes the door off its hinges: `onImported` remounts the grid so the marks on screen are the marks
-       that were just written, and a fresh door is folded, empty and holds no answer. A commit that was
-       refused leaves the door standing with its refusal on it. So "the door is gone" and "the door says
-       what it refused" are the two answers, and a wait on the sentence alone would wait forever on the
-       one that succeeded. */
-    const answered=importPanel.locator('[data-import-outcome],[data-import-error]');
+       What ends the asking cannot be the answer sentence, because a commit that lands destroys it:
+       `onImported` remounts the grid so the marks on screen are the marks that were just written, and
+       the door it hands the fresh grid is a new one — folded, empty, holding nothing to read. So the two
+       answers are the door going quiet, which is what a landed commit does, and the door still standing
+       with a refusal on it. Waiting for the sentence alone waits forever on the commit that worked. */
+    const answer=page.locator('[data-marks-import] [data-import-outcome],[data-marks-import] [data-import-error]');
     const doors=page.locator('[data-marks-import]');
+    const quiet=async():Promise<boolean>=>
+      (await fold.getAttribute('open'))===null
+      &&(await importPanel.locator('[data-import-row]').count())===0;
     try{
+      /* Only the door's own state ends the asking: the rows can be stored a beat before the grid
+         remounts, and a wait that leaves on the database would read a preview that is already history. */
       await until('the sheet to be committed, and the grid to be the grid that was written',async()=>{
-        if(await answered.count())return true;
+        if(await answer.count()||await quiet())return true;
         const confirm=importPanel.locator('[data-import-confirm]');
         if(await confirm.count()&&(await confirm.getAttribute('disabled'))===null)
           await confirm.click({force:true}).catch(()=>undefined);
-        return (await doors.count())===0||Boolean(await answered.count());
+        return await answer.count()||await quiet();
       },180000);
     }catch(error){
       /* "Nothing happened" is not a diagnosis: the two things that decide it are whether the commit was
@@ -389,10 +393,14 @@ async function run(){
   doors=${await doors.count().catch(()=>-1)} foldOpen=${await fold.getAttribute('open').catch(()=>'gone')} previewRows=${await importPanel.locator('[data-import-row]').count().catch(()=>-1)}
   resultsStored=${stored} url=${page.url()}`);
     }
-    assert.equal(await answered.locator('[data-import-error]').count(),0,
-      `the commit was answered rather than refused: ${await answered.first().innerText().catch(()=>'the door came off its hinges, which is what a landed commit does')}`);
-    await until('the uploaded rows are stored',async()=>(await CenterExamResult.countDocuments({exam:examId}))===5);
-    await until('the uploaded rows are stored',async()=>(await CenterExamResult.countDocuments({exam:examId}))===5);
+    assert.equal(await answer.locator('[data-import-error]').count(),0,
+      `the commit was refused rather than landed: ${await answer.first().innerText().catch(()=>'nothing on the door')}`);
+    /* The rows are the fact, and they are asked for plainly: a grid that remounts itself after an import
+       is a grid that says "these are the marks now" with its rows rather than with a sentence. */
+    await until('the uploaded rows are stored',async()=>
+      (await CenterExamResult.countDocuments({exam:examId}).catch(()=>-1))===5,90000);
+    assert.ok(await quiet()||await answer.count(),
+      'and the door went back to being a closed door, with the marks on the grid behind it');
     const uploaded=await CenterExamResult.findOne({exam:examId,student:s5._id}).lean();
     assert.equal(uploaded.total,120,'the uploaded marks were stored');
     assert.equal(String(uploaded.classGroup),String(classB._id),'and their result knows which class it belongs to');

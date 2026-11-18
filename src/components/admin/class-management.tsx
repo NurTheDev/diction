@@ -26,7 +26,7 @@ import {assignClassBatchesAction,saveClassGroupAction,type ClassActionState} fro
 import {showRecycleToast} from './toast-bus';
 import {SubmitButton} from './submit-button';
 import {formatNumber,type Digits} from '@/lib/admin/format';
-import {shiftWordsOf,type BatchOption,type ClassCardView} from '@/lib/classes/class-view';
+import {shiftWordsOf,type BatchOption,type ClassCardView} from '@/lib/classes/class-shared';
 
 const idle:ClassActionState={status:'idle'};
 

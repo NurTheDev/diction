@@ -18,40 +18,15 @@ import mongoose from 'mongoose';
 import {CenterClassGroup,CenterStudent} from '../../models/CenterRecords';
 import {Batch} from '../../models/Academic';
 import {User} from '../../models/User';
+import {CLASS_SHIFT_KEYS,isShiftKey,shiftWordsOf,
+  type BatchOption,type ClassBoardView,type ClassCardView,type ClassShiftKey} from './class-shared';
 
-/** One class as its card shows it. */
-export interface ClassCardView{
-  id:string;
-  /** Both names, because a card shows the Bangla one and an edit form has to fill in both. */
-  nameBn:string;nameEn:string;
-  /** The name in the language being read, falling back to Bangla — a class without an English name
-      still has a name. */
-  name:string;
-  level:string;
-  /** The class's own shift word as the routine knows it, and the shifts this screen's boxes wrote. */
-  shift:string;shifts:string[];
-  room:string;
-  academicYear:number;
-  active:boolean;
-  monthlyFee:number;
-  /** Children enrolled on this class right now — `active`, not held, not removed. */
-  students:number;
-  /** Batches assigned to this class that are still running. */
-  batches:number;
-  teachers:string[];
-  /** The class's own `updatedAt`, which is what an edit posts back so a stale write is refused. */
-  revision:string;
-}
-
-/** A batch an operator may assign to a class. */
-export interface BatchOption{id:string;name:string;grade:string;classId:string}
-
-export interface ClassBoardView{
-  cards:ClassCardView[];
-  batchOptions:BatchOption[];
-  /** Every class the centre holds, live ones first — the cards are all of them, in that order. */
-  total:number;
-}
+/* The words and shapes this board is built from live in `class-shared.ts`, which holds no database and
+   may therefore be imported by the screen that paints it. They are handed on here so a server caller
+   has one module to read from — and so nothing on the client ever has a reason to reach into this one,
+   where a Mongoose model is registered at import and has nothing to register against in a browser. */
+export {CLASS_SHIFT_KEYS,isShiftKey,shiftWordsOf};
+export type {BatchOption,ClassBoardView,ClassCardView,ClassShiftKey};
 
 interface GroupDoc{
   _id:mongoose.Types.ObjectId;name:{bn:string;en?:string};level?:string;shift?:string;shifts?:string[];
@@ -116,28 +91,4 @@ export async function classBoard(language:string):Promise<ClassBoardView>{
     grade:String(batch.grade||''),classId:batch.classGroup?String(batch.classGroup):'',
   }));
   return {cards,batchOptions,total:cards.length};
-}
-
-/** The shift keys this screen's own checkboxes write. A word already on the class is left as it is. */
-export const CLASS_SHIFT_KEYS=['morning','day','evening'] as const;
-export type ClassShiftKey=typeof CLASS_SHIFT_KEYS[number];
-
-/** True when a stored shift is one of the three keys, so the card may translate it. */
-export function isShiftKey(value:string):value is ClassShiftKey{
-  return (CLASS_SHIFT_KEYS as readonly string[]).includes(String(value||'').trim().toLowerCase());
-}
-
-/**
- * What a class's card says its shifts are.
- *
- * A class written before this screen holds one free word in `shift` — the owner's own, sometimes in
- * Bangla — and that word is shown exactly as it stands. A class written here holds keys, and each key
- * is shown through the catalog in the language being read. Both arrive in one list, so a card never
- * says "no shift" about a class that has one.
- */
-export function shiftWordsOf(card:{shifts:string[];shift:string}):string[]{
-  const keys=card.shifts.map(value=>String(value).trim()).filter(Boolean);
-  if(keys.length)return [...new Set(keys)];
-  const word=String(card.shift||'').trim();
-  return word?[word]:[];
 }
