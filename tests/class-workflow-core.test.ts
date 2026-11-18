@@ -300,6 +300,10 @@ assert.equal(monthAfterWord(LEAVE),'2026-04',
   'the month a restore offers starts the month after the one the student left, so the leave month itself '
   +'is a dead button rather than a refusal after a submit (F-13)');
 assert.equal(monthAfterWord('2026-12'),'2027-01','and a year ends by opening the next one');
+assert.equal(monthAfterWord('2026-03-15'),'2026-04',
+  'a removal filed by an import carries a whole date rather than a month, and the bound reads the month '
+  +'out of it: a constraint that only fits one of the two shapes a removal has is a constraint that '
+  +'quietly does nothing for the other');
 assert.equal(monthAfterWord('\u09e8\u09e6\u09e8\u09ec-\u09e6\u09e9'),'2026-04',
   'a month read off a screen that counts in Bangla digits is the same month');
 assert.equal(monthAfterWord(''),'',

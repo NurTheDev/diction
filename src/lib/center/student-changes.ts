@@ -62,7 +62,8 @@ export function readMonthWord(value:unknown):YearMonth|null{
   return isMonth(month)?month:null;
 }
 /**
- * S2 · F-13: the month AFTER a `YYYY-MM` word, or `''` when there is no month in it to read.
+ * S2 · F-13: the month AFTER a `YYYY-MM` word — or after a `YYYY-MM-DD` date, whose month it takes —
+ * or `''` when there is no month in it to read.
  *
  * A month picker's `notBefore` names the first month that IS allowed: it switches off every month
  * before that one and leaves that one selectable. So a rule that refuses a month has to hand the
@@ -76,7 +77,13 @@ export function readMonthWord(value:unknown):YearMonth|null{
  * picker with nothing filed against it should be.
  */
 export const monthAfterWord=(value:unknown):string=>{
-  const month=readMonthWord(value);
+  /* A removal is filed by a door that writes a month (`removeCenterStudent` takes `YYYY-MM`) and by an
+     import that writes a date (`workbook-batch.ts` files the last month it was paid for as `YYYY-MM-DD`),
+     and the record keeps whichever it was handed: `leaveDate:String`, no shape of its own. The restore
+     door reads the month by taking the first seven characters, so this does the same and answers for
+     both — a bound that only fits one of the two shapes a removal actually has is a bound that quietly
+     does nothing for the other. */
+  const month=readMonthWord(asciiDigits(String(value??'').trim()).slice(0,7));
   return month?monthWordOf(nextMonth(month)):'';
 };
 /** The pause the record is inside: the last line with no end, which is the one a lift closes. */
