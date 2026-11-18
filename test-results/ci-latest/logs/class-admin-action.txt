@@ -1,4 +1,20 @@
-2026-11-18T11:09:04.273Z enter save nameBn="নমুনা অষ্টম শ্রেণি" id=""
-2026-11-18T11:09:04.284Z created classId=6afd8750594341aaf894869c
-2026-11-18T11:09:04.807Z enter batches id="6afd8747a88735d8638175bf"
-2026-11-18T11:09:04.819Z batches assigned classId=6afd8747a88735d8638175bf
+2026-11-18T12:51:31.140Z enter save nameBn="নমুনা অষ্টম শ্রেণি" id=""
+2026-11-18T12:51:31.152Z created classId=6afd9f536be9e6cd17e29fa8
+2026-11-18T12:51:31.697Z enter batches id="6afd9f4955e9e08e9b1be1a7"
+2026-11-18T12:51:31.706Z batches assigned classId=6afd9f4955e9e08e9b1be1a7
+2026-11-18T12:51:56.354Z enter save nameBn="S2 সন্ধ্যা ব্যাচ" id=""
+2026-11-18T12:51:56.366Z created classId=6afd9f6c6be9e6cd17e2a35b
+2026-11-18T12:51:56.886Z enter save nameBn="S2 নবম শ্রেণি" id=""
+2026-11-18T12:51:56.896Z save threw: MongoServerError: E11000 duplicate key error collection: dictioncoaching_test.centerclassgroups index: name.bn_1_academicYear_1_shift_1 dup key: { name.bn: "S2 নবম শ্রেণি", academicYear: 2026, shift: "সকাল" } |     at InsertOneOperation.handleOk (/home/runner/work/diction/diction/node_modules/mongodb/lib/operations/insert.js:51:19) |     at tryOperation (/home/runner/work/diction/diction/node_modules/mongodb/lib/operations/execute_operation.js:214:34) |     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+2026-11-18T12:51:57.086Z enter save nameBn="S2 নবম শ্রেণি" id="6afd9f6b8c10460ecc2dc823"
+2026-11-18T12:51:57.092Z save threw: Error: ARCHIVE_REFUSED:2 |     at /home/runner/work/diction/diction/.next/server/chunks/524.js:2:3421 |     at process.processTicksAndRejections (node:internal/process/task_queues:103:5) |     at async ClientSession.withTransaction (/home/runner/work/diction/diction/node_modules/mongodb/lib/sessions.js:503:30)
+2026-11-18T12:51:57.092Z archive refused classId=6afd9f6b8c10460ecc2dc823 running=2
+2026-11-18T12:51:57.318Z enter save nameBn="S2 সন্ধ্যা ব্যাচ" id="6afd9f6c6be9e6cd17e2a35b"
+2026-11-18T12:51:57.331Z updated classId=6afd9f6c6be9e6cd17e2a35b
+2026-11-18T12:51:58.137Z enter save nameBn="S2 নবম শ্রেণি" id="6afd9f6b8c10460ecc2dc823"
+2026-11-18T12:51:58.153Z updated classId=6afd9f6b8c10460ecc2dc823
+2026-11-18T12:51:58.669Z enter save nameBn="S2 পুরোনো শ্রেণি" id="6afd9f6b8c10460ecc2dc82b"
+2026-11-18T12:51:58.680Z updated classId=6afd9f6b8c10460ecc2dc82b
+2026-11-18T12:52:04.341Z enter save nameBn="S2 নবম শ্রেণি" id="6afd9f6b8c10460ecc2dc823"
+2026-11-18T12:52:04.354Z save threw: Error: ARCHIVE_REFUSED:3 |     at /home/runner/work/diction/diction/.next/server/chunks/524.js:2:3421 |     at process.processTicksAndRejections (node:internal/process/task_queues:103:5) |     at async ClientSession.withTransaction (/home/runner/work/diction/diction/node_modules/mongodb/lib/sessions.js:503:30)
+2026-11-18T12:52:04.354Z archive refused classId=6afd9f6b8c10460ecc2dc823 running=3
