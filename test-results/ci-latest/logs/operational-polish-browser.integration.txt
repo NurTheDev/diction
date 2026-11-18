@@ -1,4 +1,10 @@
-Error: Error: timed out waiting for the class the centre already has to be a card on the board
-  board: url=http://localhost:3111/bn/admin/classes h1="no heading" count="no count" cards=0 emptyState=0 readFailed="" names=[] servedNameInHtml=true db(mongoose)=1 db(driver)=1 classId=6afcf654500e67f84c1d9a50
-    at run (/home/runner/work/diction/diction/tests/operational-polish-browser.integration.ts:523:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+locator.innerText: Timeout 60000ms exceeded.
+Call log:
+  - waiting for locator('[data-class-card="6afcfcc7b323d929deb5c78e"]').locator('[data-class-name]')
+
+    at run (/home/runner/work/diction/diction/tests/operational-polish-browser.integration.ts:558:58) {
+  log: [
+    `  - waiting for locator('[data-class-card="6afcfcc7b323d929deb5c78e"]').locator('[data-class-name]')`
+  ],
+  name: 'TimeoutError'
+}

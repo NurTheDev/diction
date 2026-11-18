@@ -1,3 +1,6 @@
-Error: timed out waiting for the sheet to be committed and the grid to say so
-    at until (/home/runner/work/diction/diction/tests/center-exams-browser.integration.ts:76:34)
-    at async run (/home/runner/work/diction/diction/tests/center-exams-browser.integration.ts:366:5)
+Error: Error: timed out waiting for the sheet to be committed and the grid to say so
+  panel=""
+  confirm(present=0,disabled=?,label="?")
+  foldOpen=null previewRows=0
+  resultsStored=5 url=http://localhost:3111/bn/admin/center-exams/6afcf986beb7342e89588e11
+    at run (/home/runner/work/diction/diction/tests/center-exams-browser.integration.ts:379:13)
