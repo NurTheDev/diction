@@ -1,10 +1,15 @@
-locator.waitFor: Timeout 120000ms exceeded.
-Call log:
-  - waiting for locator('.admin-toast[role="status"]').filter({ hasText: 'হোল্ড তোলা হয়েছে।' }).first() to be visible
+AssertionError [ERR_ASSERTION]: with the reason beside it
++ actual - expected
 
-    at run (/home/runner/work/diction/diction/tests/student-money-browser.integration.ts:423:47) {
-  log: [
-    `  - waiting for locator('.admin-toast[role="status"]').filter({ hasText: 'হোল্ড তোলা হয়েছে।' }).first() to be visible`
-  ],
-  name: 'TimeoutError'
++ ''
+- 'S1 বার্ষিক বৃদ্ধি'
+
+    at run (/home/runner/work/diction/diction/tests/student-money-browser.integration.ts:536:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: '',
+  expected: 'S1 বার্ষিক বৃদ্ধি',
+  operator: 'strictEqual',
+  diff: 'simple'
 }
