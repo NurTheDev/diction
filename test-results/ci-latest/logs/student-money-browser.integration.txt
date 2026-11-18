@@ -1,8 +1,10 @@
-locator.innerText: Timeout 60000ms exceeded.
+locator.waitFor: Timeout 120000ms exceeded.
 Call log:
-  - waiting for locator('.daily-total')
+  - waiting for locator('.admin-toast[role="status"]').filter({ hasText: 'হোল্ড তোলা হয়েছে।' }).first() to be visible
 
-    at run (/home/runner/work/diction/diction/tests/student-money-browser.integration.ts:384:41) {
-  log: [ "  - waiting for locator('.daily-total')" ],
+    at run (/home/runner/work/diction/diction/tests/student-money-browser.integration.ts:423:47) {
+  log: [
+    `  - waiting for locator('.admin-toast[role="status"]').filter({ hasText: 'হোল্ড তোলা হয়েছে।' }).first() to be visible`
+  ],
   name: 'TimeoutError'
 }

@@ -1,13 +1,10 @@
-AssertionError [ERR_ASSERTION]: the held student owes the two months before her hold, and none inside it
+locator.waitFor: Timeout 120000ms exceeded.
+Call log:
+  - waiting for locator('.admin-toast[role="status"]').filter({ hasText: 'হোল্ড তোলা হয়েছে।' }).first() to be visible
 
-0 !== 2
-
-    at run (/home/runner/work/diction/diction/tests/students-reference-browser.integration.ts:312:12)
-    at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {
-  generatedMessage: false,
-  code: 'ERR_ASSERTION',
-  actual: 0,
-  expected: 2,
-  operator: 'strictEqual',
-  diff: 'simple'
+    at run (/home/runner/work/diction/diction/tests/students-reference-browser.integration.ts:441:41) {
+  log: [
+    `  - waiting for locator('.admin-toast[role="status"]').filter({ hasText: 'হোল্ড তোলা হয়েছে।' }).first() to be visible`
+  ],
+  name: 'TimeoutError'
 }
