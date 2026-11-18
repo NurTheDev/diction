@@ -836,7 +836,21 @@ async function run():Promise<void>{
     await shot(page,'o1-class-board-bn-360');
     await noOverflow(page,'the class and batch board');
     await page.setViewportSize({width:1440,height:900});
-    await edit.locator('[data-class-close]').click();
+    /* Dismissed means out of the way, and a sheet can be out of the way two ways: gone, or mounted and
+       shut. A dialog that closed itself while the screen was being photographed — a router refresh
+       landing, a viewport turning — is not a fact this step owns, and a click that waits forever for a
+       shut dialog to be visible waits for nothing. So: while it stands open, ask it to close; once it
+       is shut or gone, the board behind it is the board again. */
+    await until('the edit sheet to be out of the way',async()=>{
+      if(!(await edit.count()))return true;
+      const open=await page.evaluate<boolean>(`(function(){
+        const node=document.querySelector('[data-class-modal="${classId}"]');
+        return !!node&&node.open;
+      })()`).catch(()=>false);
+      if(!open)return true;
+      await edit.locator('[data-class-close]').click({force:true}).catch(()=>undefined);
+      return false;
+    },30000,page);
 
     const classEnglish=await signIn('en',1440);
     await goto(classEnglish.page,'/en/admin/classes','[data-class-board]');
