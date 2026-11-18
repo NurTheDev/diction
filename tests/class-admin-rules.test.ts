@@ -191,8 +191,13 @@ for(const entry of CLIENT_FILES){
     const text=read(file);
     if(file!==entry&&(/^\s*['"]use server['"]/m.test(text)||/^\s*import\s+['"]server-only['"]/m.test(text)
       ||/^\s*['"]server-only['"]/m.test(text)))continue;   // the bundle stops here
-    if(/from\s+'mongoose'|from\s+"mongoose"/.test(text)||/src\/models\//.test(text)
-      ||/from\s+'[^']*\/models\//.test(text))offenders.push(file);
+    /* Every import that is not `import type`, which the bundle never holds: a shape taken from a model
+       file costs nothing in a browser, and calling it an offence would teach the next reader to ignore
+       this rule the first time it cries. */
+    const runtime=[...text.matchAll(/^\s*import\s+(?!type\b)[^;]*?from\s+['"]([^'"]+)['"]/gm)]
+      .map(match=>match[1]);
+    if(runtime.some(spec=>spec==='mongoose'||spec.includes('/models/')||spec.startsWith('@/models/')))
+      offenders.push(file);
     for(const match of text.matchAll(IMPORT)){
       const next=resolveFrom(file,match[1]);
       if(next&&!seen.has(next))queue.push(next);
