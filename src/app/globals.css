@@ -1432,3 +1432,9 @@ html:lang(bn) .public-motion-root:not(.private-motion-disabled) :is(h1,h2,h3,h4)
 
 /* A quick-add bar whose fields carry hints under them lines its inputs up at the top, not at the hints. */
 .list-filter:has(label>.admin-help){align-items:start}
+
+/* The SMS message and topic boxes take the dialog width. */
+.sms-text-label{width:100%}
+.sms-text-label :is(textarea,input){width:100%;min-height:44px}
+/* The admin shell strips gradients from buttons, which left the SMS send button white-on-nothing. */
+.admin-shell .sms-send:not(:disabled){background-color:#00a651}

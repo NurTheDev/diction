@@ -257,7 +257,7 @@ export default function SendSmsDialog({open,onClose,request,templates,title,defa
         </header>
 
         <ol className="sms-steps" aria-hidden="true">
-          {[1,2,3,4].map(item=><li key={item} data-active={item===step?'true':'false'} data-done={item<step?'true':'false'}>{item}</li>)}
+          {[1,2,3,4].map(item=><li key={item} data-active={item===step?'true':'false'} data-done={item<step?'true':'false'}>{formatNumber(item,digits)}</li>)}
         </ol>
 
         {step===1&&(
@@ -367,7 +367,7 @@ export default function SendSmsDialog({open,onClose,request,templates,title,defa
                 word, with no textarea and no chips to bend it into something else. */}
             {lockedText
               ?<p className="admin-help" data-sms-locked="">{activeTemplate?.body||''}</p>
-              :<label className="admin-check sms-text-label" htmlFor="sms-custom-text">
+              :<label className="sms-text-label" htmlFor="sms-custom-text">
                 <span>{ts('dialog.message')}</span>
                 <textarea id="sms-custom-text" className="admin-textarea" name="smsText" ref={textRef} rows={templateKey==='custom'?6:3}
                   value={templateKey==='custom'?text:(activeTemplate?.body||'')}
@@ -382,7 +382,7 @@ export default function SendSmsDialog({open,onClose,request,templates,title,defa
               ))}
             </div>}
             {needsSubject&&(
-              <label className="admin-check sms-text-label" htmlFor="sms-subject">
+              <label className="sms-text-label" htmlFor="sms-subject">
                 <span>{ts('dialog.subjectValueSubject')}</span>
                 <input id="sms-subject" className="admin-input" name="smsSubject" value={subject} maxLength={120}
                   onChange={event=>setSubject(event.target.value)}
