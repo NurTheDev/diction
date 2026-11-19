@@ -42,9 +42,8 @@ assert.equal(new Set(keys).size,keys.length,'no screen appears in the menu twice
 /* O1: one screen left the menu and one joined it, so the count is the same and the set is not. The
    old "Results" item was a second door to the exams hub — two doors to one grade — and the class and
    batch screen is now its own door rather than a row inside the student list. */
-assert.equal(keys.length,51,`the menu still carries all 51 screens (found ${keys.length})`);
-assert.equal(keys.includes('academics'),false,
-  'the legacy results door is gone from the menu — one link, পরীক্ষা ও ফলাফল, leads to the exam hub');
+assert.equal(keys.length,52,`the menu still carries all 52 screens (found ${keys.length})`);
+assert.equal(keys.includes('academics'),true,'the academics hub has its own door in the menu');
 assert.equal(keys.includes('classes'),true,'class and batch management has its own door');
 for(const {href,key} of items){
   const path=href.split('?')[0];

@@ -34,7 +34,6 @@ import {
 } from "@/lib/leads/vocab";
 import { getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
-import "../../../../styles/visitors.css";
 
 type Query = {
   q?: string | string[];

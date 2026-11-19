@@ -330,6 +330,27 @@ export default function SendSmsDialog({
 
   if (!open) return null;
 
+  // Shown on step 1, and again on step 3 when nobody is left: a template changed on step 2 can skip
+  // everyone, and an empty preview with no reason reads as a rendering bug.
+  const skippedList = !!skippedGroups.length && (
+    <div className="sms-skipped" data-sms-skipped="">
+      <strong>
+        {ts("dialog.skippedCount", {
+          count: formatNumber(preview?.skippedCount || 0, digits),
+        })}
+      </strong>
+      <ul>
+        {skippedGroups.map((item) => (
+          <li key={item.reason}>
+            {ts(item.labelKey)} —{" "}
+            <span className="admin-help">
+              {formatNumber(item.count, digits)}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
   const activeTemplate =
     templates.find((item) => item.key === templateKey) || null;
   const body =
@@ -354,7 +375,9 @@ export default function SendSmsDialog({
         ? ts("dialog.missingValue", {
             name: planBlocked.slice(planBlocked.indexOf(":") + 1),
           })
-        : planBlocked;
+        : planBlocked === "MISSING_INSTITUTE_PHONE"
+          ? ts("dialog.noInstitutePhone")
+          : planBlocked;
   const quietBlocked = !!preview?.quiet && !force;
   const subjectMissing = needsSubject && !subject.trim();
   const canSend =
@@ -570,25 +593,7 @@ export default function SendSmsDialog({
               </fieldset>
             )}
 
-            {!!skippedGroups.length && (
-              <div className="sms-skipped" data-sms-skipped="">
-                <strong>
-                  {ts("dialog.skippedCount", {
-                    count: formatNumber(preview?.skippedCount || 0, digits),
-                  })}
-                </strong>
-                <ul>
-                  {skippedGroups.map((item) => (
-                    <li key={item.reason}>
-                      {ts(item.labelKey)} —{" "}
-                      <span className="admin-help">
-                        {formatNumber(item.count, digits)}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+            {skippedList}
 
             {!!preview?.groupingRefused.length && (
               <p className="admin-feedback" data-sms-grouping-refused="">
@@ -754,7 +759,10 @@ export default function SendSmsDialog({
                 </article>
               ))}
               {!(preview?.recipients || []).length && (
-                <p className="admin-empty">{ts("dialog.thereNothingSend")}</p>
+                <>
+                  <p className="admin-empty">{ts("dialog.thereNothingSend")}</p>
+                  {skippedList}
+                </>
               )}
             </div>
 

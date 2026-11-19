@@ -7,7 +7,7 @@ import {formatNumber,formatDate,formatTime,formatDigits} from '@/lib/admin/forma
 import {CenterClassGroup,CenterSmsBatch,CenterSmsLog} from '@/models/CenterRecords';
 import {User} from '@/models/User';
 import {loadSmsSettings,loadSmsTemplates,monthSmsTotals} from '@/lib/center/sms-send';
-import {smsTemplateName} from '@/lib/center/sms-templates';
+import {classTemplateFits,smsTemplateName,templateVariablesOf} from '@/lib/center/sms-templates';
 import {createSmsProvider,smsProviderName,validateSmsCredentials} from '@/lib/center/sms-provider';
 import {SMS_VARIABLES} from '@/lib/center/sms-templates';
 import {SmsSettingsForm,SmsTestForm,SmsRetryButton,SmsTemplateEditor} from '@/components/admin/sms-panel';
@@ -144,7 +144,7 @@ export default async function SmsPage({params,searchParams}:{params:Promise<{loc
         <section className="admin-panel"><div className="admin-panel-head"><h2>{ts('page.newMessage')}</h2></div><div className="admin-panel-body">
           <SmsNewMessage en={!bn} institutePhone={settings.institutePhone}
             classes={groups.map(group=>({id:String(group._id),name:(bn?group.name.bn:group.name.en)||group.name.bn}))}
-            templates={templates.filter(row=>row.active||row.key==='custom')} />
+            templates={templates.filter(row=>(row.active||row.key==='custom')&&classTemplateFits(templateVariablesOf(row.body)))} />
         </div></section>
 
         <SmsTestForm locale={locale} ownPhone={me?.phone||''}/>

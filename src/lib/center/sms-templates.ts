@@ -186,6 +186,18 @@ export function templateVariablesOf(body: string): SmsVariable[] {
   return [...seen];
 }
 
+/**
+ * Chips every student of a class send ("New message") can be given: the source fills name and class,
+ * the dialog fills {subject} and the centre's number. A fee or result chip would skip the whole class
+ * as `missing_value`, so those templates are not offered there.
+ */
+export const CLASS_SMS_CHIPS = ["student_name", "class", "subject", "institute_phone"] as const;
+
+/** True when a template asks only for what a class send can fill. */
+export function classTemplateFits(variables: readonly string[]): boolean {
+  return (variables || []).every((chip) => (CLASS_SMS_CHIPS as readonly string[]).includes(chip));
+}
+
 /** True when the body still contains a chip we do not know how to fill. */
 export function hasUnknownChip(body: string): boolean {
   return [...String(body).matchAll(/\{(\w+)\}/g)].some(

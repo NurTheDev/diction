@@ -25,6 +25,40 @@
   --radius: 16px;
   --shadow: 0 16px 40px rgba(26, 29, 58, 0.07);
 }
+@import "tailwindcss";
+@theme inline {
+  --color-primary: #25287e;
+  --color-action: #d91a21;
+  --color-success: #059669;
+  --color-info: #0284c7;
+  --color-ink: #0f172a;
+  --color-muted: #64748b;
+  --color-border: #e2e8f0;
+  --color-background: #f8fafc;
+  --font-sans: var(--font-inter), var(--font-bengali), sans-serif;
+}
+:root {
+  --brand-primary: #25287e;
+  --brand-action: #dc2626;
+  --primary: #25287e;
+  --action: #dc2626;
+  --success: #059669;
+  --info: #0284c7;
+  --ink: #0f172a;
+  --muted: #64748b;
+  --border: #e2e8f0;
+  --background: #f8fafc;
+  --surface: #ffffff;
+  --radius: 12px;
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.05);
+  --shadow:
+    0 10px 30px -4px rgba(37, 40, 126, 0.08),
+    0 4px 12px -2px rgba(15, 23, 42, 0.04);
+  --shadow-hover:
+    0 20px 40px -8px rgba(37, 40, 126, 0.16),
+    0 8px 16px -4px rgba(15, 23, 42, 0.06);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -152,30 +186,34 @@ img {
   justify-content: center;
   gap: 10px;
   border: 0;
-  border-radius: 8px;
-  padding: 13px 20px;
-  font-weight: 700;
+  border-radius: 10px;
+  padding: 12px 22px;
+  font-weight: 600;
   line-height: 1.3;
-  transition:
-    transform 0.2s,
-    box-shadow 0.2s;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.05);
 }
 .button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 18px #25276c20;
+  filter: brightness(1.05);
+}
+.button:active {
+  transform: translateY(0);
 }
 .button-red {
   color: #fff;
-  background: var(--brand-action);
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.3);
+}
+.button-navy {
+  background: linear-gradient(135deg, #31359c 0%, #20236e 100%);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(37, 40, 126, 0.3);
 }
 .button-white {
   background: #fff;
-  border: 1px solid #e3e6f2;
-  color: #292d76;
-}
-.button-navy {
-  background: var(--brand-primary);
-  color: #fff;
+  border: 1px solid var(--border);
+  color: var(--ink);
 }
 .menu-btn {
   display: none;
@@ -14881,36 +14919,71 @@ html:lang(bn) .hero-ribbon {
   background: var(--lf-surface);
   border: 1px solid var(--lf-line);
   border-radius: 16px;
-  box-shadow: 0 1px 2px rgb(15 23 42 / 0.04), 0 4px 16px rgb(15 23 42 / 0.04);
+  box-shadow:
+    0 1px 2px rgb(15 23 42 / 0.04),
+    0 4px 16px rgb(15 23 42 / 0.04);
   overflow: hidden;
 }
 
 /* ---------- Header ---------- */
 .lf-head {
-  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
   padding: 16px 20px 12px;
 }
-.lf-head-text h2 { margin: 0; font-size: 1.05rem; color: var(--lf-ink); }
-.lf-head-text p { margin: 4px 0 0; font-size: 0.85rem; line-height: 1.5; color: var(--lf-muted); max-width: 60ch; }
-.lf-link {
-  flex: none; display: inline-flex; align-items: center; gap: 4px; border-radius: 8px;
-  font-size: 0.85rem; font-weight: 600; color: var(--lf-brand); text-decoration: none;
+.lf-head-text h2 {
+  margin: 0;
+  font-size: 1.05rem;
+  color: var(--lf-ink);
 }
-.lf-link:hover { text-decoration: underline; }
+.lf-head-text p {
+  margin: 4px 0 0;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--lf-muted);
+  max-width: 60ch;
+}
+.lf-link {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--lf-brand);
+  text-decoration: none;
+}
+.lf-link:hover {
+  text-decoration: underline;
+}
 .lf-link:focus-visible {
   outline: 3px solid color-mix(in srgb, var(--lf-brand) 45%, transparent);
   outline-offset: 2px;
 }
 .lf-summary {
-  display: flex; flex-wrap: wrap; gap: 8px;
-  padding: 0 20px 14px; border-block-end: 1px solid var(--lf-line);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 20px 14px;
+  border-block-end: 1px solid var(--lf-line);
 }
 
 /* ---------- Rows ---------- */
-.lf-list { list-style: none; margin: 0; padding: 12px; display: grid; gap: 10px; }
+.lf-list {
+  list-style: none;
+  margin: 0;
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+}
 .lf-row {
   --accent: transparent;
-  display: grid; gap: 12px 16px; align-items: center;
+  display: grid;
+  gap: 12px 16px;
+  align-items: center;
   grid-template-columns: minmax(0, 1fr) auto;
   grid-template-areas: "who when" "contact contact" "controls controls";
   padding: 14px 16px;
@@ -14918,27 +14991,72 @@ html:lang(bn) .hero-ribbon {
   border: 1px solid var(--lf-line);
   border-inline-start: 4px solid var(--accent);
   border-radius: 14px;
-  transition: background 0.12s ease, box-shadow 0.12s ease;
+  transition:
+    background 0.12s ease,
+    box-shadow 0.12s ease;
 }
-.lf-row:hover { background: var(--lf-soft); box-shadow: 0 4px 14px rgb(15 23 42 / 0.06); }
-.lf-row[data-followup~="rejected"] { --accent: #e11d48; }
-.lf-row[data-followup~="pending"]  { --accent: #d97706; }
+.lf-row:hover {
+  background: var(--lf-soft);
+  box-shadow: 0 4px 14px rgb(15 23 42 / 0.06);
+}
+.lf-row[data-followup~="rejected"] {
+  --accent: #e11d48;
+}
+.lf-row[data-followup~="pending"] {
+  --accent: #d97706;
+}
 
-.lf-who { grid-area: who; display: flex; align-items: center; gap: 12px; min-width: 0; }
+.lf-who {
+  grid-area: who;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
 .lf-avatar {
-  flex: none; display: grid; place-items: center; width: 40px; height: 40px;
-  border-radius: 50%; font-weight: 700; color: #fff;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-weight: 700;
+  color: #fff;
   background: linear-gradient(135deg, #6366f1, #8b5cf6);
 }
-.lf-who-text { display: grid; gap: 2px; min-width: 0; }
-.lf-who-text strong { color: var(--lf-ink); overflow-wrap: anywhere; }
-.lf-who-text span { color: var(--lf-muted); font-size: 0.82rem; overflow-wrap: anywhere; }
+.lf-who-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.lf-who-text strong {
+  color: var(--lf-ink);
+  overflow-wrap: anywhere;
+}
+.lf-who-text span {
+  color: var(--lf-muted);
+  font-size: 0.82rem;
+  overflow-wrap: anywhere;
+}
 
-.lf-contact { grid-area: contact; display: grid; gap: 8px; }
-.lf-phone { flex-wrap: wrap; }
-.lf-muted { color: var(--lf-muted); font-size: 0.85rem; }
+.lf-contact {
+  grid-area: contact;
+  display: grid;
+  gap: 8px;
+}
+.lf-phone {
+  flex-wrap: wrap;
+}
+.lf-muted {
+  color: var(--lf-muted);
+  font-size: 0.85rem;
+}
 
-.lf-when { grid-area: when; justify-content: flex-end; flex-wrap: wrap; }
+.lf-when {
+  grid-area: when;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
 
 .lf-controls {
   grid-area: controls;
@@ -14956,13 +15074,23 @@ html:lang(bn) .hero-ribbon {
 
 /* ---------- Empty state ---------- */
 .lf-empty {
-  display: grid; justify-items: center; gap: 8px; padding: 36px 20px;
-  text-align: center; color: #059669;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 36px 20px;
+  text-align: center;
+  color: #059669;
 }
-.lf-empty p { margin: 0; color: var(--lf-muted); font-size: 0.92rem; }
+.lf-empty p {
+  margin: 0;
+  color: var(--lf-muted);
+  font-size: 0.92rem;
+}
 
 @media (prefers-reduced-motion: reduce) {
-  .lf-row { transition: none; }
+  .lf-row {
+    transition: none;
+  }
 }
 
 /* ── Dashboard Overview · today's work: the four operations cards and the four quick actions. ────────────────────────────────────────────────── */
@@ -16074,5 +16202,1649 @@ html:lang(bn) .hero-ribbon {
   }
   .fee-invoice-link:hover svg {
     transform: none;
+  }
+}
+
+/* ==========================================================================
+   Merged from src/styles/visitors.css
+   ========================================================================== */
+
+/* ==========================================================================
+   Visitors Page Modern Theme (leads.css)
+   Clean, modern enterprise styling matching the #27317f brand theme.
+   ========================================================================== */
+
+:root {
+  --lead-primary: #27317f;
+  --lead-primary-hover: #1e255e;
+  --lead-primary-light: #eef2ff;
+  --lead-border: #e2e8f0;
+  --lead-border-focus: #27317f;
+  --lead-bg-soft: #f8fafc;
+  --lead-text-main: #1e293b;
+  --lead-text-muted: #64748b;
+  --lead-radius-sm: 8px;
+  --lead-radius-md: 12px;
+  --lead-radius-full: 9999px;
+  --lead-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --lead-shadow-md:
+    0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* ───────── Top Heading ───────── */
+.admin-heading {
+  margin-bottom: 20px;
+}
+
+.admin-heading h1 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--lead-text-main);
+  letter-spacing: -0.02em;
+  margin: 0 0 4px 0;
+}
+
+.admin-heading p {
+  color: var(--lead-text-muted);
+  font-size: 0.92rem;
+  margin: 0;
+}
+
+/* ───────── Quick Tools Bar (Add & Search) ───────── */
+.lead-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+/* ───────── Status Chips ───────── */
+.lead-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  padding: 4px 0;
+}
+
+.lead-chips a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: #ffffff;
+  border: 1px solid var(--lead-border);
+  border-radius: var(--lead-radius-full);
+  color: #334155;
+  font-size: 0.86rem;
+  font-weight: 500;
+  text-decoration: none;
+  box-shadow: var(--lead-shadow-sm);
+  transition: all 0.15s ease-in-out;
+}
+
+.lead-chips a:hover {
+  border-color: var(--lead-primary);
+  background: var(--lead-primary-light);
+  color: var(--lead-primary);
+  transform: translateY(-1px);
+}
+
+.lead-chips a.selected {
+  background: var(--lead-primary);
+  border-color: var(--lead-primary);
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(39, 49, 127, 0.25);
+}
+
+.lead-chips a span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--lead-radius-full);
+  background: #f1f5f9;
+  color: var(--lead-text-muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  transition: all 0.15s ease-in-out;
+}
+
+.lead-chips a.selected span {
+  background: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+}
+
+/* ───────── Filters Form Card ───────── */
+.list-filter {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  background: #ffffff;
+  padding: 20px;
+  border: 1px solid var(--lead-border);
+  border-radius: var(--lead-radius-md);
+  box-shadow: var(--lead-shadow-sm);
+  margin-bottom: 24px;
+  align-items: flex-end;
+}
+
+.list-filter > label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #475569;
+  min-width: 0;
+}
+
+/* Standard Dropdowns */
+.list-filter .admin-select {
+  width: 100%;
+  height: 42px;
+  padding: 0 12px;
+  background-color: #ffffff;
+  border: 1px solid var(--lead-border);
+  border-radius: var(--lead-radius-sm);
+  color: var(--lead-text-main);
+  font-size: 0.9rem;
+  font-weight: 500;
+  outline: none;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+  cursor: pointer;
+}
+
+.list-filter .admin-select:hover {
+  border-color: #cbd5e1;
+}
+
+.list-filter .admin-select:focus {
+  border-color: var(--lead-primary);
+  box-shadow: 0 0 0 3px rgba(39, 49, 127, 0.12);
+}
+
+/* Filter Checkboxes (Show Closed / Stale) */
+.list-filter label:has(input[type="checkbox"]) {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  height: 42px;
+  padding: 0 14px;
+  background: var(--lead-bg-soft);
+  border: 1px solid var(--lead-border);
+  border-radius: var(--lead-radius-sm);
+  font-size: 0.86rem;
+  font-weight: 500;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.list-filter label:has(input[type="checkbox"]):hover {
+  background: var(--lead-primary-light);
+  border-color: var(--lead-primary);
+  color: var(--lead-primary);
+}
+
+.list-filter input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--lead-primary);
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+/* Form Action Buttons (Apply & Reset) */
+.list-filter .lead-form-foot {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  padding-top: 14px;
+  margin-top: 6px;
+  border-top: 1px solid var(--lead-border);
+}
+
+.list-filter .lead-form-foot .button-navy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  padding: 0 22px;
+  background: var(--lead-primary);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--lead-radius-sm);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(39, 49, 127, 0.2);
+  transition:
+    background-color 0.15s ease,
+    transform 0.1s ease;
+}
+
+.list-filter .lead-form-foot .button-navy:hover {
+  background: var(--lead-primary-hover);
+  transform: translateY(-1px);
+}
+
+.list-filter .lead-form-foot .admin-mini-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  padding: 0 18px;
+  background: #ffffff;
+  border: 1px solid var(--lead-border);
+  border-radius: var(--lead-radius-sm);
+  color: var(--lead-text-muted);
+  font-size: 0.88rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.list-filter .lead-form-foot .admin-mini-button:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: var(--lead-text-main);
+}
+
+/* ───────── Main List Panel & Table ───────── */
+.admin-panel.list-panel {
+  background: #ffffff;
+  border: 1px solid var(--lead-border);
+  border-radius: var(--lead-radius-md);
+  box-shadow: var(--lead-shadow-sm);
+  overflow: hidden;
+}
+
+.admin-panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--lead-border);
+  background: #ffffff;
+}
+
+.admin-panel-head h2 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--lead-text-main);
+  margin: 0;
+}
+
+.admin-panel-head .admin-help {
+  font-size: 0.85rem;
+  color: var(--lead-text-muted);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Table Design */
+.visitor-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.visitor-wrap table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.visitor-wrap table thead th {
+  background: var(--lead-bg-soft);
+  color: #475569;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--lead-border);
+  white-space: nowrap;
+}
+
+.visitor-wrap table tbody td {
+  padding: 14px 16px;
+  vertical-align: middle;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 0.9rem;
+  color: var(--lead-text-main);
+  font-variant-numeric: tabular-nums;
+}
+
+.visitor-wrap table tbody tr {
+  transition: background-color 0.12s ease;
+}
+
+.visitor-wrap table tbody tr:hover {
+  background: #f8faff;
+}
+
+.visitor-wrap table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Empty State */
+.admin-empty {
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.admin-empty p {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--lead-text-main);
+  margin: 0 0 6px 0;
+}
+
+.admin-empty .admin-help {
+  font-size: 0.88rem;
+  color: var(--lead-text-muted);
+}
+
+/* Panel Body / Footer (Pagination) */
+.admin-panel-body {
+  padding: 16px 22px;
+  border-top: 1px solid var(--lead-border);
+  background: #ffffff;
+}
+
+/* ───────── Responsive Breakpoints ───────── */
+@media (max-width: 1100px) {
+  .list-filter {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 800px) {
+  .list-filter {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .list-filter {
+    grid-template-columns: 1fr;
+    padding: 16px;
+  }
+
+  .lead-chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .lead-chips a {
+    flex-shrink: 0;
+  }
+}
+
+/* ==========================================================================
+   Merged from src/styles/leads-ui-polish.css
+   ========================================================================== */
+
+/* ==========================================================================
+   Visitors: quick-add, search, detail drawer
+   Companion to leads-polish.css. Import it AFTER that file and after your
+   admin CSS. Colours live in :root, change them there.
+   ========================================================================== */
+
+:root {
+  --lp-navy: #262f7e;
+  --lp-navy-soft: #eef0fa;
+  --lp-border: #dde1ec;
+  --lp-border-strong: #b9c0d4;
+  --lp-muted: #5b6784;
+  --lp-soft: #f5f7fb;
+  --lp-radius: 10px;
+  --lp-ring: rgba(38, 47, 126, 0.22);
+  --lp-field-h: 44px;
+  --lp-warn-bg: #fff8e6;
+  --lp-warn-border: #f0d48a;
+}
+
+/* ───────── Quick-add / search panels (open inside .lead-tools) ───────── */
+
+/* An opened panel takes its own full-width row instead of squeezing beside the other button */
+.lead-tools > .admin-panel {
+  flex: 1 1 100%;
+  margin: 0;
+  border-radius: 14px;
+  box-shadow:
+    0 1px 2px rgba(20, 28, 70, 0.04),
+    0 6px 20px rgba(20, 28, 70, 0.06);
+}
+
+.lead-tools > .admin-panel > .admin-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--lp-border);
+}
+
+.lead-tools > .admin-panel > .admin-panel-head h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+/* The two trigger buttons share one height */
+.lead-tools > .button,
+.lead-tools > .admin-mini-button {
+  min-height: var(--lp-field-h);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding-inline: 18px;
+  border-radius: var(--lp-radius);
+}
+
+/* ───────── Form fields inside these panels and the drawer ───────── */
+.admin-panel-body.list-filter,
+.overview-drawer form.list-filter {
+  padding-top: 16px;
+}
+
+form.list-filter .admin-input {
+  width: 100%;
+  min-height: var(--lp-field-h);
+  border: 1px solid var(--lp-border);
+  border-radius: var(--lp-radius);
+  background-color: #fff;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+form.list-filter .admin-input:hover {
+  border-color: var(--lp-border-strong);
+}
+
+form.list-filter .admin-input:focus-visible {
+  outline: none;
+  border-color: var(--lp-navy);
+  box-shadow: 0 0 0 3px var(--lp-ring);
+}
+
+/* Hint text under a field is quieter */
+form.list-filter label > small.admin-help {
+  font-size: 0.78rem;
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--lp-muted);
+}
+
+/* The "more fields" toggle sits on the grid like a field and stays compact */
+form.list-filter > button.admin-mini-button[aria-expanded] {
+  align-self: end;
+  justify-self: start;
+  min-height: var(--lp-field-h);
+  padding-inline: 16px;
+  border-radius: var(--lp-radius);
+  border-style: dashed;
+}
+
+form.list-filter > button.admin-mini-button[aria-expanded="true"] {
+  background: var(--lp-navy-soft);
+  border-color: var(--lp-navy);
+  border-style: solid;
+}
+
+/* Footer row: button, hint and feedback line up on one baseline */
+.lead-form-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+}
+
+.lead-form-foot > p {
+  margin: 0;
+}
+
+.lead-form-foot .button,
+.lead-form-foot .admin-mini-button {
+  min-height: var(--lp-field-h);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding-inline: 20px;
+  border-radius: var(--lp-radius);
+}
+
+.lead-form-foot .button:disabled,
+.lead-form-foot .admin-mini-button:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+/* ───────── Feedback messages ───────── */
+.admin-feedback {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: var(--lp-radius);
+  background: #eaf7ef;
+  border: 1px solid #bfe3cb;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.admin-feedback.error {
+  background: #fdeeee;
+  border-color: #f2c4c4;
+}
+
+/* ───────── Duplicate-number question ───────── */
+.lead-dup {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--lp-warn-border);
+  border-radius: 12px;
+  background: var(--lp-warn-bg);
+}
+
+.lead-dup > .admin-feedback {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font-weight: 600;
+}
+
+.lead-dup .lead-form-foot {
+  padding-top: 12px;
+  border-top: 1px dashed var(--lp-warn-border);
+}
+
+/* ───────── Lists: notes timeline, family, duplicate mates ───────── */
+.lead-notes {
+  list-style: none;
+  margin: 0 0 14px;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.lead-notes > li {
+  padding: 10px 14px;
+  border: 1px solid var(--lp-border);
+  border-inline-start: 3px solid var(--lp-navy);
+  border-radius: var(--lp-radius);
+  background: #fff;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+/* Timeline entries: date line on top, note text below */
+.lead-notes:not(.lead-family) > li small {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--lp-muted);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.lead-notes > li.admin-help {
+  border-inline-start-color: var(--lp-border);
+  background: var(--lp-soft);
+}
+
+/* Family and duplicate rows: name, meta, mask and actions on one wrapping line */
+.lead-notes.lead-family > li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  border-inline-start-color: var(--lp-border-strong);
+}
+
+.lead-dup .lead-notes.lead-family > li {
+  background: #fff;
+  border-color: var(--lp-warn-border);
+}
+
+.lead-notes.lead-family > li > .admin-inline,
+.lead-notes.lead-family > li > button {
+  margin-inline-start: auto;
+}
+
+/* Flag callouts from the importer */
+.lead-flag {
+  margin: 0 0 8px;
+  padding: 10px 14px;
+  border: 1px solid var(--lp-warn-border);
+  border-inline-start: 3px solid #d9a21b;
+  border-radius: var(--lp-radius);
+  background: var(--lp-warn-bg);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+/* ───────── Small inline groups: number + call + WhatsApp ───────── */
+.admin-inline {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.overview-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.admin-inline > .admin-badge {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+.admin-inline > a.admin-mini-button,
+.overview-drawer-actions > a.admin-mini-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+}
+
+/* ───────── Row controls (inline status dropdown + follow-up buttons) ───────── */
+.lead-row {
+  display: grid;
+  gap: 10px;
+}
+
+.lead-row .list-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+}
+
+.lead-row .admin-select,
+.lead-row .admin-input {
+  min-height: 36px;
+  border-radius: 8px;
+}
+
+/* ───────── Detail drawer ───────── */
+/* Scoped with :has() to the lead drawer, so the admissions and bookings drawers are untouched */
+.overview-drawer:has(.overview-drawer-actions a[href*="/admin/leads/"]) {
+  --drawer-pad: 22px;
+}
+
+.overview-drawer:has(.overview-drawer-actions a[href*="/admin/leads/"])
+  > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--lp-border);
+}
+
+.overview-drawer:has(.overview-drawer-actions a[href*="/admin/leads/"])
+  > header
+  h2 {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Action strip: numbers, call, WhatsApp, open page, Send SMS */
+.overview-drawer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 14px 0;
+  padding: 12px 14px;
+  border: 1px solid var(--lp-border);
+  border-radius: 12px;
+  background: var(--lp-soft);
+}
+
+/* Field list becomes small cards: label above value */
+.overview-drawer:has(.overview-drawer-actions a[href*="/admin/leads/"]) dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 10px;
+  margin: 14px 0 6px;
+}
+
+.overview-drawer:has(.overview-drawer-actions a[href*="/admin/leads/"])
+  dl
+  > div {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--lp-border);
+  border-radius: var(--lp-radius);
+  background: #fff;
+}
+
+.overview-drawer:has(.overview-drawer-actions a[href*="/admin/leads/"]) dt {
+  margin: 0 0 2px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--lp-muted);
+}
+
+.overview-drawer:has(.overview-drawer-actions a[href*="/admin/leads/"]) dd {
+  margin: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+/* Section headings: notes, family, flags, duplicates */
+.overview-drawer:has(.overview-drawer-actions a[href*="/admin/leads/"]) h3 {
+  margin: 22px 0 10px;
+  padding-top: 16px;
+  border-top: 1px solid var(--lp-border);
+  font-size: 1rem;
+}
+
+/* Note form in the drawer sits in its own soft box */
+.overview-drawer form.list-filter {
+  margin-top: 6px;
+  padding: 14px;
+  border: 1px solid var(--lp-border);
+  border-radius: 12px;
+  background: var(--lp-soft);
+}
+
+/* ───────── Search results ───────── */
+.lead-tools .admin-panel-body > .admin-table-wrap {
+  border: 1px solid var(--lp-border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.lead-tools .admin-table caption {
+  padding: 10px 14px;
+  text-align: start;
+  background: var(--lp-soft);
+}
+
+/* ───────── Phones ───────── */
+@media (max-width: 720px) {
+  .lead-tools > .button,
+  .lead-tools > .admin-mini-button {
+    flex: 1 1 0;
+    justify-content: center;
+  }
+
+  .lead-form-foot > .button,
+  .lead-form-foot > .admin-mini-button {
+    flex: 1 1 100%;
+  }
+
+  .lead-notes.lead-family > li > .admin-inline,
+  .lead-notes.lead-family > li > button {
+    margin-inline-start: 0;
+  }
+
+  .overview-drawer:has(.overview-drawer-actions a[href*="/admin/leads/"]) dl {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  form.list-filter .admin-input {
+    transition: none;
+  }
+}
+
+/* ==========================================================================
+   Merged from src/styles/academics.css
+   ========================================================================== */
+
+/* ==========================================================================
+   Academics page
+   Every class is prefixed "academics-" and scoped under .academics-page.
+   Replace the whole old academics.css with this file.
+   ========================================================================== */
+
+.academics-page {
+  --ac-navy: #27317f;
+  --ac-navy-soft: #eef0fa;
+  --ac-border: #e1e5ef;
+  --ac-text: #1e293b;
+  --ac-muted: #5b6784;
+  --ac-soft: #f6f8fc;
+  --ac-radius: 14px;
+  --ac-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+/* ───────── Hero ───────── */
+.academics-hero {
+  padding: 22px 26px;
+  border: 1px solid var(--ac-border);
+  border-radius: var(--ac-radius);
+  background: linear-gradient(135deg, #f3f5ff 0%, #ffffff 70%);
+  box-shadow: var(--ac-shadow);
+}
+
+.academics-hero h1 {
+  margin: 8px 0 4px;
+  color: var(--ac-text);
+  letter-spacing: -0.01em;
+}
+
+.academics-hero p {
+  margin: 0;
+  max-width: 70ch;
+  color: var(--ac-muted);
+  line-height: 1.6;
+}
+
+.academics-page .section-tag {
+  display: inline-flex;
+  padding: 3px 12px;
+  border-radius: 999px;
+  background: var(--ac-navy-soft);
+  color: var(--ac-navy);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+/* ───────── Notice ───────── */
+.academics-page .notice-box {
+  margin: 0;
+  padding: 12px 16px;
+  border: 1px solid #f3dfa2;
+  border-left: 4px solid #e0a800;
+  border-radius: 10px;
+  background: #fffbeb;
+  color: #5c4500;
+  line-height: 1.55;
+}
+
+/* ───────── KPI cards ───────── */
+.academics-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.academics-kpi {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid var(--ac-border);
+  border-radius: var(--ac-radius);
+  background: #fff;
+  box-shadow: var(--ac-shadow);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.academics-kpi:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+}
+
+.academics-kpi-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: var(--ac-navy-soft);
+  color: var(--ac-navy);
+}
+
+.academics-kpi[data-kpi="batch"] .academics-kpi-icon {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+.academics-kpi[data-kpi="enrolled"] .academics-kpi-icon {
+  background: #dcfce7;
+  color: #15803d;
+}
+.academics-kpi[data-kpi="exams"] .academics-kpi-icon {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.academics-kpi-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.academics-kpi-text span {
+  color: var(--ac-muted);
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.academics-kpi-text strong {
+  color: var(--ac-text);
+  font-size: 1.8rem;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ───────── Cards ───────── */
+.academics-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--ac-border);
+  border-radius: var(--ac-radius);
+  background: #fff;
+  box-shadow: var(--ac-shadow);
+}
+
+.academics-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--ac-border);
+  background: var(--ac-soft);
+}
+
+.academics-card-head h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  color: var(--ac-text);
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.academics-card-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+}
+
+.academics-step {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--ac-navy);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.academics-count {
+  padding: 1px 10px;
+  border-radius: 999px;
+  background: var(--ac-navy-soft);
+  color: var(--ac-navy);
+  font-size: 0.8rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.academics-link {
+  color: var(--ac-navy);
+  font-size: 0.86rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.academics-link:hover {
+  text-decoration: underline;
+}
+
+/* ───────── Four form cards: 2 x 2 on wide screens ───────── */
+.academics-forms {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  align-items: stretch;
+}
+
+/* Make the form fill its card so the Save row sits at the bottom of every card */
+.academics-card-body > .academic-form {
+  flex: 1;
+}
+
+.academics-card-body .academic-form-foot {
+  margin-top: auto;
+}
+
+/* Two fields per row inside a card (wider than the 3-up default, so nothing is cramped) */
+.academics-card-body .academic-form .admin-slot-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* ───────── Exams table ───────── */
+.academics-table-wrap {
+  overflow-x: auto;
+}
+
+.academics-table {
+  width: 100%;
+  min-width: 640px;
+  border-collapse: collapse;
+}
+
+.academics-table th {
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--ac-border);
+  background: var(--ac-soft);
+  color: var(--ac-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.academics-table td {
+  padding: 14px 20px;
+  border-bottom: 1px solid #edf0f7;
+  color: var(--ac-text);
+  vertical-align: middle;
+}
+
+.academics-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.academics-table tbody tr {
+  transition: background-color 0.12s ease;
+}
+
+.academics-table tbody tr:hover {
+  background: #f8f9fd;
+}
+
+.academics-table td.title {
+  font-weight: 600;
+}
+
+.academics-table .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ───────── Status badge ───────── */
+.academics-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 12px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.academics-badge::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.academics-badge.is-published {
+  background: #e7f7ee;
+  color: #15803d;
+}
+
+.academics-badge.is-draft {
+  background: #fff4dc;
+  color: #a16207;
+}
+
+/* ───────── Row actions ───────── */
+.academics-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* ───────── Empty state ───────── */
+.academics-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 48px 16px;
+  color: var(--ac-muted);
+  text-align: center;
+}
+
+.academics-empty p {
+  margin: 0;
+}
+
+/* ───────── Responsive ───────── */
+@media (max-width: 1100px) {
+  .academics-forms {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .academics-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .academics-kpis {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .academics-hero {
+    padding: 18px;
+  }
+
+  .academics-card-head,
+  .academics-card-body {
+    padding-inline: 14px;
+  }
+
+  .academics-card-body .academic-form .admin-slot-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .academics-kpi,
+  .academics-table tbody tr {
+    transition: none;
+  }
+
+  .academics-kpi:hover {
+    transform: none;
+  }
+}
+
+/* ==========================================================================
+   Merged from src/styles/academic-forms.css
+   ========================================================================== */
+
+/* ==========================================================================
+   Academic forms polish
+   Scoped to .academic-form and .academic-inline-form only, so no other admin
+   page can be affected. Change the colours in the variables to re-theme.
+   ========================================================================== */
+
+.academic-form,
+.academic-inline-form {
+  --af-navy: #27317f;
+  --af-navy-hover: #1e255e;
+  --af-border: #dde1ec;
+  --af-border-hover: #b9c0d4;
+  --af-text: #1e293b;
+  --af-muted: #5b6784;
+  --af-radius: 10px;
+  --af-field-h: 42px;
+  --af-ring: rgba(39, 49, 127, 0.22);
+}
+
+/* ───────── Form layout ───────── */
+.academic-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  max-width: none;
+}
+
+.academic-form > .admin-help {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: var(--af-radius);
+  background: #f5f7fb;
+  color: var(--af-muted);
+  font-size: 0.85rem;
+  line-height: 1.55;
+}
+
+/* Field grid: as many columns as fit, one column on narrow panels */
+.academic-form .admin-slot-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
+  gap: 14px 16px;
+  align-items: start;
+}
+
+/* ───────── Labels and fields ───────── */
+.academic-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  color: var(--af-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.academic-form .admin-input,
+.academic-form .admin-select {
+  width: 100%;
+  min-height: var(--af-field-h);
+  border: 1px solid var(--af-border);
+  border-radius: var(--af-radius);
+  background-color: #fff; /* background-color only, so the select arrow stays */
+  color: var(--af-text);
+  font-weight: 500;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.academic-form .admin-input:hover,
+.academic-form .admin-select:hover {
+  border-color: var(--af-border-hover);
+}
+
+.academic-form .admin-input:focus,
+.academic-form .admin-select:focus {
+  outline: none;
+  border-color: var(--af-navy);
+  box-shadow: 0 0 0 3px var(--af-ring);
+}
+
+/* Browser-validation: only flag a field after the user has typed in it */
+.academic-form .admin-input:user-invalid,
+.academic-form .admin-select:user-invalid {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
+}
+
+.academic-form .admin-input::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+/* ───────── Hints and warnings ───────── */
+.academic-form-note {
+  display: block;
+  color: var(--af-muted);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.academic-form-warn {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: #fff4dc;
+  color: #a16207;
+  font-weight: 600;
+}
+
+/* ───────── Submit row ───────── */
+.academic-form-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding-top: 14px;
+  border-top: 1px solid var(--af-border);
+}
+
+.academic-form .button-navy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: var(--af-field-h);
+  padding-inline: 24px;
+  border: 0;
+  border-radius: var(--af-radius);
+  background: var(--af-navy);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(39, 49, 127, 0.2);
+  transition:
+    background-color 0.15s ease,
+    transform 0.1s ease,
+    box-shadow 0.15s ease;
+}
+
+.academic-form .button-navy:hover:not(:disabled) {
+  background: var(--af-navy-hover);
+  transform: translateY(-1px);
+}
+
+.academic-form .button-navy:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.academic-form .button-navy:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--af-ring);
+}
+
+.academic-form .button-navy:disabled {
+  background: #94a3b8;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+/* Spinner while the form is saving (the button also changes its label) */
+.academic-form .button-navy[aria-busy="true"]::after {
+  content: "";
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: af-spin 0.7s linear infinite;
+}
+
+@keyframes af-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ───────── Feedback message ───────── */
+.academic-form .admin-feedback,
+.academic-inline-form .admin-feedback {
+  margin: 0;
+  padding: 7px 12px;
+  border: 1px solid #bbf7d0;
+  border-left-width: 4px;
+  border-radius: 8px;
+  background: #f0fdf4;
+  color: #166534;
+  font-size: 0.85rem;
+  font-weight: 600;
+  animation: af-fade 0.2s ease-out;
+}
+
+.academic-form .admin-feedback.error,
+.academic-inline-form .admin-feedback.error {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+@keyframes af-fade {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ───────── Publish / unpublish button (exam table row) ───────── */
+.academic-inline-form {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.academic-inline-form .admin-mini-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding-inline: 14px;
+  border: 1px solid var(--af-border);
+  border-radius: 8px;
+  background: #fff;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.academic-inline-form .admin-mini-button[data-state="publish"] {
+  border-color: #86efac;
+  color: #15803d;
+}
+
+.academic-inline-form
+  .admin-mini-button[data-state="publish"]:hover:not(:disabled) {
+  background: #e7f7ee;
+}
+
+.academic-inline-form .admin-mini-button[data-state="unpublish"] {
+  color: var(--af-muted);
+}
+
+.academic-inline-form
+  .admin-mini-button[data-state="unpublish"]:hover:not(:disabled) {
+  background: #f1f5f9;
+  border-color: var(--af-border-hover);
+}
+
+.academic-inline-form .admin-mini-button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--af-ring);
+}
+
+.academic-inline-form .admin-mini-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ───────── Phones ───────── */
+@media (max-width: 520px) {
+  .academic-form .admin-slot-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .academic-form-foot .button-navy {
+    flex: 1 1 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .academic-form .admin-input,
+  .academic-form .admin-select,
+  .academic-form .button-navy,
+  .academic-inline-form .admin-mini-button {
+    transition: none;
+  }
+
+  .academic-form .button-navy[aria-busy="true"]::after,
+  .academic-form .admin-feedback,
+  .academic-inline-form .admin-feedback {
+    animation: none;
+  }
+}
+
+/* ==========================================================================
+   Merged from src/styles/row-controls.css
+   ========================================================================== */
+
+/* ==========================================================================
+   Row controls polish
+   Scoped to .row-controls only, so no other admin menu is affected.
+
+   Deliberately NOT set here: `display` on .admin-row-direct and on the
+   <details>. Your existing CSS decides which of the two shows at desk vs
+   phone width, and overriding display would break that switch.
+   ========================================================================== */
+
+.row-controls {
+  --rc-border: #dde1ec;
+  --rc-border-hover: #b9c0d4;
+  --rc-navy: #27317f;
+  --rc-text: #1e293b;
+  --rc-muted: #5b6784;
+  --rc-soft: #f5f7fb;
+  --rc-radius: 8px;
+  --rc-ring: rgba(39, 49, 127, 0.22);
+}
+
+/* ───────── Layout ───────── */
+.row-controls {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Zero specificity on purpose: your desk/phone show-hide rules still win. */
+:where(.row-controls .admin-row-direct) {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ───────── The "More" menu (phone cards) ───────── */
+.row-controls .admin-more-row {
+  position: relative;
+}
+
+.row-controls .admin-more-row > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--rc-border);
+  border-radius: var(--rc-radius);
+  background: #fff;
+  color: var(--rc-text);
+  font-size: 0.82rem;
+  font-weight: 600;
+  list-style: none;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+/* Hide the browser's default triangle (Safari and Chrome use the pseudo-element) */
+.row-controls .admin-more-row > summary::-webkit-details-marker {
+  display: none;
+}
+
+/* Our own chevron, which turns when the menu opens */
+.row-controls .admin-more-row > summary::after {
+  content: "";
+  width: 6px;
+  height: 6px;
+  margin-top: -3px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+  transition:
+    transform 0.15s ease,
+    margin 0.15s ease;
+}
+
+.row-controls .admin-more-row[open] > summary::after {
+  margin-top: 3px;
+  transform: rotate(-135deg);
+}
+
+.row-controls .admin-more-row > summary:hover {
+  border-color: var(--rc-border-hover);
+  background: var(--rc-soft);
+}
+
+.row-controls .admin-more-row[open] > summary {
+  border-color: var(--rc-navy);
+  color: var(--rc-navy);
+  background: #eef0fa;
+}
+
+.row-controls .admin-more-row > summary:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--rc-ring);
+}
+
+/*
+  The menu body stays IN the flow instead of floating. A floating popover
+  would be clipped by any scrolling table wrapper around the row.
+*/
+.row-controls .admin-more-row .admin-more-body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 10px;
+  border: 1px solid var(--rc-border);
+  border-radius: 10px;
+  background: var(--rc-soft);
+  animation: rc-open 0.16s ease-out;
+}
+
+@keyframes rc-open {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ───────── Phones: easier to tap ───────── */
+@media (max-width: 720px) {
+  .row-controls {
+    justify-content: flex-start;
+  }
+
+  .row-controls .admin-more-row > summary {
+    min-height: 40px;
+    padding-inline: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .row-controls .admin-more-row > summary,
+  .row-controls .admin-more-row > summary::after {
+    transition: none;
+  }
+
+  .row-controls .admin-more-row .admin-more-body {
+    animation: none;
   }
 }

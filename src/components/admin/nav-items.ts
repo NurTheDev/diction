@@ -1,4 +1,4 @@
-import {LayoutDashboard,ClipboardList,CalendarCheck,CalendarClock,Contact,CalendarDays,Inbox,GraduationCap,FilePenLine,Images,ClipboardCheck,ListChecks,Settings,BookOpen,UsersRound,History,PanelsTopLeft,CalendarRange,FileText,Wallet,Bell,Bot,ShieldCheck,Award,Video,Newspaper,MessageSquare,FileUp,TrendingUp,FolderSearch,Scale,School} from 'lucide-react';
+import {LayoutDashboard,ClipboardList,CalendarCheck,CalendarClock,Contact,CalendarDays,Inbox,GraduationCap,FilePenLine,Images,ClipboardCheck,ListChecks,Settings,BookOpen,UsersRound,History,PanelsTopLeft,CalendarRange,FileText,Wallet,Bell,Bot,ShieldCheck,Award,Video,Newspaper,MessageSquare,FileUp,TrendingUp,FolderSearch,Scale,School,NotebookPen} from 'lucide-react';
 /**
  * The menu, in the order the day happens.
  *
@@ -38,7 +38,7 @@ export const navGroups=[
  /* Who is enrolled, what they owe, and the timetable and exams they are enrolled into. */
  /* O1: a class is what the roll, the fees and the timetable all hang from, so the class and batch
     screen is the first door in this group rather than a row inside the student list. */
- {key:'students',items:[['/admin/classes','classes',School],
+ {key:'students',items:[['/admin/classes','classes',School],['/admin/academics','academics',NotebookPen],
   ['/admin/students','centerStudents',UsersRound],['/admin/students/dues','centerDues',Wallet],
   ['/admin/students/fees-grid','centerSheetView',FileText],
   ['/admin/courses','courses',BookOpen],['/admin/batches','batches',CalendarRange],['/admin/slots','slots',CalendarDays],

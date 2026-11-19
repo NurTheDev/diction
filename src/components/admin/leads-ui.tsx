@@ -72,7 +72,6 @@ import {
   useState,
   type FormEvent,
 } from "react";
-import "../../styles/leads-ui-polish.css";
 import { LeadEditForm } from "./lead-edit-form";
 import { LeadHandoff } from "./lead-handoff";
 import SmsDialogTrigger from "./sms-dialog-trigger";
