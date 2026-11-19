@@ -15,7 +15,7 @@ import mongoose from 'mongoose';
 import {CenterClassGroup,CenterExam,CenterExamResult,CenterGradingScale,CenterStudent} from '../../models/CenterRecords';
 import {scopeClasses,scopeCoversClass,type ExamScope} from './exam-scope';
 import {classSummary,positionOf,type ClassSummary,type SummaryRow} from './grading';
-import {asciiDigits} from '../admin/format';
+import {asciiDigits,formatNumber} from '../admin/format';
 import {resultMessage,type ResultMessageValues} from './result-message';
 
 /** A class group as a screen names it: the name in the page's language plus the session year. */
@@ -145,7 +145,7 @@ export async function examDetailView(examId:string,scope:ExamScope,locale:string
   return {
     id:String(exam._id),name:localName(exam.name,locale),type:exam.type,date:exam.date,status:exam.status,
     scaleName:String(exam.scaleName||''),
-    classes:groups.map(group=>({id:String(group._id),name:`${localName(group.name,locale)}${group.shift?` · ${group.shift}`:''} · ${group.academicYear}`})),
+    classes:groups.map(group=>({id:String(group._id),name:`${localName(group.name,locale)}${group.shift?` · ${group.shift}`:''} · ${formatNumber(group.academicYear,locale==='en'?'en':'bn')}`})),
     subjects,
     bands:[...exam.gradeBands].sort((a,b)=>b.min-a.min).map(band=>({min:band.min,label:band.label,point:band.point??0})),
     students:viewStudents,results:viewResults,summary:classSummary(summaryRows,subjects.map(subject=>({id:subject.id,full:subject.full,pass:subject.pass})),viewStudents.length),
@@ -182,7 +182,7 @@ export async function examListView(scope:ExamScope,filters:ExamListFilters,page:
   const groups=ids.length
     ? await CenterClassGroup.find({_id:{$in:ids}}).select('name academicYear').lean<{_id:mongoose.Types.ObjectId;name:{bn:string;en?:string};academicYear:number}[]>()
     : [];
-  const names=new Map(groups.map(group=>[String(group._id),`${localName(group.name,locale)} ${group.academicYear}`.trim()]));
+  const names=new Map(groups.map(group=>[String(group._id),`${localName(group.name,locale)} ${formatNumber(group.academicYear,locale==='en'?'en':'bn')}`.trim()]));
   const counts=new Map(
     (await CenterExamResult.aggregate<{_id:mongoose.Types.ObjectId;count:number}>([
       {$match:{exam:{$in:docs.map(doc=>doc._id)}}},{$group:{_id:'$exam',count:{$sum:1}}},

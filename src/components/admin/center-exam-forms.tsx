@@ -163,7 +163,7 @@ export function ExamShapeForm({mode,groups,scales,value,digits}:{mode:'create'|'
     </select></label>
     {!typed&&<div className="admin-table-wrap"><table className="center-scale-preview" data-scale-preview><caption>{t('form.scalePreview')}</caption>
       <thead><tr><th>{t('scale.col.grade')}</th><th>{t('scale.col.from')}</th><th>{t('scale.col.to')}</th><th>{t('scale.col.point')}</th></tr></thead>
-      <tbody>{preview.map(range=><tr key={range.grade}><td>{range.grade}</td><td>{range.min}</td><td>{range.max}</td><td>{range.point}</td></tr>)}</tbody>
+      <tbody>{preview.map(range=><tr key={range.grade}><td>{range.grade}</td><td>{formatNumber(range.min,digits)}</td><td>{formatNumber(range.max,digits)}</td><td>{formatNumber(range.point,digits)}</td></tr>)}</tbody>
     </table></div>}
     {typed&&<><label>{t('form.bandsLabel')}<textarea name="bands" className="admin-input" rows={8} required defaultValue={bandsText}/></label>
       <p className="admin-help">{t('form.bandsHelp')}</p>
