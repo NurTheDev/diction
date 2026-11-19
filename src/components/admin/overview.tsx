@@ -13,16 +13,16 @@ type OverviewData={counts:[number|string,number|string,number|string,number|stri
  * day's money, the visitors waiting for a call and the credit left for a reminder — and a heading that
  * only renders as part of the panels below it could not stay above them.
  */
-export async function OverviewHeading({name,digits,preview=false,newToday=0,todayBookings=0}:{
+export async function OverviewHeading({name,digits,preview=false,newToday,todayBookings=0}:{
   name:string;digits:Digits;preview?:boolean;newToday?:number;todayBookings?:number;
 }){
   const t=await getTranslations('adminRedesign');
   const locale=await getLocale(),language=locale==='bn'?'bn':'en';
   const firstName=name.trim().split(/\s+/)[0]||name;
   return <div className="admin-heading overview-heading"><div><h1>{t('welcome',{name:firstName})}</h1>
-    <p><time>{formatDate(new Date(),digits,language)}</time> · {preview
-      ? (await getTranslations('admin'))('previewText')
-      : (newToday||todayBookings)?t('summaryToday',{n:formatNumber(newToday||0,digits),m:formatNumber(todayBookings,digits)}):t('summaryNone')}</p>
+    <p><time>{formatDate(new Date(),digits,language)}</time>{/* no counts = a role that may not see intake, so no summary to claim */}{preview
+      ? <> · {(await getTranslations('admin'))('previewText')}</>
+      : newToday===undefined?null:<> · {(newToday||todayBookings)?t('summaryToday',{n:formatNumber(newToday||0,digits),m:formatNumber(todayBookings,digits)}):t('summaryNone')}</>}</p>
   </div></div>;
 }
 
