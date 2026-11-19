@@ -1,4 +1,4 @@
-'use client';
+"use client";
 /**
  * R3 wave B — the interactive half of the Visitors screens: quick-add, the search by number, a row's
  * controls and the detail drawer.
@@ -16,141 +16,401 @@
  *     opened, the optional fields are behind a `<details>`, and Enter in the name field saves — the front
  *     desk writes a queue of people, so a saved lead clears the panel and puts the cursor back on the name.
  */
-import {useActionState,useEffect,useRef,useState,type FormEvent} from 'react';
-import {useTranslations} from 'next-intl';
-import {Link,useRouter} from '@/i18n/navigation';
-import {MessageCircle,Phone,Plus,Search,UserPlus} from 'lucide-react';
 import {
-  changeLeadStatus,chooseLeadFollowUp,liftContactBlock,loadLeadDetail,mergeTwoLeads,quickAddLead,
-  searchLeadsByNumber,tieLeadFamilies,writeLeadNote,
-} from '@/actions/leads';
+  changeLeadStatus,
+  chooseLeadFollowUp,
+  liftContactBlock,
+  loadLeadDetail,
+  mergeTwoLeads,
+  quickAddLead,
+  searchLeadsByNumber,
+  tieLeadFamilies,
+  writeLeadNote,
+} from "@/actions/leads";
+import { Link, useRouter } from "@/i18n/navigation";
 import {
-  FOLLOW_UP_CLEAR,FOLLOW_UP_KEYS,LEAD_NOTE_OUTCOME_OPTIONS,LEAD_SOURCE_OPTIONS,LEAD_STATUS_OPTIONS,
-  followUpBadge,followUpLabel,groupLabel,idleLeadForm,leadFormMessage,mediumLabel,noteOutcomeLabel,
-  shiftLabel,sourceLabel,statusBadge,statusLabel,
-  type LeadDetailView,type LeadDrawerSeed,type LeadFormState,type LeadListFiltersShape,type LeadPhoneView,
-  type LeadRowView,type LeadSearchActionState,type LeadSearchHitView,
-} from '@/lib/leads/lead-ui';
-import {leadListQuery} from '@/lib/leads/vocab';
-import SmsDialogTrigger from './sms-dialog-trigger';
-import {LeadEditForm} from './lead-edit-form';
-import {LeadHandoff} from './lead-handoff';
-import type {LeadSmsKit} from '@/lib/leads/lead-sms';
-import {formatClass,formatDate,formatNumber,formatTime,type Digits} from '@/lib/admin/format';
-
-const IDLE_SEARCH:LeadSearchActionState={status:'idle',hits:[],total:0,masked:'',message:''};
+  formatClass,
+  formatDate,
+  formatNumber,
+  formatTime,
+  type Digits,
+} from "@/lib/admin/format";
+import type { LeadSmsKit } from "@/lib/leads/lead-sms";
+import {
+  FOLLOW_UP_CLEAR,
+  FOLLOW_UP_KEYS,
+  LEAD_NOTE_OUTCOME_OPTIONS,
+  LEAD_SOURCE_OPTIONS,
+  LEAD_STATUS_OPTIONS,
+  followUpBadge,
+  followUpLabel,
+  groupLabel,
+  idleLeadForm,
+  leadFormMessage,
+  mediumLabel,
+  noteOutcomeLabel,
+  shiftLabel,
+  sourceLabel,
+  statusBadge,
+  statusLabel,
+  type LeadDetailView,
+  type LeadDrawerSeed,
+  type LeadFormState,
+  type LeadListFiltersShape,
+  type LeadPhoneView,
+  type LeadRowView,
+  type LeadSearchActionState,
+  type LeadSearchHitView,
+} from "@/lib/leads/lead-ui";
+import { leadListQuery } from "@/lib/leads/vocab";
+import { MessageCircle, Phone, Plus, Search, UserPlus } from "lucide-react";
+import { useTranslations } from "next-intl";
+import {
+  useActionState,
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
+import "../../styles/leads-ui-polish.css";
+import { LeadEditForm } from "./lead-edit-form";
+import { LeadHandoff } from "./lead-handoff";
+import SmsDialogTrigger from "./sms-dialog-trigger";
+const IDLE_SEARCH: LeadSearchActionState = {
+  status: "idle",
+  hits: [],
+  total: 0,
+  masked: "",
+  message: "",
+};
 
 /** The quick-add panel: four fields is a complete lead, everything else is behind "more". */
-export function LeadQuickAdd({open=false,language='bn',digits='bn'}:{open?:boolean;language?:'bn'|'en';digits?:Digits}){
-  const t=useTranslations('leads');
-  const [state,action,pending]=useActionState(quickAddLead,idleLeadForm);
-  const [expanded,setExpanded]=useState(open),[more,setMore]=useState(false),[followUp,setFollowUp]=useState('');
-  const formRef=useRef<HTMLFormElement>(null),nameRef=useRef<HTMLInputElement>(null);
+export function LeadQuickAdd({
+  open = false,
+  language = "bn",
+  digits = "bn",
+}: {
+  open?: boolean;
+  language?: "bn" | "en";
+  digits?: Digits;
+}) {
+  const t = useTranslations("leads");
+  const [state, action, pending] = useActionState(quickAddLead, idleLeadForm);
+  const [expanded, setExpanded] = useState(open),
+    [more, setMore] = useState(false),
+    [followUp, setFollowUp] = useState("");
+  const formRef = useRef<HTMLFormElement>(null),
+    nameRef = useRef<HTMLInputElement>(null);
   // React resets a form when its server action commits — including the commit that ASKS the duplicate
   // question, which would erase what the operator typed before they can answer it. The submission is
   // therefore snapshotted client-side (the operator's own typing, never served) and poured back into
   // the fields when the question arrives, so the three answers carry the entry they apply to.
-  const snapshot=useRef<Record<string,string>>({});
+  const snapshot = useRef<Record<string, string>>({});
   // `?new=1` — what the mobile bottom bar's plus links to — opens the panel on arrival.
-  useEffect(()=>{if(open)setExpanded(true)},[open]);
-  useEffect(()=>{
-    if(!expanded)return;
-    const timer=setTimeout(()=>nameRef.current?.focus(),80);
-    return ()=>clearTimeout(timer);
-  },[expanded]);
+  useEffect(() => {
+    if (open) setExpanded(true);
+  }, [open]);
+  useEffect(() => {
+    if (!expanded) return;
+    const timer = setTimeout(() => nameRef.current?.focus(), 80);
+    return () => clearTimeout(timer);
+  }, [expanded]);
   // Saved: empty the panel and start the next visitor. The message keeps the id that was written.
-  useEffect(()=>{
-    if(state.status!=='ok')return;
-    formRef.current?.reset();setFollowUp('');nameRef.current?.focus();snapshot.current={};
-  },[state]);
+  useEffect(() => {
+    if (state.status !== "ok") return;
+    formRef.current?.reset();
+    setFollowUp("");
+    nameRef.current?.focus();
+    snapshot.current = {};
+  }, [state]);
   // Asked: put the typing back, so the answer's submission is the entry the question is about.
-  useEffect(()=>{
-    if(state.status!=='dup')return;
-    const form=formRef.current;
-    if(!form)return;
-    for(const [key,value] of Object.entries(snapshot.current)){
-      const el=form.querySelector<HTMLInputElement>(`input[name="${key}"],select[name="${key}"],textarea[name="${key}"]`);
-      if(el)el.value=value;
+  useEffect(() => {
+    if (state.status !== "dup") return;
+    const form = formRef.current;
+    if (!form) return;
+    for (const [key, value] of Object.entries(snapshot.current)) {
+      const el = form.querySelector<HTMLInputElement>(
+        `input[name="${key}"],select[name="${key}"],textarea[name="${key}"]`,
+      );
+      if (el) el.value = value;
     }
-  },[state]);
-  function captureSubmission(event:FormEvent<HTMLFormElement>){
-    snapshot.current=Object.fromEntries([...new FormData(event.currentTarget).entries()].map(([key,value])=>[key,String(value)]));
+  }, [state]);
+  function captureSubmission(event: FormEvent<HTMLFormElement>) {
+    snapshot.current = Object.fromEntries(
+      [...new FormData(event.currentTarget).entries()].map(([key, value]) => [
+        key,
+        String(value),
+      ]),
+    );
   }
-  if(!expanded){
-    return <button type="button" className="button button-navy" onClick={()=>setExpanded(true)}><UserPlus size={18} aria-hidden="true"/>{t('add')}</button>;
+  if (!expanded) {
+    return (
+      <button
+        type="button"
+        className="button button-navy"
+        onClick={() => setExpanded(true)}>
+        <UserPlus size={18} aria-hidden="true" />
+        {t("add")}
+      </button>
+    );
   }
-  return <section className="admin-panel" aria-label={t('addTitle')}>
-    <div className="admin-panel-head"><h2>{t('addTitle')}</h2><button type="button" className="admin-mini-button" onClick={()=>setExpanded(false)}>{t('close')}</button></div>
-    <form ref={formRef} action={action} onSubmit={captureSubmission} className="admin-panel-body list-filter">
-      <label>{t('studentName')}<input ref={nameRef} className="admin-input" name="studentName" required maxLength={120} autoComplete="off"/></label>
-      <label>{t('phone')}
-        <input className="admin-input" name="phone" type="text" inputMode="tel" autoComplete="off" aria-describedby="lead-quick-phone"/>
-        <small id="lead-quick-phone" className="admin-help">{t('phoneHint')}</small>
-      </label>
-      <label>{t('classLabel')}
-        <input className="admin-input" name="classLabel" maxLength={60} autoComplete="off" aria-describedby="lead-quick-class"/>
-        <small id="lead-quick-class" className="admin-help">{t('classHint')}</small>
-      </label>
-      <label>{t('school')}<input className="admin-input" name="school" maxLength={160} autoComplete="off"/></label>
-      <button type="button" className="admin-mini-button" aria-expanded={more} onClick={()=>setMore(value=>!value)}>{t('fields')} <span aria-hidden="true">{more?'−':'＋'}</span></button>
-      {more&&<>
-        <label>{t('guardianName')}<input className="admin-input" name="guardianName" maxLength={120} autoComplete="off"/></label>
-        <label>{t('interestedIn')}<input className="admin-input" name="interestedIn" maxLength={200} autoComplete="off"/></label>
-        <label>{t('source')}<select className="admin-select" name="source" defaultValue="walk_in">{LEAD_SOURCE_OPTIONS.map(option=><option key={option} value={option}>{sourceLabel(t,option)}</option>)}</select></label>
-        <label>{t('status')}<select className="admin-select" name="status" defaultValue="new">{LEAD_STATUS_OPTIONS.map(option=><option key={option} value={option}>{statusLabel(t,option)}</option>)}</select></label>
-        <label>{t('nextFollowUp')}
-          <select className="admin-select" name="followUp" value={followUp} onChange={event=>setFollowUp(event.target.value)}>
-            <option value="">{t('followUpNone')}</option>
-            {FOLLOW_UP_KEYS.map(option=><option key={option} value={option}>{followUpLabel(t,option)}</option>)}
-          </select>
+  return (
+    <section className="admin-panel" aria-label={t("addTitle")}>
+      <div className="admin-panel-head">
+        <h2>{t("addTitle")}</h2>
+        <button
+          type="button"
+          className="admin-mini-button"
+          onClick={() => setExpanded(false)}>
+          {t("close")}
+        </button>
+      </div>
+      <form
+        ref={formRef}
+        action={action}
+        onSubmit={captureSubmission}
+        className="admin-panel-body list-filter">
+        <label>
+          {t("studentName")}
+          <input
+            ref={nameRef}
+            className="admin-input"
+            name="studentName"
+            required
+            maxLength={120}
+            autoComplete="off"
+          />
         </label>
-        {followUp==='custom'&&<label>{t('customDay')}<input className="admin-input" name="customDay" type="date"/></label>}
-        <label>{t('note')}<input className="admin-input" name="note" maxLength={1000} autoComplete="off"/></label>
-      </>}
-      {/* R3.10: the number typed is already on the list. The form keeps what was typed — nothing is reset
+        <label>
+          {t("phone")}
+          <input
+            className="admin-input"
+            name="phone"
+            type="text"
+            inputMode="tel"
+            autoComplete="off"
+            aria-describedby="lead-quick-phone"
+          />
+          <small id="lead-quick-phone" className="admin-help">
+            {t("phoneHint")}
+          </small>
+        </label>
+        <label>
+          {t("classLabel")}
+          <input
+            className="admin-input"
+            name="classLabel"
+            maxLength={60}
+            autoComplete="off"
+            aria-describedby="lead-quick-class"
+          />
+          <small id="lead-quick-class" className="admin-help">
+            {t("classHint")}
+          </small>
+        </label>
+        <label>
+          {t("school")}
+          <input
+            className="admin-input"
+            name="school"
+            maxLength={160}
+            autoComplete="off"
+          />
+        </label>
+        <button
+          type="button"
+          className="admin-mini-button"
+          aria-expanded={more}
+          onClick={() => setMore((value) => !value)}>
+          {t("fields")} <span aria-hidden="true">{more ? "−" : "＋"}</span>
+        </button>
+        {more && (
+          <>
+            <label>
+              {t("guardianName")}
+              <input
+                className="admin-input"
+                name="guardianName"
+                maxLength={120}
+                autoComplete="off"
+              />
+            </label>
+            <label>
+              {t("interestedIn")}
+              <input
+                className="admin-input"
+                name="interestedIn"
+                maxLength={200}
+                autoComplete="off"
+              />
+            </label>
+            <label>
+              {t("source")}
+              <select
+                className="admin-select"
+                name="source"
+                defaultValue="walk_in">
+                {LEAD_SOURCE_OPTIONS.map((option) => (
+                  <option key={option} value={option}>
+                    {sourceLabel(t, option)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              {t("status")}
+              <select className="admin-select" name="status" defaultValue="new">
+                {LEAD_STATUS_OPTIONS.map((option) => (
+                  <option key={option} value={option}>
+                    {statusLabel(t, option)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              {t("nextFollowUp")}
+              <select
+                className="admin-select"
+                name="followUp"
+                value={followUp}
+                onChange={(event) => setFollowUp(event.target.value)}>
+                <option value="">{t("followUpNone")}</option>
+                {FOLLOW_UP_KEYS.map((option) => (
+                  <option key={option} value={option}>
+                    {followUpLabel(t, option)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {followUp === "custom" && (
+              <label>
+                {t("customDay")}
+                <input className="admin-input" name="customDay" type="date" />
+              </label>
+            )}
+            <label>
+              {t("note")}
+              <input
+                className="admin-input"
+                name="note"
+                maxLength={1000}
+                autoComplete="off"
+              />
+            </label>
+          </>
+        )}
+        {/* R3.10: the number typed is already on the list. The form keeps what was typed — nothing is reset
           until a save succeeds — and the three answers are three submit buttons, so the choice travels in
           the same post as the fields it applies to and never as a second round trip. */}
-      {state.status==='dup'&&<div className="lead-dup" role="alert" data-dup-ask="true">
-        <p className="admin-feedback error">{leadFormMessage(state)}</p>
-        <ul className="lead-notes lead-family">{(state.holders||[]).map(holder=><li key={holder.id}>
-          <strong>{holder.studentName}</strong>{' '}
-          <span className="admin-help">{holder.leadId} · {statusLabel(t,holder.status)} · {formatDate(holder.date,digits,language)}</span>{' '}
-          <span className="admin-badge">{holder.masked}</span>
-          <button type="submit" name="dupMerge" value={holder.id} className="admin-mini-button" disabled={pending}>{t('dupMergeInto',{name:holder.studentName})}</button>
-        </li>)}</ul>
+        {state.status === "dup" && (
+          <div className="lead-dup" role="alert" data-dup-ask="true">
+            <p className="admin-feedback error">{leadFormMessage(state)}</p>
+            <ul className="lead-notes lead-family">
+              {(state.holders || []).map((holder) => (
+                <li key={holder.id}>
+                  <strong>{holder.studentName}</strong>{" "}
+                  <span className="admin-help">
+                    {holder.leadId} · {statusLabel(t, holder.status)} ·{" "}
+                    {formatDate(holder.date, digits, language)}
+                  </span>{" "}
+                  <span className="admin-badge">{holder.masked}</span>
+                  <button
+                    type="submit"
+                    name="dupMerge"
+                    value={holder.id}
+                    className="admin-mini-button"
+                    disabled={pending}>
+                    {t("dupMergeInto", { name: holder.studentName })}
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <div className="lead-form-foot">
+              <button
+                type="submit"
+                name="dupChoice"
+                value="sibling"
+                className="admin-mini-button"
+                disabled={pending}>
+                {t("dupSibling")}
+              </button>
+              <button
+                type="submit"
+                name="dupChoice"
+                value="separate"
+                className="admin-mini-button"
+                disabled={pending}>
+                {t("dupSeparate")}
+              </button>
+            </div>
+          </div>
+        )}
         <div className="lead-form-foot">
-          <button type="submit" name="dupChoice" value="sibling" className="admin-mini-button" disabled={pending}>{t('dupSibling')}</button>
-          <button type="submit" name="dupChoice" value="separate" className="admin-mini-button" disabled={pending}>{t('dupSeparate')}</button>
+          <button
+            type="submit"
+            className="button button-navy"
+            disabled={pending}>
+            <Plus size={18} aria-hidden="true" />
+            {pending ? t("loading") : t("saveAnother")}
+          </button>
+          <p className="admin-help">{t("enterSaves")}</p>
+          {state.status !== "idle" && state.status !== "dup" && (
+            <p
+              role="status"
+              className={`admin-feedback ${state.status === "ok" ? "" : "error"}`}>
+              {leadFormMessage(state)}
+            </p>
+          )}
         </div>
-      </div>}
-      <div className="lead-form-foot">
-        <button type="submit" className="button button-navy" disabled={pending}><Plus size={18} aria-hidden="true"/>{pending?t('loading'):t('saveAnother')}</button>
-        <p className="admin-help">{t('enterSaves')}</p>
-        {state.status!=='idle'&&state.status!=='dup'&&<p role="status" className={`admin-feedback ${state.status==='ok'?'':'error'}`}>{leadFormMessage(state)}</p>}
-      </div>
-    </form>
-  </section>;
+      </form>
+    </section>
+  );
 }
 
 /** One search hit is enough of a lead to open the same drawer a list row opens. */
-function seedOf(hit:LeadSearchHitView):LeadDrawerSeed{
+function seedOf(hit: LeadSearchHitView): LeadDrawerSeed {
   return {
-    id:hit.id,leadId:hit.leadId,studentName:hit.studentName,guardianName:hit.guardianName,date:hit.date,
-    phones:hit.phones,classLabel:hit.classLabel,classGroup:hit.classGroup,school:hit.school,status:hit.status,
-    doNotContact:hit.doNotContact,contactable:hit.contactable,nextFollowUp:hit.nextFollowUp,followUp:hit.followUp,
+    id: hit.id,
+    leadId: hit.leadId,
+    studentName: hit.studentName,
+    guardianName: hit.guardianName,
+    date: hit.date,
+    phones: hit.phones,
+    classLabel: hit.classLabel,
+    classGroup: hit.classGroup,
+    school: hit.school,
+    status: hit.status,
+    doNotContact: hit.doNotContact,
+    contactable: hit.contactable,
+    nextFollowUp: hit.nextFollowUp,
+    followUp: hit.followUp,
   };
 }
 
-function ContactLinks({phones}:{phones:LeadPhoneView[]}){
-  const t=useTranslations('leads');
-  if(!phones.length)return <span className="admin-help">{t('noPhone')}</span>;
-  return <span className="overview-row-actions">
-    {phones.map((phone,index)=><span key={index} className="admin-inline">
-      <span className="admin-badge">{phone.masked}</span>
-      <a className="admin-mini-button" href={phone.tel}><Phone size={15} aria-hidden="true"/>{t('call')}</a>
-      <a className="admin-mini-button" href={phone.whatsapp} target="_blank" rel="noreferrer"><MessageCircle size={15} aria-hidden="true"/>{t('whatsapp')}</a>
-    </span>)}
-  </span>;
+function ContactLinks({ phones }: { phones: LeadPhoneView[] }) {
+  const t = useTranslations("leads");
+  if (!phones.length) return <span className="admin-help">{t("noPhone")}</span>;
+  return (
+    <span className="overview-row-actions">
+      {phones.map((phone, index) => (
+        <span key={index} className="admin-inline">
+          <span className="admin-badge">{phone.masked}</span>
+          <a className="admin-mini-button" href={phone.tel}>
+            <Phone size={15} aria-hidden="true" />
+            {t("call")}
+          </a>
+          <a
+            className="admin-mini-button"
+            href={phone.whatsapp}
+            target="_blank"
+            rel="noreferrer">
+            <MessageCircle size={15} aria-hidden="true" />
+            {t("whatsapp")}
+          </a>
+        </span>
+      ))}
+    </span>
+  );
 }
 
 /**
@@ -162,22 +422,33 @@ function ContactLinks({phones}:{phones:LeadPhoneView[]}){
  * digits live in one request body and in no address bar, no history entry, no `Referer` and no access
  * log. The answer comes back masked, so nothing echoes the search into a place it could be copied from.
  */
-export function LeadSearch({language='bn',digits='bn',current}:{language?:'bn'|'en';digits?:Digits;current:LeadListFiltersShape}){
-  const t=useTranslations('leads');
-  const router=useRouter();
-  const [state,action,pending]=useActionState(searchLeadsByNumber,IDLE_SEARCH);
-  const [open,setOpen]=useState(false);
-  const inputRef=useRef<HTMLInputElement>(null);
-  useEffect(()=>{
-    if(!open)return;
-    const timer=setTimeout(()=>inputRef.current?.focus(),80);
-    return ()=>clearTimeout(timer);
-  },[open]);
-  function onSubmit(event:FormEvent<HTMLFormElement>){
-    const typed=(inputRef.current?.value||'').trim();
+export function LeadSearch({
+  language = "bn",
+  digits = "bn",
+  current,
+}: {
+  language?: "bn" | "en";
+  digits?: Digits;
+  current: LeadListFiltersShape;
+}) {
+  const t = useTranslations("leads");
+  const router = useRouter();
+  const [state, action, pending] = useActionState(
+    searchLeadsByNumber,
+    IDLE_SEARCH,
+  );
+  const [open, setOpen] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const timer = setTimeout(() => inputRef.current?.focus(), 80);
+    return () => clearTimeout(timer);
+  }, [open]);
+  function onSubmit(event: FormEvent<HTMLFormElement>) {
+    const typed = (inputRef.current?.value || "").trim();
     // The typed text goes in last, so it wins over whatever `q` the page arrived with.
-    const target=leadListQuery({locale:'bn',...current,q:typed});
-    if(target.numberShaped)return; // let the form post to the action and answer it there
+    const target = leadListQuery({ locale: "bn", ...current, q: typed });
+    if (target.numberShaped) return; // let the form post to the action and answer it there
     event.preventDefault();
     // Only a word search reaches this line, and a word search navigates — so folding the panel away here
     // cannot take a posted number search with it. It once did: `preventDefault()` was called before the
@@ -189,197 +460,553 @@ export function LeadSearch({language='bn',digits='bn',current}:{language?:'bn'|'
     // operator meets if the box was cleared for them (React resets a form when its action commits, so the
     // search that just answered empties it) and they press search again. Nothing typed and nothing
     // filtered now leaves the box exactly where it is.
-    const here=new URL(window.location.href);
-    const there=new URL(target.href,here.origin);
-    if(here.pathname===there.pathname&&here.search===there.search)return;
+    const here = new URL(window.location.href);
+    const there = new URL(target.href, here.origin);
+    if (here.pathname === there.pathname && here.search === there.search)
+      return;
     setOpen(false);
-    router.push(target.href.replace(/^\/bn/,''));
+    router.push(target.href.replace(/^\/bn/, ""));
   }
-  if(!open){
-    return <button type="button" className="admin-mini-button" onClick={()=>setOpen(true)}><Search size={18} aria-hidden="true"/>{t('search')}</button>;
+  if (!open) {
+    return (
+      <button
+        type="button"
+        className="admin-mini-button"
+        onClick={() => setOpen(true)}>
+        <Search size={18} aria-hidden="true" />
+        {t("search")}
+      </button>
+    );
   }
-  const refused=state.status==='refused'||state.status==='error'||state.status==='unauthorized';
-  const message=state.status==='idle'?'':state.message;
-  return <section className="admin-panel" aria-label={t('search')}>
-    <div className="admin-panel-head"><h2>{t('search')}</h2><button type="button" className="admin-mini-button" onClick={()=>setOpen(false)}>{t('close')}</button></div>
-    <form action={action} onSubmit={onSubmit} className="admin-panel-body list-filter">
-      <label>{t('filterText')}
-        <input ref={inputRef} className="admin-input" name="phone" type="text" inputMode="text" autoComplete="off" defaultValue={current.q||''} aria-describedby="lead-search-help"/>
-        <small id="lead-search-help" className="admin-help">{t('searchNumberHelp')}</small>
-      </label>
-      <div className="lead-form-foot">
-        <button type="submit" className="button button-navy" disabled={pending}><Search size={18} aria-hidden="true"/>{pending?t('loading'):t('search')}</button>
-        {state.status==='found'&&<span className="admin-badge">{t('totalLeads',{count:formatNumber(state.total,digits)})}</span>}
-        {message&&<p role="status" className={`admin-feedback ${refused?'error':''}`}>{message}</p>}
+  const refused =
+    state.status === "refused" ||
+    state.status === "error" ||
+    state.status === "unauthorized";
+  const message = state.status === "idle" ? "" : state.message;
+  return (
+    <section className="admin-panel" aria-label={t("search")}>
+      <div className="admin-panel-head">
+        <h2>{t("search")}</h2>
+        <button
+          type="button"
+          className="admin-mini-button"
+          onClick={() => setOpen(false)}>
+          {t("close")}
+        </button>
       </div>
-    </form>
-    {state.status==='found'&&<div className="admin-panel-body"><div className="admin-table-wrap"><table className="admin-table admin-responsive-table">
-      <caption className="admin-help">{t('searchResults')}</caption>
-      <thead><tr><th>{t('colVisitor')}</th><th>{t('colContact')}</th><th>{t('colStatus')}</th><th>{t('colActions')}</th></tr></thead>
-      <tbody>{state.hits.map(hit=><tr key={hit.id}>
-        <td data-label={t('colVisitor')}><div><strong>{hit.studentName}</strong><br/><span className="admin-help">{hit.leadId}{hit.classGroup?` · ${formatClass(hit.classGroup,digits,language,t('colClass'))}`:hit.classLabel?` · ${hit.classLabel}`:''}</span></div></td>
-        <td data-label={t('colContact')}><div><ContactLinks phones={hit.phones}/></div></td>
-        <td data-label={t('colStatus')}><div><span className={`admin-badge ${statusBadge(hit.status)}`}>{statusLabel(t,hit.status)}</span>{hit.followUp!=='none'&&hit.nextFollowUp&&<span className={`admin-badge ${followUpBadge(hit.followUp)}`}>{formatDate(hit.nextFollowUp,digits,language)}</span>}</div></td>
-        <td data-label={t('colActions')}><div className="list-row-actions"><LeadDetailDrawer seed={seedOf(hit)} language={language} digits={digits}/></div></td>
-      </tr>)}</tbody>
-    </table></div></div>}
-  </section>;
+      <form
+        action={action}
+        onSubmit={onSubmit}
+        className="admin-panel-body list-filter">
+        <label>
+          {t("filterText")}
+          <input
+            ref={inputRef}
+            className="admin-input"
+            name="phone"
+            type="text"
+            inputMode="text"
+            autoComplete="off"
+            defaultValue={current.q || ""}
+            aria-describedby="lead-search-help"
+          />
+          <small id="lead-search-help" className="admin-help">
+            {t("searchNumberHelp")}
+          </small>
+        </label>
+        <div className="lead-form-foot">
+          <button
+            type="submit"
+            className="button button-navy"
+            disabled={pending}>
+            <Search size={18} aria-hidden="true" />
+            {pending ? t("loading") : t("search")}
+          </button>
+          {state.status === "found" && (
+            <span className="admin-badge">
+              {t("totalLeads", { count: formatNumber(state.total, digits) })}
+            </span>
+          )}
+          {message && (
+            <p
+              role="status"
+              className={`admin-feedback ${refused ? "error" : ""}`}>
+              {message}
+            </p>
+          )}
+        </div>
+      </form>
+      {state.status === "found" && (
+        <div className="admin-panel-body">
+          <div className="admin-table-wrap">
+            <table className="admin-table admin-responsive-table">
+              <caption className="admin-help">{t("searchResults")}</caption>
+              <thead>
+                <tr>
+                  <th>{t("colVisitor")}</th>
+                  <th>{t("colContact")}</th>
+                  <th>{t("colStatus")}</th>
+                  <th>{t("colActions")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {state.hits.map((hit) => (
+                  <tr key={hit.id}>
+                    <td data-label={t("colVisitor")}>
+                      <div>
+                        <strong>{hit.studentName}</strong>
+                        <br />
+                        <span className="admin-help">
+                          {hit.leadId}
+                          {hit.classGroup
+                            ? ` · ${formatClass(hit.classGroup, digits, language, t("colClass"))}`
+                            : hit.classLabel
+                              ? ` · ${hit.classLabel}`
+                              : ""}
+                        </span>
+                      </div>
+                    </td>
+                    <td data-label={t("colContact")}>
+                      <div>
+                        <ContactLinks phones={hit.phones} />
+                      </div>
+                    </td>
+                    <td data-label={t("colStatus")}>
+                      <div>
+                        <span
+                          className={`admin-badge ${statusBadge(hit.status)}`}>
+                          {statusLabel(t, hit.status)}
+                        </span>
+                        {hit.followUp !== "none" && hit.nextFollowUp && (
+                          <span
+                            className={`admin-badge ${followUpBadge(hit.followUp)}`}>
+                            {formatDate(hit.nextFollowUp, digits, language)}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td data-label={t("colActions")}>
+                      <div className="list-row-actions">
+                        <LeadDetailDrawer
+                          seed={seedOf(hit)}
+                          language={language}
+                          digits={digits}
+                        />
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </section>
+  );
 }
 
 /**
  * A row's controls: the inline status dropdown, the five quick follow-up buttons plus "clear", and the
  * deliberate action that lifts a do-not-contact block. The buttons send keys, not dates.
  */
-export function LeadRowControls({row,language='bn'}:{row:LeadRowView;language?:'bn'|'en'}){
-  const t=useTranslations('leads');
-  const [statusState,statusAction,statusPending]=useActionState(changeLeadStatus,idleLeadForm);
-  const [followState,followAction,followPending]=useActionState(chooseLeadFollowUp,idleLeadForm);
-  const [liftState,liftAction,liftPending]=useActionState(liftContactBlock,idleLeadForm);
-  const busy=statusPending||followPending||liftPending;
-  const states=[statusState,followState,liftState];
-  const message=states.map(state=>leadFormMessage(state)).filter(Boolean).pop()||'';
-  const failed=states.some(state=>state.status==='error');
-  return <div className="lead-row">
-    <form action={statusAction} className="list-row-actions">
-      <input type="hidden" name="id" value={row.id}/>
-      <label className="admin-help" htmlFor={`lead-status-${row.id}`}>{t('colStatus')}</label>
-      <select id={`lead-status-${row.id}`} className="admin-select" name="status" defaultValue={row.status}>
-        {LEAD_STATUS_OPTIONS.map(option=><option key={option} value={option}>{statusLabel(t,option)}</option>)}
-      </select>
-      <button type="submit" className="admin-mini-button" disabled={busy}>{t('save')}</button>
-    </form>
-    <form action={followAction} className="list-row-actions">
-      <input type="hidden" name="id" value={row.id}/>
-      {FOLLOW_UP_KEYS.filter(key=>key!=='custom').map(key=><button key={key} type="submit" name="followUp" value={key} className="admin-mini-button" disabled={busy}>{followUpLabel(t,key)}</button>)}
-      <input className="admin-input" type="date" name="customDay" aria-label={t('customDay')}/>
-      <button type="submit" name="followUp" value="custom" className="admin-mini-button" disabled={busy}>{followUpLabel(t,'custom')}</button>
-      <button type="submit" name="followUp" value={FOLLOW_UP_CLEAR} className="admin-mini-button" disabled={busy}>{followUpLabel(t,FOLLOW_UP_CLEAR)}</button>
-    </form>
-    {row.doNotContact&&<form action={liftAction} className="list-row-actions">
-      <input type="hidden" name="id" value={row.id}/>
-      <input type="hidden" name="allowed" value="true"/>
-      <span className="admin-help">{t('blockedHelp')}</span>
-      <button type="submit" className="admin-mini-button" disabled={busy}>{t('allowContact')}</button>
-    </form>}
-    {message&&<p role="status" className={`admin-feedback ${failed?'error':''}`}>{message}</p>}
-  </div>;
+export function LeadRowControls({
+  row,
+  language = "bn",
+}: {
+  row: LeadRowView;
+  language?: "bn" | "en";
+}) {
+  const t = useTranslations("leads");
+  const [statusState, statusAction, statusPending] = useActionState(
+    changeLeadStatus,
+    idleLeadForm,
+  );
+  const [followState, followAction, followPending] = useActionState(
+    chooseLeadFollowUp,
+    idleLeadForm,
+  );
+  const [liftState, liftAction, liftPending] = useActionState(
+    liftContactBlock,
+    idleLeadForm,
+  );
+  const busy = statusPending || followPending || liftPending;
+  const states = [statusState, followState, liftState];
+  const message =
+    states
+      .map((state) => leadFormMessage(state))
+      .filter(Boolean)
+      .pop() || "";
+  const failed = states.some((state) => state.status === "error");
+  return (
+    <div className="lead-row">
+      <form action={statusAction} className="list-row-actions">
+        <input type="hidden" name="id" value={row.id} />
+        <label className="admin-help" htmlFor={`lead-status-${row.id}`}>
+          {t("colStatus")}
+        </label>
+        <select
+          id={`lead-status-${row.id}`}
+          className="admin-select"
+          name="status"
+          defaultValue={row.status}>
+          {LEAD_STATUS_OPTIONS.map((option) => (
+            <option key={option} value={option}>
+              {statusLabel(t, option)}
+            </option>
+          ))}
+        </select>
+        <button type="submit" className="admin-mini-button" disabled={busy}>
+          {t("save")}
+        </button>
+      </form>
+      <form action={followAction} className="list-row-actions">
+        <input type="hidden" name="id" value={row.id} />
+        {FOLLOW_UP_KEYS.filter((key) => key !== "custom").map((key) => (
+          <button
+            key={key}
+            type="submit"
+            name="followUp"
+            value={key}
+            className="admin-mini-button"
+            disabled={busy}>
+            {followUpLabel(t, key)}
+          </button>
+        ))}
+        <input
+          className="admin-input"
+          type="date"
+          name="customDay"
+          aria-label={t("customDay")}
+        />
+        <button
+          type="submit"
+          name="followUp"
+          value="custom"
+          className="admin-mini-button"
+          disabled={busy}>
+          {followUpLabel(t, "custom")}
+        </button>
+        <button
+          type="submit"
+          name="followUp"
+          value={FOLLOW_UP_CLEAR}
+          className="admin-mini-button"
+          disabled={busy}>
+          {followUpLabel(t, FOLLOW_UP_CLEAR)}
+        </button>
+      </form>
+      {row.doNotContact && (
+        <form action={liftAction} className="list-row-actions">
+          <input type="hidden" name="id" value={row.id} />
+          <input type="hidden" name="allowed" value="true" />
+          <span className="admin-help">{t("blockedHelp")}</span>
+          <button type="submit" className="admin-mini-button" disabled={busy}>
+            {t("allowContact")}
+          </button>
+        </form>
+      )}
+      {message && (
+        <p role="status" className={`admin-feedback ${failed ? "error" : ""}`}>
+          {message}
+        </p>
+      )}
+    </div>
+  );
 }
 
 /**
  * The drawer's contents, shared with the lead's own page: fields, the numbers as masks plus their dial
  * destinations, the flags the importer or quick-add left behind, the notes timeline and the family.
  */
-function LeadDetailBody({seed,detail,loading,noteState,noteAction,notePending,reload,language,digits,sms=null}:{
-  seed:LeadDrawerSeed;detail:LeadDetailView|null;loading:boolean;noteState:LeadFormState;
-  noteAction:(payload:FormData)=>void;notePending:boolean;reload:()=>void;language:'bn'|'en';digits:Digits;
+function LeadDetailBody({
+  seed,
+  detail,
+  loading,
+  noteState,
+  noteAction,
+  notePending,
+  reload,
+  language,
+  digits,
+  sms = null,
+}: {
+  seed: LeadDrawerSeed;
+  detail: LeadDetailView | null;
+  loading: boolean;
+  noteState: LeadFormState;
+  noteAction: (payload: FormData) => void;
+  notePending: boolean;
+  reload: () => void;
+  language: "bn" | "en";
+  digits: Digits;
   /**
    * Present only where the screen loaded the visitor template catalog (R3.9). Absent means no Send SMS
    * here at all — the drawer a NUMBER SEARCH opens is a lookup of somebody else's family, not a place to
    * start a send, and it does not carry the catalog.
    */
-  sms?:LeadSmsKit|null;
-}){
-  const t=useTranslations('leads');
-  const [mergeState,mergeAction,mergePending]=useActionState(mergeTwoLeads,idleLeadForm);
-  const [tieState,tieAction,tiePending]=useActionState(tieLeadFamilies,idleLeadForm);
+  sms?: LeadSmsKit | null;
+}) {
+  const t = useTranslations("leads");
+  const [mergeState, mergeAction, mergePending] = useActionState(
+    mergeTwoLeads,
+    idleLeadForm,
+  );
+  const [tieState, tieAction, tiePending] = useActionState(
+    tieLeadFamilies,
+    idleLeadForm,
+  );
   // A merge or a tie changes this very drawer (family, notes, numbers), so it is read again after one.
-  useEffect(()=>{
-    if(mergeState.status!=='ok'&&tieState.status!=='ok')return;
+  useEffect(() => {
+    if (mergeState.status !== "ok" && tieState.status !== "ok") return;
     reload();
-  },[mergeState,tieState,reload]);
-  function confirmMerge(event:FormEvent<HTMLFormElement>){
-    if(!window.confirm(t('dupMergeConfirm')))event.preventDefault();
+  }, [mergeState, tieState, reload]);
+  function confirmMerge(event: FormEvent<HTMLFormElement>) {
+    if (!window.confirm(t("dupMergeConfirm"))) event.preventDefault();
   }
-  const row=detail?.row;
-  const phones=row?.phones||seed.phones;
-  const classText=row?.classGroup?formatClass(row.classGroup,digits,language,t('colClass')):(row?.classLabel||seed.classLabel||'');
-  const fields:[string,string][]=[
-    [t('leadId'),seed.leadId],
-    [t('date'),formatDate(seed.date,digits,language)],
-    [t('guardianName'),row?.guardianName||seed.guardianName||''],
-    [t('classLabel'),classText],
-    [t('school'),row?.school||seed.school||''],
-    [t('group'),row?groupLabel(t,row.group):''],
-    [t('shift'),row?shiftLabel(t,row.shift):''],
-    [t('medium'),row?mediumLabel(t,row.medium):''],
-    [t('source'),row?sourceLabel(t,row.source):''],
-    [t('interestedIn'),row?.interestedIn||''],
-    [t('colStatus'),statusLabel(t,seed.status)],
-    [t('nextFollowUp'),seed.nextFollowUp?formatDate(seed.nextFollowUp,digits,language):t('followUpNone')],
+  const row = detail?.row;
+  const phones = row?.phones || seed.phones;
+  const classText = row?.classGroup
+    ? formatClass(row.classGroup, digits, language, t("colClass"))
+    : row?.classLabel || seed.classLabel || "";
+  const fields: [string, string][] = [
+    [t("leadId"), seed.leadId],
+    [t("date"), formatDate(seed.date, digits, language)],
+    [t("guardianName"), row?.guardianName || seed.guardianName || ""],
+    [t("classLabel"), classText],
+    [t("school"), row?.school || seed.school || ""],
+    [t("group"), row ? groupLabel(t, row.group) : ""],
+    [t("shift"), row ? shiftLabel(t, row.shift) : ""],
+    [t("medium"), row ? mediumLabel(t, row.medium) : ""],
+    [t("source"), row ? sourceLabel(t, row.source) : ""],
+    [t("interestedIn"), row?.interestedIn || ""],
+    [t("colStatus"), statusLabel(t, seed.status)],
+    [
+      t("nextFollowUp"),
+      seed.nextFollowUp
+        ? formatDate(seed.nextFollowUp, digits, language)
+        : t("followUpNone"),
+    ],
   ];
-  return <>
-    <div className="overview-drawer-actions">
-      {phones.length?phones.map((phone,index)=><span key={index} className="admin-inline">
-        {/* The mask is what is printed; the number itself exists only as a dial or WhatsApp destination. */}
-        <span className="admin-badge">{phone.masked}</span>
-        <a className="admin-mini-button" href={phone.tel}><Phone size={15} aria-hidden="true"/>{t('call')}</a>
-        <a className="admin-mini-button" href={phone.whatsapp} target="_blank" rel="noreferrer"><MessageCircle size={15} aria-hidden="true"/>{t('whatsapp')}</a>
-      </span>):<span className="admin-help">{t('noPhone')}</span>}
-      <Link className="admin-mini-button" href={`/admin/leads/${seed.id}`}>{t('fields')}</Link>
-      {/* Send SMS (R3.9), offered only for a visitor who may be contacted. The rule is not decided here:
+  return (
+    <>
+      <div className="overview-drawer-actions">
+        {phones.length ? (
+          phones.map((phone, index) => (
+            <span key={index} className="admin-inline">
+              {/* The mask is what is printed; the number itself exists only as a dial or WhatsApp destination. */}
+              <span className="admin-badge">{phone.masked}</span>
+              <a className="admin-mini-button" href={phone.tel}>
+                <Phone size={15} aria-hidden="true" />
+                {t("call")}
+              </a>
+              <a
+                className="admin-mini-button"
+                href={phone.whatsapp}
+                target="_blank"
+                rel="noreferrer">
+                <MessageCircle size={15} aria-hidden="true" />
+                {t("whatsapp")}
+              </a>
+            </span>
+          ))
+        ) : (
+          <span className="admin-help">{t("noPhone")}</span>
+        )}
+        <Link className="admin-mini-button" href={`/admin/leads/${seed.id}`}>
+          {t("fields")}
+        </Link>
+        {/* Send SMS (R3.9), offered only for a visitor who may be contacted. The rule is not decided here:
           `canContact()` set `contactable` when the row was read and the send pipeline checks it again when
           the plan is built, so this button hiding is a courtesy, never the gate. */}
-      {sms&&seed.contactable!==false&&!seed.doNotContact&&<SmsDialogTrigger
-        request={{source:'lead',id:seed.id}}
-        templates={sms.templates}
-        institutePhone={sms.institutePhone}
-        title={t('smsOneTitle')}
-        label={t('smsLabel')}
-        defaultTemplateKey="visitor_thanks"
-        en={language==='en'}
-        lockedText={sms.allowTextEdit===false}
-      />}
-    </div>
-    {seed.doNotContact&&<p className="admin-feedback error">{t('doNotContact')} — {t('blockedHelp')}</p>}
-    <dl>{fields.filter(([,value])=>value).map(([label,value],index)=><div key={index}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
-    {!!(row?.flags||[]).length&&<><h3>{t('flags')}</h3>{/* The flag's own sentence, never the raw cell it quotes: a cell can hold a second valid number. */}
-      {row!.flags.map((flag,index)=><p key={index} className="lead-flag">{language==='bn'?flag.messageBn:flag.messageEn}</p>)}</>}
-    {/* R3.13 · the three hand-offs. Loaded with the detail, because whether an admission or a trial is
-        already open is a fact about this row, not something the list carries. */}
-    {detail&&<LeadHandoff leadId={seed.id} handoff={detail.handoff} language={language} digits={digits} onDone={reload}/>}
-    <h3>{t('notes')}</h3>
-    {loading&&<p className="admin-help" role="status">{t('loading')}</p>}
-    {!loading&&detail&&<ul className="lead-notes">{detail.notes.length?detail.notes.map((note,index)=><li key={index}>
-      <small><time dateTime={note.at.toISOString()}>{formatDate(note.at,digits,language)} · {formatTime(note.at,digits,language)}</time>{note.byName?` · ${note.byName}`:''}{note.outcome?` · ${noteOutcomeLabel(t,note.outcome)}`:''}</small>
-      {note.text}
-    </li>):<li className="admin-help">{t('noNotes')}</li>}</ul>}
-    <form action={noteAction} className="list-filter">
-      <input type="hidden" name="id" value={seed.id}/>
-      <label>{t('noteText')}<input className="admin-input" name="text" required maxLength={1000} autoComplete="off"/></label>
-      <label>{t('noteOutcome')}
-        <select className="admin-select" name="outcome" defaultValue="">
-          <option value="">—</option>
-          {LEAD_NOTE_OUTCOME_OPTIONS.map(option=><option key={option} value={option}>{noteOutcomeLabel(t,option)}</option>)}
-        </select>
-      </label>
-      <div className="lead-form-foot">
-        <button type="submit" className="admin-mini-button" disabled={notePending}>{notePending?t('loading'):t('addNote')}</button>
-        {noteState.status!=='idle'&&<p role="status" className={`admin-feedback ${noteState.status==='ok'?'':'error'}`}>{leadFormMessage(noteState)}</p>}
+        {sms && seed.contactable !== false && !seed.doNotContact && (
+          <SmsDialogTrigger
+            request={{ source: "lead", id: seed.id }}
+            templates={sms.templates}
+            institutePhone={sms.institutePhone}
+            title={t("smsOneTitle")}
+            label={t("smsLabel")}
+            defaultTemplateKey="visitor_thanks"
+            en={language === "en"}
+            lockedText={sms.allowTextEdit === false}
+          />
+        )}
       </div>
-    </form>
-    {!!(detail?.family||[]).length&&<><h3>{t('family')}</h3>{/* Its own class beside `lead-notes`: the timeline and the family are two lists, and a test (or a stylesheet) that means one of them must be able to say which. */}<ul className="lead-notes lead-family">{detail!.family.map(member=><li key={member.id}>
-      <Link href={`/admin/leads/${member.id}`}>{member.studentName}</Link> <span className="admin-help">{member.leadId} · {statusLabel(t,member.status)}</span>
-    </li>)}</ul></>}
-    {/* R3.10: leads outside the family that hold one of this lead's numbers. Two deliberate answers:
+      {seed.doNotContact && (
+        <p className="admin-feedback error">
+          {t("doNotContact")} — {t("blockedHelp")}
+        </p>
+      )}
+      <dl>
+        {fields
+          .filter(([, value]) => value)
+          .map(([label, value], index) => (
+            <div key={index}>
+              <dt>{label}</dt>
+              <dd>{value}</dd>
+            </div>
+          ))}
+      </dl>
+      {!!(row?.flags || []).length && (
+        <>
+          <h3>{t("flags")}</h3>
+          {/* The flag's own sentence, never the raw cell it quotes: a cell can hold a second valid number. */}
+          {row!.flags.map((flag, index) => (
+            <p key={index} className="lead-flag">
+              {language === "bn" ? flag.messageBn : flag.messageEn}
+            </p>
+          ))}
+        </>
+      )}
+      {/* R3.13 · the three hand-offs. Loaded with the detail, because whether an admission or a trial is
+        already open is a fact about this row, not something the list carries. */}
+      {detail && (
+        <LeadHandoff
+          leadId={seed.id}
+          handoff={detail.handoff}
+          language={language}
+          digits={digits}
+          onDone={reload}
+        />
+      )}
+      <h3>{t("notes")}</h3>
+      {loading && (
+        <p className="admin-help" role="status">
+          {t("loading")}
+        </p>
+      )}
+      {!loading && detail && (
+        <ul className="lead-notes">
+          {detail.notes.length ? (
+            detail.notes.map((note, index) => (
+              <li key={index}>
+                <small>
+                  <time dateTime={note.at.toISOString()}>
+                    {formatDate(note.at, digits, language)} ·{" "}
+                    {formatTime(note.at, digits, language)}
+                  </time>
+                  {note.byName ? ` · ${note.byName}` : ""}
+                  {note.outcome
+                    ? ` · ${noteOutcomeLabel(t, note.outcome)}`
+                    : ""}
+                </small>
+                {note.text}
+              </li>
+            ))
+          ) : (
+            <li className="admin-help">{t("noNotes")}</li>
+          )}
+        </ul>
+      )}
+      <form action={noteAction} className="list-filter">
+        <input type="hidden" name="id" value={seed.id} />
+        <label>
+          {t("noteText")}
+          <input
+            className="admin-input"
+            name="text"
+            required
+            maxLength={1000}
+            autoComplete="off"
+          />
+        </label>
+        <label>
+          {t("noteOutcome")}
+          <select className="admin-select" name="outcome" defaultValue="">
+            <option value="">—</option>
+            {LEAD_NOTE_OUTCOME_OPTIONS.map((option) => (
+              <option key={option} value={option}>
+                {noteOutcomeLabel(t, option)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className="lead-form-foot">
+          <button
+            type="submit"
+            className="admin-mini-button"
+            disabled={notePending}>
+            {notePending ? t("loading") : t("addNote")}
+          </button>
+          {noteState.status !== "idle" && (
+            <p
+              role="status"
+              className={`admin-feedback ${noteState.status === "ok" ? "" : "error"}`}>
+              {leadFormMessage(noteState)}
+            </p>
+          )}
+        </div>
+      </form>
+      {!!(detail?.family || []).length && (
+        <>
+          <h3>{t("family")}</h3>
+          {/* Its own class beside `lead-notes`: the timeline and the family are two lists, and a test (or a stylesheet) that means one of them must be able to say which. */}
+          <ul className="lead-notes lead-family">
+            {detail!.family.map((member) => (
+              <li key={member.id}>
+                <Link href={`/admin/leads/${member.id}`}>
+                  {member.studentName}
+                </Link>{" "}
+                <span className="admin-help">
+                  {member.leadId} · {statusLabel(t, member.status)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+      {/* R3.10: leads outside the family that hold one of this lead's numbers. Two deliberate answers:
         tie them into one family (both leads stay), or fold the other one into this one (it is binned,
         behind the browser's own confirm). Neither is offered for a lead already in the family list. */}
-    {!!(detail?.dupMates||[]).length&&<><h3>{t('dupMatesTitle')}</h3>
-      <ul className="lead-notes lead-family" data-dup-mates="true">{detail!.dupMates.map(mate=><li key={mate.id}>
-        <strong>{mate.studentName}</strong> <span className="admin-help">{mate.leadId} · {statusLabel(t,mate.status)}</span> <span className="admin-badge">{mate.masked}</span>
-        <span className="admin-inline">
-          <form action={tieAction} className="admin-inline">
-            <input type="hidden" name="id" value={seed.id}/><input type="hidden" name="otherId" value={mate.id}/>
-            <button type="submit" className="admin-mini-button" disabled={mergePending||tiePending}>{t('dupTie')}</button>
-          </form>
-          <form action={mergeAction} className="admin-inline" onSubmit={confirmMerge}>
-            <input type="hidden" name="targetId" value={seed.id}/><input type="hidden" name="sourceId" value={mate.id}/>
-            <button type="submit" className="admin-mini-button" disabled={mergePending||tiePending}>{t('dupMerge')}</button>
-          </form>
-        </span>
-      </li>)}</ul>
-      {(mergeState.status!=='idle'||tieState.status!=='idle')&&<p role="status" className={`admin-feedback ${mergeState.status==='error'||tieState.status==='error'?'error':''}`}>{leadFormMessage(mergeState)||leadFormMessage(tieState)}</p>}
-    </>}
-  </>;
+      {!!(detail?.dupMates || []).length && (
+        <>
+          <h3>{t("dupMatesTitle")}</h3>
+          <ul className="lead-notes lead-family" data-dup-mates="true">
+            {detail!.dupMates.map((mate) => (
+              <li key={mate.id}>
+                <strong>{mate.studentName}</strong>{" "}
+                <span className="admin-help">
+                  {mate.leadId} · {statusLabel(t, mate.status)}
+                </span>{" "}
+                <span className="admin-badge">{mate.masked}</span>
+                <span className="admin-inline">
+                  <form action={tieAction} className="admin-inline">
+                    <input type="hidden" name="id" value={seed.id} />
+                    <input type="hidden" name="otherId" value={mate.id} />
+                    <button
+                      type="submit"
+                      className="admin-mini-button"
+                      disabled={mergePending || tiePending}>
+                      {t("dupTie")}
+                    </button>
+                  </form>
+                  <form
+                    action={mergeAction}
+                    className="admin-inline"
+                    onSubmit={confirmMerge}>
+                    <input type="hidden" name="targetId" value={seed.id} />
+                    <input type="hidden" name="sourceId" value={mate.id} />
+                    <button
+                      type="submit"
+                      className="admin-mini-button"
+                      disabled={mergePending || tiePending}>
+                      {t("dupMerge")}
+                    </button>
+                  </form>
+                </span>
+              </li>
+            ))}
+          </ul>
+          {(mergeState.status !== "idle" || tieState.status !== "idle") && (
+            <p
+              role="status"
+              className={`admin-feedback ${mergeState.status === "error" || tieState.status === "error" ? "error" : ""}`}>
+              {leadFormMessage(mergeState) || leadFormMessage(tieState)}
+            </p>
+          )}
+        </>
+      )}
+    </>
+  );
 }
 
 /**
@@ -387,31 +1014,37 @@ function LeadDetailBody({seed,detail,loading,noteState,noteAction,notePending,re
  * with only what the row already has and the rest loads when it opens, so twenty rows do not cost twenty
  * queries; the page passes `initial` and it is there immediately.
  */
-function useLeadDetail(seed:LeadDrawerSeed,initial:LeadDetailView|null){
-  const [detail,setDetail]=useState<LeadDetailView|null>(initial);
-  const [loading,setLoading]=useState(false);
-  const [noteState,noteAction,notePending]=useActionState(writeLeadNote,idleLeadForm);
-  async function load(){
-    if(detail)return;
+function useLeadDetail(seed: LeadDrawerSeed, initial: LeadDetailView | null) {
+  const [detail, setDetail] = useState<LeadDetailView | null>(initial);
+  const [loading, setLoading] = useState(false);
+  const [noteState, noteAction, notePending] = useActionState(
+    writeLeadNote,
+    idleLeadForm,
+  );
+  async function load() {
+    if (detail) return;
     setLoading(true);
     setDetail(await loadLeadDetail(seed.id));
     setLoading(false);
   }
   // A note that was just written has to appear in the timeline, so the detail is read again after one.
-  useEffect(()=>{
-    if(noteState.status!=='ok')return;
+  useEffect(() => {
+    if (noteState.status !== "ok") return;
     reload();
-  },[noteState,seed.id]);// eslint-disable-line react-hooks/exhaustive-deps
-  function reload(){
+  }, [noteState, seed.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  function reload() {
     setLoading(true);
-    void loadLeadDetail(seed.id).then(loaded=>{if(loaded)setDetail(loaded);setLoading(false)});
+    void loadLeadDetail(seed.id).then((loaded) => {
+      if (loaded) setDetail(loaded);
+      setLoading(false);
+    });
   }
-  return {detail,loading,load,reload,noteState,noteAction,notePending};
+  return { detail, loading, load, reload, noteState, noteAction, notePending };
 }
 
 /** The detail drawer: the same `<dialog>` sheet the admissions and bookings rows already open. */
-export type DrawerMode='view'|'edit'|'handoff';
-export type DrawerApi={open:(mode:DrawerMode)=>void}|null;
+export type DrawerMode = "view" | "edit" | "handoff";
+export type DrawerApi = { open: (mode: DrawerMode) => void } | null;
 
 /**
  * The visitor drawer, in the three modes the reference row opens it in: `view` lands on the notes
@@ -419,47 +1052,156 @@ export type DrawerApi={open:(mode:DrawerMode)=>void}|null;
  * three hand-offs. `apiRef` lets the row's own Open / Edit / ⋯ buttons open it, and `triggerless`
  * hides the drawer's internal button so the row keeps exactly its five controls.
  */
-export function LeadDetailDrawer({seed,initial=null,autoOpen=false,language='bn',digits='bn',sms=null,triggerless=false,apiRef=null,editRow=null,fullPhone='',onEditSaved}:{
-  seed:LeadDrawerSeed;initial?:LeadDetailView|null;autoOpen?:boolean;language?:'bn'|'en';digits?:Digits;sms?:LeadSmsKit|null;
-  triggerless?:boolean;apiRef?:import('react').MutableRefObject<DrawerApi>|null;editRow?:LeadRowView|null;fullPhone?:string;onEditSaved?:()=>void;
-}){
-  const t=useTranslations('leads');
-  const dialog=useRef<HTMLDialogElement>(null),trigger=useRef<HTMLButtonElement>(null);
-  const [mode,setMode]=useState<DrawerMode>('view');
+export function LeadDetailDrawer({
+  seed,
+  initial = null,
+  autoOpen = false,
+  language = "bn",
+  digits = "bn",
+  sms = null,
+  triggerless = false,
+  apiRef = null,
+  editRow = null,
+  fullPhone = "",
+  onEditSaved,
+}: {
+  seed: LeadDrawerSeed;
+  initial?: LeadDetailView | null;
+  autoOpen?: boolean;
+  language?: "bn" | "en";
+  digits?: Digits;
+  sms?: LeadSmsKit | null;
+  triggerless?: boolean;
+  apiRef?: import("react").MutableRefObject<DrawerApi> | null;
+  editRow?: LeadRowView | null;
+  fullPhone?: string;
+  onEditSaved?: () => void;
+}) {
+  const t = useTranslations("leads");
+  const dialog = useRef<HTMLDialogElement>(null),
+    trigger = useRef<HTMLButtonElement>(null);
+  const [mode, setMode] = useState<DrawerMode>("view");
   /* The body mounts on the first open and not before. A closed drawer that still server-renders its
      edit, note and hand-off forms puts a useActionState dispatch per row into the flight payload of
      the whole list — eight rows of forms nobody can see, serialized for a progressive enhancement a
      closed dialog cannot use. The list page died on exactly that weight; the drawer also opens faster
      without it, and nothing a closed dialog owes the operator is lost: the header names the visitor. */
-  const [everOpen,setEverOpen]=useState(autoOpen);
-  const {detail,loading,load,reload,noteState,noteAction,notePending}=useLeadDetail(seed,initial);
-  function openDialog(how:DrawerMode='view'){setEverOpen(true);setMode(how);dialog.current?.showModal();void load()}
+  const [everOpen, setEverOpen] = useState(autoOpen);
+  const { detail, loading, load, reload, noteState, noteAction, notePending } =
+    useLeadDetail(seed, initial);
+  function openDialog(how: DrawerMode = "view") {
+    setEverOpen(true);
+    setMode(how);
+    dialog.current?.showModal();
+    void load();
+  }
   /* No dependency list on purpose: the row re-renders after every write, and the api the row's own
      buttons hold must open THIS render's drawer — a stale one would load the detail of a row that has
      already changed, which is the same lie a stale list is. */
-  useEffect(()=>{if(apiRef)apiRef.current={open:openDialog}});
-  useEffect(()=>{if(autoOpen)openDialog('view')},[]);// eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(()=>{
-    if(mode!=='handoff'||!dialog.current)return;
-    const timer=setTimeout(()=>dialog.current?.querySelector('[data-lead-handoff]')?.scrollIntoView({block:'start'}),120);
-    return ()=>clearTimeout(timer);
-  },[mode,loading]);
-  return <>
-    {!triggerless&&<button ref={trigger} type="button" className="admin-mini-button" onClick={()=>openDialog('view')}>{t('detail')}</button>}
-    <dialog className="overview-drawer" ref={dialog} aria-label={t('fields')} onClose={()=>trigger.current?.focus()}>
-      <header><h2>{seed.studentName}</h2><button type="button" className="admin-mini-button" onClick={()=>dialog.current?.close()}>{t('close')}</button></header>
-      <p className="admin-help">{t('leadId')} {seed.leadId}</p>
-      {everOpen&&mode==='edit'&&editRow&&<LeadEditForm row={editRow} fullPhone={fullPhone} language={language} digits={digits}
-        onDone={()=>{setMode('view');onEditSaved?.()}}/>}
-      {everOpen&&<LeadDetailBody seed={seed} detail={detail} loading={loading} noteState={noteState} noteAction={noteAction} notePending={notePending} reload={reload} language={language} digits={digits} sms={sms}/>}
-    </dialog>
-  </>;
+  useEffect(() => {
+    if (apiRef) apiRef.current = { open: openDialog };
+  });
+  useEffect(() => {
+    if (autoOpen) openDialog("view");
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (mode !== "handoff" || !dialog.current) return;
+    const timer = setTimeout(
+      () =>
+        dialog.current
+          ?.querySelector("[data-lead-handoff]")
+          ?.scrollIntoView({ block: "start" }),
+      120,
+    );
+    return () => clearTimeout(timer);
+  }, [mode, loading]);
+  return (
+    <>
+      {!triggerless && (
+        <button
+          ref={trigger}
+          type="button"
+          className="admin-mini-button"
+          onClick={() => openDialog("view")}>
+          {t("detail")}
+        </button>
+      )}
+      <dialog
+        className="overview-drawer"
+        ref={dialog}
+        aria-label={t("fields")}
+        onClose={() => trigger.current?.focus()}>
+        <header>
+          <h2>{seed.studentName}</h2>
+          <button
+            type="button"
+            className="admin-mini-button"
+            onClick={() => dialog.current?.close()}>
+            {t("close")}
+          </button>
+        </header>
+        <p className="admin-help">
+          {t("leadId")} {seed.leadId}
+        </p>
+        {everOpen && mode === "edit" && editRow && (
+          <LeadEditForm
+            row={editRow}
+            fullPhone={fullPhone}
+            language={language}
+            digits={digits}
+            onDone={() => {
+              setMode("view");
+              onEditSaved?.();
+            }}
+          />
+        )}
+        {everOpen && (
+          <LeadDetailBody
+            seed={seed}
+            detail={detail}
+            loading={loading}
+            noteState={noteState}
+            noteAction={noteAction}
+            notePending={notePending}
+            reload={reload}
+            language={language}
+            digits={digits}
+            sms={sms}
+          />
+        )}
+      </dialog>
+    </>
+  );
 }
 
 /** The lead's own page: the same contents, inline, so a printed sheet or an audit row can be followed. */
-export function LeadDetailInline({seed,initial,language='bn',digits='bn',sms=null}:{
-  seed:LeadDrawerSeed;initial:LeadDetailView|null;language?:'bn'|'en';digits?:Digits;sms?:LeadSmsKit|null;
-}){
-  const {detail,loading,reload,noteState,noteAction,notePending}=useLeadDetail(seed,initial);
-  return <LeadDetailBody seed={seed} detail={detail} loading={loading} noteState={noteState} noteAction={noteAction} notePending={notePending} reload={reload} language={language} digits={digits} sms={sms}/>;
+export function LeadDetailInline({
+  seed,
+  initial,
+  language = "bn",
+  digits = "bn",
+  sms = null,
+}: {
+  seed: LeadDrawerSeed;
+  initial: LeadDetailView | null;
+  language?: "bn" | "en";
+  digits?: Digits;
+  sms?: LeadSmsKit | null;
+}) {
+  const { detail, loading, reload, noteState, noteAction, notePending } =
+    useLeadDetail(seed, initial);
+  return (
+    <LeadDetailBody
+      seed={seed}
+      detail={detail}
+      loading={loading}
+      noteState={noteState}
+      noteAction={noteAction}
+      notePending={notePending}
+      reload={reload}
+      language={language}
+      digits={digits}
+      sms={sms}
+    />
+  );
 }

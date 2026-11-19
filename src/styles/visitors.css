@@ -1,0 +1,385 @@
+/* ==========================================================================
+   Visitors Page Modern Theme (leads.css)
+   Clean, modern enterprise styling matching the #27317f brand theme.
+   ========================================================================== */
+
+:root {
+  --lead-primary: #27317f;
+  --lead-primary-hover: #1e255e;
+  --lead-primary-light: #eef2ff;
+  --lead-border: #e2e8f0;
+  --lead-border-focus: #27317f;
+  --lead-bg-soft: #f8fafc;
+  --lead-text-main: #1e293b;
+  --lead-text-muted: #64748b;
+  --lead-radius-sm: 8px;
+  --lead-radius-md: 12px;
+  --lead-radius-full: 9999px;
+  --lead-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --lead-shadow-md:
+    0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* ───────── Top Heading ───────── */
+.admin-heading {
+  margin-bottom: 20px;
+}
+
+.admin-heading h1 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--lead-text-main);
+  letter-spacing: -0.02em;
+  margin: 0 0 4px 0;
+}
+
+.admin-heading p {
+  color: var(--lead-text-muted);
+  font-size: 0.92rem;
+  margin: 0;
+}
+
+/* ───────── Quick Tools Bar (Add & Search) ───────── */
+.lead-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+/* ───────── Status Chips ───────── */
+.lead-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  padding: 4px 0;
+}
+
+.lead-chips a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: #ffffff;
+  border: 1px solid var(--lead-border);
+  border-radius: var(--lead-radius-full);
+  color: #334155;
+  font-size: 0.86rem;
+  font-weight: 500;
+  text-decoration: none;
+  box-shadow: var(--lead-shadow-sm);
+  transition: all 0.15s ease-in-out;
+}
+
+.lead-chips a:hover {
+  border-color: var(--lead-primary);
+  background: var(--lead-primary-light);
+  color: var(--lead-primary);
+  transform: translateY(-1px);
+}
+
+.lead-chips a.selected {
+  background: var(--lead-primary);
+  border-color: var(--lead-primary);
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(39, 49, 127, 0.25);
+}
+
+.lead-chips a span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--lead-radius-full);
+  background: #f1f5f9;
+  color: var(--lead-text-muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  transition: all 0.15s ease-in-out;
+}
+
+.lead-chips a.selected span {
+  background: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+}
+
+/* ───────── Filters Form Card ───────── */
+.list-filter {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  background: #ffffff;
+  padding: 20px;
+  border: 1px solid var(--lead-border);
+  border-radius: var(--lead-radius-md);
+  box-shadow: var(--lead-shadow-sm);
+  margin-bottom: 24px;
+  align-items: flex-end;
+}
+
+.list-filter > label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #475569;
+  min-width: 0;
+}
+
+/* Standard Dropdowns */
+.list-filter .admin-select {
+  width: 100%;
+  height: 42px;
+  padding: 0 12px;
+  background-color: #ffffff;
+  border: 1px solid var(--lead-border);
+  border-radius: var(--lead-radius-sm);
+  color: var(--lead-text-main);
+  font-size: 0.9rem;
+  font-weight: 500;
+  outline: none;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+  cursor: pointer;
+}
+
+.list-filter .admin-select:hover {
+  border-color: #cbd5e1;
+}
+
+.list-filter .admin-select:focus {
+  border-color: var(--lead-primary);
+  box-shadow: 0 0 0 3px rgba(39, 49, 127, 0.12);
+}
+
+/* Filter Checkboxes (Show Closed / Stale) */
+.list-filter label:has(input[type="checkbox"]) {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  height: 42px;
+  padding: 0 14px;
+  background: var(--lead-bg-soft);
+  border: 1px solid var(--lead-border);
+  border-radius: var(--lead-radius-sm);
+  font-size: 0.86rem;
+  font-weight: 500;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.list-filter label:has(input[type="checkbox"]):hover {
+  background: var(--lead-primary-light);
+  border-color: var(--lead-primary);
+  color: var(--lead-primary);
+}
+
+.list-filter input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--lead-primary);
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+/* Form Action Buttons (Apply & Reset) */
+.list-filter .lead-form-foot {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  padding-top: 14px;
+  margin-top: 6px;
+  border-top: 1px solid var(--lead-border);
+}
+
+.list-filter .lead-form-foot .button-navy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  padding: 0 22px;
+  background: var(--lead-primary);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--lead-radius-sm);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(39, 49, 127, 0.2);
+  transition:
+    background-color 0.15s ease,
+    transform 0.1s ease;
+}
+
+.list-filter .lead-form-foot .button-navy:hover {
+  background: var(--lead-primary-hover);
+  transform: translateY(-1px);
+}
+
+.list-filter .lead-form-foot .admin-mini-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  padding: 0 18px;
+  background: #ffffff;
+  border: 1px solid var(--lead-border);
+  border-radius: var(--lead-radius-sm);
+  color: var(--lead-text-muted);
+  font-size: 0.88rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.list-filter .lead-form-foot .admin-mini-button:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: var(--lead-text-main);
+}
+
+/* ───────── Main List Panel & Table ───────── */
+.admin-panel.list-panel {
+  background: #ffffff;
+  border: 1px solid var(--lead-border);
+  border-radius: var(--lead-radius-md);
+  box-shadow: var(--lead-shadow-sm);
+  overflow: hidden;
+}
+
+.admin-panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--lead-border);
+  background: #ffffff;
+}
+
+.admin-panel-head h2 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--lead-text-main);
+  margin: 0;
+}
+
+.admin-panel-head .admin-help {
+  font-size: 0.85rem;
+  color: var(--lead-text-muted);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Table Design */
+.visitor-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.visitor-wrap table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.visitor-wrap table thead th {
+  background: var(--lead-bg-soft);
+  color: #475569;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--lead-border);
+  white-space: nowrap;
+}
+
+.visitor-wrap table tbody td {
+  padding: 14px 16px;
+  vertical-align: middle;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 0.9rem;
+  color: var(--lead-text-main);
+  font-variant-numeric: tabular-nums;
+}
+
+.visitor-wrap table tbody tr {
+  transition: background-color 0.12s ease;
+}
+
+.visitor-wrap table tbody tr:hover {
+  background: #f8faff;
+}
+
+.visitor-wrap table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Empty State */
+.admin-empty {
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.admin-empty p {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--lead-text-main);
+  margin: 0 0 6px 0;
+}
+
+.admin-empty .admin-help {
+  font-size: 0.88rem;
+  color: var(--lead-text-muted);
+}
+
+/* Panel Body / Footer (Pagination) */
+.admin-panel-body {
+  padding: 16px 22px;
+  border-top: 1px solid var(--lead-border);
+  background: #ffffff;
+}
+
+/* ───────── Responsive Breakpoints ───────── */
+@media (max-width: 1100px) {
+  .list-filter {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 800px) {
+  .list-filter {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .list-filter {
+    grid-template-columns: 1fr;
+    padding: 16px;
+  }
+
+  .lead-chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .lead-chips a {
+    flex-shrink: 0;
+  }
+}
