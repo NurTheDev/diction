@@ -1429,3 +1429,6 @@ html:lang(bn) .public-motion-root:not(.private-motion-disabled) :is(h1,h2,h3,h4)
 .list-table .list-edit-cell .pop-day-field{display:flex;flex-wrap:wrap}
 .list-edit-cell .pop-day-view{flex:1 1 100%}
 .list-edit-grid{align-items:start}
+
+/* A quick-add bar whose fields carry hints under them lines its inputs up at the top, not at the hints. */
+.list-filter:has(label>.admin-help){align-items:start}
