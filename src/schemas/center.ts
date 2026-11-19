@@ -45,7 +45,8 @@ export function shiftsOf(form:FormData):string[]{
 }
 export const centerStudentSchema=z.object({nameBn:required,nameEn:z.string().trim().max(120),classGroup:z.string().regex(/^[a-f\d]{24}$/i),roll:z.string().trim().max(40),school:z.string().trim().max(160),guardianName:required,guardianPhone:phone,studentPhone:optPhone,altPhone:optPhone,address:optional,admissionDate:date,startYear:integer(1900,2200),startMonth:integer(1,12),monthlyFee:integer(0,100000000),notes:z.string().trim().max(3000)});
 
-export const centerStudentEditSchema=centerStudentSchema.omit({classGroup:true,startYear:true,startMonth:true,monthlyFee:true});
+/* An imported student may have no admission date (the model allows ''); an edit must not force one to be invented. */
+export const centerStudentEditSchema=centerStudentSchema.omit({classGroup:true,startYear:true,startMonth:true,monthlyFee:true}).extend({admissionDate:date.or(z.literal(''))});
 
 /* S1 · the three doors that change a student over time. Each one is a month and a reason, and the month
    is what makes the write honest: a pause, a move and a price all say "from this month", so the record

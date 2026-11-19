@@ -1417,3 +1417,15 @@ html:lang(bn) .public-motion-root:not(.private-motion-disabled) :is(h1,h2,h3,h4)
 @media(max-width:760px){
   .admin-mobilebar .admin-user-menu>summary{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:118px;min-height:40px;line-height:26px;padding:6px 10px;font-size:13px}
 }
+
+/* The Exams fold in the sidebar reads as a menu item, not as a browser default ▶. */
+.admin-exams summary{list-style:none;display:flex;align-items:center;justify-content:space-between;min-height:44px;padding:9px 12px 9px 16px;border-radius:6px;font-size:16px;font-weight:500;color:#1a1d3a}
+.admin-exams summary::-webkit-details-marker{display:none}
+.admin-exams summary::after{content:"";width:8px;height:8px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(-45deg);transition:transform .15s;margin-right:4px}
+.admin-exams[open] summary::after{transform:rotate(45deg)}
+.admin-exams summary:hover{background:#f3f4fb}
+
+/* Inside a row's edit form the date field has a grid cell, not a table cell: let its button wrap under the box. */
+.list-table .list-edit-cell .pop-day-field{display:flex;flex-wrap:wrap}
+.list-edit-cell .pop-day-view{flex:1 1 100%}
+.list-edit-grid{align-items:start}

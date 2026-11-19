@@ -327,6 +327,7 @@ export function StudentRow({student,kit}:{student:CenterSearchItem;kit:StudentRo
         <RowEditForm kind={KIND} action={editAction} pending={editPending} onChange={keepTyped} saveLabel={t('row.save')}
           cancelLabel={t('row.cancel')} onCancel={()=>setEditing(false)}
           error={editState.status==='conflict'?t('conflict'):editState.status==='duplicate'?t('duplicate'):
+            editState.status==='invalid'&&editState.fields?.length?`${t('invalid')} (${editState.fields.map(f=>t(f==='guardianName'?'guardian':f)).join(', ')})`:
             editState.status==='invalid'||editState.status==='error'?t('invalid'):undefined}>
           {/* The two numbers the write is checked against: without them the action refuses the edit as
               somebody else's, which is what makes two operators on one student safe. */}
