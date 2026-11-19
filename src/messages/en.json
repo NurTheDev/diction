@@ -2638,7 +2638,6 @@
       "title": "Visitor import",
       "desc": "Upload an XLSX or CSV file. Check the preview first, then import with your decisions.",
       "fileLabel": "Visitor sheet (XLSX or CSV)",
-      "fileHint": "Test data only: the names and numbers must be made up.",
       "previewButton": "Preview first",
       "reading": "Reading the file…",
       "needFile": "Choose an XLSX or CSV file first.",

@@ -55,7 +55,6 @@ export function LeadImportWizard({history}:{history:LeadImportBatchRow[]}){
 
   return <><div className="admin-heading"><div><h1>{ti('title')}</h1><p>{ti('desc')}</p></div></div><section className="admin-panel">
     <div className="admin-panel-body">
-      <p className="admin-help">{ti('fileHint')}</p>
       <form ref={formRef} onSubmit={event=>event.preventDefault()}>
         <label className="admin-field"><span>{ti('fileLabel')}</span>
           <input type="file" name="file" accept=".xlsx,.xlsm,.csv,.txt" onChange={()=>setState(old=>({...old,result:null,undone:null,errorKey:null}))}/>
