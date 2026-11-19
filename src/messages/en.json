@@ -105,6 +105,7 @@
     "password": "Password",
     "login": "Sign in",
     "loginError": "Could not sign in. Please check your details and try again.",
+    "loginBusy": "Too many tries. Please wait 10 minutes and sign in again.",
     "signOut": "Sign out",
     "protected": "Secure dashboard",
     "protectedDesc": "You are signed in. Dashboard features will be added in a later phase.",
