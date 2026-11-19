@@ -1,0 +1,832 @@
+================================================================================
+COACHING-CENTRE ADMIN — STUDENT & CLASS WORKFLOW AUDIT
+================================================================================
+Project : diction (Next.js + MongoDB)
+Date    : 2026-11-18
+Scope   : /admin/students, /admin/students/[id], /admin/students/classes,
+          /admin/students/classes/[id], /admin/classes, and the server actions /
+          schemas / models behind those screens
+Method  : static code inspection, direct function-level reproduction where possible,
+          and the repository's own test suites. No source file was modified.
+Result  : 1 critical, 4 high, 7 medium, 6 low findings.
+
+NOTE
+  This report is the only file created by the audit. The application code, tests,
+  schemas and data were not changed.
+
+--------------------------------------------------------------------------------
+SEVERITY KEY
+--------------------------------------------------------------------------------
+  Critical : wrong money / data loss / a core flow produces a materially wrong result
+  High     : a core student or class operation cannot be performed correctly
+  Medium   : a real workflow or accounting defect with a workaround
+  Low      : confusing behaviour, edge case, hygiene, or test-suite health
+
+--------------------------------------------------------------------------------
+EXECUTIVE SUMMARY
+--------------------------------------------------------------------------------
+The student and class screens are functionally connected to the same MongoDB
+models, but they are not one workflow. The two biggest risks are:
+
+  1. A manual "Hold" is only a status flag. It does not write a hold period, so
+     lifting the hold re-bills every month the student was held. While the student
+     is held, earlier arrears also disappear from the class dues and the all-class
+     summary. This is a money bug and is reported as Critical (F-01).
+
+  2. A student cannot be moved to another class, and a student's monthly fee cannot
+     be changed after enrollment. Both fields are write-once at creation. The data
+     model was built for history (`classHistory`, `feeHistory`), but no action or
+     screen writes a change entry (F-02, F-03).
+
+The class screens duplicate each other with different fields: one screen can set a
+room and a fee, the other can assign teachers, and neither alone can fully edit a
+class (F-04). A class can also be archived while students are still on it, after
+which the class disappears from the all-class dues summary and from the enrollment
+picker while its students remain active (F-05).
+
+Finally, removals never get a purge date and no purge job reads removed students,
+although the product spec and the data model both describe that retention flow
+(F-10). The existing test suite passes except for one Bangla month-spelling test
+(F-18).
+
+--------------------------------------------------------------------------------
+FINDINGS AT A GLANCE
+--------------------------------------------------------------------------------
+  F-01  Critical  Hold does not record a hold period; unholding back-bills months
+  F-02  High      Student cannot be moved to another class
+  F-03  High      Student's monthly fee cannot be changed after enrollment
+  F-04  High      Two class editors with non-overlapping capabilities
+  F-05  High      Class can be archived with active students; dues summary drops it
+  F-06  Medium    Archived class hub still offers enrollment; generic false error
+  F-07  Medium    Class monthly fee is not applied/prefilled for new students
+  F-08  Medium    Shift has two sources of truth; the two editors write different ones
+  F-09  Medium    Fragile class uniqueness; archived/binned class blocks reuse
+  F-10  Medium    Removed students are never purged; purgeAt is dead
+  F-11  Medium    Class hub roll does not refresh after enrollment; form locks
+  F-12  Medium    Restore can return a student to an archived/deleted class
+  F-13  Low       Restore does not constrain the resume month
+  F-14  Low       Removing the last row on the last page leaves an invalid page
+  F-15  Low       Invalid class id in search becomes a hard load error
+  F-16  Low       Class fee "free" vs "not set" is ambiguous and cannot be cleared
+  F-17  Low       Hold/lift has no revision or lock guard
+  F-18  Low       Bangla month spelling mismatch breaks test:unit:core
+  ------------------------------------------------------------------------------
+
+================================================================================
+DETAILED FINDINGS
+================================================================================
+
+--------------------------------------------------------------------------------
+F-01 (Critical) — HOLD DOES NOT RECORD A HOLD PERIOD; UNHOLDING BACK-BILLS
+--------------------------------------------------------------------------------
+Where:
+  src/actions/center-students.ts:136-145      setStudentHold
+  src/lib/center/dues.ts:6-12                 calculateStudentDues
+  src/lib/center/month-status.ts:12-19        monthStatus / HELD month rule
+  src/lib/center/dues-query.ts:9,39-44        class dues and all-class summary
+  src/components/admin/students-row.tsx       row status chip / Hold menu
+  src/components/admin/student-profile-actions.tsx:25-36  profile status chip
+
+What happens today:
+  setStudentHold() only changes `student.status` to 'on_hold' or 'active' and
+  increments `revision`. It never appends anything to `student.holds[]`.
+  calculateStudentDues() returns no dues for any student whose status is not
+  'active' (line 7), and monthStatus() only treats an individual month as HELD
+  when a `holds[]` period covers that month (line 15).
+
+Consequences:
+  - While the student is on hold, the class dues query (`liveClassDues`) and the
+    all-class summary exclude them completely — including any arrears from before
+    the hold. The money is not shown anywhere on those screens.
+  - When the hold is lifted, status becomes 'active' and every month from the
+    student's start month to today is billed again, because no held period was
+    recorded.
+  - `holdReason` (shown by the row menu as "Reason for the hold: ...") is never
+    collected and is always empty for a hold made from the UI. Only imported/held
+    students have a reason.
+
+Reproduction (verified with the repository's own dues engine):
+  1. Student: start 2026-01, monthly fee 1000, no payments, due day 10.
+  2. Today: 2026-05-18.
+  3. Put the student on hold, then lift the hold in May.
+
+  Actual code result:
+    - status 'on_hold' ........................ dues = 0
+    - status 'active', no hold entry .......... dues = 5000  (Jan-May)
+    - status 'active', hold entry Feb-Apr ..... dues = 2000  (Jan + May)
+
+  The third line is the expected outcome if the hold is meant to pause fees.
+  The application produces the second line, because the UI hold wrote no period.
+
+Command used:
+  npx tsx -e "import {calculateStudentDues} from './src/lib/center/dues'; ..."
+
+Expected:
+  A hold pauses the monthly fee for the months it covers, preserves arrears from
+  before the hold, and the reason is stored with the period.
+
+Actual:
+  The hold pauses nothing persistently; it only hides the student from dues while
+  the status is on_hold. Lifting the hold charges for the hold months.
+
+Suggested fix:
+  - On hold: append a `holds[]` entry `{start: current month, reason, recordedBy}`
+    and change status in the same transaction; ask for the reason in the dialog
+    (the row/profile already has a place to display it).
+  - On lift: find the open hold (`!end`) and set `end` to the previous month (or
+    the current month, per policy), then set status 'active'; never leave an open
+    hold behind.
+  - Reject a second hold and reject lifting a student who is not on hold.
+  - Add a revision or student lock so hold/unhold cannot race a removal (F-17).
+  - Provide a data-repair path for students already on_hold without a hold period
+    (otherwise the first unhold after deployment will still back-bill).
+
+--------------------------------------------------------------------------------
+F-02 (High) — A STUDENT CANNOT BE MOVED TO ANOTHER CLASS
+--------------------------------------------------------------------------------
+Where:
+  src/schemas/center.ts:49                    centerStudentEditSchema omits classGroup
+  src/actions/center-students.ts:20-26        updateCenterStudent writes only personal fields
+  src/components/admin/center-forms.tsx:12    class <select> is rendered only when !item
+  src/app/[locale]/admin/students/[id]/page.tsx:13  edit form receives classes={[]}
+  src/models/CenterRecords.ts:29              classHistory exists on the model
+  src/actions/center-students.ts:17           classHistory is written only at creation
+
+Reproduction:
+  1. Enroll a student in Class 7.
+  2. Open the student's Edit screen or the inline row edit.
+  3. Look for a class field / transfer action.
+
+Expected:
+  A transfer action that changes `classGroup`, appends
+  `classHistory[] {classGroup, effectiveFrom}`, keeps old payments attached to the
+  old class (`classGroupAtPayment`), and applies dues from the chosen month.
+
+Actual:
+  There is no class field on any edit form and the edit schema does not accept
+  `classGroup`. `classHistory` is never read anywhere in `src/` or `tests/`.
+  The only workaround is a direct database edit, or remove + create a new
+  student. Re-creating loses the student id, payment history, exam results,
+  SMS history and any portal link.
+
+Suggested fix:
+  - Add `classGroup` to the edit schema (with an effective month) and a dedicated
+    "Move class" action, guarded by the student's revision and the identity lock
+    in the target class.
+  - Write `classGroup` and append to `classHistory` in one transaction; update
+    the roll/dues class filter and revalidate both class pages.
+  - Decide the billing boundary: fees up to the move month belong to the old
+    class, fees from the effective month to the new one. Payments already carry
+    `classGroupAtPayment`, so the data model can support this.
+
+--------------------------------------------------------------------------------
+F-03 (High) — A STUDENT'S MONTHLY FEE CANNOT BE CHANGED AFTER ENROLLMENT
+--------------------------------------------------------------------------------
+Where:
+  src/schemas/center.ts:49                    centerStudentEditSchema omits monthlyFee
+  src/actions/center-students.ts:20-26        updateCenterStudent never writes feeHistory
+  src/components/admin/center-forms.tsx:12    fee input is rendered only when !item
+  src/app/[locale]/admin/students/[id]/page.tsx:13  profile edit form
+  src/models/CenterRecords.ts:29              feeHistory[] effective-dated history
+  src/actions/center-students.ts:17           feeHistory is written only at creation
+
+Reproduction:
+  1. Enroll a student at 1000/month.
+  2. The centre raises the fee to 1200 from a chosen month.
+  3. Try to change it from the student list, the profile, or the class screen.
+
+Expected:
+  Append `feeHistory[] {effectiveFrom: month, amount: 1200}` and bill from that
+  month; earlier months keep 1000.
+
+Actual:
+  There is no fee field in any edit form and the update action never touches
+  `feeHistory`. Every future due stays at the original amount. The class monthly
+  fee is not a substitute: it is only a label/fallback on the class hub and is not
+  read by the dues engine for an individual student.
+
+Suggested fix:
+  - Add a fee-change action with an effective month, append to `feeHistory`,
+    validate no duplicate month, sort the history, and show the history on the
+    profile.
+  - Add a bulk "change fee for this class" action, since a centre normally raises
+    fees class-wide.
+  - Until then, at minimum surface the gap in the UI (a disabled field with an
+    explanation) rather than making the operator believe the fee is editable.
+
+--------------------------------------------------------------------------------
+F-04 (High) — TWO CLASS EDITORS WITH NON-OVERLAPPING CAPABILITIES
+--------------------------------------------------------------------------------
+Where:
+  src/components/admin/center-forms.tsx:11    CenterClassForm (legacy create)
+  src/schemas/center.ts:7                     centerClassSchema (name/year/shift/level only)
+  src/actions/center-students.ts:15           createCenterClass writes only those fields
+  src/components/admin/center-class-edit.tsx:8,11  legacy edit fields
+  src/actions/center-students.ts:128          legacy update writes only name/shift/active/teachers/fee
+  src/components/admin/class-management.tsx:47-49,237-270  O1 create/edit fields
+  src/actions/class-admin.ts:139-161          O1 create/update
+
+Capability matrix:
+  Field            Legacy create   Legacy edit   O1 create   O1 edit
+  ---------------- --------------  ------------  ----------  -------
+  name (bn/en)     yes             yes           yes         yes
+  academic year    yes             immutable     yes         immutable
+  shift (free)     yes             yes           via boxes   via boxes
+  shifts[] keys    no              no            yes         yes
+  level            yes             no            yes         yes
+  room             no              no            yes         yes
+  monthly fee      no              yes           yes         yes
+  teachers         no              yes           no          no
+  active/archive   no              yes           yes         yes
+
+Where the screens are:
+  /admin/students?new=1 and /admin/students/classes render the legacy create form.
+  /admin/students/classes renders the legacy edit form and the class list.
+  /admin/classes renders the O1 board and its own create/edit modal.
+
+Reproduction:
+  1. Create "Class 9" from /admin/students/classes. It has no fee and no room.
+  2. Open the class hub: "Monthly fee: Not set".
+  3. Try to set the room/level/fee from the same list. The legacy edit form has
+     no level or room; the O1 board is a different URL.
+  4. Create a class from /admin/classes. It has a room/fee/shifts, but no teacher
+     assignment; teachers can only be changed on the legacy screen.
+
+Expected:
+  One canonical class editor where every stored class fact can be set and
+  corrected, regardless of which "Classes" door the operator used.
+
+Actual:
+  The class record is only complete if the operator happens to use both screens.
+  A typo in a level cannot be fixed from the screen that accepted it. A fee cannot
+  be set at creation on the legacy screen (it must be saved, reopened and edited).
+
+Suggested fix:
+  - Make /admin/classes the canonical class screen and move teacher assignment
+    there; redirect /admin/students/classes (or reduce it to a read-only list)
+    so there is one create/edit path.
+  - If both screens must stay, extend the legacy schema/form/action to include
+    room, shifts and fee at create, and level/room/shifts at edit, keeping the
+    same field set and validation on both.
+  - Add a shared form component rather than two independent field lists.
+
+--------------------------------------------------------------------------------
+F-05 (High) — A CLASS CAN BE ARCHIVED WITH ACTIVE STUDENTS; DUES SUMMARY DROPS IT
+--------------------------------------------------------------------------------
+Where:
+  src/actions/center-students.ts:112-128      legacy update sets active from the form
+  src/actions/class-admin.ts:159-161          O1 update sets active from the form
+  src/components/admin/center-class-edit.tsx:11  plain active checkbox
+  src/components/admin/class-management.tsx:268-270  plain active checkbox
+  src/lib/center/dues-query.ts:39             all-class summary reads only active classes
+  src/app/[locale]/admin/students/page.tsx:13  enrollment choices read only active classes
+
+Reproduction:
+  1. Create a class with 10 active students.
+  2. Uncheck "Active" on either class editor and save.
+  3. Observe:
+       - the class disappears from the new-student class picker;
+       - the all-class dues summary no longer includes the class's dues;
+       - the class hub is still reachable, still shows the students and their dues;
+       - individual student rows still compute dues through liveClassDues.
+
+Expected:
+  Archiving a class is a deliberate retirement. It should either be refused while
+  students are still on it, or warn with the exact count and preserve the class in
+  historical dues/summary views. Students should not remain "active" in a class
+  that is hidden from the active roll.
+
+Actual:
+  A checkbox silently archives the class. No count, no confirmation, no warning.
+  The all-class due summary understates the centre's dues, and the class cannot be
+  selected for new enrollment (correct) while its existing students continue as
+  active.
+
+Suggested fix:
+  - Count non-removed students before saving `active:false`; return a warning/
+    confirmation state ("10 students are still on this class").
+  - Decide the dues policy: either keep archived classes in the all-class summary
+    with an "Archived" badge, or move their students to another class first
+    (requires F-02) and then archive.
+  - Do not let the class hub offer enrollment while archived (F-06).
+
+--------------------------------------------------------------------------------
+F-06 (Medium) — ARCHIVED CLASS HUB STILL OFFERS ENROLLMENT; FALSE GENERIC ERROR
+--------------------------------------------------------------------------------
+Where:
+  src/app/[locale]/admin/students/classes/[id]/page.tsx:40,71,98-104
+  src/actions/center-students.ts:16-17
+  src/components/admin/center-forms.tsx:12
+
+Reproduction:
+  1. Archive a class.
+  2. Open its hub. The header correctly says "Archived", but the "Add a student
+     to this class" panel is still rendered and expanded.
+  3. Fill every field correctly and submit.
+
+Expected:
+  The form is hidden or disabled with a sentence such as "This class is archived.
+  Activate it or choose another class first."
+
+Actual:
+  createCenterStudent() returns {status:'invalid', fields:['classGroup']} because
+  the class is not active. The form renders the generic message:
+    "Check the required fields and mobile numbers. Make sure the required fields
+     and mobile numbers are filled in correctly."
+  Every field is valid; the class is the problem. Because the class select is
+  pre-chosen and the message is not tied to a visible error, the operator can
+  retry forever.
+
+Suggested fix:
+  - Render the enrollment panel only when `group.active`; otherwise show the
+    archived explanation and an "Activate class" link for admins.
+  - Return a specific error code/message for an inactive class and display it
+    next to the class field (or as a banner).
+
+--------------------------------------------------------------------------------
+F-07 (Medium) — CLASS MONTHLY FEE IS NOT APPLIED OR PREFILLED FOR NEW STUDENTS
+--------------------------------------------------------------------------------
+Where:
+  src/components/admin/center-forms.tsx:9     ClassChoice has no monthlyFee field
+  src/components/admin/center-forms.tsx:12    new-student monthlyFee starts ''
+  src/actions/center-students.ts:17           fee comes only from the posted field
+  src/actions/center-students.ts:113-115      comment says the class fee is "the
+                                              number a new student's fee starts from"
+
+Reproduction:
+  1. Set a class monthly fee to 1200 on the O1 board / legacy edit.
+  2. Open the class hub and expand Add a student.
+  3. The monthly fee field is blank and required; nothing shows 1200.
+  4. Type 1000 (or forget and type a different number). The student is created at
+     1000; the class still says 1200.
+
+Expected:
+  Selecting/enrolling in a class prefills the student's monthly fee from the class
+  (1200), editable, with the class fee visible beside it. The server can use the
+  class fee as a fallback when the field is empty.
+
+Actual:
+  The two numbers are unrelated. The class hub quotes a fee the enrollment form
+  does not use, so a typo creates a permanent fee difference (and F-03 means it
+  cannot be corrected later).
+
+Suggested fix:
+  - Add `monthlyFee` to `ClassChoice`, prefill the student form on class selection
+    and when the hub preset is used.
+  - In `createCenterStudent`, if the field is empty and the class has a fee > 0,
+    use it; otherwise require an explicit value.
+  - Alternatively, remove the class-fee claim from the copy and make the
+    relationship explicit in both directions.
+
+--------------------------------------------------------------------------------
+F-08 (Medium) — SHIFT HAS TWO SOURCES OF TRUTH; THE TWO EDITORS WRITE DIFFERENT ONES
+--------------------------------------------------------------------------------
+Where:
+  src/models/CenterRecords.ts:19-20           `shift` (free word) and `shifts[]` (keys)
+  src/lib/classes/class-shared.ts:36-41       display prefers shifts[] over shift
+  src/actions/class-admin.ts:90-96,139-143,159-161
+  src/actions/center-students.ts:128          legacy update writes only `shift`
+  src/components/admin/center-class-edit.tsx:8  legacy shift text input
+  src/lib/routine/read.ts:175-183             routine reads `shift`, not shifts[]
+
+Reproduction A (legacy class → O1):
+  1. Create a class on the legacy screen with shift "Morning".
+  2. Open it on /admin/classes, tick "Evening", save.
+  3. class-admin's shiftOf() refuses to overwrite a custom shift, so:
+       shift  = "Morning"   (routine/timetable still offers Morning)
+       shifts = ["evening"]  (O1 card displays Evening)
+  4. The card and the routine now disagree about the class's shift.
+
+Reproduction B (O1 class → legacy):
+  1. Create a class on O1 with shifts [morning, evening]; shift is the Bangla
+     word for morning.
+  2. Edit the shift text on /admin/students/classes to "বিকাল".
+  3. Only `shift` changes; `shifts` still contains morning/evening.
+  4. O1 card still shows Morning/Evening; the routine now uses বিকাল.
+
+Expected:
+  One canonical shift representation. Old free-text records are migrated; both
+  screens display and edit the same value; the routine derives its shifts from the
+  same source.
+
+Actual:
+  Two values, and each screen writes only one of them. The O1 edit form does not
+  even display the free-text `shift` it refuses to overwrite, so the operator
+  cannot see which word the routine will use.
+
+Suggested fix:
+  - Normalize to the three keys (morning/day/evening) and derive the Bangla label
+    from the catalog; migrate legacy words by matching/asking.
+  - If free text must stay, make one field authoritative, show it in both editors,
+    and update both fields together (or stop reading the other).
+  - Update the routine to read `shifts[]` (or make it clear that `shift` is the
+    routine's single shift and `shifts[]` is display-only).
+
+--------------------------------------------------------------------------------
+F-09 (Medium) — FRAGILE CLASS UNIQUENESS; ARCHIVED/BINNED CLASS BLOCKS REUSE
+--------------------------------------------------------------------------------
+Where:
+  src/models/CenterRecords.ts:25              unique index {name.bn, academicYear, shift}
+  src/schemas/center.ts:7                     shift is free text
+  src/actions/class-admin.ts:90-96            writes the Bangla word of the first key
+  src/actions/center-students.ts:15           writes the raw text
+  src/actions/center-students.ts:128          legacy edit writes raw text
+
+Reproduction A (false uniqueness):
+  1. Create Class 9 / 2026 / "Morning" on the legacy screen.
+  2. Create Class 9 / 2026 / "morning" (lowercase) or "সকাল".
+  3. Both are created: the index is case- and script-sensitive. The centre now
+     has two records for what the operator considers one section, splitting the
+     roll, dues and reports.
+
+Reproduction B (invisible duplicate):
+  1. Delete a class with no students (moves it to the Recycle Bin).
+  2. Create the same name/year/shift again.
+  3. The insert fails with E11000 and the UI says "duplicate", but the existing
+     record is hidden in the bin, so the operator cannot see or resolve it.
+  4. Archived classes (active:false) are not hidden by the recycle hook and also
+     reserve their name/year/shift forever.
+
+Expected:
+  One class per real section. Deleted/archived records should either not block a
+  legitimate new class, or the UI should show the conflicting archived/binned
+  record and offer restore/rename.
+
+Actual:
+  False duplicates are allowed; true duplicate names are blocked by invisible
+  records. There is no way to diagnose the latter from the screen.
+
+Suggested fix:
+  - Canonicalize `shift` before writing (trim, case-fold, map Bangla words to
+    keys) and make the uniqueness rule match the UI's model (keys or a normalized
+    section key).
+  - Decide whether archived classes reserve names. If they should not, make the
+    index partial on live+archived policy and handle conflicts explicitly.
+  - Catch E11000 and look up the conflicting record (including bin/archived) to
+    tell the operator exactly what exists.
+
+--------------------------------------------------------------------------------
+F-10 (Medium) — REMOVED STUDENTS ARE NEVER PURGED; purgeAt IS DEAD
+--------------------------------------------------------------------------------
+Where:
+  src/actions/center-students.ts:146-150      manual removal sets no purgeAt
+  src/models/CenterRecords.ts:29-30           removal.purgeAt field + sparse index
+  src/models/CenterRecords.ts:107             settings.purgeRetentionDays
+  src/lib/center/workbook-batch.ts:8-9        only the workbook importer sets purgeAt
+  src/app/api/admin/jobs/daily/route.ts:35-41 daily job calls purgeExpired only
+  src/lib/admin/recycle.ts:329-332            purgeExpired scans recycleRegistry
+  src/lib/admin/recycle.ts (registry)         no `student` kind
+  docs/SPEC.md:329-334                        R6 requires this flow
+  docs/STATUS.md:73                           records it as missing
+
+Reproduction:
+  1. Remove a student with a leave month and reason.
+  2. Inspect the document: `removal` has removedAt/removedBy/reason/leaveDate but
+     no purgeAt.
+  3. Run the daily job / wait 365 days: nothing purges the student.
+  4. The removed page has no "purging soon" section; personal data (name, phone,
+     address) stays forever; payments are never anonymized.
+
+Expected (per the product spec):
+  A daily job that finds removed students past `purgeAt` (365 days), exports them
+  outside MongoDB, deletes personal data, keeps an anonymized payment ledger, shows
+  a 30-day notice and a Super Admin early permanent delete.
+
+Actual:
+  Not implemented. The only `purgeAt` written is for workbook red-row imports,
+  and even that value has no consumer. `purgeRetentionDays` is not exposed in any
+  settings UI.
+
+Suggested fix:
+  - Implement the R6 flow: set `purgeAt = now + retention` on manual removal;
+    add the removed-student purge to the daily job; export first; anonymize/delete
+    personal fields; keep the ledger; add the "purging soon" list and the Super
+    Admin early delete.
+  - If the policy is to retain removed students indefinitely, remove the dead
+    field/setting and document that decision. Do not leave a half-wired retention
+    promise in the model and docs.
+
+--------------------------------------------------------------------------------
+F-11 (Medium) — CLASS-HUB ROLL DOES NOT REFRESH AFTER ENROLLMENT; FORM LOCKS
+--------------------------------------------------------------------------------
+Where:
+  src/components/admin/center-forms.tsx:12           no onChanged/router.refresh after success
+  src/app/[locale]/admin/students/classes/[id]/page.tsx:106-107  separate list component
+  src/components/admin/center-student-list.tsx:46    useState(initial) seeds once
+  src/components/admin/center-student-list.tsx:55-63 list only re-reads via its own search()
+
+Reproduction:
+  1. Open a class hub with N students.
+  2. Expand "Add a student to this class", fill the form, submit.
+  3. The form says "Saved" and shows a View link. The roll below still shows the
+     old rows until a full page reload; the enrolled-count KPI may update, which
+     makes the stale roll more confusing.
+  4. The submit button is now disabled because state.status === 'ok', so a second
+     student cannot be added without a reload.
+
+Expected:
+  The new row appears in the roll immediately, the count updates, and the form
+  resets (or offers "Add another") for the next student.
+
+Actual:
+  The list's data is client state seeded once from the server prop; revalidation
+  does not re-run its `search()`. The form's action state stays 'ok', disabling
+  the button.
+
+Suggested fix:
+  - Give `CenterStudentForm` an `onCreated` callback (or a shared refresh
+    context) and call the list's `search`/`onChanged` after a successful create.
+  - Reset the action state after success, or render the form with a changing key,
+    so the next enrollment starts clean.
+  - If the form is intentionally one-at-a-time, say so and provide an explicit
+    "Add another" button instead of a dead disabled button.
+
+--------------------------------------------------------------------------------
+F-12 (Medium) — RESTORE CAN RETURN A STUDENT TO AN ARCHIVED/DELETED CLASS
+--------------------------------------------------------------------------------
+Where:
+  src/actions/center-students.ts:151-155      restore never checks the class
+  src/app/[locale]/admin/students/removed/page.tsx:3  restore form
+  src/components/admin/center-student-list.tsx         restore menu
+  src/lib/admin/recycle.ts:101-110            class delete only counts non-removed students
+
+Reproduction A:
+  1. Remove a student.
+  2. Archive the student's class.
+  3. Restore the student with a later resume month.
+  4. Restore succeeds; the student is active in an archived class. The class hub
+     still shows them; the enrollment picker no longer offers the class.
+
+Reproduction B:
+  1. Remove every student from a class (so the class delete is not blocked by
+     non-removed students).
+  2. Delete the class and let the Recycle Bin purge it after 30 days.
+  3. Restore one of its removed students.
+  4. `classGroup` points to a missing document. The profile shows class "—";
+     there is no class-transfer UI (F-02) to repair it.
+
+Expected:
+  Restore validates that the class exists, is live (not in the bin) and is active.
+  If not, it refuses with a specific message, or lets the operator choose a new
+  class as part of the restore.
+
+Actual:
+  No class validation at all. The student can be restored into a retired or
+  nonexistent class.
+
+Suggested fix:
+  - Inside the restore transaction, load the class with the recycle hook and
+    check `active`.
+  - If the class is unavailable, return a specific error and, once F-02 exists,
+    offer a destination class.
+  - Consider blocking class deletion/purge while removed students still reference
+    it, or nulling/reassigning those references.
+
+--------------------------------------------------------------------------------
+F-13 (Low) — RESTORE DOES NOT CONSTRAIN THE RESUME MONTH
+--------------------------------------------------------------------------------
+Where:
+  src/actions/center-students.ts:151-155      rejects resume <= leave as generic 'error'
+  src/components/admin/students-row.tsx:230-239  restore MonthField has no notBefore
+  src/components/admin/center-restore-form.tsx:4 removed-page restore form
+  src/components/admin/month-popover.tsx:37-48   MonthField supports notBefore/notAfter
+
+Reproduction:
+  1. Remove a student with leave month March 2026.
+  2. Open Restore, pick March 2026 (or earlier), enter a reason, submit.
+  3. The action returns `{status:'error'}`; the UI says "Restore failed".
+
+Expected:
+  The picker disables months up to and including the leave month, and a manual
+  attempt explains "The resume month must be after the leave month."
+
+Actual:
+  Any month is selectable; the only feedback is a generic failure.
+
+Suggested fix:
+  - Pass `notBefore` = the month after `student.leaveMonth` to both restore
+    MonthFields (the component already supports it).
+  - Return a specific error code/message, and display the leave month beside the
+    picker.
+
+--------------------------------------------------------------------------------
+F-14 (Low) — REMOVING THE LAST ROW ON THE LAST PAGE LEAVES AN INVALID PAGE
+--------------------------------------------------------------------------------
+Where:
+  src/components/admin/center-student-list.tsx:55-63  onChanged re-reads result.page
+  src/components/admin/center-student-list.tsx:78     pages = ceil(total/20)
+  src/components/admin/center-student-list.tsx:145-148 pagination display
+  src/actions/center-students.ts:51-107               search clamps only to 1..10000
+
+Reproduction:
+  1. Have 21 students. Go to page 2 (1 row).
+  2. Remove that student.
+  3. onChanged calls search(2); the server returns no items, total 20.
+  4. The list shows "page 2 of 1" and an empty table; Previous is the only way out.
+
+Expected:
+  The list re-reads page 1 (or the new last page) after a write that makes the
+  current page empty.
+
+Actual:
+  Empty page with an out-of-range page number.
+
+Suggested fix:
+  - In `search`, if the returned `items` is empty and the requested page > 1,
+    re-read page-1 (or clamp page to `Math.max(1, Math.ceil(total/20))` and return
+    the clamped page).
+  - Apply the same rule after any write that can reduce the total (remove, filter
+    change).
+
+--------------------------------------------------------------------------------
+F-15 (Low) — INVALID CLASS ID IN SEARCH BECOMES A HARD LOAD ERROR
+--------------------------------------------------------------------------------
+Where:
+  src/actions/center-students.ts:65            invalid class id -> error:true
+  src/components/admin/center-student-list.tsx:110 error branch
+  src/actions/center-students.ts:51-107        searchCenterStudents
+
+Reproduction:
+  Call searchCenterStudents with `classId:'not-an-id'`, or reach the list with a
+  stale/incorrect class id (e.g. a preserved client state or a crafted request).
+
+Expected:
+  An empty result with a specific "class not found" message, or ignore the filter.
+
+Actual:
+  `{items:[], total:0, page, error:true}`. The list shows the generic "data could
+  not be read" state, which blames the server for a bad filter.
+
+Suggested fix:
+  - Return an `invalidClass` flag (or treat a non-ObjectId class as no class) and
+    show a filter-level explanation; reserve `error:true` for actual read
+    failures.
+
+--------------------------------------------------------------------------------
+F-16 (Low) — CLASS FEE "FREE" VS "NOT SET" IS AMBIGUOUS AND CANNOT BE CLEARED
+--------------------------------------------------------------------------------
+Where:
+  src/schemas/center.ts:21-34                 comment: 0 = free, blank = not decided
+  src/models/CenterRecords.ts:20-22           comment: 0 = not set
+  src/actions/center-students.ts:112-120      blank = leave unchanged
+  src/actions/class-admin.ts:127,142          blank on create -> 0
+  src/components/admin/class-management.tsx:124-125  0 displays "fee not set"
+  src/messages/{bn,en}.json:5322,5356         conflicting help strings
+
+Reproduction:
+  1. Set a class fee to 1200.
+  2. Try to clear it: leaving the box empty keeps 1200 ("leave unchanged").
+     Entering 0 stores 0, which the card displays as "Monthly fee not set yet".
+  3. There is no display for a genuinely free class and no explicit "clear fee".
+
+Expected:
+  A defined semantic: `null`/absent = not decided, 0 = free (or vice versa), a
+  clear button, and a display that distinguishes them.
+
+Actual:
+  Two comments and two help strings disagree; the UI treats both blank and 0 as
+  "not set"; clearing requires knowing to type 0.
+
+Suggested fix:
+  - Pick one representation and use it consistently in the schema, model, actions,
+    displays and help text.
+  - Add an explicit "Clear fee" control that writes the unset sentinel rather than
+    asking the operator to type 0.
+  - Display free as "৳0 (free)" and unset as "Not decided" if both are supported.
+
+--------------------------------------------------------------------------------
+F-17 (Low) — HOLD/LIFT HAS NO REVISION OR LOCK GUARD
+--------------------------------------------------------------------------------
+Where:
+  src/actions/center-students.ts:136-145      setStudentHold loads and saves without a lock
+  src/actions/center-students.ts:146-150      removeCenterStudent does use studentLock
+  src/actions/center-students.ts:20-26        updateCenterStudent uses revision/updatedAt
+
+Reproduction:
+  Two operators act at the same time: one holds/lifts, the other removes (or
+  another hold/lift). setStudentHold reads the document, then `save()` writes only
+  its modified paths. There is no status/version predicate and no student lock.
+
+Expected:
+  A stale write is refused or serialized; a removed student cannot be brought back
+  to `on_hold` by a late save.
+
+Actual:
+  Last write wins. A late hold save can overwrite `status:'removed'` while leaving
+  the removal object in place, producing a record that is neither cleanly removed
+  nor cleanly held. A no-op lift on an active student also succeeds and logs.
+
+Suggested fix:
+  - Acquire `studentLock(id)` and use an optimistic predicate on `revision` /
+    `status` (e.g. `findOneAndUpdate({_id, status:{$ne:'removed'}, revision}, ...)`).
+  - Reject hold when already on_hold and lift when not on_hold; return `conflict`
+    for a stale revision.
+
+--------------------------------------------------------------------------------
+F-18 (Low) — BANGLA MONTH SPELLING MISMATCH BREAKS test:unit:core
+--------------------------------------------------------------------------------
+Where:
+  src/lib/achievement-date.ts:1-8             uses Intl.DateTimeFormat('bn-BD')
+  tests/achievement.test.ts:7                 expects '১ জানুয়ারি ২০২৬'
+  src/lib/center/sms-source.ts:39             hardcodes 'জানুয়ারি'
+  src/messages/bn.json                        shared month table
+
+Reproduction:
+  npx tsx -e "import {achievementDateBn} from './src/lib/achievement-date'; \
+              console.log(achievementDateBn('2026-01-01'))"
+  Actual  : "১ জানুয়ারী ২০২৬"
+  Expected: "১ জানুয়ারি ২০২৬" (the test and the rest of the app)
+
+  `npm run test:unit:core` stops at tests/achievement.test.ts because the suites
+  are chained with `&&`; every later suite in that script is not run.
+
+Cause:
+  This Node/ICU build renders the Bangla long month as "জানুয়ারী" (with ী), while
+  the project's own month table and `MONTHS_BN` use "জানুয়ারি" (with ি).
+
+Expected:
+  One month vocabulary across the app.
+
+Actual:
+  Public achievement pages use the ICU spelling; the center screens/SMS use the
+  catalog spelling. The public page and the SMS can show different spellings of
+  the same month.
+
+Suggested fix:
+  - Format `achievementDateBn` from the shared month table/catalog instead of
+    `Intl` (the rest of the app already does this), or
+  - If the ICU spelling is preferred, update `MONTHS_BN`, the catalogs and the
+    test together. Either way, add a shared test that compares every month.
+
+================================================================================
+WHAT WAS CHECKED AND LOOKED CORRECT (to avoid false alarms)
+================================================================================
+These areas were inspected and did not show the suspected defect:
+
+  - Recycle Bin hiding: addRecycleFields() installs Mongoose pre-query hooks, so
+    `CenterClassGroup.find()`, `findById()`, `countDocuments()` and similar live
+    reads automatically exclude `deletedAt` rows. The class list/board and class
+    hub therefore do not show soft-deleted classes. (Aggregations are also
+    filtered by a pipeline stage.)
+  - Student edit concurrency: updateCenterStudent compares both `updatedAt` and
+    `revision`, uses the student/identity locks, and refuses a stale write.
+  - Duplicate student detection inside a class: the transaction re-checks a
+    normalized name plus the guardian phone and returns `duplicate`; the pre-check
+    is only a fast path.
+  - Restore hold math for the removed interval: leave month is the last billable
+    month, resume month is billable, and the months strictly between are written
+    as a hold period. This part of restore is correct (when the class exists).
+  - Class delete is reference-blocked while non-removed students or live exams
+    reference the class; that block is intentional and works.
+  - `npm run typecheck` passed.
+  - `npm run test:center` passed (9 suites).
+  - `npm run test:sms` passed (provider, retry, templates, recipients, quiet).
+
+================================================================================
+TEST / COMMAND EVIDENCE
+================================================================================
+  npm run typecheck
+    -> passed (no TypeScript errors).
+
+  npm run test:center
+    -> passed (9 Center suites).
+
+  npm run test:sms
+    -> passed (provider, retry, templates, recipients, quiet hours).
+
+  npm run test:unit:core
+    -> fails at tests/achievement.test.ts:7:
+         AssertionError: expected '১ জানুয়ারি ২০২৬' but got '১ জানুয়ারী ২০২৬'
+       Because the script chains suites with &&, the suites after achievement do
+       not run in that command. This is an environment/ICU spelling mismatch, not
+       a type or logic crash, but it does block the repository's own core test
+       command.
+
+  Focused reproduction of the hold bug (dues engine only, no database):
+    npx tsx -e "import {calculateStudentDues} from './src/lib/center/dues'; ..."
+    -> active, no hold record : 5000
+    -> on_hold                : 0
+    -> active, hold Feb-Apr   : 2000
+
+  Focused reproduction of the month spelling:
+    npx tsx -e "import {achievementDateBn} from './src/lib/achievement-date'; ..."
+    -> "১ জানুয়ারী ২০২৬"
+
+================================================================================
+RECOMMENDED IMPLEMENTATION ORDER
+================================================================================
+  1. F-01  Fix hold periods first. It is the only finding that actively produces
+           a wrong amount of money on a normal workflow.
+  2. F-02 + F-03  Add class transfer and effective-dated fee changes. These unlock
+           a correct F-05 archive policy (move students, then retire a class).
+  3. F-04 + F-08 + F-09  Consolidate the class editor and normalize the shift /
+           uniqueness model before more class data is created.
+  4. F-05 + F-06 + F-07  Make archive safe, hide enrollment for archived classes,
+           and connect the class fee to enrollment.
+  5. F-10  Implement or explicitly cancel the removed-student retention flow.
+  6. F-11..F-17  Workflow polish, validation and concurrency hardening.
+  7. F-18  Unblock the core test command (shared month table).
+
+================================================================================
+END OF REPORT
+================================================================================

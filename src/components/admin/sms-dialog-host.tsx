@@ -1,7 +1,7 @@
-import {getLocale} from 'next-intl/server';
-import {smsDialogData} from '@/lib/center/sms-dialog-data';
-import SmsDialogTrigger from './sms-dialog-trigger';
-import type {SmsSendRequest} from './send-sms-dialog';
+import { smsDialogData } from "@/lib/center/sms-dialog-data";
+import { getLocale } from "next-intl/server";
+import type { SmsSendRequest } from "./send-sms-dialog";
+import SmsDialogTrigger from "./sms-dialog-trigger";
 
 /**
  * Server-side half of the SMS entry point (R2).
@@ -15,20 +15,33 @@ import type {SmsSendRequest} from './send-sms-dialog';
  * (`Lead`, `TeacherCandidate`) are R3/R4 deliverables, so they are not wired here yet; when they land
  * they add a source kind to src/lib/center/sms-source.ts and render this same component.
  */
-export default async function SmsDialogHost(props:{
-  request:SmsSendRequest;
-  title:string;
-  label:string;
-  defaultTemplateKey?:string;
-  variant?:'mini'|'navy';
-  disabled?:boolean;
-  icon?:boolean;
-}){
-  const {request,title,label,defaultTemplateKey,variant,disabled,icon}=props;
-  const [data,locale]=await Promise.all([smsDialogData(),getLocale().catch(()=>'bn')]);
+export default async function SmsDialogHost(props: {
+  request: SmsSendRequest;
+  title: string;
+  label: string;
+  defaultTemplateKey?: string;
+  variant?: "mini" | "navy";
+  disabled?: boolean;
+  icon?: boolean;
+}) {
+  const { request, title, label, defaultTemplateKey, variant, disabled, icon } =
+    props;
+  const [data, locale] = await Promise.all([
+    smsDialogData(),
+    getLocale().catch(() => "bn"),
+  ]);
   return (
-    <SmsDialogTrigger request={request} templates={data.templates} institutePhone={data.institutePhone}
-      title={title} label={label}
-      defaultTemplateKey={defaultTemplateKey} en={locale==='en'} variant={variant} disabled={disabled} icon={icon} />
+    <SmsDialogTrigger
+      request={request}
+      templates={data.templates}
+      institutePhone={data.institutePhone}
+      title={title}
+      label={label}
+      defaultTemplateKey={defaultTemplateKey}
+      en={locale === "en"}
+      variant={variant}
+      disabled={disabled}
+      icon={icon}
+    />
   );
 }
