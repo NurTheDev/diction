@@ -14,7 +14,7 @@
  */
 import {useTranslations} from 'next-intl';
 import {ClassEditorForm,draftOfClass,type TeacherOption} from './class-management';
-import type {Digits} from '@/lib/admin/format';
+import {formatNumber,type Digits} from '@/lib/admin/format';
 
 /** One class as the list row hands it to the editor. */
 export interface CenterClassItem{
@@ -34,7 +34,7 @@ export function CenterClassEdit({item,teacherOptions,digits}:{
      ticks a teacher inside it and clicks its first button, which is the save. It sits on the fold rather
      than on the form so that it names the whole thing the operator opened, whichever form is inside. */
   return <details className="center-preview-row" data-class-edit={item.id}>
-    <summary data-class-summary={item.id}>{item.nameBn} · {item.year} {item.shift} ·{' '}
+    <summary data-class-summary={item.id}>{item.nameBn} · {formatNumber(item.year,digits)} {item.shift} ·{' '}
       {item.active?t('classEdit.active'):t('classEdit.archived')} ·{' '}
       {assigned.length?assigned.join(', '):t('classEdit.teacherNone')}</summary>
     <ClassEditorForm draft={draftOfClass({

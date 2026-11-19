@@ -53,10 +53,8 @@ export function LeadImportWizard({history}:{history:LeadImportBatchRow[]}){
   const undecided=preview?preview.rows.filter(row=>row.dateSuggested&&!decisions.accept[row.key]).length:0;
   const latest=history.find(batch=>!batch.undoneAt);
 
-  return <section className="admin-panel">
-    <div className="admin-panel-head"><h2>{ti('title')}</h2></div>
+  return <><div className="admin-heading"><div><h1>{ti('title')}</h1><p>{ti('desc')}</p></div></div><section className="admin-panel">
     <div className="admin-panel-body">
-      <p>{ti('desc')}</p>
       <p className="admin-help">{ti('fileHint')}</p>
       <form ref={formRef} onSubmit={event=>event.preventDefault()}>
         <label className="admin-field"><span>{ti('fileLabel')}</span>
@@ -109,7 +107,7 @@ export function LeadImportWizard({history}:{history:LeadImportBatchRow[]}){
         {latest&&<p className="admin-help">{ti('undoNote')}</p>}
       </div>
     </div>
-  </section>;
+  </section></>;
 }
 
 function WizardRow({row,decisions,setAccept,setSkip}:{

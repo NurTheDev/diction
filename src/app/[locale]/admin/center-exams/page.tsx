@@ -56,8 +56,8 @@ export default async function Exams({params,searchParams}:{params:Promise<{local
     <div className="admin-heading"><div>
       <h1>{t('list.title')}</h1>
       <p>{t('list.desc')}</p>
-      <p className="admin-help"><Link className="text-link" href="/admin/grading-scale" data-link-scale>{t('list.scaleLink')}</Link>
-        {' · '}
+      <p className="admin-help">{scope.scale&&<><Link className="text-link" href="/admin/grading-scale" data-link-scale>{t('list.scaleLink')}</Link>
+        {' · '}</>}
         {/* Group 3: the month's one sheet, beside the exams it is built from — the owner should not have
             to know which screen the ranking lives on. */}
         <Link className="text-link" href="/admin/center-exams/marksheet" data-link-marksheet>{t('list.marksheetLink')}</Link></p>

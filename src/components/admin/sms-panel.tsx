@@ -54,7 +54,7 @@ export function SmsSettingsForm({locale,settings,providerName,balanceOk,balance}
         <label className="admin-check"><input name="autoDue" type="checkbox" defaultChecked={settings.autoDue}/>{ts('panel.autoDue')}</label>
         <small>{ts('panel.autoSendWarning')}</small>
       </fieldset>
-      <p className="admin-help">{ts('panel.providerBalance',{provider:providerName,balance:String(balanceOk&&balance!==null?balance:ts('panel.balanceUnreadable'))})}</p>
+      <p className="admin-help">{ts('panel.providerBalance',{provider:providerName,balance:balanceOk&&balance!==null?formatNumber(balance,bn?'bn':'en'):ts('panel.balanceUnreadable')})}</p>
       <button className="button button-navy" disabled={pending}>{pending?(ts('panel.saving')):(ts('panel.saveSettings'))}</button>
       <Feedback state={state} bn={bn}/>
     </form>

@@ -2085,10 +2085,7 @@
       "title": "Removed students",
       "note": "When restoring, give the new fee start month; the months in between are not billed.",
       "lastDay": "Last day",
-      "none": "No removed students.",
-      "page": "Page",
-      "previous": "Previous",
-      "next": "Next"
+      "none": "No removed students."
     },
     "picker": {
       "chooseFromList": "Select a student from the suggestions",
@@ -2639,30 +2636,30 @@
     },
     "import": {
       "title": "Visitor import",
-      "desc": "Upload an XLSX or CSV file; a dry run first, then the commit with your decisions.",
+      "desc": "Upload an XLSX or CSV file. Check the preview first, then import with your decisions.",
       "fileLabel": "Visitor sheet (XLSX or CSV)",
       "fileHint": "Test data only: the names and numbers must be made up.",
-      "previewButton": "Show the dry run",
+      "previewButton": "Preview first",
       "reading": "Reading the file…",
       "needFile": "Choose an XLSX or CSV file first.",
       "countsLine": "{total} rows: {ready} ready · {decide} awaiting a decision · {blocked} cannot be written · {matched} already on file · {skipped} skipped · {siblings} sibling rows",
-      "previousBatch": "This file was imported before (batch {batch}), so every row should match and no new lead will be created.",
+      "previousBatch": "This file was imported before (batch {batch}), so every row should match and no new visitor will be created.",
       "unmappedHead": "Columns with no name this app knows",
       "unmappedHelp": "Say what each column is, or drop it. Nothing here is guessed.",
       "mapIgnore": "Ignore it",
-      "commitHead": "Commit",
+      "commitHead": "Import",
       "commitButton": "Import with these decisions",
       "committing": "Importing…",
       "resultHead": "Import complete",
-      "resultLine": "Batch {batch}: {created} new leads · {matched} already on file · {skipped} skipped · {blocked} could not be written · {siblings} sibling rows in one family",
-      "undoneLine": "Batch {batch} undone: {removed} leads moved to the bin.",
+      "resultLine": "Batch {batch}: {created} new visitors · {matched} already on file · {skipped} skipped · {blocked} could not be written · {siblings} sibling rows in one family",
+      "undoneLine": "Batch {batch} undone: {removed} visitors moved to the recycle bin.",
       "historyHead": "Import batches",
       "noBatches": "There are no batches.",
       "batchLine": "{batch} · {fileLabel} · {rows} rows · {created} new · {actor}",
       "batchUndone": "undone · {reason}",
       "undoReasonLabel": "Reason for the undo",
       "undoButton": "Undo the latest batch",
-      "undoNote": "Leads the batch created that have since become an admission, a trial or a student are left standing.",
+      "undoNote": "Visitors from this batch who have since become an admission, a trial or a student are kept.",
       "colRow": "Row",
       "colName": "Name",
       "colDate": "Date",
@@ -2684,11 +2681,11 @@
         "skipped": "skipped"
       },
       "flags": {
-        "siblingInFile": "The same number is on another row of this file (row {other}); both rows get one familyKey and neither is blocked",
-        "missingName": "There is no name, so this row cannot become a lead",
+        "siblingInFile": "The same number is on another row of this file (row {other}); both rows are kept as siblings in one family and neither is blocked",
+        "missingName": "There is no name, so this row cannot become a visitor",
         "missingClass": "The sheet has no class for this row",
         "noPhone": "No usable number was found",
-        "dateDeclined": "The date suggestion was declined, and a lead cannot be written without a date"
+        "dateDeclined": "The date suggestion was declined, and a visitor cannot be written without a date"
       },
       "errors": {
         "undecided": "{count} rows still need a date decision; accept the suggestion or keep what was written, row by row",
@@ -2700,7 +2697,7 @@
         "fileMissing": "Choose a file first",
         "notWorkbook": "That file is neither XLSX nor CSV",
         "emptyWorkbook": "The file has nothing written in it",
-        "hashChanged": "The file changed after the preview; run the dry run again",
+        "hashChanged": "The file changed after the preview; press \"Preview first\" again",
         "failed": "The import did not run"
       }
     },

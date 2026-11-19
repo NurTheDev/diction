@@ -86,7 +86,7 @@ async function main(){
   const siblingFlag=rowOf(6).flags.find(flag=>flag.messageKey==='import.flags.siblingInFile')!;
   const pair=flagPair(siblingFlag);
   assert.match(pair.messageBn,/ভাইবোন|family/);
-  assert.match(pair.messageEn,/familyKey/);
+  assert.match(pair.messageEn,/family/);
 
   // ── the owner answers: map the unnamed column, accept both dates, skip one row ─────────────────
   const answered={
