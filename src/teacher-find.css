@@ -1,0 +1,1004 @@
+/* =========================================================================
+   Find a teacher  ·  scoped entirely under .cvf-page
+   ========================================================================= */
+
+.cvf-page {
+  --cvf-primary: var(--primary, #2e3192);
+  --cvf-action: var(--action, #d91a21);
+  --cvf-success: var(--success, #007a3d);
+  --cvf-info: var(--info, #0090c8);
+  --cvf-ink: var(--ink, #1a1d3a);
+  --cvf-muted: var(--muted, #5b6180);
+  --cvf-border: var(--border, #e3e6f2);
+  --cvf-bg: var(--background, #f7f8fc);
+  --cvf-surface: var(--surface, #fff);
+
+  --cvf-primary-soft: color-mix(in srgb, var(--cvf-primary) 8%, #fff);
+  --cvf-primary-softer: color-mix(in srgb, var(--cvf-primary) 4%, #fff);
+  --cvf-info-soft: color-mix(in srgb, var(--cvf-info) 10%, #fff);
+  --cvf-success-soft: color-mix(in srgb, var(--cvf-success) 10%, #fff);
+
+  --cvf-radius: 14px;
+  --cvf-radius-sm: 10px;
+  --cvf-shadow-sm: 0 1px 3px rgba(26, 29, 58, 0.05);
+  --cvf-shadow:
+    0 10px 30px -4px rgba(46, 49, 146, 0.08),
+    0 4px 12px -2px rgba(26, 29, 58, 0.04);
+  --cvf-shadow-hover:
+    0 20px 40px -8px rgba(46, 49, 146, 0.16),
+    0 8px 16px -4px rgba(26, 29, 58, 0.06);
+  --cvf-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+
+  display: grid;
+  gap: 20px;
+  color: var(--cvf-ink);
+  min-width: 0;
+}
+
+.cvf-page *,
+.cvf-page *::before,
+.cvf-page *::after {
+  box-sizing: border-box;
+}
+
+/* ───────────── Screen-reader only ───────────── */
+
+.cvf-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ───────────── Header ───────────── */
+
+.cvf-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 20px 24px;
+  border-radius: var(--cvf-radius);
+  border: 1px solid var(--cvf-border);
+  background: var(--cvf-surface);
+  box-shadow: var(--cvf-shadow-sm);
+}
+
+.cvf-head-text {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.cvf-head-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  color: #fff;
+  background: linear-gradient(
+    135deg,
+    var(--cvf-primary),
+    color-mix(in srgb, var(--cvf-primary) 70%, var(--cvf-info))
+  );
+  box-shadow: 0 8px 18px -6px
+    color-mix(in srgb, var(--cvf-primary) 60%, transparent);
+}
+
+.cvf-head h1 {
+  margin: 0;
+  font-size: clamp(1.25rem, 1.1rem + 0.7vw, 1.65rem);
+  line-height: 1.2;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--cvf-ink);
+}
+
+.cvf-head p {
+  margin: 4px 0 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--cvf-muted);
+  max-width: 62ch;
+}
+
+/* ───────────── Buttons ───────────── */
+
+.cvf-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid transparent;
+  border-radius: var(--cvf-radius-sm);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color 0.18s var(--cvf-ease),
+    border-color 0.18s var(--cvf-ease),
+    color 0.18s var(--cvf-ease),
+    box-shadow 0.18s var(--cvf-ease),
+    transform 0.18s var(--cvf-ease);
+}
+
+.cvf-btn:active {
+  transform: translateY(1px);
+}
+
+.cvf-btn:focus-visible,
+.cvf-field select:focus-visible,
+.cvf-field input:focus-visible,
+.cvf-filters summary:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--cvf-info) 45%, transparent);
+  outline-offset: 2px;
+}
+
+.cvf-btn-primary {
+  color: #fff;
+  background: var(--cvf-primary);
+  box-shadow: 0 6px 14px -6px
+    color-mix(in srgb, var(--cvf-primary) 70%, transparent);
+}
+.cvf-btn-primary:hover {
+  background: color-mix(in srgb, var(--cvf-primary) 88%, #000);
+  box-shadow: 0 10px 20px -8px
+    color-mix(in srgb, var(--cvf-primary) 80%, transparent);
+}
+
+.cvf-btn-ghost {
+  color: var(--cvf-primary);
+  background: var(--cvf-surface);
+  border-color: var(--cvf-border);
+}
+.cvf-btn-ghost:hover {
+  background: var(--cvf-primary-soft);
+  border-color: color-mix(in srgb, var(--cvf-primary) 30%, var(--cvf-border));
+}
+
+.cvf-btn-sm {
+  min-height: 32px;
+  padding: 0 11px;
+  font-size: 0.78rem;
+  border-radius: 8px;
+  gap: 5px;
+}
+
+.cvf-btn-call {
+  color: var(--cvf-primary);
+  background: var(--cvf-primary-soft);
+  border-color: color-mix(in srgb, var(--cvf-primary) 16%, transparent);
+}
+.cvf-btn-call:hover {
+  color: #fff;
+  background: var(--cvf-primary);
+}
+
+.cvf-btn-wa {
+  color: var(--cvf-success);
+  background: var(--cvf-success-soft);
+  border-color: color-mix(in srgb, var(--cvf-success) 18%, transparent);
+}
+.cvf-btn-wa:hover {
+  color: #fff;
+  background: var(--cvf-success);
+}
+
+/* ───────────── Cards ───────────── */
+
+.cvf-card {
+  background: var(--cvf-surface);
+  border: 1px solid var(--cvf-border);
+  border-radius: var(--cvf-radius);
+  box-shadow: var(--cvf-shadow-sm);
+  min-width: 0;
+  overflow: hidden;
+}
+
+.cvf-card-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 12px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--cvf-border);
+  background: linear-gradient(
+    180deg,
+    var(--cvf-primary-softer),
+    var(--cvf-surface)
+  );
+}
+
+.cvf-card-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--cvf-ink);
+}
+.cvf-card-title svg {
+  color: var(--cvf-primary);
+}
+
+.cvf-card-foot {
+  display: grid;
+  gap: 10px;
+  padding: 14px 20px 18px;
+  border-top: 1px solid var(--cvf-border);
+  background: var(--cvf-primary-softer);
+}
+
+.cvf-hint {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--cvf-muted);
+}
+
+.cvf-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--cvf-primary);
+  background: var(--cvf-primary-soft);
+  border: 1px solid color-mix(in srgb, var(--cvf-primary) 14%, transparent);
+}
+.cvf-pill-accent {
+  color: #fff;
+  background: var(--cvf-action);
+  border-color: transparent;
+}
+
+.cvf-muted-box {
+  margin: 0;
+  padding: 18px;
+  border: 1px dashed var(--cvf-border);
+  border-radius: var(--cvf-radius-sm);
+  background: var(--cvf-surface);
+  color: var(--cvf-muted);
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+/* ───────────── Need form (full width, defensive selectors) ───────────── */
+
+.cvf-need-form {
+  min-width: 0;
+}
+
+/* whatever panel the component renders: flatten margins, keep it inside the page */
+.cvf-need-form > * {
+  margin: 0 !important;
+  max-width: 100%;
+  min-width: 0;
+  overflow: visible;
+  border-radius: var(--cvf-radius);
+  box-shadow: var(--cvf-shadow-sm);
+}
+
+/* the form is a responsive grid: fields flow, hint + class group take a full row */
+.cvf-need-form form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 16px;
+  align-items: end;
+  min-width: 0;
+}
+
+.cvf-need-form form > * {
+  min-width: 0;
+}
+
+/* hint paragraph / legend → full row */
+.cvf-need-form form > p,
+.cvf-need-form form > .admin-help,
+.cvf-need-form form > legend {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--cvf-muted);
+}
+
+/* the group that holds the class checkboxes → full row, wrapping chips */
+.cvf-need-form form > :has(> label > input[type="checkbox"]),
+.cvf-need-form form > fieldset {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+/* each class checkbox → compact toggle chip */
+.cvf-need-form label:has(> input[type="checkbox"]) {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  width: auto;
+  min-width: 46px;
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid var(--cvf-border);
+  border-radius: 999px;
+  background: var(--cvf-bg);
+  color: var(--cvf-ink);
+  font-size: 0.88rem;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+  transition:
+    background-color 0.18s var(--cvf-ease),
+    border-color 0.18s var(--cvf-ease),
+    color 0.18s var(--cvf-ease),
+    box-shadow 0.18s var(--cvf-ease);
+}
+
+/* hide the native box; the chip itself is the control (still focusable + clickable) */
+.cvf-need-form input[type="checkbox"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.cvf-need-form label:has(> input[type="checkbox"]):hover {
+  border-color: color-mix(in srgb, var(--cvf-primary) 40%, var(--cvf-border));
+  background: var(--cvf-primary-soft);
+}
+
+.cvf-need-form label:has(> input[type="checkbox"]:checked) {
+  color: #fff;
+  background: var(--cvf-primary);
+  border-color: var(--cvf-primary);
+  box-shadow: 0 6px 14px -6px
+    color-mix(in srgb, var(--cvf-primary) 70%, transparent);
+}
+
+.cvf-need-form label:has(> input[type="checkbox"]:focus-visible) {
+  outline: 3px solid color-mix(in srgb, var(--cvf-info) 45%, transparent);
+  outline-offset: 2px;
+}
+
+/* normal labelled fields (subject / shift / note) */
+.cvf-need-form form > label:not(:has(> input[type="checkbox"])) {
+  display: grid;
+  gap: 6px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--cvf-muted);
+}
+
+.cvf-need-form select,
+.cvf-need-form input:not([type="checkbox"]),
+.cvf-need-form textarea {
+  width: 100%;
+  min-height: 42px;
+  padding: 0 12px;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--cvf-ink);
+  background-color: var(--cvf-bg);
+  border: 1px solid var(--cvf-border);
+  border-radius: var(--cvf-radius-sm);
+  transition:
+    border-color 0.18s var(--cvf-ease),
+    box-shadow 0.18s var(--cvf-ease),
+    background-color 0.18s var(--cvf-ease);
+}
+
+.cvf-need-form textarea {
+  padding: 10px 12px;
+  min-height: 84px;
+}
+
+.cvf-need-form select:focus,
+.cvf-need-form input:not([type="checkbox"]):focus,
+.cvf-need-form textarea:focus {
+  outline: none;
+  background-color: var(--cvf-surface);
+  border-color: var(--cvf-primary);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--cvf-primary) 12%, transparent);
+}
+
+/* save button */
+.cvf-need-form form button[type="submit"],
+.cvf-need-form form > button {
+  align-self: end;
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 42px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: var(--cvf-radius-sm);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #fff;
+  background: var(--cvf-primary);
+  box-shadow: 0 6px 14px -6px
+    color-mix(in srgb, var(--cvf-primary) 70%, transparent);
+  cursor: pointer;
+  transition:
+    background-color 0.18s var(--cvf-ease),
+    box-shadow 0.18s var(--cvf-ease),
+    transform 0.18s var(--cvf-ease);
+}
+.cvf-need-form form button[type="submit"]:hover,
+.cvf-need-form form > button:hover {
+  background: color-mix(in srgb, var(--cvf-primary) 88%, #000);
+}
+.cvf-need-form form button[type="submit"]:active,
+.cvf-need-form form > button:active {
+  transform: translateY(1px);
+}
+
+/* ───────────── Saved needs (card grid) ───────────── */
+
+.cvf-saved {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.cvf-saved-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--cvf-primary);
+}
+
+.cvf-needs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cvf-needs > li {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  min-width: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--cvf-border);
+  border-radius: var(--cvf-radius);
+  background: var(--cvf-surface);
+  box-shadow: var(--cvf-shadow-sm);
+  transition:
+    border-color 0.18s var(--cvf-ease),
+    box-shadow 0.18s var(--cvf-ease),
+    transform 0.18s var(--cvf-ease);
+}
+.cvf-needs > li:hover {
+  border-color: color-mix(in srgb, var(--cvf-primary) 35%, var(--cvf-border));
+  box-shadow: var(--cvf-shadow);
+  transform: translateY(-2px);
+}
+
+/* ───────────── Filters ───────────── */
+
+.cvf-filters {
+  background: var(--cvf-surface);
+  border: 1px solid var(--cvf-border);
+  border-radius: var(--cvf-radius);
+  box-shadow: var(--cvf-shadow-sm);
+  overflow: hidden;
+}
+
+.cvf-filters summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 20px;
+  cursor: pointer;
+  list-style: none;
+  -webkit-user-select: none;
+  user-select: none;
+  transition: background-color 0.18s var(--cvf-ease);
+}
+.cvf-filters summary::-webkit-details-marker {
+  display: none;
+}
+.cvf-filters summary:hover {
+  background: var(--cvf-primary-softer);
+}
+.cvf-filters summary::after {
+  content: "";
+  margin-left: auto;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--cvf-muted);
+  border-bottom: 2px solid var(--cvf-muted);
+  transform: rotate(45deg);
+  transition: transform 0.2s var(--cvf-ease);
+}
+.cvf-filters[open] summary::after {
+  transform: rotate(-135deg);
+}
+.cvf-filters[open] summary {
+  border-bottom: 1px solid var(--cvf-border);
+}
+
+.cvf-filters-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--cvf-primary);
+}
+
+.cvf-filter-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 16px;
+  padding: 20px;
+}
+
+.cvf-field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.cvf-field-wide {
+  grid-column: span 2;
+}
+
+.cvf-field > span {
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--cvf-muted);
+}
+
+.cvf-field select,
+.cvf-field input {
+  width: 100%;
+  min-height: 42px;
+  padding: 0 12px;
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--cvf-ink);
+  background-color: var(--cvf-bg);
+  border: 1px solid var(--cvf-border);
+  border-radius: var(--cvf-radius-sm);
+  transition:
+    border-color 0.18s var(--cvf-ease),
+    background-color 0.18s var(--cvf-ease),
+    box-shadow 0.18s var(--cvf-ease);
+}
+.cvf-field input::placeholder {
+  color: color-mix(in srgb, var(--cvf-muted) 70%, transparent);
+}
+.cvf-field select:hover,
+.cvf-field input:hover {
+  border-color: color-mix(in srgb, var(--cvf-primary) 35%, var(--cvf-border));
+}
+.cvf-field select:focus,
+.cvf-field input:focus {
+  background-color: var(--cvf-surface);
+  border-color: var(--cvf-primary);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--cvf-primary) 12%, transparent);
+  outline: none;
+}
+
+.cvf-filter-foot {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+/* ───────────── Open need banner ───────────── */
+
+.cvf-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 0;
+  padding: 14px 18px;
+  border-radius: var(--cvf-radius-sm);
+  border: 1px solid color-mix(in srgb, var(--cvf-info) 30%, transparent);
+  border-left: 4px solid var(--cvf-info);
+  background: var(--cvf-info-soft);
+  color: var(--cvf-ink);
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+.cvf-banner svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--cvf-info);
+}
+.cvf-banner em {
+  font-style: normal;
+  font-weight: 700;
+  color: var(--cvf-primary);
+}
+
+/* ───────────── Results header ───────────── */
+
+.cvf-results-head .cvf-sms-bar {
+  margin-left: auto;
+  min-width: 0;
+}
+
+/* ───────────── Table ───────────── */
+
+.cvf-table-wrap {
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.cvf-table {
+  width: 100%;
+  min-width: 980px;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.875rem;
+}
+
+.cvf-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--cvf-muted);
+  background: var(--cvf-bg);
+  border-bottom: 1px solid var(--cvf-border);
+}
+
+.cvf-table tbody td {
+  padding: 16px;
+  vertical-align: top;
+  border-bottom: 1px solid var(--cvf-border);
+  transition: background-color 0.18s var(--cvf-ease);
+}
+
+.cvf-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.cvf-table tbody tr:hover td {
+  background: var(--cvf-primary-softer);
+}
+
+.cvf-table tbody tr:hover td:first-child {
+  box-shadow: inset 3px 0 0 var(--cvf-primary);
+}
+
+.cvf-col-select {
+  width: 56px;
+  text-align: center !important;
+}
+
+/* person */
+.cvf-person {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 190px;
+}
+
+.cvf-avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: 1rem;
+  text-transform: uppercase;
+  color: var(--cvf-primary);
+  background: linear-gradient(
+    135deg,
+    var(--cvf-primary-soft),
+    color-mix(in srgb, var(--cvf-info) 14%, #fff)
+  );
+  border: 1px solid color-mix(in srgb, var(--cvf-primary) 14%, transparent);
+}
+
+.cvf-person-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.cvf-person-text strong {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--cvf-ink);
+  overflow-wrap: anywhere;
+}
+
+.cvf-id {
+  display: inline-block;
+  width: fit-content;
+  padding: 1px 7px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--cvf-primary);
+  background: var(--cvf-primary-soft);
+}
+
+.cvf-sub {
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--cvf-muted);
+  overflow-wrap: anywhere;
+}
+.cvf-sub b {
+  color: var(--cvf-ink);
+  font-weight: 600;
+}
+
+.cvf-stack {
+  display: grid;
+  gap: 7px;
+  align-content: start;
+  min-width: 0;
+}
+
+.cvf-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cvf-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--cvf-primary);
+  background: var(--cvf-primary-soft);
+  border: 1px solid color-mix(in srgb, var(--cvf-primary) 14%, transparent);
+}
+.cvf-chip-info {
+  color: color-mix(in srgb, var(--cvf-info) 80%, #000);
+  background: var(--cvf-info-soft);
+  border-color: color-mix(in srgb, var(--cvf-info) 22%, transparent);
+}
+
+/* phone */
+.cvf-phone {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cvf-mask {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 10px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.03em;
+  color: var(--cvf-ink);
+  background: var(--cvf-bg);
+  border: 1px solid var(--cvf-border);
+}
+
+/* status */
+.cvf-badge {
+  white-space: nowrap;
+  border-radius: 999px;
+  font-weight: 700;
+}
+
+.cvf-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.78rem;
+  color: var(--cvf-muted);
+}
+
+/* actions */
+.cvf-actions {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+  min-width: 150px;
+}
+
+/* ───────────── Empty state ───────────── */
+
+.cvf-empty {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 56px 20px;
+  text-align: center;
+}
+.cvf-empty p {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--cvf-ink);
+}
+.cvf-empty > span:last-child {
+  max-width: 44ch;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--cvf-muted);
+}
+.cvf-empty-icon {
+  display: grid;
+  place-items: center;
+  width: 60px;
+  height: 60px;
+  margin-bottom: 4px;
+  border-radius: 50%;
+  color: var(--cvf-primary);
+  background: var(--cvf-primary-soft);
+  border: 1px dashed color-mix(in srgb, var(--cvf-primary) 30%, transparent);
+}
+
+/* ───────────── Responsive ───────────── */
+
+@media (max-width: 860px) {
+  .cvf-head {
+    padding: 16px;
+  }
+  .cvf-card-head,
+  .cvf-card-foot,
+  .cvf-filter-form {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  .cvf-field-wide {
+    grid-column: auto;
+  }
+  .cvf-needs {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .cvf-results-head .cvf-sms-bar {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  /* table → stacked cards */
+  .cvf-table-wrap {
+    overflow: visible;
+    padding: 12px;
+  }
+  .cvf-table {
+    min-width: 0;
+    display: block;
+  }
+  .cvf-table thead {
+    display: none;
+  }
+  .cvf-table tbody {
+    display: grid;
+    gap: 12px;
+  }
+  .cvf-table tbody tr {
+    position: relative;
+    display: grid;
+    gap: 0;
+    border: 1px solid var(--cvf-border);
+    border-radius: var(--cvf-radius);
+    background: var(--cvf-surface);
+    box-shadow: var(--cvf-shadow-sm);
+    overflow: hidden;
+  }
+  .cvf-table tbody tr:hover td,
+  .cvf-table tbody tr:hover td:first-child {
+    background: transparent;
+    box-shadow: none;
+  }
+  .cvf-table tbody td {
+    display: grid;
+    gap: 6px;
+    padding: 12px 16px;
+    border-bottom: 1px dashed var(--cvf-border);
+  }
+  .cvf-table tbody td:last-child {
+    border-bottom: 0;
+    background: var(--cvf-primary-softer);
+  }
+  .cvf-table tbody td::before {
+    content: attr(data-label);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--cvf-muted);
+  }
+
+  /* checkbox floats top-right of the card, name comes first */
+  .cvf-table tbody td.cvf-col-select {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 2;
+    width: auto;
+    padding: 6px;
+    border: 0;
+    background: transparent;
+    text-align: right !important;
+  }
+  .cvf-table tbody td.cvf-col-select::before {
+    display: none;
+  }
+  .cvf-table tbody td:nth-child(2) {
+    padding-right: 56px;
+  }
+  .cvf-person {
+    min-width: 0;
+  }
+  .cvf-actions {
+    min-width: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cvf-page *,
+  .cvf-page *::before,
+  .cvf-page *::after {
+    transition: none !important;
+  }
+}

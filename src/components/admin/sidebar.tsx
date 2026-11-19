@@ -28,7 +28,7 @@ export function Sidebar({preview=false,staffRole='admin',counts,digits='bn',mobi
  const under=(path:string)=>pathname===path||(path!=='/admin'&&pathname.startsWith(path+'/'));
  /* Only the deepest menu path that contains this page lights up: /admin/students/fees-grid is not also "Student list". */
  const deepest=navGroups.flatMap(g=>g.items.map(([href])=>href.split('?')[0])).filter(under).sort((a,b)=>b.length-a.length)[0];
- const active=(href:string)=>{const [path,q]=href.split('?');if(q)return pathname===path&&q.split('&').every(matches);return under(path)&&path===deepest};
+ const active=(href:string):boolean=>{const [path,q]=href.split('?');if(q)return pathname===path&&q.split('&').every(matches);/* "Leads" stays dark when "Follow-ups" (/admin/leads?followUp=today) is the page. */return under(path)&&path===deepest&&!navGroups.some(g=>g.items.some(([other])=>other.startsWith(path+'?')&&active(other)))};
  /** On the Visitors screens the bottom bar’s plus is quick-add: one tap, and Enter saves. */
  const onLeads=permitted('leads',staffRole)&&(pathname==='/admin/leads'||pathname.startsWith('/admin/leads/'));
  const groups=navGroups.map(g=>({...g,items:g.items.filter(([,key])=>permitted(key,staffRole)&&t(`items.${key}`).toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()))})).filter(g=>g.items.length);

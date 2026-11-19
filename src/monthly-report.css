@@ -1,0 +1,421 @@
+/* ==========================================================================
+   Monthly collections report
+   Every rule targets a "monthly-*" or "mx-*" class added in page.tsx, so no
+   other report or admin page is affected. Change the variables to re-theme.
+   ========================================================================== */
+
+.monthly-filters,
+.monthly-toolbar,
+.monthly-sheet {
+  --mr-navy: #27317f;
+  --mr-navy-soft: #eef0fa;
+  --mr-navy-tint: #f3f5ff;
+  --mr-border: #e1e5ef;
+  --mr-text: #1e293b;
+  --mr-muted: #5b6784;
+  --mr-soft: #f6f8fc;
+  --mr-radius: 12px;
+  --mr-field-h: 42px;
+  --mr-ring: rgba(39, 49, 127, 0.22);
+}
+
+/* ───────── Filter bar ───────── */
+.report-filters.monthly-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 14px 16px;
+  margin-bottom: 14px;
+  padding: 16px 18px;
+  border: 1px solid var(--mr-border);
+  border-radius: var(--mr-radius);
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+
+.monthly-filters label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 180px;
+  color: var(--mr-muted);
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.monthly-filters .admin-input {
+  width: 100%;
+  min-height: var(--mr-field-h);
+  border: 1px solid var(--mr-border);
+  border-radius: 10px;
+  background-color: #fff; /* background-color only, so the select arrow stays */
+  color: var(--mr-text);
+  font-weight: 500;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.monthly-filters .admin-input:hover {
+  border-color: #b9c0d4;
+}
+
+.monthly-filters .admin-input:focus {
+  outline: none;
+  border-color: var(--mr-navy);
+  box-shadow: 0 0 0 3px var(--mr-ring);
+}
+
+.monthly-filters .monthly-apply {
+  min-height: var(--mr-field-h);
+  padding-inline: 22px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--mr-navy);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    transform 0.1s ease;
+}
+
+.monthly-filters .monthly-apply:hover {
+  background: #1e255e;
+  transform: translateY(-1px);
+}
+
+.monthly-filters .monthly-apply:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--mr-ring);
+}
+
+/* ───────── Toolbar: Print / CSV / XLSX ───────── */
+.report-toolbar.monthly-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.monthly-toolbar .admin-mini-button,
+.monthly-toolbar button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid var(--mr-border);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--mr-text);
+  font-size: 0.86rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.monthly-toolbar .admin-mini-button:hover,
+.monthly-toolbar button:hover {
+  border-color: var(--mr-navy);
+  background: var(--mr-navy-soft);
+  color: var(--mr-navy);
+}
+
+.monthly-toolbar .admin-mini-button:focus-visible,
+.monthly-toolbar button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--mr-ring);
+}
+
+/* ───────── The sheet ───────── */
+.monthly-sheet {
+  overflow: hidden;
+  border: 1px solid var(--mr-border);
+  border-radius: var(--mr-radius);
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+
+.monthly-sheet .report-brand {
+  margin: 0;
+  padding: 18px 22px 0;
+  color: var(--mr-navy);
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.monthly-sheet .report-sheet-title {
+  margin: 4px 0 0;
+  padding: 0 22px 16px;
+  border-bottom: 1px solid var(--mr-border);
+  color: var(--mr-muted);
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+/* ───────── Matrix table ───────── */
+.monthly-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.monthly-table {
+  width: 100%;
+  border-collapse: separate; /* sticky cells keep their borders this way */
+  border-spacing: 0;
+}
+
+.monthly-table th,
+.monthly-table td {
+  padding: 10px 8px;
+  border-bottom: 1px solid #edf0f7;
+  color: var(--mr-text);
+  font-size: 0.8rem;
+  vertical-align: middle;
+}
+
+.monthly-table thead th {
+  background: var(--mr-soft);
+  border-bottom: 1px solid var(--mr-border);
+  color: var(--mr-muted);
+  font-size: 0.76rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Day columns: narrow, right-aligned, digits line up */
+.monthly-table .mx-day {
+  min-width: 58px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* A day with a collection is shaded and bold */
+.monthly-table td[data-mx-cell] {
+  background: var(--mr-navy-tint);
+  color: var(--mr-navy);
+  font-weight: 600;
+}
+
+/* Hover: highlight the row */
+.monthly-table tbody tr {
+  transition: background-color 0.12s ease;
+}
+
+.monthly-table tbody tr:hover td {
+  background: #f1f4fc;
+}
+
+.monthly-table tbody tr:hover td[data-mx-cell] {
+  background: #e4e9fb;
+}
+
+/* ───────── Sticky class column (left) and total column (right) ───────── */
+.monthly-table .mx-class {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  min-width: 110px;
+  padding-inline: 16px;
+  border-right: 1px solid var(--mr-border);
+  background: #fff;
+  font-weight: 700;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.monthly-table .mx-total {
+  position: sticky;
+  right: 0;
+  z-index: 2;
+  min-width: 90px;
+  padding-inline: 14px;
+  border-left: 1px solid var(--mr-border);
+  background: var(--mr-navy-soft);
+  color: var(--mr-navy);
+  font-weight: 700;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.monthly-table thead .mx-class,
+.monthly-table thead .mx-total {
+  z-index: 3; /* corners sit above both the header row and the sticky columns */
+}
+
+.monthly-table thead .mx-class {
+  background: var(--mr-soft);
+}
+
+.monthly-table tbody tr:hover .mx-class {
+  background: #f1f4fc;
+}
+
+/* ───────── Totals row ───────── */
+.monthly-table tfoot td {
+  border-top: 2px solid var(--mr-navy);
+  border-bottom: 0;
+  background: var(--mr-navy-soft);
+  color: var(--mr-navy);
+  font-weight: 700;
+}
+
+.monthly-table tfoot .mx-class {
+  background: var(--mr-navy-soft);
+}
+
+/* ───────── Grand total bar ───────── */
+.monthly-grand {
+  margin: 0;
+  padding: 14px 22px;
+  background: var(--mr-navy);
+  color: #fff;
+  font-size: 1.05rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ───────── Totals by payment type ───────── */
+.monthly-types {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 14px 22px 18px;
+  list-style: none;
+}
+
+.monthly-types li {
+  padding: 5px 14px;
+  border: 1px solid var(--mr-border);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--mr-text);
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The heading item is a label, not a chip */
+.monthly-types li.monthly-types-title {
+  padding: 0 6px 0 0;
+  border: 0;
+  background: none;
+  color: var(--mr-muted);
+}
+
+/* ───────── Empty ───────── */
+.monthly-empty {
+  padding: 48px 16px;
+  color: var(--mr-muted);
+  text-align: center;
+}
+
+/* ───────── Phones ───────── */
+@media (max-width: 560px) {
+  .report-filters.monthly-filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .monthly-filters label {
+    min-width: 0;
+  }
+
+  .monthly-filters .monthly-apply {
+    width: 100%;
+  }
+
+  .monthly-sheet .report-brand,
+  .monthly-sheet .report-sheet-title,
+  .monthly-grand,
+  .monthly-types {
+    padding-inline: 14px;
+  }
+
+  .monthly-table .mx-class {
+    min-width: 84px;
+    padding-inline: 10px;
+  }
+}
+
+/* ───────── Print: plain and compact, nothing decorative ───────── */
+@media print {
+  .monthly-sheet {
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .monthly-sheet .report-brand,
+  .monthly-sheet .report-sheet-title {
+    padding-inline: 0;
+    color: #000;
+  }
+
+  .monthly-scroll {
+    overflow: visible;
+  }
+
+  /* Sticky columns make no sense on paper */
+  .monthly-table .mx-class,
+  .monthly-table .mx-total {
+    position: static;
+  }
+
+  .monthly-table th,
+  .monthly-table td {
+    padding: 3px 2px;
+    border-bottom: 1px solid #999;
+    background: none !important;
+    color: #000 !important;
+    font-size: 0.6rem;
+  }
+
+  .monthly-table .mx-day {
+    min-width: 0;
+  }
+
+  .monthly-table thead th {
+    border-bottom: 1px solid #000;
+  }
+
+  .monthly-table tfoot td {
+    border-top: 2px solid #000;
+  }
+
+  .monthly-grand {
+    padding-inline: 0;
+    background: none;
+    color: #000;
+  }
+
+  .monthly-types {
+    padding-inline: 0;
+  }
+
+  .monthly-types li {
+    padding: 0 10px 0 0;
+    border: 0;
+    border-radius: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .monthly-filters .admin-input,
+  .monthly-filters .monthly-apply,
+  .monthly-toolbar .admin-mini-button,
+  .monthly-toolbar button,
+  .monthly-table tbody tr {
+    transition: none;
+  }
+}

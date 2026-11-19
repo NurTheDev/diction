@@ -207,7 +207,13 @@ export default async function Leads({
     <>
       <div className="admin-heading">
         <div>
-          <h1>{t("title")}</h1>
+          <h1>
+            {followUp === "today"
+              ? t("dueToday")
+              : followUp === "overdue"
+                ? t("overdue")
+                : t("title")}
+          </h1>
           <p>{t("desc")}</p>
         </div>
       </div>
