@@ -1404,7 +1404,7 @@
     "yes": "হ্যাঁ",
     "no": "না",
     "instructions": "Gemini সেটআপ",
-    "instructionsBody": "সার্ভারের environment-এ ব্যক্তিগতভাবে GEMINI_API_KEY ও সমর্থিত AI_MODEL দিন। ডিফল্ট ঠিকানা Google Gemini-এর OpenAI-compatible endpoint। নিচের পর্যালোচনার পরে AI_STUDY_BUDDY_ENABLED এবং DATA_COLLECTION_ENABLED true করে সার্ভার পুনরায় চালু করুন। প্রকল্পের AI-SETUP.md দেখুন।",
+    "instructionsBody": "সার্ভারের environment-এ ব্যক্তিগতভাবে GEMINI_API_KEY ও সমর্থিত AI_MODEL দিন। ডিফল্ট ঠিকানা Google Gemini-এর OpenAI-compatible endpoint। নিচের পর্যালোচনার পরে AI_STUDY_BUDDY_ENABLED এবং DATA_COLLECTION_ENABLED true করে সার্ভার পুনরায় চালু করুন। প্রকল্পের docs/SETUP.md দেখুন।",
     "privacy": "শিক্ষার্থীকে লগ ইন ও অনুমতি নিশ্চিত করতে হবে। প্রশ্ন, সাম্প্রতিক কথোপকথন ও শ্রেণি বাইরের সেবায় পাঠানো হয়। অ্যাপ সার্ভারে কথোপকথন সংরক্ষণ করে না।",
     "warning": "চালুর আগে সেবার শর্ত ও বয়সসীমা, অভিভাবকের অনুমতি, নিরাপত্তা ও মডারেশন, গোপনীয়তা বিজ্ঞপ্তি, ব্যবহারসীমা ও খরচ পর্যালোচনা করুন। শুধু চেকবক্স অফলাইন অনুমতি যাচাই করে না।",
     "providerDocs": "Google Gemini API নির্দেশিকা",

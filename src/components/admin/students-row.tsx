@@ -21,7 +21,7 @@
  * answers through `toastOnWrite`, because an effect keyed on the action state never runs once the
  * row is unmounted.
  */
-import {useActionState,useEffect,useRef,useState,type FormEvent,type ReactNode} from 'react';
+import {useActionState,useEffect,useRef,useState,type ChangeEvent,type ReactNode} from 'react';
 import {useTranslations} from 'next-intl';
 import {Link} from '@/i18n/navigation';
 import {
@@ -149,8 +149,8 @@ export function StudentRow({student,kit}:{student:CenterSearchItem;kit:StudentRo
      only copy of the typing was the element itself. Uncontrolled, a field hands back the draft it was
      seeded with and the operator's sentence is gone; so the typing is kept here, in the same draft the
      form was opened from, while the two version numbers stay live from props. */
-  const keepTyped=(event:FormEvent<HTMLFormElement>):void=>{
-    const target=event.target as HTMLInputElement|HTMLTextAreaElement;
+  const keepTyped=(event:ChangeEvent<HTMLInputElement|HTMLTextAreaElement>):void=>{
+    const target=event.target;
     const name=target?.name as TypedField|undefined;
     if(!name||!TYPED_FIELDS.includes(name))return;
     const value=target.value;
@@ -324,7 +324,7 @@ export function StudentRow({student,kit}:{student:CenterSearchItem;kit:StudentRo
         while the fields are open, and closing them puts the row back exactly as it was. */}
     {editing&&!removed&&draft&&<tr className="list-edit-row" {...attr(`data-${KIND}-edit-row`)}>
       <td colSpan={7} className="list-edit-cell">
-        <RowEditForm kind={KIND} action={editAction} pending={editPending} onChange={keepTyped} saveLabel={t('row.save')}
+        <RowEditForm kind={KIND} action={editAction} pending={editPending} saveLabel={t('row.save')}
           cancelLabel={t('row.cancel')} onCancel={()=>setEditing(false)}
           error={editState.status==='conflict'?t('conflict'):editState.status==='duplicate'?t('duplicate'):
             editState.status==='invalid'&&editState.fields?.length?`${t('invalid')} (${editState.fields.map(f=>t(f==='guardianName'?'guardian':f)).join(', ')})`:
@@ -335,20 +335,20 @@ export function StudentRow({student,kit}:{student:CenterSearchItem;kit:StudentRo
           <input type="hidden" name="revision" value={student.revision}/>
           <input type="hidden" name="version" value={String(student.version)}/>
           <div className="list-edit-grid">
-            <label>{t('nameBn')}<input className="admin-input" name="nameBn" value={draft.nameBn} required maxLength={120}/></label>
-            <label>{t('nameEn')}<input className="admin-input" name="nameEn" value={draft.nameEn} maxLength={120}/></label>
-            <label>{t('roll')}<input className="admin-input" name="roll" value={draft.roll} maxLength={40} inputMode="numeric"/></label>
-            <label>{t('school')}<input className="admin-input" name="school" value={draft.school} maxLength={160}/></label>
-            <label>{t('guardian')}<input className="admin-input" name="guardianName" value={draft.guardianName} required maxLength={120}/></label>
-            <label>{t('guardianPhone')}<input className="admin-input" name="guardianPhone" value={draft.guardianPhone} required inputMode="tel"/></label>
-            <label>{t('studentPhone')}<input className="admin-input" name="studentPhone" value={draft.studentPhone} inputMode="tel"/></label>
-            <label>{t('altPhone')}<input className="admin-input" name="altPhone" value={draft.altPhone} inputMode="tel"/></label>
-            <label>{t('address')}<input className="admin-input" name="address" value={draft.address} maxLength={500}/></label>
+            <label>{t('nameBn')}<input className="admin-input" name="nameBn" onChange={keepTyped} value={draft.nameBn} required maxLength={120}/></label>
+            <label>{t('nameEn')}<input className="admin-input" name="nameEn" onChange={keepTyped} value={draft.nameEn} maxLength={120}/></label>
+            <label>{t('roll')}<input className="admin-input" name="roll" onChange={keepTyped} value={draft.roll} maxLength={40} inputMode="numeric"/></label>
+            <label>{t('school')}<input className="admin-input" name="school" onChange={keepTyped} value={draft.school} maxLength={160}/></label>
+            <label>{t('guardian')}<input className="admin-input" name="guardianName" onChange={keepTyped} value={draft.guardianName} required maxLength={120}/></label>
+            <label>{t('guardianPhone')}<input className="admin-input" name="guardianPhone" onChange={keepTyped} value={draft.guardianPhone} required inputMode="tel"/></label>
+            <label>{t('studentPhone')}<input className="admin-input" name="studentPhone" onChange={keepTyped} value={draft.studentPhone} inputMode="tel"/></label>
+            <label>{t('altPhone')}<input className="admin-input" name="altPhone" onChange={keepTyped} value={draft.altPhone} inputMode="tel"/></label>
+            <label>{t('address')}<input className="admin-input" name="address" onChange={keepTyped} value={draft.address} maxLength={500}/></label>
             <label>{t('admissionDate')}
               <DayField name="admissionDate" value={draft.admissionDate} placeholder={t('row.pickDay')}
                 clearLabel={t('row.clear')} digits={digits} language={language}/></label>
           </div>
-          <label>{t('notes')}<textarea className="admin-input" name="notes" rows={2} value={draft.notes} maxLength={3000}/></label>
+          <label>{t('notes')}<textarea className="admin-input" name="notes" onChange={keepTyped} rows={2} value={draft.notes} maxLength={3000}/></label>
           <p className="admin-help">{t('editHint')}</p>
         </RowEditForm>
       </td>

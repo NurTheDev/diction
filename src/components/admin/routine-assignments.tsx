@@ -10,7 +10,8 @@
  * Delete for an administrator, and a delete that goes to the Recycle Bin for thirty days with Undo. The
  * only fields nobody can write are the system's own — the id, the timestamps and who created the row.
  *
- * Styling lives in `routine-board.css` (everything here is `ra-*`, and the drawer form shares `rm-form`).
+ * Styling lives in `globals.css` under "Merged from src/routine-board.css" (everything
+ * here is `ra-*`, and the drawer form shares `rm-form`).
  */
 import {
   saveAssignmentAction,
@@ -28,8 +29,6 @@ import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useState } from "react";
 import { RoutineDrawer } from "./routine-drawer";
 import { RowControls } from "./row-controls";
-
-import "@/routine-board.css";
 
 const idle: RoutineActionState = { status: "idle" };
 

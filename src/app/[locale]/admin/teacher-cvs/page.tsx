@@ -40,7 +40,6 @@ import {
 import { FileUp, MessageCircle, Phone, Search, UserSearch } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
-import "../../../../teacher-cvs.css";
 
 type QueryKey =
   | "q"

@@ -48,8 +48,6 @@ import {
 import { getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 
-import "@/teacher-find.css";
-
 type Query = {
   subject?: string;
   classLevel?: string;

@@ -34,7 +34,6 @@ import { Upload } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { memo, useCallback, useRef, useState, useTransition } from "react";
-import "../../lead-import-wizard.css";
 
 export function LeadImportWizard({
   history,

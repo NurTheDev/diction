@@ -8,7 +8,6 @@ import { loadYearSummary } from "@/lib/reports/year-summary-data";
 import { FileSpreadsheet, FileText } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import type { CSSProperties } from "react";
-import "../../../../../year-report.css";
 
 export const dynamic = "force-dynamic";
 

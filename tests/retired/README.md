@@ -1,7 +1,7 @@
 # Retired tests
 
 ## center-import-browser.integration.ts.retired
-Retired 2026-11-07. Reason in full: /home/user/diction/STALE-TESTS-REPORT.md (section 3).
+Retired 2026-11-07. Reason in full: docs/STALE-TESTS.md (section 3).
 
 It drove `CenterImportPreview` (sheet field, `প্রিভিউ দেখুন`, `শিক্ষার্থী জোড়া`, review-draft
 upload, `.center-commit` gate). That component is no longer imported by any page:

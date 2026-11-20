@@ -1339,7 +1339,7 @@
     "yes": "Yes",
     "no": "No",
     "instructions": "Gemini setup",
-    "instructionsBody": "Privately add GEMINI_API_KEY and a supported AI_MODEL to the server environment. The default endpoint is Google Gemini’s OpenAI-compatible endpoint. After completing the reviews below, set AI_STUDY_BUDDY_ENABLED and DATA_COLLECTION_ENABLED to true and restart or redeploy. See AI-SETUP.md in the project.",
+    "instructionsBody": "Privately add GEMINI_API_KEY and a supported AI_MODEL to the server environment. The default endpoint is Google Gemini’s OpenAI-compatible endpoint. After completing the reviews below, set AI_STUDY_BUDDY_ENABLED and DATA_COLLECTION_ENABLED to true and restart or redeploy. See docs/SETUP.md in the project.",
     "privacy": "Students must sign in and confirm permission before using the chat. Questions, recent chat text and the student’s class are sent to the external provider. The app does not store chat history on its server.",
     "warning": "Before enabling, review provider terms and age requirements, guardian permission, moderation and safeguarding, privacy notices, quotas and costs. A checkbox alone does not verify offline permission.",
     "providerDocs": "Google Gemini API documentation",

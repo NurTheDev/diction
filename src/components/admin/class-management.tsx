@@ -34,8 +34,6 @@ import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { SubmitButton } from "./submit-button";
 import { showRecycleToast } from "./toast-bus";
 
-import "@/class-management.css";
-
 const idle: ClassActionState = { status: "idle" };
 
 /** The three shifts a class can run, in the order the day happens. */

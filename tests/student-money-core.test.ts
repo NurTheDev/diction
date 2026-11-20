@@ -328,11 +328,13 @@ assert.equal((source.match(/\{held:false\}/g)||[]).length,2,
    centre never receives. The gate on a month cell is the month's own status — a held month is never
    billed, so it stays closed — and the student's status no longer closes the whole form. */
 const desk=readFileSync('src/components/admin/center-daily-collection.tsx','utf8');
-assert.ok(desk.includes("disabled={['HELD','WAIVED','NOT_APPLICABLE'].includes(m.status)}"),
+assert.match(desk,
+  /disabled=\{\s*\[["']HELD["'],\s*["']WAIVED["'],\s*["']NOT_APPLICABLE["']\]\.includes\(\s*m\.status,?\s*\)\s*\}/,
   'a month cell on the cash desk is closed by its own status, so every month inside a pause stays closed');
-assert.ok(!desk.includes("disabled={busy||student.status==='on_hold'"),
+assert.ok(!/disabled=\{\s*busy\s*\|\|\s*student\.status\s*===\s*["']on_hold["']/.test(desk),
   'and the pause itself no longer deadens Save: the months owed before it are money the centre can still take');
-assert.ok(desk.includes("{t('heldNote')}"),'with the sentence that says which months a pause closes');
+assert.match(desk, /\{t\(["']heldNote["']\)\}/,
+  'with the sentence that says which months a pause closes');
 
 /* ── F-18 · a month is spelled from the catalogs, not from the host's ICU tables ───────────────── */
 const months=(bnMessages.common.months as Record<string,string>);
@@ -360,19 +362,20 @@ assert.equal(monthWords.length,12,'the twelve names a provider hands over are th
 /* A class timeline line has to be storable for the records the centre already has: both import paths
    write one with no name on it, so the name is optional with an empty default and the doors fill it. */
 const model=readFileSync('src/models/CenterRecords.ts','utf8');
-assert.ok(model.includes('name:wornName'),'the timeline stores the name a class wore as an optional word');
-assert.ok(model.includes("const wornName={bn:{type:String,default:''"),
+assert.match(model, /name:\s*wornName/, 'the timeline stores the name a class wore as an optional word');
+assert.match(model, /const wornName\s*=\s*\{\s*bn:\s*\{\s*type:\s*String,\s*default:\s*["']["']/,
   'and a line written before this slice — or by an import — is not refused for want of one');
 const enrol=readFileSync('src/actions/center-students.ts','utf8');
 assert.ok(enrol.includes('classHistory:[{classGroup:p.classGroup,name:{bn:current.name.bn'),
   'and an enrolment writes the first line of the timeline with the name the class wore that day, so the '
   +'line a profile prints never has to guess it');
 const cardSource=readFileSync('src/components/achievements/card.tsx','utf8');
-assert.ok(cardSource.includes("monthNames(useTranslations('common').raw('months')")
-  &&cardSource.includes('achievementDateBn(data.date,months)'),
+assert.ok(/monthNames\(\s*t\.raw\(["']months["']\)/.test(cardSource)
+  &&/achievementDateBn\(data\.date,\s*months\)/.test(cardSource),
   'the card asks the provider it is already under for the twelve names and hands them to the formatter');
 const published=readFileSync('src/app/[locale]/achievements/[slug]/page.tsx','utf8');
-assert.ok(published.includes("getTranslations('common')")&&published.includes('achievementDateBn(item.date,monthWords)'),
+assert.ok(/getTranslations\(\s*["']common["']\s*\)/.test(published)
+  &&/achievementDateBn\(item\.date,\s*monthWords\)/.test(published),
   'and the published page reads the same twelve from its own catalog');
 
 console.log('Student money core: a pause is a range that stops the meter without forgiving the arrears before it, '+

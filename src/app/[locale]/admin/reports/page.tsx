@@ -9,7 +9,6 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { getTranslations } from "next-intl/server";
-import "../../../../reports-hub.css";
 
 export const dynamic = "force-dynamic";
 

@@ -16,7 +16,8 @@
  *   • **Nothing is locked.** Any field of any period can be changed, including which day it belongs to —
  *     moving a period is the day picker in its own editor.
  *
- * Styling lives in `routine-board.css` (everything is `rm-*`).
+ * Styling lives in `globals.css` under "Merged from src/routine-board.css"
+ * (everything is `rm-*`).
  */
 import {
   deleteMasterPeriodAction,
@@ -70,8 +71,6 @@ import { RoutineHistory } from "./routine-history";
 import { RoutineDayOps, RoutineTools, type BulkPicked } from "./routine-tools";
 import { RowControls } from "./row-controls";
 import { SubmitButton } from "./submit-button";
-
-import "@/routine-board.css";
 
 const idle: RoutineActionState = { status: "idle" };
 

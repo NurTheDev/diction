@@ -23,7 +23,7 @@ Raw log: `test-results/r0-cold-start-20261112.txt`, summary: `test-results/r0-ve
 | 1 | `npm ci` | **PASS** — clean install from `package-lock.json`. |
 | 2 | `npm run typecheck` (`tsc --noEmit`) | **PASS** — 0 errors. |
 | 3 | `npm test` | **PASS** — **31** unit suites (22 core + 9 Center). All green, ~15 s, no database needed. |
-| 4 | `next build --webpack` (run by `test-mode`) | **PASS** — "✓ Compiled successfully in 50s", "✓ Generating static pages (173/173)". The old "build OOMs in the sandbox" caveat in `STALE-TESTS-REPORT.md` does **not** apply to a 3.9 GB machine. |
+| 4 | `next build --webpack` (run by `test-mode`) | **PASS** — "✓ Compiled successfully in 50s", "✓ Generating static pages (173/173)". The old "build OOMs in the sandbox" caveat in `HISTORY.md` does **not** apply to a 3.9 GB machine. |
 | 5 | `npm run test-mode` (whole command) | **BLOCKED at step 5 only** — it builds fine, then must download a MongoDB binary from `fastdl.mongodb.org`, which this sandbox's network allowlist refuses (`ECONNRESET`, 3 retries, exit 1). Nothing before that step failed. |
 | 6 | Browser + Mongo integration tests (13 files) | **BLOCKED** — same reason, plus Playwright's Chromium CDN (`cdn.playwright.dev`) is refused. |
 
@@ -76,7 +76,7 @@ stack trace (`tests/helpers/env-preflight.ts`).
 | Class/year sheet view + Excel export | working | prior log; `students/fees-grid/export/route.ts`. |
 | Due list (live) + CSV export | **partial** | code read: class filter + CSV only. The M3-4 changelog also claims month filter, select-all, Excel and print/PDF — **those are not in the code**. |
 | Month-end due snapshots — manual button | working | code read + prior log. Gated by `CENTER_DUE_SNAPSHOT_WRITE_ENABLED` (off by default) and a confirm checkbox (which §4 of the SPEC forbids for common tasks — review in R1/R6). |
-| Month-end due snapshots — **scheduled endpoint** | **missing** | No `/api/admin/center/month-end-scheduler` route exists; `CRON_SECRET` and `DUE_SNAPSHOT_START_MONTH` appear only in `MILESTONE-3-4-START-HERE.md`, never in `src/`. No `vercel.json` either. |
+| Month-end due snapshots — **scheduled endpoint** | **missing** | No `/api/admin/center/month-end-scheduler` route exists; `CRON_SECRET` and `DUE_SNAPSHOT_START_MONTH` appear only in `HISTORY.md`, never in `src/`. No `vercel.json` either. |
 | Legacy fee **review** (read-only suggestions) | working | code read: `admin/students/legacy-review/page.tsx`. |
 | Legacy fee **conversion/migration** | **missing** | No conversion code (searched `poisha`, `convertLegacy`, `LegacyFee`). Only the experimental identity link (`CENTER_LEGACY_LINK_ENABLED`, off by default). |
 | Portal linking for Center students/guardians | **partial (R5 slice 2)** | There is still no stored link: `/dashboard/results` and `/parent/results` match the signed-in account's own `User.phone` against a `CenterStudent`'s `studentPhone`, `guardianPhone` or `altPhone`, exactly and never as a pattern, and read only published exam results (§19). Fees are still the legacy `Student`/`FeeInvoice`/`FeePayment` models, and no page outside `/admin` reads `CenterPayment`. |
@@ -87,32 +87,32 @@ stack trace (`tests/helpers/env-preflight.ts`).
 | Teacher CV bank | **missing** | → R4. |
 | Delete / archive / Recycle Bin | **partial (R1 in progress)** | Engine landed and CI-verified: `deletedAt/deletedBy/purgeAt` on twelve schemas, `src/lib/admin/recycle.ts` (soft delete with 30-day purge date, restore, real reference counts, purge), a schema-level invariant that hides binned rows from every ordinary read/write, and the nine former hard deletes converted to binning (`requireAdmin`). `staff` role added (archive/hide, never delete). Owed in R1: Recycle Bin page, ConfirmDialog naming the item, 10 s Undo toast, bulk select, the daily purge job, and delete/archive controls for the remaining no-control types (`docs/R1-AUDIT.md` status line). |
 | Retention/purge, reports, backup, database-usage card | missing / partial | `src/lib/center/database-usage.ts` exists; `admin/audit` exists; the rest → R6. |
-| Deployment guide | partial | `DEPLOYMENT.md`, `ATLAS-SETUP.md`, `DASHBOARD-LOGIN.md` exist but describe the missing scheduler as delivered → R7. |
+| Deployment guide | partial | `DEPLOYMENT.md` and `SETUP.md` exist; older wording that described the missing scheduler as delivered is kept in `HISTORY.md` → R7. |
 
 ## 4. Documentation says / code does
 
 Found in R0 by reading the code, not the docs. Each line is a correction to an earlier claim; the
 older files are left in place as history, and this table is the authority.
 
-1. `MILESTONE-3-4-CHANGELOG.txt` item 5 and `MILESTONE-3-4-START-HERE.md` §35 describe a
+1. `HISTORY.md` (Milestones 3–4 changelog) item 5 and the Milestones 3–4 start-here §35 describe a
    `CRON_SECRET` scheduler endpoint and `DUE_SNAPSHOT_START_MONTH`. **Neither exists in code.**
-2. `MILESTONE-3-4-CHANGELOG.txt` item 1 promises a due list with month filter, select-all, Excel and
-   print/PDF. **The page has a class filter and a CSV link only.**
-3. `MILESTONE-3-4-CHANGELOG.txt` item 2 promises legacy-fee conversion preserving poisha/method/
-   reference. **Only review + an experimental identity link exist.**
-4. `MILESTONE-3-4-CHANGELOG.txt` item 3 promises portal links with read-only access to linked
-   students. **The parent portal still reads legacy fee models only.**
-5. `MILESTONE-3-4-CHANGELOG.txt` item 4 promises "ভর্তি সম্পন্ন → student creation". **It is a status
-   label only.**
+2. `HISTORY.md` (Milestones 3–4 changelog) item 1 promises a due list with month filter, select-all,
+   Excel and print/PDF. **The page has a class filter and a CSV link only.**
+3. `HISTORY.md` (Milestones 3–4 changelog) item 2 promises legacy-fee conversion preserving
+   poisha/method/reference. **Only review + an experimental identity link exist.**
+4. `HISTORY.md` (Milestones 3–4 changelog) item 3 promises portal links with read-only access to
+   linked students. **The parent portal still reads legacy fee models only.**
+5. `HISTORY.md` (Milestones 3–4 changelog) item 4 promises "ভর্তি সম্পন্ন → student creation". **It is
+   a status label only.**
 6. `test-results/milestone-3-4-verification.txt` lines 19-20 report PASS for
    `center-legacy-migration-browser` and `center-portal-access-browser`. **Neither test file is in
    the repository**, so those two claims cannot be reproduced. (Consistent with items 3 and 4.)
-7. `CENTER-DELIVERY-STATUS.md` says the production build OOMs in a 2 GB sandbox. On 3.9 GB it builds
+7. `HISTORY.md` (Center module delivery checkpoint) says the production build OOMs in a 2 GB sandbox. On 3.9 GB it builds
    in 50 s — see §1 step 4. `scripts/test-mode.ts` used to cap **both** the typecheck and the build at
    `--max-old-space-size=768`; that was fine until the repository outgrew it (see §14), and the two
    steps now have separate heaps.
-8. Root `STATUS.md` was a Milestone-1 narrative, not a status file. It is preserved at
-   `docs/history/MILESTONE-1-REVIEW.md`; this file is the status file from now on.
+8. The old root `STATUS.md` was a Milestone-1 narrative, not a status file. It is preserved in
+   `HISTORY.md`; this file is the status file from now on.
 9. The older docs cite 360/1440 screenshots in `screenshots/workbook-import/` and
    `screenshots/workbook-preview-wip/`. **`screenshots/` is empty — 0 files.** That visual evidence
    was never shipped in this ZIP, so it cannot be re-checked. From R1 onwards every milestone must

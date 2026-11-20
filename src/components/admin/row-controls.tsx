@@ -77,14 +77,14 @@ export function RowControls({
   /* Desk widths show the destructive pair outright; a phone row is a card, and a card keeps its
      Edit button visible and folds the rest into one labelled More menu. */
   return (
-    <div className="admin-bin-actions row-controls">
-      <span className="admin-row-direct">{controls}</span>
+    <div className="rc row-controls">
+      <span className="rc-direct">{controls}</span>
       <details
         ref={menu}
-        className="admin-more admin-more-row"
+        className="rc-menu"
         onToggle={(event) => setOpen(event.currentTarget.open)}>
-        <summary>{t("more")}</summary>
-        <div className="admin-more-body">{controls}</div>
+        <summary className="rc-summary">{t("more")}</summary>
+        <div className="rc-menu-body">{controls}</div>
       </details>
     </div>
   );

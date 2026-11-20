@@ -393,18 +393,10 @@ assert.deepEqual([...new Set(unreadProviders)].sort(),[],'every provider in src/
    teacher's eyes exists to keep off a teacher's screen, so it may be shipped to an admin and never into the
    teacher, student or parent trees. Named here so the list can only shrink, in both directions: a route
    that stops being uncovered has to be struck off, and a new one fails. */
-const KNOWN_UNCOVERED_ROUTES=[
-  'src/app/[locale]/dashboard/fees/[id]/page.tsx',
-  'src/app/[locale]/dashboard/fees/page.tsx',
-  'src/app/[locale]/dashboard/materials/page.tsx',
-  'src/app/[locale]/dashboard/notices/page.tsx',
-  'src/app/[locale]/parent/fees/[id]/page.tsx',
-  'src/app/[locale]/parent/fees/page.tsx',
-  'src/app/[locale]/parent/materials/page.tsx',
-  'src/app/[locale]/parent/notices/page.tsx',
-  'src/app/[locale]/teacher/materials/page.tsx',
-  'src/app/[locale]/teacher/notices/page.tsx',
-].map(route=>route.split('/').join(path.sep));
+const KNOWN_UNCOVERED_ROUTES:string[]=[
+  // The ten portal routes that used to import an admin control are fixed. Keep this empty:
+  // any new route that leaks a group must fail the assertion above, not join a debt list.
+];
 const stillUncovered=(route:string):boolean=>uncovered.some(entry=>entry.startsWith(route));
 assert.deepEqual(uncovered.filter(entry=>!KNOWN_UNCOVERED_ROUTES.some(route=>entry.startsWith(route))).sort(),[],
   'every page hands its client components the catalog group they read, apart from the admin controls named as debt');

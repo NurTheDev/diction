@@ -12,7 +12,6 @@ import {
   FileText,
 } from "lucide-react";
 import { getTranslations } from "next-intl/server";
-import "../../../../../receipt-audit.css";
 
 export const dynamic = "force-dynamic";
 

@@ -9,7 +9,6 @@ import { loadMonthlyReport } from "@/lib/reports/collections-data";
 import { typeLabelKey } from "@/lib/reports/vocab";
 import { FileSpreadsheet, FileText } from "lucide-react";
 import { getTranslations } from "next-intl/server";
-import "../../../../../monthly-report.css";
 
 export const dynamic = "force-dynamic";
 
