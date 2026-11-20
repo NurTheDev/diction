@@ -2,7 +2,6 @@ import { AvailabilityNotice } from "@/components/forms/availability-notice";
 import { Link } from "@/i18n/navigation";
 import { signIn } from "@/lib/auth";
 import { authServicesConfigured } from "@/lib/service-status";
-import "@/login.css";
 import {
   AlertTriangle,
   ArrowRight,

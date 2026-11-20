@@ -1,7 +1,6 @@
 "use client";
 import { Link, usePathname } from "@/i18n/navigation";
 import { formatNumber, type Digits } from "@/lib/admin/format";
-import "@/sidebar.css";
 import {
   ChevronDown,
   ClipboardList,

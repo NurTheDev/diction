@@ -1,5 +1,4 @@
 "use client";
-import "@/practice-exam.css";
 import {
   BookOpenCheck,
   Check,

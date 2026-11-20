@@ -1,7 +1,6 @@
 "use client";
 import { Link, usePathname } from "@/i18n/navigation";
 import type { Digits } from "@/lib/admin/format";
-import "@/top-header.css";
 import {
   ChevronDown,
   ExternalLink,
