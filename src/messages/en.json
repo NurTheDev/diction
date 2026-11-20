@@ -84,6 +84,8 @@
     "button": "Book a free trial class"
   },
   "footer": {
+    "builtBy": "Built by",
+    "devRole": "Full-Stack Web Developer",
     "desc": "Supporting brighter futures through care, learning and inspiration since 2011.",
     "links": "Quick links",
     "address": "Find us",

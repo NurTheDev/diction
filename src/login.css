@@ -1,0 +1,401 @@
+/* ==========================================================
+   Login page (public)  ·  prefix: lgn-
+   Everything is scoped under .lgn so nothing leaks.
+   ========================================================== */
+
+.lgn {
+  --lgn-primary: var(--primary, #2e3192);
+  --lgn-action: var(--action, #d91a21);
+  --lgn-success: var(--success, #007a3d);
+  --lgn-info: var(--info, #0090c8);
+  --lgn-ink: var(--ink, #1a1d3a);
+  --lgn-muted: var(--muted, #5b6180);
+  --lgn-border: var(--border, #e3e6f2);
+  --lgn-bg: var(--background, #f7f8fc);
+  --lgn-surface: var(--surface, #fff);
+
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: min(720px, calc(100vh - 160px));
+  padding: clamp(32px, 7vw, 72px) 16px;
+  overflow: hidden;
+  color: var(--lgn-ink);
+  background:
+    radial-gradient(
+      620px 380px at 12% 10%,
+      color-mix(in srgb, var(--lgn-primary) 10%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      560px 360px at 90% 92%,
+      color-mix(in srgb, var(--lgn-action) 8%, transparent),
+      transparent 70%
+    ),
+    linear-gradient(var(--lgn-bg), var(--lgn-bg));
+}
+
+.lgn *,
+.lgn *::before,
+.lgn *::after {
+  box-sizing: border-box;
+}
+
+/* soft decorative rings behind the card */
+.lgn::before,
+.lgn::after {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.lgn::before {
+  top: -90px;
+  right: -70px;
+  width: 280px;
+  height: 280px;
+  border: 38px solid color-mix(in srgb, var(--lgn-primary) 6%, transparent);
+}
+
+.lgn::after {
+  bottom: -110px;
+  left: -80px;
+  width: 320px;
+  height: 320px;
+  border: 46px solid color-mix(in srgb, var(--lgn-info) 7%, transparent);
+}
+
+/* ---------- Card ---------- */
+
+.lgn-card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 440px;
+  padding: clamp(26px, 5vw, 40px) clamp(22px, 5vw, 38px) clamp(24px, 4vw, 34px);
+  overflow: hidden;
+  background: var(--lgn-surface);
+  border: 1px solid var(--lgn-border);
+  border-radius: 26px;
+  box-shadow:
+    0 24px 60px rgba(26, 29, 58, 0.12),
+    0 4px 14px rgba(26, 29, 58, 0.05);
+  animation: lgn-rise 0.45s ease both;
+}
+
+.lgn-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 6px;
+  background: linear-gradient(
+    90deg,
+    var(--lgn-primary),
+    var(--lgn-info) 55%,
+    var(--lgn-action)
+  );
+}
+
+@keyframes lgn-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ---------- Header ---------- */
+
+.lgn-head {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  margin-bottom: 26px;
+  text-align: center;
+}
+
+.lgn-badge {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  margin-bottom: 8px;
+  color: #fff;
+  background: linear-gradient(
+    135deg,
+    var(--lgn-primary),
+    color-mix(in srgb, var(--lgn-primary) 60%, var(--lgn-info))
+  );
+  border-radius: 20px;
+  box-shadow:
+    0 12px 26px color-mix(in srgb, var(--lgn-primary) 32%, transparent),
+    0 0 0 7px color-mix(in srgb, var(--lgn-primary) 8%, transparent);
+}
+
+.lgn-head h1 {
+  margin: 0;
+  font-size: clamp(1.55rem, 4vw, 1.95rem);
+  line-height: 1.25;
+  color: var(--lgn-primary);
+}
+
+.lgn-head p {
+  margin: 0;
+  max-width: 34ch;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--lgn-muted);
+}
+
+/* ---------- Error alert ---------- */
+
+.lgn-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  margin: 0 0 20px;
+  padding: 13px 15px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.55;
+  color: #9b1c1c;
+  background: #fff1f1;
+  border: 1px solid #f5c2c2;
+  border-radius: 14px;
+  animation: lgn-shake 0.4s ease;
+}
+
+.lgn-alert svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+@keyframes lgn-shake {
+  20% {
+    transform: translateX(-5px);
+  }
+  40% {
+    transform: translateX(5px);
+  }
+  60% {
+    transform: translateX(-3px);
+  }
+  80% {
+    transform: translateX(3px);
+  }
+}
+
+/* ---------- Form ---------- */
+
+.lgn-form {
+  display: grid;
+  gap: 18px;
+}
+
+.lgn-field {
+  display: grid;
+  gap: 7px;
+}
+
+.lgn-label {
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--lgn-ink);
+}
+
+.lgn-input-wrap {
+  position: relative;
+  display: block;
+}
+
+.lgn-input-wrap > svg {
+  position: absolute;
+  top: 50%;
+  left: 15px;
+  transform: translateY(-50%);
+  color: var(--lgn-muted);
+  pointer-events: none;
+  transition: color 0.15s ease;
+}
+
+.lgn-input {
+  display: block;
+  width: 100%;
+  height: 52px;
+  padding: 0 16px 0 46px;
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--lgn-ink);
+  background: var(--lgn-bg);
+  border: 1.5px solid var(--lgn-border);
+  border-radius: 14px;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.lgn-input:hover {
+  border-color: color-mix(in srgb, var(--lgn-primary) 35%, var(--lgn-border));
+}
+
+.lgn-input:focus {
+  outline: none;
+  background: #fff;
+  border-color: var(--lgn-primary);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--lgn-primary) 14%, transparent);
+}
+
+.lgn-input-wrap:focus-within > svg {
+  color: var(--lgn-primary);
+}
+
+.lgn-input:user-invalid {
+  border-color: var(--lgn-action);
+  background: #fff8f8;
+}
+
+/* keep the browser autofill from turning the field yellow */
+.lgn-input:-webkit-autofill,
+.lgn-input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--lgn-ink);
+  box-shadow:
+    0 0 0 40px color-mix(in srgb, var(--lgn-primary) 7%, #fff) inset,
+    0 0 0 4px color-mix(in srgb, var(--lgn-primary) 10%, transparent);
+  transition: background-color 9999s ease-in-out 0s;
+}
+
+/* ---------- Submit ---------- */
+
+.lgn-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 54px;
+  margin-top: 4px;
+  padding: 0 24px;
+  font: inherit;
+  font-size: 1.02rem;
+  font-weight: 700;
+  line-height: 1;
+  color: #fff;
+  background: linear-gradient(
+    135deg,
+    var(--lgn-primary),
+    color-mix(in srgb, var(--lgn-primary) 68%, #000)
+  );
+  border: 0;
+  border-radius: 14px;
+  box-shadow: 0 10px 24px
+    color-mix(in srgb, var(--lgn-primary) 32%, transparent);
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.lgn-btn svg {
+  flex: none;
+  transition: transform 0.15s ease;
+}
+
+.lgn-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px
+    color-mix(in srgb, var(--lgn-primary) 40%, transparent);
+}
+
+.lgn-btn:hover svg {
+  transform: translateX(3px);
+}
+
+.lgn-btn:active {
+  transform: translateY(0);
+}
+
+.lgn-btn:focus-visible,
+.lgn-link:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--lgn-primary) 38%, transparent);
+  outline-offset: 3px;
+}
+
+/* ---------- Forgot password ---------- */
+
+.lgn-foot {
+  display: flex;
+  justify-content: center;
+  margin-top: 4px;
+  padding-top: 18px;
+  border-top: 1px dashed var(--lgn-border);
+}
+
+.lgn-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--lgn-primary);
+  text-decoration: none;
+  background: color-mix(in srgb, var(--lgn-primary) 6%, #fff);
+  border: 1px solid color-mix(in srgb, var(--lgn-primary) 16%, transparent);
+  border-radius: 999px;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.lgn-link:hover {
+  background: color-mix(in srgb, var(--lgn-primary) 12%, #fff);
+  border-color: var(--lgn-primary);
+}
+
+/* ---------- Service notice (when auth is not configured) ---------- */
+
+.lgn-notice {
+  padding: 4px 0 0;
+  font-size: 0.93rem;
+  line-height: 1.7;
+  color: var(--lgn-muted);
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 480px) {
+  .lgn {
+    padding-inline: 12px;
+  }
+
+  .lgn-card {
+    border-radius: 22px;
+  }
+
+  .lgn-badge {
+    width: 56px;
+    height: 56px;
+    border-radius: 18px;
+  }
+
+  .lgn-input {
+    height: 50px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lgn *,
+  .lgn *::before,
+  .lgn *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}
