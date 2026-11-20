@@ -41102,6 +41102,11 @@ body:has(dialog.cm-modal[open]) {
   --tph-border: var(--border, #e3e6f2);
   --tph-bg: var(--background, #f7f8fc);
 
+  /* Above the page below it: the header's dropdowns live in this stacking context, and the page's
+     own positioned controls (`.button` is `position: relative`) would otherwise paint over them.
+     Stays under the fixed overlays (toasts, `.pop-body`, 60+). */
+  position: relative;
+  z-index: 40;
   color: var(--tph-ink);
   background: color-mix(in srgb, #fff 94%, transparent);
   border-bottom: 1px solid var(--tph-border);
