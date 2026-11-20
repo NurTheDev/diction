@@ -121,7 +121,7 @@ export function TopHeader({
           {t("viewSite")}
         </Link>
         <details className="admin-user-menu tph-user" ref={menu}>
-          <summary>
+          <summary aria-label={name}>
             <span className="tph-avatar" aria-hidden="true">
               {initial}
             </span>
@@ -165,7 +165,7 @@ export function TopHeader({
               <span className="tph-ico">
                 <Languages size={17} aria-hidden="true" />
               </span>
-              {locale === "bn" ? "English" : "বাংলা"}
+              {locale === "bn" ? "English" : "বাংলা"}{/* i18n-scan-allow: the switcher names the language it switches to, in that language, like header-nav */}
             </a>
             <Link
               className="admin-site-mobile tph-item"
@@ -214,5 +214,5 @@ export function TopHeader({
         </details>
       </div>
     </header>
-  ); // i18n-scan-allow: the switcher names the language it switches to, in that language, like header-nav
+  );
 }

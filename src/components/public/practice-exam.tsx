@@ -28,7 +28,7 @@ type Result = {
   saved: boolean;
 };
 
-const lettersBn = ["ক", "খ", "গ", "ঘ", "ঙ", "চ", "ছ", "জ"];
+const lettersBn = ["ক", "খ", "গ", "ঘ", "ঙ", "চ", "ছ", "জ"]; // i18n-scan-allow: the Bangla answer letters an option list is lettered with, an alphabet table picked by locale like lettersEn, not a sentence
 const lettersEn = ["A", "B", "C", "D", "E", "F", "G", "H"];
 
 export function PracticeExam({

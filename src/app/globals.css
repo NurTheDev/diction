@@ -12248,12 +12248,23 @@ html:lang(bn) .hero-ribbon {
     flex: none;
     max-width: 38%;
   }
-  .list-check {
+  /* `td.list-check` on purpose: a bare `.list-check` loses to `.list-table tbody td` and
+     `.admin-responsive-table td` above, and the tick then inherits space-between, the 46px desktop
+     width and the data-label painted beside it. */
+  .list-table tbody td.list-check {
     order: 1;
     justify-content: flex-start;
+    width: auto;
   }
-  .list-check:before {
-    content: "";
+  /* a removed student has no tick: the cell stays empty and adds no height */
+  .list-table tbody td.list-check:has(input) {
+    min-height: 44px;
+  }
+  .list-table tbody td.list-check:before {
+    display: none;
+  }
+  .list-table tbody td.list-check input {
+    flex: none;
   }
   .list-who {
     order: 2;
@@ -19542,10 +19553,12 @@ body:has(dialog.cm-modal[open]) {
 
 /* single on/off rows (free class, active) */
 .cm-modal .cm-toggle {
-  display: grid;
+  /* !important: the shared `.admin-check` forces a nowrap flex row with the same weight, which
+     squeezed the tick to 13px and set the help sentence beside it instead of under it. */
+  display: grid !important;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: start;
-  gap: 4px 12px;
+  gap: 4px 12px !important;
   margin: 0;
   padding: 14px 16px;
   font-size: 0.9rem;
@@ -41570,6 +41583,41 @@ body:has(dialog.cm-modal[open]) {
 }
 
 /* ---------- Responsive ---------- */
+
+/* The controls on the right keep their size and the breadcrumb is what gives way, so a narrow
+   main column (the sidebar takes 280px from 761px up) clips a crumb, never the page. */
+.admin-top.tph .admin-top-page {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.admin-top.tph .tph-crumbs,
+.admin-top.tph .tph-crumb-list {
+  overflow: hidden;
+}
+
+.admin-top.tph .tph-crumb:not([aria-current="page"]) {
+  flex: none;
+}
+
+.admin-top.tph .admin-top-right {
+  flex: none;
+}
+
+@media (min-width: 761px) and (max-width: 1100px) {
+  .admin-top.tph {
+    padding-inline: 20px;
+  }
+
+  /* the avatar stays; the name is the first thing in the user menu's dropdown */
+  .admin-top.tph .tph-name {
+    display: none;
+  }
+
+  .admin-top.tph .tph-user > summary {
+    padding: 4px 8px 4px 4px;
+  }
+}
 
 @media (max-width: 900px) {
   .admin-top.tph .tph-here {
