@@ -1,0 +1,281 @@
+/* ==========================================================
+   Public practice test list  (prefix: prl-)
+   ========================================================== */
+
+.prl {
+  --prl-primary: var(--primary, #2e3192);
+  --prl-action: var(--action, #d91a21);
+  --prl-success: var(--success, #007a3d);
+  --prl-info: var(--info, #0090c8);
+  --prl-ink: var(--ink, #1a1d3a);
+  --prl-muted: var(--muted, #5b6180);
+  --prl-border: var(--border, #e3e6f2);
+  --prl-surface: var(--surface, #fff);
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+}
+
+/* ---------- intro ---------- */
+.prl-intro {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin: 0;
+  padding: 16px 20px;
+  border: 1px solid color-mix(in srgb, var(--prl-info) 25%, #fff);
+  border-inline-start: 4px solid var(--prl-info);
+  border-radius: 16px;
+  background: linear-gradient(
+    120deg,
+    color-mix(in srgb, var(--prl-info) 9%, #fff),
+    #fff 70%
+  );
+  color: var(--prl-ink);
+  font-size: 1rem;
+  line-height: 1.75;
+}
+.prl-intro-ico {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  background: var(--prl-info);
+  color: #fff;
+  box-shadow: 0 6px 14px -6px var(--prl-info);
+}
+.prl-intro-ico svg {
+  width: 18px;
+  height: 18px;
+}
+.prl-intro-text {
+  margin: 0;
+  padding-top: 4px;
+}
+
+/* ---------- grid ---------- */
+.prl-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* ---------- card ---------- */
+.prl-card {
+  --prl-tone: var(--prl-primary);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px 22px 20px;
+  overflow: hidden;
+  border: 1px solid var(--prl-border);
+  border-radius: 22px;
+  background:
+    radial-gradient(
+      circle at 100% 0,
+      color-mix(in srgb, var(--prl-tone) 10%, transparent),
+      transparent 55%
+    ),
+    linear-gradient(var(--prl-surface), var(--prl-surface));
+  box-shadow:
+    0 1px 2px rgba(26, 29, 58, 0.04),
+    0 10px 26px -18px rgba(26, 29, 58, 0.25);
+  transition:
+    transform 0.22s ease,
+    box-shadow 0.22s ease,
+    border-color 0.22s ease;
+}
+.prl-card[data-tone="1"] {
+  --prl-tone: var(--prl-action);
+}
+.prl-card[data-tone="2"] {
+  --prl-tone: var(--prl-success);
+}
+.prl-card[data-tone="3"] {
+  --prl-tone: var(--prl-info);
+}
+
+.prl-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 4px;
+  background: linear-gradient(
+    90deg,
+    var(--prl-tone),
+    color-mix(in srgb, var(--prl-tone) 35%, #fff)
+  );
+  opacity: 0.85;
+}
+.prl-card:hover {
+  transform: translateY(-4px);
+  border-color: color-mix(in srgb, var(--prl-tone) 45%, var(--prl-border));
+  box-shadow:
+    0 2px 4px rgba(26, 29, 58, 0.05),
+    0 22px 40px -22px color-mix(in srgb, var(--prl-tone) 55%, transparent);
+}
+.prl-card:focus-within {
+  outline: 3px solid color-mix(in srgb, var(--prl-tone) 40%, transparent);
+  outline-offset: 2px;
+}
+
+.prl-tile {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 16px;
+  background: linear-gradient(
+    145deg,
+    var(--prl-tone),
+    color-mix(in srgb, var(--prl-tone) 60%, #000)
+  );
+  color: #fff;
+  box-shadow: 0 10px 20px -10px var(--prl-tone);
+}
+.prl-tile svg {
+  width: 26px;
+  height: 26px;
+}
+
+.prl-title {
+  margin: 0;
+  color: var(--prl-ink);
+  font-size: 1.2rem;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.prl-title a {
+  color: inherit;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+.prl-card:hover .prl-title a {
+  color: var(--prl-tone);
+}
+
+.prl-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  min-height: 30px;
+}
+.prl-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--prl-tone) 25%, #fff);
+  background: color-mix(in srgb, var(--prl-tone) 9%, #fff);
+  color: color-mix(in srgb, var(--prl-tone) 80%, #000);
+  font-size: 0.86rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+/* ---------- CTA (stretched link: whole card is clickable) ---------- */
+.prl-foot {
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px dashed var(--prl-border);
+}
+.prl-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--prl-tone);
+  font-weight: 700;
+  font-size: 1rem;
+  text-decoration: none;
+}
+.prl-cta::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+.prl-cta-arrow {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--prl-tone) 12%, #fff);
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease,
+    color 0.2s ease;
+}
+.prl-cta-arrow svg {
+  width: 16px;
+  height: 16px;
+}
+.prl-card:hover .prl-cta-arrow {
+  transform: translateX(4px);
+  background: var(--prl-tone);
+  color: #fff;
+}
+.prl-cta:focus-visible {
+  outline: none;
+}
+
+/* ---------- empty ---------- */
+.prl-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 48px 20px;
+  border: 2px dashed var(--prl-border);
+  border-radius: 22px;
+  background: color-mix(in srgb, var(--prl-primary) 3%, #fff);
+  color: var(--prl-muted);
+  text-align: center;
+}
+.prl-empty-ico {
+  display: grid;
+  place-items: center;
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--prl-primary) 10%, #fff);
+  color: var(--prl-primary);
+}
+.prl-empty-ico svg {
+  width: 30px;
+  height: 30px;
+}
+.prl-empty p {
+  margin: 0;
+  max-width: 460px;
+  line-height: 1.7;
+}
+
+/* ---------- responsive / motion ---------- */
+@media (max-width: 560px) {
+  .prl-grid {
+    grid-template-columns: 1fr;
+  }
+  .prl-intro {
+    padding: 14px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .prl-card,
+  .prl-cta-arrow,
+  .prl-title a {
+    transition: none;
+  }
+  .prl-card:hover {
+    transform: none;
+  }
+}
