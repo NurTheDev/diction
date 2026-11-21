@@ -18,6 +18,7 @@ import {
   whatsappHref,
 } from "@/lib/routine/dispatch";
 import {
+  assignments,
   dailySheet,
   jointOptions,
   knownRooms,
@@ -163,14 +164,34 @@ export default async function RoutineDailyPage({
      the message and the notice all read "weekly day off" without anybody having typed it. */
   if (sheet && !sheet.stored && sheet.dayType === "off")
     sheet.holidayReason = t("day.type.off");
-  const [teachers, rooms, joints, notice] = sheet
+  const [teachers, rooms, joints, notice, subjectRows] = sheet
     ? await Promise.all([
         teacherOptions(),
         knownRooms(),
         jointOptions(sheet.weekday),
         printNotice(date, language),
+        assignments(language, chosen.id),
       ])
-    : [[], [], [], null];
+    : [[], [], [], null, []];
+
+  /* The subjects a weekly exam can be about: the ones the week already teaches, the ones this date
+     already holds, and the class's standing teaching assignments — so an exam day with no periods
+     still offers the subjects the class actually runs. */
+  const examSubjects = sheet
+    ? [
+        ...new Map(
+          [...sheet.masterPeriods, ...sheet.periods, ...subjectRows]
+            .filter((item) => item.subjectBn.trim())
+            .map((item) => [
+              item.subjectBn.trim(),
+              {
+                bn: item.subjectBn.trim(),
+                en: item.subjectEn.trim(),
+              },
+            ]),
+        ).values(),
+      ].sort((a, b) => a.bn.localeCompare(b.bn))
+    : [];
 
   /* Slice 2 · the day going out. The messages are written here, on the server, from the sheet and from the
      catalogs — so the text the operator copies is already in the screen's own language and their own
@@ -196,6 +217,12 @@ export default async function RoutineDailyPage({
             digits,
             holiday: sheet.status === "holiday" ? sheet.holidayReason : "",
             exam: sheet.dayType === "exam",
+            examSubject:
+              language === "en"
+                ? sheet.examSubjectEn || sheet.examSubjectBn
+                : sheet.examSubjectBn,
+            examOnly:
+              sheet.dayType === "exam" && sheet.examMode === "exam",
           },
           say,
         );
@@ -336,6 +363,7 @@ export default async function RoutineDailyPage({
               teachers={teachers}
               rooms={rooms}
               joints={joints}
+              examSubjects={examSubjects}
               weekdays={dayHeaders(language)}
               digits={digits}
               language={language}
@@ -402,6 +430,21 @@ export default async function RoutineDailyPage({
                   {entry.shift ? ` · ${entry.shift}` : ""}
                   {entry.dayType === "exam" ? ` · ${t("day.type.exam")}` : ""}
                 </h2>
+                {entry.dayType === "exam" && entry.status !== "holiday" && (
+                  <p className="notice-exam" data-notice-exam>
+                    {entry.examSubjectBn || entry.examSubjectEn
+                      ? t("dispatch.examSubject", {
+                          subject:
+                            language === "en"
+                              ? entry.examSubjectEn || entry.examSubjectBn
+                              : entry.examSubjectBn,
+                        })
+                      : t("dispatch.examDay")}
+                    {entry.examMode === "exam"
+                      ? ` · ${t("daily.examModeExam")}`
+                      : ""}
+                  </p>
+                )}
                 {entry.status === "holiday" ? (
                   <p className="notice-holiday" data-notice-holiday>
                     {t("dispatch.holiday", {

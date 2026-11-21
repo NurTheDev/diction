@@ -118,6 +118,11 @@ const MODELS:{name:string;model:unknown;
       status:{control:'status',file:'daily'},
       holidayReason:{control:'holidayReason',file:'daily'},
       notes:{control:'notes',file:'daily'},
+      /* A weekly exam day's own two choices: the subject being examined and whether classes run beside
+         it. They are written on the date, which is why they live here and not on the week. */
+      examSubjectBn:{control:'examSubjectBn',file:'daily'},
+      examSubjectEn:{control:'examSubjectEn',file:'daily'},
+      examMode:{control:'examMode',file:'daily'},
       'classLabel.bn':'derived','classLabel.en':'derived',
       /* The dispatch writes these when a sheet is sent; the operator reads them as a badge. */
       sentAt:'system',sentBy:'system',sentSignature:'derived',

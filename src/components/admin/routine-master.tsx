@@ -692,6 +692,9 @@ function MasterDayDrawer({
           shift={day.shift || props.shift}
           from={day.weekday}
           weekdays={props.weekdays}
+          offDays={props.days
+            .filter((entry) => entry.dayType === "off")
+            .map((entry) => entry.weekday)}
           digits={props.digits}
           onDone={onClose}
         />
@@ -1055,7 +1058,10 @@ export function RoutineMasterBoard(props: RoutineMasterProps) {
                   </p>
                 )}
 
-                {props.canEdit && (
+                {/* A weekly day off takes no new class: the add buttons are not offered, and the engine
+                    refuses the same write if a form posts past the screen. Existing periods stay on the
+                    card and stay editable — marking a day off keeps what was written on it. */}
+                {props.canEdit && day.dayType !== "off" && (
                   <div className="rm-day-add">
                     {/* The primary way in is the chain, on every day of the week — a day with nothing on
                         it included, because "the next period" of an empty day is its first one. It starts

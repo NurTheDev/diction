@@ -327,14 +327,16 @@ export function RoutineTools(props:RoutineToolsProps){
 }
 
 /** One day operation: a weekday to land on, and the write. */
-function DayOpForm({kind,classId,shift,from,weekdays,digits,onDone}:{
-  kind:'move'|'duplicate';classId:string;shift:string;from:number;weekdays:string[];digits:Digits;
-  onDone:()=>void;
+function DayOpForm({kind,classId,shift,from,weekdays,offDays,digits,onDone}:{
+  kind:'move'|'duplicate';classId:string;shift:string;from:number;weekdays:string[];offDays:number[];
+  digits:Digits;onDone:()=>void;
 }){
   const t=useTranslations('routine'),router=useRouter();
   const action=kind==='move'?moveDayAction:duplicateDayAction;
   const [state,run,pending]=useActionState(action,idle);
-  const [to,setTo]=useState(weekdays.map((_,index)=>index).filter(index=>index!==from)[0]??0);
+  /* A weekly day off takes no new class, so it is not a place this day can land. */
+  const choices=weekdays.map((_,index)=>index).filter(index=>index!==from&&!offDays.includes(index));
+  const [to,setTo]=useState(choices[0]??0);
   const [done,setDone]=useState('');
   useEffect(()=>{
     if(state.status!=='ok')return;
@@ -351,39 +353,44 @@ function DayOpForm({kind,classId,shift,from,weekdays,digits,onDone}:{
     <input type="hidden" name="classId" value={classId}/>
     <input type="hidden" name="shift" value={shift}/>
     <input type="hidden" name="from" value={from}/>
-    <label>{t('dayOps.toDay')}
-      <select className="admin-select" name="to" data-dayop-to={hook} value={to}
-        onChange={event=>setTo(Number(event.target.value))}>
-        {weekdays.map((word,index)=>index===from?null
-          : <option key={word+index} value={index}>{word}</option>)}
-      </select>
-    </label>
+    {choices.length===0
+      ? <p className="admin-feedback error" data-dayop-no-target>{t('dayOps.noTarget')}</p>
+      : <label>{t('dayOps.toDay')}
+          <select className="admin-select" name="to" data-dayop-to={hook} value={to}
+            onChange={event=>setTo(Number(event.target.value))}>
+            {choices.map(index=><option key={weekdays[index]+index} value={index}>{weekdays[index]}</option>)}
+          </select>
+        </label>}
     <small className="admin-help">{t(kind==='move'?'dayOps.moveHelp':'dayOps.duplicateHelp')}</small>
+    {choices.length>0&&offDays.some(index=>index!==from)&&
+      <small className="admin-help" data-dayop-off-target>{t('dayOps.offTarget')}</small>}
     <ClashBanner state={state} digits={digits}/>
     <Refused state={state} hook={hook}/>
     {done&&<p className="admin-feedback ok" data-dayop-done={hook}>{done}</p>}
-    <div className="routine-form-actions">
-      <SubmitButton pending={pending} data-dayop-run={hook} busyLabel={t('period.saving')}
-        label={t(kind==='move'?'dayOps.move':'dayOps.duplicate')}/>
-      {state.status==='clash'&&<SubmitButton pending={pending} name="force" value="on"
-        className="button routine-save-anyway" data-dayop-force={hook} busyLabel={t('period.saving')}
-        label={t('dayOps.anyway')}/>}
-    </div>
+    {choices.length>0&&
+      <div className="routine-form-actions">
+        <SubmitButton pending={pending} data-dayop-run={hook} busyLabel={t('period.saving')}
+          label={t(kind==='move'?'dayOps.move':'dayOps.duplicate')}/>
+        {state.status==='clash'&&<SubmitButton pending={pending} name="force" value="on"
+          className="button routine-save-anyway" data-dayop-force={hook} busyLabel={t('period.saving')}
+          label={t('dayOps.anyway')}/>}
+      </div>}
   </form>;
 }
 
 /** Move this day, or duplicate it: both offered inside the day's own editor. */
-export function RoutineDayOps({classId,shift,from,weekdays,digits,onDone}:{
-  classId:string;shift:string;from:number;weekdays:string[];digits:Digits;onDone:()=>void;
+export function RoutineDayOps({classId,shift,from,weekdays,offDays,digits,onDone}:{
+  classId:string;shift:string;from:number;weekdays:string[];offDays:number[];digits:Digits;
+  onDone:()=>void;
 }){
   const t=useTranslations('routine');
   return <div className="routine-dayops" data-dayops={from}>
     <h3 data-dayop-move-title>{t('dayOps.moveTitle')}</h3>
-    <DayOpForm kind="move" classId={classId} shift={shift} from={from} weekdays={weekdays} digits={digits}
-      onDone={onDone}/>
+    <DayOpForm kind="move" classId={classId} shift={shift} from={from} weekdays={weekdays}
+      offDays={offDays} digits={digits} onDone={onDone}/>
     <h3 data-dayop-duplicate-title>{t('dayOps.duplicateTitle')}</h3>
     <DayOpForm kind="duplicate" classId={classId} shift={shift} from={from} weekdays={weekdays}
-      digits={digits} onDone={onDone}/>
+      offDays={offDays} digits={digits} onDone={onDone}/>
   </div>;
 }
 

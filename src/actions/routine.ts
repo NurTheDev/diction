@@ -174,7 +174,8 @@ export async function saveDailySheetAction(_previous:RoutineActionState,form:For
     const parsed=dailySheetSchema.safeParse({
       classId:text(form,'classId'),shift:text(form,'shift'),date:text(form,'date'),
       status:text(form,'status')||'normal',holidayReason:text(form,'holidayReason'),
-      notes:text(form,'notes'),periods,
+      notes:text(form,'notes'),examSubjectBn:text(form,'examSubjectBn'),
+      examSubjectEn:text(form,'examSubjectEn'),examMode:text(form,'examMode')||'both',periods,
     });
     if(!parsed.success)return {status:'invalid',fields:parsed.error.issues.map(issue=>String(issue.path[0]))};
     const outcome=await saveDailySheet({...parsed.data,force:flagged(form,'force'),actor:admin.id});

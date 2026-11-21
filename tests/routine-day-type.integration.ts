@@ -27,6 +27,7 @@ import {CenterClassGroup} from '../src/models/CenterRecords';
 import {MasterRoutine} from '../src/models/Routine';
 import {User} from '../src/models/User';
 import {saveDailySheet,saveMasterPeriod,setMasterDayType} from '../src/lib/routine/engine';
+import {duplicateMasterDay} from '../src/lib/routine/bulk';
 import {centreSlots,centreWeek,dailySheet,masterWeek,printNotice,teacherSchedule} from '../src/lib/routine/read';
 import {classDispatchText} from '../src/lib/routine/dispatch';
 
@@ -74,9 +75,20 @@ async function run(){
     assert.equal(schedule.today.weekday,FRIDAY);
     assert.equal(schedule.today.rows.length,0,'a teacher is not given a period on their class\'s day off');
 
+    /* Nothing new can be written onto a day off — not one period, and not a whole day duplicated onto it. */
+    assert.equal((await saveMasterPeriod({classId,shift:SHIFT,weekday:FRIDAY,draft:period(actor),force:true,actor})).status,
+      'invalid','a weekly day off refuses a new period');
+    assert.equal((await saveMasterPeriod({classId,shift:SHIFT,weekday:0,draft:period(actor),force:true,actor})).status,'ok');
+    assert.equal((await duplicateMasterDay({classId,shift:SHIFT,from:0,to:FRIDAY,force:true,actor})).status,
+      'invalid','a weekly day off refuses a whole day duplicated onto it');
+    /* A date that simply follows the week off carries no classes unless it is adjusted into a make-up day. */
+    assert.equal((await saveDailySheet({classId,shift:SHIFT,date:FRIDAY_DATE,status:'normal',holidayReason:'',
+      notes:'',examSubjectBn:'',examSubjectEn:'',examMode:'both',periods:[period(actor)],actor})).status,'invalid',
+      'a weekly day off refuses classes posted past the screen');
+
     /* A date's own sheet still has the last word: a make-up class on a day off is possible. */
     assert.equal((await saveDailySheet({classId,shift:SHIFT,date:FRIDAY_DATE,status:'adjusted',holidayReason:'',
-      notes:'make-up',periods:[period(actor)],actor})).status,'ok');
+      notes:'make-up',examSubjectBn:'',examSubjectEn:'',examMode:'both',periods:[period(actor)],actor})).status,'ok');
     const madeUp=(await dailySheet(classId,SHIFT,FRIDAY_DATE,'bn'))!;
     assert.deepEqual([madeUp.stored,madeUp.status,madeUp.periods.length],[true,'adjusted',1],
       'a stored sheet speaks for its date whatever the week says');
@@ -104,6 +116,19 @@ async function run(){
       &&!classDispatchText({...base,holiday:'Weekly day off'},say).includes('dispatch.noPeriods'),
       'a day off says so instead of "no periods"');
     assert.ok(classDispatchText(base,say).includes('dispatch.noPeriods'),'an ordinary empty day is unchanged');
+
+    /* ── the exam's own choices, written on the date ───────────────────────────────────────────── */
+    assert.equal((await saveDailySheet({classId,shift:SHIFT,date:SATURDAY_DATE,status:'normal',holidayReason:'',
+      notes:'',examSubjectBn:'বিজ্ঞান',examSubjectEn:'Science',examMode:'exam',periods:[],actor})).status,'ok');
+    const examOnlySheet=(await dailySheet(classId,SHIFT,SATURDAY_DATE,'bn'))!;
+    assert.deepEqual([examOnlySheet.examSubjectBn,examOnlySheet.examSubjectEn,examOnlySheet.examMode,
+      examOnlySheet.periods.length],['বিজ্ঞান','Science','exam',0],
+      'an exam-only date stores which exam runs, and no classes');
+    assert.equal((await saveDailySheet({classId,shift:SHIFT,date:SATURDAY_DATE,status:'normal',holidayReason:'',
+      notes:'',examSubjectBn:'বিজ্ঞান',examSubjectEn:'Science',examMode:'both',periods:[period(actor)],actor})).status,'ok');
+    const examBothSheet=(await dailySheet(classId,SHIFT,SATURDAY_DATE,'bn'))!;
+    assert.deepEqual([examBothSheet.examMode,examBothSheet.periods.length],['both',1],
+      'the same date can run the exam and its classes together');
 
     /* ── re-saving the same type writes nothing, and a day from before the field reads as taught ── */
     const before=await history(SATURDAY);

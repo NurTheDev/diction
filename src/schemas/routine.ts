@@ -79,6 +79,10 @@ export const dailySheetSchema=z.object({
   status:z.enum(['normal','adjusted','holiday']),
   holidayReason:optionalText(300),
   notes:optionalText(1000),
+  /** A weekly exam day's own choices: the exam's subject and whether classes run beside it. */
+  examSubjectBn:optionalText(200),
+  examSubjectEn:optionalText(200),
+  examMode:z.enum(['both','exam']).default('both'),
   periods:z.array(routinePeriodSchema).max(40),
 }).refine(sheet=>sheet.status!=='holiday'||!!sheet.holidayReason.trim(),{path:['holidayReason']});
 

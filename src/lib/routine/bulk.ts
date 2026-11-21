@@ -27,7 +27,7 @@ import {User} from '@/models/User';
 import {purgeAtFor} from '@/models/recycle';
 import {audit} from '@/lib/admin/helpers';
 import {clashesFor,type RoutineClash,type RoutineSlot} from './conflicts';
-import {needsDocument,type DayStatus,type PeriodShape} from './day';
+import {dayTypeOf,needsDocument,type DayStatus,type PeriodShape} from './day';
 import {recordHistory,snapshotFor,type HistoryCarrier,type StoredHistoryEntry} from './history';
 import {actorName,centreSlots,masterWeek,shapeOf} from './read';
 import {refreshRoutine,type RoutineOutcome} from './engine';
@@ -51,13 +51,14 @@ interface PeriodList extends Array<PeriodSub>{
 type Saved=Promise<unknown>;
 interface MasterDoc extends HistoryCarrier{
   _id:mongoose.Types.ObjectId;classGroup:mongoose.Types.ObjectId;classLabel:{bn:string;en:string};
-  shift:string;weekday:number;active:boolean;periods:PeriodList;history:StoredHistoryEntry[];
+  shift:string;weekday:number;active:boolean;dayType?:string;periods:PeriodList;history:StoredHistoryEntry[];
   deletedAt:Date|null;deletedBy:mongoose.Types.ObjectId|null;purgeAt:Date|null;
   save(options?:{session?:mongoose.ClientSession}):Saved;
 }
 interface DailyDoc extends HistoryCarrier{
   _id:mongoose.Types.ObjectId;date:string;classGroup:mongoose.Types.ObjectId;shift:string;
   classLabel:{bn:string;en:string};status:DayStatus;holidayReason:string;notes:string;
+  examSubjectBn?:string;examSubjectEn?:string;examMode?:string;
   periods:PeriodList;history:StoredHistoryEntry[];
   sentAt:Date|null;sentBy:mongoose.Types.ObjectId|null;sentSignature:string;
   save(options?:{session?:mongoose.ClientSession}):Saved;deleteOne():Saved;
@@ -503,7 +504,8 @@ export async function applyReplaceTeacher(input:ReplaceTeacherInput&{force?:bool
             room:period.room||'',jointWith:period.jointWith?String(period.jointWith):'',
             order:Number(period.order)||0,note:period.note||''}));
           if(!needsDocument({status:doc.status,notes:doc.notes,holidayReason:doc.holidayReason,
-            periods:shapes,masterPeriods:masterShapes,sentAt:doc.sentAt})){
+            periods:shapes,masterPeriods:masterShapes,sentAt:doc.sentAt,
+            exam:!!doc.examSubjectBn||!!doc.examSubjectEn||doc.examMode==='exam'})){
             await doc.deleteOne();
             days+=1;
             continue;
@@ -558,6 +560,10 @@ async function dayOpPreview(input:DayOpInput,copy:boolean):Promise<DayOpPreview>
   if(!periods.length)return {rows:[],clashes:[],merges:false,invalid:['from']};
   const target=await MasterRoutine.findOne({classGroup:input.classId,shift:trim(input.shift),
     weekday:input.to}) as unknown as MasterDoc|null;
+  /* A weekly day off takes no new class: its own kept periods may be edited or moved off it, but no
+     period — not one, and not a whole day's worth — can land on it. The day drawer does not even offer
+     those weekdays, and this is the refusal that makes the rule true from a form posted past it. */
+  if(target&&dayTypeOf(target.dayType)==='off')return {rows:[],clashes:[],merges:false,invalid:['to']};
   const group=await CenterClassGroup.findById(input.classId).select('name').lean<ClassDoc|null>();
   const className=group?.name?.bn||'';
   const names=await teacherNames(periods.map(period=>String(period.teacher||'')));

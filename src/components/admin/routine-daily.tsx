@@ -94,6 +94,8 @@ export interface RoutineDailyProps {
   teachers: RoutineTeacher[];
   rooms: string[];
   joints: { id: string; label: string }[];
+  /** The subjects a weekly exam can be about, for the exam subject picker. */
+  examSubjects: { bn: string; en: string }[];
   weekdays: string[];
   digits: Digits;
   language: Language;
@@ -321,6 +323,10 @@ export function RoutineDailySheet(props: RoutineDailyProps) {
   );
   const [holidayReason, setHolidayReason] = useState(sheet.holidayReason);
   const [notes, setNotes] = useState(sheet.notes);
+  /* A weekly exam day's own two choices, written on this date rather than on the week. */
+  const [examSubjectBn, setExamSubjectBn] = useState(sheet.examSubjectBn);
+  const [examSubjectEn, setExamSubjectEn] = useState(sheet.examSubjectEn);
+  const [examMode, setExamMode] = useState<"both" | "exam">(sheet.examMode);
   const [editor, setEditor] = useState<{
     index: number;
     period: DraftPeriod;
@@ -331,14 +337,54 @@ export function RoutineDailySheet(props: RoutineDailyProps) {
   const [state, action, pending] = useActionState(saveDailySheetAction, idle);
   const [resetState, resetAction] = useActionState(resetDailySheetAction, idle);
 
+  /* A weekly exam day can run the exam beside its classes, or the exam alone. Exam-only posts an empty
+     day, which is how every reader already understands "nothing runs here". */
+  const examOnly =
+    sheet.dayType === "exam" && status !== "holiday" && examMode === "exam";
+  const offNoAdd = sheet.dayType === "off" && status !== "adjusted";
+  const postedPeriods = examOnly ? [] : draft;
+  /* Coming back from "exam only" brings the week's classes with it: the date stored no periods while it
+     ran the exam alone, and "exam + classes" means the classes this weekday actually runs. */
+  const pickExamMode = (mode: "both" | "exam"): void => {
+    setExamMode(mode);
+    if (mode === "both" && examOnly && draft.length === 0)
+      setDraft(
+        sheet.masterPeriods.map((period) => ({
+          id: "",
+          masterPeriod: period.id,
+          start: period.start,
+          end: period.end,
+          subjectBn: period.subjectBn,
+          subjectEn: period.subjectEn,
+          teacher: period.teacherId,
+          room: period.room,
+          jointWith: period.jointWith,
+          order: period.order,
+          note: period.note,
+          source: "master" as const,
+        })),
+      );
+  };
+
   /* The sheet is one write, so the drawers edit a draft and the draft is what the form posts. */
   const starting = JSON.stringify({
     periods: sheet.periods.map(draftOf),
     status: sheet.status,
     holidayReason: sheet.holidayReason,
     notes: sheet.notes,
+    examSubjectBn: sheet.examSubjectBn,
+    examSubjectEn: sheet.examSubjectEn,
+    examMode: sheet.examMode,
   });
-  const now = JSON.stringify({ periods: draft, status, holidayReason, notes });
+  const now = JSON.stringify({
+    periods: postedPeriods,
+    status,
+    holidayReason,
+    notes,
+    examSubjectBn,
+    examSubjectEn,
+    examMode,
+  });
   const dirty = starting !== now;
 
   /* The day can change underneath this form: a version restored from its own memory, a reset, a write
@@ -357,6 +403,9 @@ export function RoutineDailySheet(props: RoutineDailyProps) {
       setStatus(sheet.status);
       setHolidayReason(sheet.holidayReason);
       setNotes(sheet.notes);
+      setExamSubjectBn(sheet.examSubjectBn);
+      setExamSubjectEn(sheet.examSubjectEn);
+      setExamMode(sheet.examMode);
     }
   }
 
@@ -532,7 +581,7 @@ export function RoutineDailySheet(props: RoutineDailyProps) {
             type="hidden"
             name="periods"
             data-daily-periods
-            value={JSON.stringify(draft)}
+            value={JSON.stringify(postedPeriods)}
           />
 
           <fieldset className="rds-status" data-daily-status>
@@ -590,6 +639,127 @@ export function RoutineDailySheet(props: RoutineDailyProps) {
             </p>
           )}
 
+          {/* The weekly exam's own two choices belong to the date, not the week: which subject is
+              examined, and whether the day's classes run beside it. */}
+          {sheet.dayType === "exam" && status !== "holiday" && (
+            <fieldset className="rds-status" data-daily-exam>
+              <legend>{t("daily.examLabel")}</legend>
+              {/* A visible list first, because "which exam?" is answered by picking the subject the
+                  class already runs — the two boxes below stay for a subject nobody has written yet. */}
+              {props.examSubjects.length > 0 && (
+                <label className="rds-field">
+                  {t("daily.examSubjectPick")}
+                  <select
+                    className="admin-select"
+                    data-exam-subject-pick
+                    value=""
+                    onChange={(event) => {
+                      const picked = props.examSubjects.find(
+                        (subject) => subject.bn === event.target.value,
+                      );
+                      if (!picked) return;
+                      setExamSubjectBn(picked.bn);
+                      setExamSubjectEn(picked.en);
+                    }}>
+                    <option value="">{t("daily.examSubjectChoose")}</option>
+                    {props.examSubjects.map((subject) => (
+                      <option key={`pick-${subject.bn}`} value={subject.bn}>
+                        {subject.en ? `${subject.bn} · ${subject.en}` : subject.bn}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+              <div className="rds-fields">
+                <div className="rds-col">
+                  <label className="rds-field">
+                    {t("daily.examSubjectBn")}
+                    <input
+                      name="examSubjectBn"
+                      maxLength={200}
+                      list="routine-exam-subjects-bn"
+                      data-exam-subject-bn
+                      value={examSubjectBn}
+                      onChange={(event) =>
+                        setExamSubjectBn(event.target.value)
+                      }
+                    />
+                    <datalist id="routine-exam-subjects-bn">
+                      {props.examSubjects.map((subject) => (
+                        <option key={`bn-${subject.bn}`} value={subject.bn} />
+                      ))}
+                    </datalist>
+                  </label>
+                </div>
+                <div className="rds-col">
+                  <label className="rds-field">
+                    {t("daily.examSubjectEn")}
+                    <input
+                      name="examSubjectEn"
+                      maxLength={200}
+                      list="routine-exam-subjects-en"
+                      data-exam-subject-en
+                      value={examSubjectEn}
+                      onChange={(event) =>
+                        setExamSubjectEn(event.target.value)
+                      }
+                    />
+                    <datalist id="routine-exam-subjects-en">
+                      {props.examSubjects
+                        .filter((subject) => subject.en)
+                        .map((subject) => (
+                          <option
+                            key={`en-${subject.en}`}
+                            value={subject.en}
+                          />
+                        ))}
+                    </datalist>
+                  </label>
+                </div>
+              </div>
+              <small className="rds-hint">{t("daily.examSubjectHelp")}</small>
+              <div
+                className="rds-status-row"
+                role="radiogroup"
+                aria-label={t("daily.examModeLabel")}>
+                <label className="rds-radio">
+                  <input
+                    type="radio"
+                    name="examMode"
+                    value="both"
+                    data-exam-mode-both
+                    checked={examMode === "both"}
+                    onChange={() => pickExamMode("both")}
+                  />
+                  {t("daily.examModeBoth")}
+                </label>
+                <label className="rds-radio">
+                  <input
+                    type="radio"
+                    name="examMode"
+                    value="exam"
+                    data-exam-mode-exam
+                    checked={examMode === "exam"}
+                    onChange={() => setExamMode("exam")}
+                  />
+                  {t("daily.examModeExam")}
+                </label>
+              </div>
+              <small className="rds-hint">{t("daily.examModeHelp")}</small>
+            </fieldset>
+          )}
+
+          {examOnly && (
+            <p className="rds-banner rds-banner-exam" data-exam-only-banner>
+              {t("daily.examOnlyBanner")}
+            </p>
+          )}
+          {offNoAdd && props.canEdit && (
+            <p className="rds-hint" data-weekoff-no-add>
+              {t("daily.weekOffNoAdd")}
+            </p>
+          )}
+
           <div className="rds-fields">
             <div className="rds-col">
               <label className="rds-field">
@@ -618,8 +788,9 @@ export function RoutineDailySheet(props: RoutineDailyProps) {
             </div>
           </div>
 
-          <div className="rds-sheet">
-            {draft.length === 0 ? (
+          {!examOnly && (
+            <div className="rds-sheet">
+              {draft.length === 0 ? (
               <p className="rds-empty" data-daily-empty>
                 {t("daily.noSheet")}
               </p>
@@ -718,7 +889,7 @@ export function RoutineDailySheet(props: RoutineDailyProps) {
             {/* The chain is offered whether or not the date has anything on it yet: the next period of an
               empty sheet is its first one, and an operator building a day from nothing should not have to
               find a different button for the first period than for the second. */}
-            {props.canEdit && (
+            {props.canEdit && !offNoAdd && (
               <div className="rds-add">
                 <button
                   type="button"
@@ -733,7 +904,8 @@ export function RoutineDailySheet(props: RoutineDailyProps) {
                 </small>
               </div>
             )}
-          </div>
+            </div>
+          )}
 
           {state.status === "clash" && (
             <div className="rds-warn" role="alert" data-clash-warning>
@@ -787,7 +959,7 @@ export function RoutineDailySheet(props: RoutineDailyProps) {
                 label={t("daily.saveAnyway")}
               />
             )}
-            {props.canEdit && (
+            {props.canEdit && !offNoAdd && !examOnly && (
               <button
                 type="button"
                 className="rds-btn rds-btn-ghost"

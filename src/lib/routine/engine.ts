@@ -23,7 +23,7 @@ import {User} from '@/models/User';
 import {purgeAtFor} from '@/models/recycle';
 import {audit} from '@/lib/admin/helpers';
 import {clashesFor,type RoutineClash,type RoutineSlot} from './conflicts';
-import {DAY_TYPES,needsDocument,daySignature,sheetSignature,type DayStatus,type DayType,type PeriodShape} from './day';
+import {DAY_TYPES,needsDocument,daySignature,dayTypeOf,examModeOf,sheetSignature,type DayStatus,type DayType,type ExamMode,type PeriodShape} from './day';
 import {recordHistory,type HistoryCarrier,type StoredHistoryEntry} from './history';
 import {actorName,centreSlots,masterWeek,shapeOf,type PeriodView} from './read';
 import {weekdayOf} from './time';
@@ -70,6 +70,8 @@ interface MasterDoc extends HistoryCarrier{
 interface DailyDoc extends HistoryCarrier{
   _id:mongoose.Types.ObjectId;date:string;classGroup:mongoose.Types.ObjectId;shift:string;
   classLabel:{bn:string;en:string};status:DayStatus;holidayReason:string;notes:string;periods:PeriodList;
+  /** A weekly exam day's own choices: the subject being examined, and whether classes also run. */
+  examSubjectBn:string;examSubjectEn:string;examMode:ExamMode;
   history:StoredHistoryEntry[];
   sentAt:Date|null;sentBy:mongoose.Types.ObjectId|null;sentSignature:string;
   save(options?:{session?:mongoose.ClientSession}):Saved;deleteOne():Saved;
@@ -148,17 +150,24 @@ export async function saveMasterPeriod({classId,shift,weekday,draft,force,actor}
   const group=await classOf(classId);
   if(!group)return {status:'invalid',fields:['classId']};
 
+  const editing=validId(draft.id);
+  const source=editing
+    ? await MasterRoutine.findOne({classGroup:classId,shift,'periods._id':draft.id}) as unknown as MasterDoc|null
+    : null;
+  if(editing&&!source)return {status:'missing'};
+  /* A weekly day off takes no new class. Editing a period already kept on it, or moving one out of it,
+     is still allowed: the day's own periods are the record the owner chose to keep. */
+  const targetDay=await MasterRoutine.findOne({classGroup:classId,shift:shift.trim(),weekday})
+    .select('dayType').lean<{dayType?:string}|null>();
+  if(dayTypeOf(targetDay?.dayType)==='off'&&(!source||source.weekday!==weekday))
+    return {status:'invalid',fields:['weekday']};
+
   const proposed=await proposedSlot(draft,weekday);
   const clashes=clashesFor(proposed,await centreSlots(weekday));
 
   /* The warning is the answer, not a refusal: with `force` the same write goes through unchanged. */
   if(clashes.length&&!force)return {status:'clash',clashes};
 
-  const editing=validId(draft.id);
-  const source=editing
-    ? await MasterRoutine.findOne({classGroup:classId,shift,'periods._id':draft.id}) as unknown as MasterDoc|null
-    : null;
-  if(editing&&!source)return {status:'missing'};
   const periodValues={
     start:draft.start,end:draft.end,subject:{bn:draft.subjectBn,en:draft.subjectEn},
     teacher:validId(draft.teacher)?draft.teacher:null,room:draft.room,
@@ -386,30 +395,49 @@ export interface DailyWrite extends DailySheetInput{force?:boolean;actor:string}
  * edit brings them back together. A sheet that has been sent is never deleted — it stays, and its own
  * badge says it has changed since.
  */
-export async function saveDailySheet({classId,shift,date,status,holidayReason,notes,periods,force,actor}:DailyWrite):Promise<RoutineOutcome>{
+export async function saveDailySheet({classId,shift,date,status,holidayReason,notes,periods,
+  examSubjectBn,examSubjectEn,examMode,force,actor}:DailyWrite):Promise<RoutineOutcome>{
   const group=await classOf(classId);
   if(!group)return {status:'invalid',fields:['classId']};
   const weekday=weekdayOf(date);
   if(!Number.isFinite(weekday))return {status:'invalid',fields:['date']};
   if(status==='holiday'&&!holidayReason.trim())return {status:'invalid',fields:['holidayReason']};
 
+  const week=await masterWeek(classId,shift,'bn');
+  const masterDay=week.find(day=>day.weekday===weekday);
+  const masterShapes=shapesOf(masterDay?.periods||[]);
+  const dayType=masterDay?.dayType||'class';
+  /* A weekly day off is not a teaching day: only a date explicitly adjusted into a make-up class may
+     carry periods. The master page hides its add buttons for the same reason, and this is the refusal
+     that makes the rule true even when a form posts past the screen. */
+  if(dayType==='off'&&status!=='adjusted'&&periods.length>0)
+    return {status:'invalid',fields:['periods']};
+
+  /* A weekly exam day's own choices. `exam` mode means the date runs the exam and no classes, so the
+     periods posted by a stale form are dropped rather than stored; a holiday drops the exam too. */
+  const examDay=dayType==='exam'&&status!=='holiday';
+  const examSubjectBnNext=examDay?examSubjectBn.trim():'';
+  const examSubjectEnNext=examDay?examSubjectEn.trim():'';
+  const examModeNext:ExamMode=examDay?examModeOf(examMode):'both';
+  const sheetPeriods=examDay&&examModeNext==='exam'?[]:periods;
+
   /* A substitute on Tuesday is a real person in a real room on Tuesday, so the day is checked against
      every other class's week AND every other class's sheet for that date — but never against this
      class's own master day, which is exactly what this sheet is standing in for. */
   const others=await centreSlots(weekday,{excludeClass:classId,date,excludeDailyClass:classId});
   const clashes:RoutineClash[]=[];
-  for(const draft of periods){
+  for(const draft of sheetPeriods){
     const slot=await proposedSlot({...draft,id:''},weekday);
     clashes.push(...clashesFor(slot,others));
   }
   if(clashes.length&&!force)return {status:'clash',clashes};
 
-  const week=await masterWeek(classId,shift,'bn');
-  const masterShapes=shapesOf(week.find(day=>day.weekday===weekday)?.periods||[]);
   const existing=await DailyRoutine.findOne({date,classGroup:classId,shift}) as unknown as DailyDoc|null;
-  const draft:PeriodShape[]=periods.map(draftShape);
+  const draft:PeriodShape[]=sheetPeriods.map(draftShape);
+  const examSaid=examDay&&(!!examSubjectBnNext||!!examSubjectEnNext||examModeNext==='exam');
 
-  if(!needsDocument({status,notes,holidayReason,periods:draft,masterPeriods:masterShapes,sentAt:existing?.sentAt})){
+  if(!needsDocument({status,notes,holidayReason,periods:draft,masterPeriods:masterShapes,
+    sentAt:existing?.sentAt,exam:examSaid})){
     /* Nothing to store: an unchanged day is the week, and the week is already written. */
     if(existing){
       await existing.deleteOne();
@@ -422,7 +450,7 @@ export async function saveDailySheet({classId,shift,date,status,holidayReason,no
   }
 
   const known=new Map((existing?.periods||[]).map(period=>[String(period._id).toLowerCase(),period]));
-  const nextPeriods=periods.map(item=>{
+  const nextPeriods=sheetPeriods.map(item=>{
     const prior=item.id?known.get(item.id.toLowerCase()):undefined;
     return {
       _id:prior?prior._id:new mongoose.Types.ObjectId(),
@@ -441,6 +469,9 @@ export async function saveDailySheet({classId,shift,date,status,holidayReason,no
     existing.status=status;
     existing.holidayReason=holidayReason.trim();
     existing.notes=notes.trim();
+    existing.examSubjectBn=examSubjectBnNext;
+    existing.examSubjectEn=examSubjectEnNext;
+    existing.examMode=examModeNext;
     existing.classLabel=labelOf(group) as never;
     existing.periods=nextPeriods as never;
     recordHistory(existing,{actor,actorName:who,code:'dailySave',params:{count:nextPeriods.length}});
@@ -458,8 +489,9 @@ export async function saveDailySheet({classId,shift,date,status,holidayReason,no
   try{
     const created=await DailyRoutine.create({
       date,classGroup:classId,classLabel:labelOf(group),shift,status,
-      holidayReason:holidayReason.trim(),notes:notes.trim(),periods:nextPeriods,createdBy:actor,
-      history:fresh.history,
+      holidayReason:holidayReason.trim(),notes:notes.trim(),
+      examSubjectBn:examSubjectBnNext,examSubjectEn:examSubjectEnNext,examMode:examModeNext,
+      periods:nextPeriods,createdBy:actor,history:fresh.history,
     });
     await audit(actor,'routine.daily.create',String(created._id));
     refreshRoutine();
@@ -492,6 +524,9 @@ export async function resetDailySheet({classId,shift,date,actor}:{classId:string
   existing.status='normal';
   existing.holidayReason='';
   existing.notes='';
+  existing.examSubjectBn='';
+  existing.examSubjectEn='';
+  existing.examMode='both';
   existing.periods=master.map(period=>({
     _id:new mongoose.Types.ObjectId(),start:period.start,end:period.end,
     subject:{bn:period.subjectBn,en:period.subjectEn},teacher:validId(period.teacherId)?period.teacherId:null,
@@ -524,7 +559,8 @@ export async function markDailySheetSent({classId,shift,date,actor,now=new Date(
   sheet.sentAt=now;
   sheet.sentBy=new mongoose.Types.ObjectId(actor);
   sheet.sentSignature=sheetSignature({status:sheet.status,notes:sheet.notes,
-    holidayReason:sheet.holidayReason,periods:shapes});
+    holidayReason:sheet.holidayReason,periods:shapes,
+    examSubjectBn:sheet.examSubjectBn,examSubjectEn:sheet.examSubjectEn,examMode:sheet.examMode});
   await sheet.save();
   await audit(actor,'routine.daily.sent',String(sheet._id));
   refreshRoutine();

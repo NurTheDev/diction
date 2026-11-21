@@ -19,7 +19,7 @@ import mongoose from 'mongoose';
 import {CenterClassGroup} from '@/models/CenterRecords';
 import {DailyRoutine,MasterRoutine,TeachingAssignment} from '@/models/Routine';
 import {User} from '@/models/User';
-import {daySignature,changedSinceSent,dayTypeOf,type DayStatus,type DayType,type PeriodShape} from './day';
+import {daySignature,changedSinceSent,dayTypeOf,examModeOf,type DayStatus,type DayType,type ExamMode,type PeriodShape} from './day';
 import {historyViews,type HistoryView,type StoredHistoryEntry} from './history';
 import {dhakaDay} from '@/lib/admin/today';
 import {hasPassed,shiftDate,weekdayOf,type Language} from './time';
@@ -75,6 +75,10 @@ export interface DailySheetView{
   /** What the week says this weekday is. A date with no sheet of its own follows it: a weekly day off
       reads as a holiday with no periods, a weekly exam day as a day with its badge. */
   dayType:DayType;
+  /** A weekly exam day's own choices. `both` is the week's own answer until the date says otherwise. */
+  examSubjectBn:string;
+  examSubjectEn:string;
+  examMode:ExamMode;
   notes:string;
   periods:DailyPeriodView[];
   masterPeriods:PeriodView[];
@@ -118,6 +122,10 @@ export interface NoticeClass{
   holidayReason:string;
   /** The week's word for this weekday, so the notice can say weekly day off or weekly exam day. */
   dayType:DayType;
+  /** A weekly exam day's own choices, read from the date's sheet (or the week's defaults). */
+  examSubjectBn:string;
+  examSubjectEn:string;
+  examMode:ExamMode;
   notes:string;
   periods:PeriodView[];
   /** True when this date has its own sheet; false when the class simply runs the week. */
@@ -151,6 +159,7 @@ type MasterDoc={_id:mongoose.Types.ObjectId;classGroup:mongoose.Types.ObjectId;s
   active?:boolean;dayType?:string;periods:StoredPeriod[];history?:StoredHistoryEntry[];updatedAt:Date};
 type DailyDoc={_id:mongoose.Types.ObjectId;date:string;classGroup:mongoose.Types.ObjectId;shift:string;
   status?:DayStatus;holidayReason?:string;notes?:string;periods:StoredPeriod[];
+  examSubjectBn?:string;examSubjectEn?:string;examMode?:string;
   sentAt?:Date|null;sentBy?:mongoose.Types.ObjectId|null;sentSignature?:string;
   history?:StoredHistoryEntry[];updatedAt:Date};
 type AssignmentDoc={_id:mongoose.Types.ObjectId;teacher:mongoose.Types.ObjectId;classGroup:mongoose.Types.ObjectId;
@@ -389,15 +398,21 @@ export async function dailySheet(classId:string,shift:string,date:string,languag
   }):weekOff?[]:masterPeriods.map(view=>({...view,source:'master' as const,masterPeriod:view.id}))).sort(byDay);
   const status:DayStatus=doc?.status||(weekOff?'holiday':'normal');
   const sentAt=doc?.sentAt instanceof Date?doc.sentAt:null;
+  const examDay=dayType==='exam';
+  const examSubjectBn=examDay?doc?.examSubjectBn||'':'';
+  const examSubjectEn=examDay?doc?.examSubjectEn||'':'';
+  const examMode:ExamMode=examDay?examModeOf(doc?.examMode):'both';
   return {
     date,weekday,classId,className:group.name,shift,
     stored:!!doc,docId:doc?String(doc._id):null,
-    status,holidayReason:doc?.holidayReason||'',dayType,notes:doc?.notes||'',
+    status,holidayReason:doc?.holidayReason||'',dayType,
+    examSubjectBn,examSubjectEn,examMode,notes:doc?.notes||'',
     periods,masterPeriods,
     sent:!!sentAt,sentAt:sentAt?sentAt.toISOString():null,
     sentByName:doc?.sentBy?teacherNames.get(String(doc.sentBy))||'':'',
     changedSinceSent:changedSinceSent({status,notes:doc?.notes||'',
-      holidayReason:doc?.holidayReason||'',periods:periods.map(shapeOf)},doc?.sentSignature||''),
+      holidayReason:doc?.holidayReason||'',periods:periods.map(shapeOf),
+      examSubjectBn,examSubjectEn,examMode:examDay?examMode:''},doc?.sentSignature||''),
     passed:hasPassed(date),
     signature:daySignature(periods.map(shapeOf)),
     history:historyViews(doc?.history),
@@ -525,14 +540,19 @@ export async function printNotice(date:string,language:Language):Promise<DayNoti
     if(doc.active===false||held.has(key))continue;
     const dayType=dayTypeOf(doc.dayType);
     notices.set(key,{classId,className:nameOf.get(classId)||'',shift:doc.shift,
-      status:dayType==='off'?'holiday':'normal',holidayReason:'',dayType,notes:'',stored:false,
+      status:dayType==='off'?'holiday':'normal',holidayReason:'',dayType,
+      examSubjectBn:'',examSubjectEn:'',examMode:'both',notes:'',stored:false,
       periods:dayType==='off'?[]:doc.periods.filter(live).map(period=>viewOf(period,teacherNames)).sort(byDay)});
   }
   for(const sheet of sheets){
     const classId=String(sheet.classGroup);
+    const dayType=typeOf.get([classId,sheet.shift].join('~'))||'class';
+    const exam=dayType==='exam';
     notices.set([classId,sheet.shift].join('~'),{classId,className:nameOf.get(classId)||'',shift:sheet.shift,
       status:sheet.status||'normal',holidayReason:sheet.holidayReason||'',
-      dayType:typeOf.get([classId,sheet.shift].join('~'))||'class',notes:sheet.notes||'',stored:true,
+      dayType,examSubjectBn:exam?sheet.examSubjectBn||'':'',
+      examSubjectEn:exam?sheet.examSubjectEn||'':'',examMode:exam?examModeOf(sheet.examMode):'both',
+      notes:sheet.notes||'',stored:true,
       periods:sheet.periods.filter(live).map(period=>viewOf(period,teacherNames)).sort(byDay)});
   }
   const order=new Map(groups.map((group,index)=>[group.id,index]));

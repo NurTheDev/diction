@@ -137,6 +137,11 @@ const dailySchema=new Schema({
   status:{type:String,enum:['normal','adjusted','holiday'],default:'normal'},
   holidayReason:{type:String,default:'',trim:true,maxlength:300},
   notes:{type:String,default:'',trim:true,maxlength:1000},
+  /** A weekly exam day's own choices: which subject's exam is held, and whether classes run beside it.
+      Both are written on the date, not on the week, because the exam subject is this date's news. */
+  examSubjectBn:{type:String,default:'',trim:true,maxlength:200},
+  examSubjectEn:{type:String,default:'',trim:true,maxlength:200},
+  examMode:{type:String,enum:['both','exam'],default:'both'},
   periods:{type:[period],default:[]},
   /* The sent marks. Slice 1 stores them and reads them — the badge that says a sheet has changed since
      it went out — and the dispatch that writes them is a later slice. `sentSignature` is the day's own
@@ -178,5 +183,5 @@ const current=(name:string,schema:Schema,newestPath:string)=>{
   return models[name]||model(name,schema);
 };
 export const MasterRoutine=current('MasterRoutine',masterSchema,'dayType');
-export const DailyRoutine=models.DailyRoutine||model('DailyRoutine',dailySchema);
+export const DailyRoutine=current('DailyRoutine',dailySchema,'examMode');
 export const TeachingAssignment=models.TeachingAssignment||model('TeachingAssignment',assignmentSchema);

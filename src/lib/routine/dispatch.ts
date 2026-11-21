@@ -44,13 +44,21 @@ export function classDispatchText(args:{
   holiday?:string;
   /** The week's weekly exam day: one line says so under the date. */
   exam?:boolean;
+  /** Which subject is being examined, in the message's own language. */
+  examSubject?:string;
+  /** The date runs the exam and no classes: the message says so rather than "no periods". */
+  examOnly?:boolean;
 },say:RoutineSay):string{
   const lines=[
     `${say('dispatch.classTitle')} — ${args.className}${args.shift?` (${args.shift})`:''}`,
     say('dispatch.dateLine',{date:formatDate(new Date(`${args.date}T00:00:00${DHAKA_OFFSET}`),args.digits,args.language)}),
   ];
-  if(args.exam)lines.push(say('dispatch.examDay'));
-  if(args.periods.length===0)lines.push(args.holiday?say('dispatch.holiday',{reason:args.holiday}):say('dispatch.noPeriods'));
+  if(args.exam){
+    lines.push(say('dispatch.examDay'));
+    if(args.examSubject)lines.push(say('dispatch.examSubject',{subject:args.examSubject}));
+  }
+  if(args.periods.length===0)lines.push(args.holiday?say('dispatch.holiday',{reason:args.holiday})
+    :args.examOnly?say('dispatch.examOnly'):say('dispatch.noPeriods'));
   for(const period of args.periods){
     const subject=args.language==='en'?(period.subjectEn||period.subjectBn):period.subjectBn;
     lines.push(`${rangeWord(period.start,period.end,args.digits)} · ${subject}`
