@@ -7264,14 +7264,41 @@ html:lang(bn) .hero-ribbon {
 .public-motion-root:not(.private-motion-disabled) .not-found-page {
   min-height: 0;
 }
+.admin-shell form.admin-edit .social-proof-form .proof-check,
 .social-proof-form .proof-check {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0;
+  cursor: pointer;
+  font-weight: 500;
+}
+.admin-shell form.admin-edit .social-proof-form .proof-check input[type="checkbox"],
+.social-proof-form .proof-check input {
+  width: 18px !important;
+  height: 18px !important;
+  min-height: 18px !important;
+  max-width: 18px !important;
+  margin: 0;
+  cursor: pointer;
+}
+.social-proof-form .admin-slot-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) !important;
+  gap: 16px;
+  align-items: end;
+  margin-bottom: 20px;
+}
+.proof-bin-row {
   display: flex;
   align-items: center;
-  gap: 9px;
-  margin: 12px 0;
-}
-.social-proof-form .proof-check input {
-  width: auto;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  margin-top: 8px;
 }
 .proof-milestone {
   display: grid;

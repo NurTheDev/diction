@@ -243,7 +243,7 @@ export default async function PublicPage({
               <div className="story-visual">
                 <div className="story-image">
                   <Image
-                    src="/brand/about-illustration.jpg"
+                    src="/brand/about-illustration_v2.jpg"
                     fill
                     loading="eager"
                     sizes="(max-width:800px) 90vw, 550px"
