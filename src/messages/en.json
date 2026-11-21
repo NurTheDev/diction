@@ -5127,6 +5127,7 @@
       "sheetHelp": "This sheet never changes the master routine: what you write here stays with this date.",
       "deleteSheet": "Delete the sheet for this day",
       "holidayBanner": "This day is a holiday",
+      "examBanner": "This is this class's weekly exam day",
       "adjustedBanner": "This day has been adjusted",
       "noSheet": "Nothing has been written for this day yet.",
       "unsaved": "This day has changes — save it.",
@@ -5200,7 +5201,16 @@
       "activeHelp": "Switched off, the day is not taught, but what is written stays.",
       "save": "Save the day",
       "saved": "The day has been saved.",
-      "delete": "Delete this day"
+      "typeSaved": "The day type has been saved.",
+      "delete": "Delete this day",
+      "type": {
+        "label": "Day type",
+        "class": "Class day",
+        "off": "Weekly day off",
+        "exam": "Weekly exam day",
+        "offHelp": "This weekday is this class's weekly day off — no classes. The periods written here are kept; choose \"Class day\" again and they come back.",
+        "examHelp": "This weekday is this class's weekly exam day. You can still write periods for it."
+      }
     },
     "assignment": {
       "title": "Who teaches what",
@@ -5314,6 +5324,7 @@
         "periodDelete": "A period was deleted — {detail}",
         "periodRestore": "A deleted period was brought back — {detail}",
         "daySave": "The shift or the on/off state of the day was changed — {shift}",
+        "dayType": "The day type was changed — {type}",
         "dayMove": "{count} periods moved to {to}",
         "dayDuplicate": "{count} periods duplicated from {from}",
         "dailySave": "The working sheet was changed — {count} periods",
@@ -5328,10 +5339,17 @@
     "dispatch": {
       "title": "Send the day out",
       "help": "One message for the class group, and each teacher their own schedule. Copy it into WhatsApp, or share it straight from here.",
-      "classTitle": "The routine for today",
-      "teacherTitle": "Your schedule for today",
+      "classTitle": "The routine for {day}",
+      "teacherTitle": "Your schedule for {day}",
       "dateLine": "Date: {date}",
-      "noPeriods": "No periods today.",
+      "noPeriods": "No periods.",
+      "examDay": "Weekly exam day.",
+      "dayWord": {
+        "today": "today",
+        "tomorrow": "tomorrow",
+        "yesterday": "yesterday",
+        "date": "{date}"
+      },
       "roomWord": "Room {room}",
       "footer": "If the routine changes, the new message will be sent again.",
       "copy": "Copy",
@@ -5351,7 +5369,7 @@
       "printHelp": "The routine of every class on one sheet of paper, for the notice board.",
       "printTitle": "Daily routine",
       "noticeCount": "The routine of {count} classes",
-      "noClasses": "No class has a routine written for today."
+      "noClasses": "No class has a routine written for this date."
     },
     "portal": {
       "entryTitle": "My routine",

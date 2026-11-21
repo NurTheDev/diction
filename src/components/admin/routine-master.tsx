@@ -24,6 +24,7 @@ import {
   restoreMasterPeriodAction,
   saveMasterDayAction,
   saveMasterPeriodAction,
+  setMasterDayTypeAction,
   type RoutineActionState,
 } from "@/actions/routine";
 import { formatNumber, type Digits } from "@/lib/admin/format";
@@ -99,6 +100,56 @@ export interface RoutineMasterProps {
   digits: Digits;
   canEdit: boolean;
   canDelete: boolean;
+}
+
+/**
+ * What a weekday is for this class and shift: a teaching day, its weekly day off, or its weekly exam day.
+ *
+ * One tap writes it — there is no save step — and a tap on another option changes it again, so the
+ * choice is never locked in. It works on an empty weekday too (the day is created as a label), and the
+ * periods already on the day are kept whatever it is set to.
+ */
+function DayTypeControl(props: {
+  classId: string;
+  shift: string;
+  day: MasterDayView;
+  onDone: () => void;
+}) {
+  const { classId, shift, day, onDone } = props;
+  const t = useTranslations("routine");
+  const [state, action, pending] = useActionState(setMasterDayTypeAction, idle);
+  useEffect(() => {
+    if (state.status === "ok") onDone();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state]);
+  return (
+    <form action={action} className="rm-daytype" data-day-type-form={day.weekday}>
+      <input type="hidden" name="classId" value={classId} />
+      <input type="hidden" name="shift" value={day.shift || shift} />
+      <input type="hidden" name="weekday" value={day.weekday} />
+      <span className="rm-daytype-label">{t("day.type.label")}</span>
+      <div className="rm-daytype-group" role="group" aria-label={t("day.type.label")}>
+        {(["class", "off", "exam"] as const).map((type) => (
+          <button
+            key={type}
+            type="submit"
+            name="dayType"
+            value={type}
+            className={`rm-daytype-opt${day.dayType === type ? " rm-daytype-on" : ""}`}
+            data-day-type={type}
+            aria-pressed={day.dayType === type}
+            disabled={pending}>
+            {t(`day.type.${type}`)}
+          </button>
+        ))}
+      </div>
+      {(state.status === "error" || state.status === "invalid") && (
+        <small className="rm-daytype-error" role="alert">
+          {t("common.failed")}
+        </small>
+      )}
+    </form>
+  );
 }
 
 /** Deleting one period: into that day's own bin for thirty days, with Undo in the toast. */
@@ -755,7 +806,8 @@ export function RoutineMasterBoard(props: RoutineMasterProps) {
             );
             return (
               <section
-                className={`rm-day${day.active ? "" : " rm-day-inactive"}`}
+                className={`rm-day${day.active ? "" : " rm-day-inactive"}${day.dayType === "off" ? " rm-day-weekoff" : ""}`}
+                data-day-type-now={day.dayType}
                 key={day.weekday}
                 data-routine-day={day.weekday}>
                 <header className="rm-day-head">
@@ -766,6 +818,13 @@ export function RoutineMasterBoard(props: RoutineMasterProps) {
                     {!day.active && (
                       <span className="rm-badge rm-badge-off" data-day-off>
                         {t("master.dayOff")}
+                      </span>
+                    )}
+                    {day.dayType !== "class" && (
+                      <span
+                        className={`rm-badge rm-badge-${day.dayType === "off" ? "weekoff" : "exam"}`}
+                        data-day-type-badge={day.dayType}>
+                        {t(`day.type.${day.dayType}`)}
                       </span>
                     )}
                   </div>
@@ -835,6 +894,19 @@ export function RoutineMasterBoard(props: RoutineMasterProps) {
                       </div>
                     )}
                   </div>
+                  {props.canEdit && (
+                    <DayTypeControl
+                      classId={props.classId}
+                      shift={props.shift}
+                      day={day}
+                      onDone={() => router.refresh()}
+                    />
+                  )}
+                  {day.dayType !== "class" && (
+                    <p className="rm-daytype-help" data-day-type-help>
+                      {t(`day.type.${day.dayType}Help`)}
+                    </p>
+                  )}
                 </header>
 
                 {day.periods.length === 0 ? (

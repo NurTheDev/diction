@@ -63,6 +63,14 @@ export const masterDaySchema=z.object({
 
 export type MasterDayInput=z.infer<typeof masterDaySchema>;
 
+/** Which kind of day a weekday of the week is: taught, the weekly day off, or the weekly exam day. */
+export const masterDayTypeSchema=z.object({
+  classId:id,
+  shift:z.string().trim().min(1).max(100),
+  weekday:weekdaySchema,
+  dayType:z.enum(['class','off','exam']),
+});
+
 /** A period as the daily sheet posts it: the same shape, and the engine decides what is worth storing. */
 export const dailySheetSchema=z.object({
   classId:id,

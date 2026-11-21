@@ -36,6 +36,12 @@ export interface PeriodShape{
 
 export type DayStatus='normal'|'adjusted'|'holiday';
 
+/** What a weekday of a class's week is: taught, the weekly day off, or the weekly exam day. */
+export const DAY_TYPES=['class','off','exam'] as const;
+export type DayType=typeof DAY_TYPES[number];
+/** A stored value read safely: a day written before the field existed has none, and is a teaching day. */
+export const dayTypeOf=(value:unknown):DayType=>value==='off'||value==='exam'?value:'class';
+
 const trim=(value:unknown):string=>String(value??'').trim();
 /** An id read as lower-case text, so the same period stored twice never compares as two. */
 const idOf=(value:unknown):string=>{const text=trim(value);return text?text.toLowerCase():''};

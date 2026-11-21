@@ -19,7 +19,7 @@ import mongoose from 'mongoose';
 import {CenterClassGroup} from '@/models/CenterRecords';
 import {DailyRoutine,MasterRoutine,TeachingAssignment} from '@/models/Routine';
 import {User} from '@/models/User';
-import {daySignature,changedSinceSent,type DayStatus,type PeriodShape} from './day';
+import {daySignature,changedSinceSent,dayTypeOf,type DayStatus,type DayType,type PeriodShape} from './day';
 import {historyViews,type HistoryView,type StoredHistoryEntry} from './history';
 import {dhakaDay} from '@/lib/admin/today';
 import {hasPassed,shiftDate,weekdayOf,type Language} from './time';
@@ -49,6 +49,8 @@ export interface MasterDayView{
   id:string|null;
   shift:string;
   active:boolean;
+  /** A teaching day, the class's weekly day off, or its weekly exam day. */
+  dayType:DayType;
   periods:PeriodView[];
   /** Periods sitting in this day's own bin, so the ⋯ menu can say how many and offer them back. */
   binned:number;
@@ -70,6 +72,9 @@ export interface DailySheetView{
   docId:string|null;
   status:DayStatus;
   holidayReason:string;
+  /** What the week says this weekday is. A date with no sheet of its own follows it: a weekly day off
+      reads as a holiday with no periods, a weekly exam day as a day with its badge. */
+  dayType:DayType;
   notes:string;
   periods:DailyPeriodView[];
   masterPeriods:PeriodView[];
@@ -111,6 +116,8 @@ export interface NoticeClass{
   shift:string;
   status:DayStatus;
   holidayReason:string;
+  /** The week's word for this weekday, so the notice can say weekly day off or weekly exam day. */
+  dayType:DayType;
   notes:string;
   periods:PeriodView[];
   /** True when this date has its own sheet; false when the class simply runs the week. */
@@ -141,7 +148,7 @@ type StoredPeriod={_id:mongoose.Types.ObjectId;start:string;end:string;subject:{
   note?:string;source?:string;masterPeriod?:mongoose.Types.ObjectId|null;
   deletedAt?:Date|null;purgeAt?:Date|null};
 type MasterDoc={_id:mongoose.Types.ObjectId;classGroup:mongoose.Types.ObjectId;shift:string;weekday:number;
-  active?:boolean;periods:StoredPeriod[];history?:StoredHistoryEntry[];updatedAt:Date};
+  active?:boolean;dayType?:string;periods:StoredPeriod[];history?:StoredHistoryEntry[];updatedAt:Date};
 type DailyDoc={_id:mongoose.Types.ObjectId;date:string;classGroup:mongoose.Types.ObjectId;shift:string;
   status?:DayStatus;holidayReason?:string;notes?:string;periods:StoredPeriod[];
   sentAt?:Date|null;sentBy?:mongoose.Types.ObjectId|null;sentSignature?:string;
@@ -244,7 +251,7 @@ export function shapeOf(period:PeriodView):PeriodShape{
  * to the day's ⋯ menu, which is where it comes back from.
  */
 export async function masterWeek(classId:string,shift:string,language:Language):Promise<MasterDayView[]>{
-  const empty=(weekday:number):MasterDayView=>({weekday,id:null,shift,active:true,periods:[],binned:0,
+  const empty=(weekday:number):MasterDayView=>({weekday,id:null,shift,active:true,dayType:'class',periods:[],binned:0,
     history:[],updatedAt:''});
   if(!mongoose.isValidObjectId(classId))return Array.from({length:7},(_,index)=>empty(index));
   const docs=await MasterRoutine.find({classGroup:classId,shift}).lean<MasterDoc[]>();
@@ -254,7 +261,7 @@ export async function masterWeek(classId:string,shift:string,language:Language):
     const doc=byWeekday.get(weekday);
     if(!doc)return empty(weekday);
     const periods=doc.periods.filter(live).map(period=>viewOf(period,teacherNames)).sort(byDay);
-    return {weekday,id:String(doc._id),shift:doc.shift,active:doc.active!==false,periods,
+    return {weekday,id:String(doc._id),shift:doc.shift,active:doc.active!==false,dayType:dayTypeOf(doc.dayType),periods,
       binned:doc.periods.length-periods.length,history:historyViews(doc.history),
       updatedAt:doc.updatedAt.toISOString()};
   });
@@ -267,7 +274,8 @@ export async function masterWeek(classId:string,shift:string,language:Language):
  * master day it is standing in for.
  */
 export async function centreSlots(weekday:number,opts:{excludeClass?:string;excludeDailyClass?:string;date?:string}={}):Promise<RoutineSlot[]>{
-  const filter:Record<string,unknown>={weekday};
+  /* A weekly day off holds nobody: its kept periods are not a teacher or a room on that weekday. */
+  const filter:Record<string,unknown>={weekday,dayType:{$ne:'off'}};
   if(opts.excludeClass&&mongoose.isValidObjectId(opts.excludeClass))filter.classGroup={$ne:opts.excludeClass};
   const docs=await MasterRoutine.find(filter).lean<MasterDoc[]>();
   const classes=await CenterClassGroup.find({_id:{$in:docs.map(doc=>doc.classGroup)}}).lean<ClassDoc[]>();
@@ -310,7 +318,7 @@ export async function centreSlots(weekday:number,opts:{excludeClass?:string;excl
  * once for the whole week, so a clash line can name the person and the class it landed on.
  */
 export async function centreWeek():Promise<RoutineSlot[]>{
-  const docs=await MasterRoutine.find({}).limit(2000).lean<MasterDoc[]>();
+  const docs=await MasterRoutine.find({dayType:{$ne:'off'}}).limit(2000).lean<MasterDoc[]>();
   const classes=await CenterClassGroup.find({_id:{$in:docs.map(doc=>doc.classGroup)}}).lean<ClassDoc[]>();
   const className=new Map(classes.map(doc=>[String(doc._id),(doc.name.bn||'').trim()]));
   const teacherNames=await namesFor(docs.flatMap(doc=>doc.periods.filter(live).map(period=>String(period.teacher||''))));
@@ -368,19 +376,23 @@ export async function dailySheet(classId:string,shift:string,date:string,languag
   ]);
   const masterDay=week.find(day=>day.weekday===weekday);
   const masterPeriods=masterDay?.periods||[];
+  const dayType=masterDay?.dayType||'class';
+  /* A date with no sheet of its own follows the week, and the week may say this weekday is the class's
+     day off: then it is a holiday with nothing running. A stored sheet always has the last word. */
+  const weekOff=!doc&&dayType==='off';
   const teacherNames=await namesFor([...(doc?.periods||[]).filter(live).map(period=>String(period.teacher||'')),
     ...(doc?.sentBy?[String(doc.sentBy)]:[])]);
   const periods:DailyPeriodView[]=(doc?doc.periods.filter(live).map(period=>{
     const view=viewOf(period,teacherNames);
     return {...view,source:(period.source==='master'?'master':'own') as 'master'|'own',
       masterPeriod:period.masterPeriod?String(period.masterPeriod):''};
-  }):masterPeriods.map(view=>({...view,source:'master' as const,masterPeriod:view.id}))).sort(byDay);
-  const status:DayStatus=doc?.status||'normal';
+  }):weekOff?[]:masterPeriods.map(view=>({...view,source:'master' as const,masterPeriod:view.id}))).sort(byDay);
+  const status:DayStatus=doc?.status||(weekOff?'holiday':'normal');
   const sentAt=doc?.sentAt instanceof Date?doc.sentAt:null;
   return {
     date,weekday,classId,className:group.name,shift,
     stored:!!doc,docId:doc?String(doc._id):null,
-    status,holidayReason:doc?.holidayReason||'',notes:doc?.notes||'',
+    status,holidayReason:doc?.holidayReason||'',dayType,notes:doc?.notes||'',
     periods,masterPeriods,
     sent:!!sentAt,sentAt:sentAt?sentAt.toISOString():null,
     sentByName:doc?.sentBy?teacherNames.get(String(doc.sentBy))||'':'',
@@ -468,7 +480,7 @@ export async function teacherSchedule(teacherId:string,language:Language,now:Dat
         subjectBn:period.subject?.bn||'',subjectEn:period.subject?.en||'',daily});
     };
     for(const doc of masters){
-      if(doc.weekday!==weekday||doc.active===false)continue;
+      if(doc.weekday!==weekday||doc.active===false||doc.dayType==='off')continue;
       const classId=String(doc.classGroup);
       /* The sheet for this class, shift and date has the last word, so the week stays quiet about it. */
       if(held.has([date,classId,doc.shift].join('~')))continue;
@@ -504,19 +516,23 @@ export async function printNotice(date:string,language:Language):Promise<DayNoti
     .flatMap(doc=>doc.periods.filter(live).map(period=>String(period.teacher||''))));
   const nameOf=new Map(groups.map(group=>[group.id,group.name]));
   const held=new Set(sheets.map(sheet=>[String(sheet.classGroup),sheet.shift].join('~')));
+  /* What the week says this weekday is for each class and shift, so a date's own sheet still carries it. */
+  const typeOf=new Map(masters.map(doc=>[[String(doc.classGroup),doc.shift].join('~'),dayTypeOf(doc.dayType)]));
   const notices=new Map<string,NoticeClass>();
   for(const doc of masters){
     const classId=String(doc.classGroup);
     const key=[classId,doc.shift].join('~');
     if(doc.active===false||held.has(key))continue;
-    notices.set(key,{classId,className:nameOf.get(classId)||'',shift:doc.shift,status:'normal',
-      holidayReason:'',notes:'',stored:false,
-      periods:doc.periods.filter(live).map(period=>viewOf(period,teacherNames)).sort(byDay)});
+    const dayType=dayTypeOf(doc.dayType);
+    notices.set(key,{classId,className:nameOf.get(classId)||'',shift:doc.shift,
+      status:dayType==='off'?'holiday':'normal',holidayReason:'',dayType,notes:'',stored:false,
+      periods:dayType==='off'?[]:doc.periods.filter(live).map(period=>viewOf(period,teacherNames)).sort(byDay)});
   }
   for(const sheet of sheets){
     const classId=String(sheet.classGroup);
     notices.set([classId,sheet.shift].join('~'),{classId,className:nameOf.get(classId)||'',shift:sheet.shift,
-      status:sheet.status||'normal',holidayReason:sheet.holidayReason||'',notes:sheet.notes||'',stored:true,
+      status:sheet.status||'normal',holidayReason:sheet.holidayReason||'',
+      dayType:typeOf.get([classId,sheet.shift].join('~'))||'class',notes:sheet.notes||'',stored:true,
       periods:sheet.periods.filter(live).map(period=>viewOf(period,teacherNames)).sort(byDay)});
   }
   const order=new Map(groups.map((group,index)=>[group.id,index]));

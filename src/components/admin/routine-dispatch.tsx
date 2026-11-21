@@ -53,6 +53,8 @@ export interface RoutineDispatchProps {
   changedSinceSent: boolean;
   digits: Digits;
   language: Language;
+  /** The day the message is about, in the words a sentence needs: today's, tomorrow's, a date's. */
+  dayWord: string;
   canEdit: boolean;
 }
 
@@ -117,7 +119,7 @@ export function RoutineDispatch(props: RoutineDispatchProps) {
     <section className="rdx" data-routine-dispatch>
       <div className="rdx-head">
         <h2 className="rdx-title" data-dispatch-title>
-          {t("dispatch.title")}
+          {t("dispatch.title", { day: props.dayWord })}
         </h2>
         <PrintButton label={t("dispatch.print")} hook="notice" />
       </div>
@@ -128,7 +130,7 @@ export function RoutineDispatch(props: RoutineDispatchProps) {
             {t("dispatch.help")}
           </p>
           <p className="rdx-help" data-dispatch-print-help>
-            {t("dispatch.printHelp")}
+            {t("dispatch.printHelp", { day: props.dayWord })}
           </p>
         </div>
 
@@ -157,7 +159,8 @@ export function RoutineDispatch(props: RoutineDispatchProps) {
 
         <div className="rdx-card" data-dispatch-class>
           <h3 className="rdx-card-title" data-dispatch-class-title>
-            {t("dispatch.classTitle")} · {props.className}
+            {t("dispatch.classTitle", { day: props.dayWord })} ·{" "}
+            {props.className}
           </h3>
           <pre className="rdx-text" data-dispatch-class-text>
             {props.classText}

@@ -73,6 +73,22 @@ export default async function RoutineDailyPage({
     classes.find((group) => group.id === asked) || classes[0] || null;
   const today = dayAt(0);
   const date = DAY.test(String(query.date || "")) ? String(query.date) : today;
+  /* The word every message and heading uses for the day it is about, so a sheet for tomorrow says
+     tomorrow's routine and one for a later date says that date's — never "today's" by default. */
+  const dayWord =
+    date === today
+      ? t("dispatch.dayWord.today")
+      : date === dayAt(1)
+        ? t("dispatch.dayWord.tomorrow")
+        : date === dayAt(-1)
+          ? t("dispatch.dayWord.yesterday")
+          : t("dispatch.dayWord.date", {
+              date: formatDate(
+                new Date(`${date}T00:00:00+06:00`),
+                digits,
+                language,
+              ),
+            });
 
   const heading = (
     <>
@@ -143,6 +159,10 @@ export default async function RoutineDailyPage({
     ? askedShift
     : shifts[0] || chosen.shift || "";
   const sheet = await dailySheet(chosen.id, shift, date, language);
+  /* A date that simply follows a weekly day off carries the week's own word as its reason, so the form,
+     the message and the notice all read "weekly day off" without anybody having typed it. */
+  if (sheet && !sheet.stored && sheet.dayType === "off")
+    sheet.holidayReason = t("day.type.off");
   const [teachers, rooms, joints, notice] = sheet
     ? await Promise.all([
         teacherOptions(),
@@ -156,7 +176,7 @@ export default async function RoutineDailyPage({
      catalogs — so the text the operator copies is already in the screen's own language and their own
      digits, and the same builder serves the class group and every teacher who takes a period today. */
   const say = (key: string, params?: Record<string, string | number>): string =>
-    String(t(key, params));
+    String(t(key, { day: dayWord, ...params }));
   const dispatch = sheet
     ? (() => {
         const classText = classDispatchText(
@@ -174,6 +194,8 @@ export default async function RoutineDailyPage({
             })),
             language,
             digits,
+            holiday: sheet.status === "holiday" ? sheet.holidayReason : "",
+            exam: sheet.dayType === "exam",
           },
           say,
         );
@@ -281,7 +303,9 @@ export default async function RoutineDailyPage({
             </label>
             <label>
               <span>{t("daily.dateLabel")}</span>
-              <BanglaDate name="date" defaultValue={date} />
+              {/* `key`: the widget reads its date once, so a quick-date link (same page, new date) would
+                  leave it showing the old day unless it is rebuilt for the new one. */}
+              <BanglaDate key={date} name="date" defaultValue={date} />
             </label>
             <button
               type="submit"
@@ -344,6 +368,7 @@ export default async function RoutineDailyPage({
           changedSinceSent={sheet.changedSinceSent}
           digits={digits}
           language={language}
+          dayWord={dayWord}
           canEdit={canWrite}
         />
       )}
@@ -375,10 +400,15 @@ export default async function RoutineDailyPage({
                 <h2 data-notice-class-name>
                   {entry.className}
                   {entry.shift ? ` · ${entry.shift}` : ""}
+                  {entry.dayType === "exam" ? ` · ${t("day.type.exam")}` : ""}
                 </h2>
                 {entry.status === "holiday" ? (
                   <p className="notice-holiday" data-notice-holiday>
-                    {t("dispatch.holiday", { reason: entry.holidayReason })}
+                    {t("dispatch.holiday", {
+                      reason:
+                        entry.holidayReason ||
+                        (entry.dayType === "off" ? t("day.type.off") : ""),
+                    })}
                   </p>
                 ) : entry.periods.length === 0 ? (
                   <p className="notice-empty" data-notice-empty>

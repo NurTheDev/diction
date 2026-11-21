@@ -94,6 +94,9 @@ const MODELS:{name:string;model:unknown;
       shift:{control:'shift',file:'master'},
       weekday:{control:'weekday',file:'master'},
       active:{control:'active',file:'master'},
+      /* A weekday's kind — a teaching day, the class's weekly day off, or its weekly exam day — is set from
+         the picker on the day's own card, which posts it as `dayType`. */
+      dayType:{control:'dayType',file:'master'},
       /* The label a row carries so the Recycle Bin can name what it holds is copied from the class record
          on every save: typing it would let the bin disagree with the class it points at. */
       'classLabel.bn':'derived','classLabel.en':'derived',

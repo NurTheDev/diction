@@ -23,7 +23,7 @@ import {User} from '@/models/User';
 import {purgeAtFor} from '@/models/recycle';
 import {audit} from '@/lib/admin/helpers';
 import {clashesFor,type RoutineClash,type RoutineSlot} from './conflicts';
-import {needsDocument,daySignature,sheetSignature,type DayStatus,type PeriodShape} from './day';
+import {DAY_TYPES,needsDocument,daySignature,sheetSignature,type DayStatus,type DayType,type PeriodShape} from './day';
 import {recordHistory,type HistoryCarrier,type StoredHistoryEntry} from './history';
 import {actorName,centreSlots,masterWeek,shapeOf,type PeriodView} from './read';
 import {weekdayOf} from './time';
@@ -62,7 +62,7 @@ interface PeriodList extends Array<PeriodSub>{
 type Saved=Promise<unknown>;
 interface MasterDoc extends HistoryCarrier{
   _id:mongoose.Types.ObjectId;classGroup:mongoose.Types.ObjectId;classLabel:{bn:string;en:string};
-  shift:string;weekday:number;active:boolean;periods:PeriodList;history:StoredHistoryEntry[];
+  shift:string;weekday:number;active:boolean;dayType?:DayType;periods:PeriodList;history:StoredHistoryEntry[];
   /* The bin's own three stamps: a day moved out of a shift it no longer holds is binned, not dropped. */
   deletedAt:Date|null;deletedBy:mongoose.Types.ObjectId|null;purgeAt:Date|null;
   save(options?:{session?:mongoose.ClientSession}):Saved;
@@ -342,6 +342,38 @@ export async function saveMasterDay({id,shift,active,actor}:MasterDayWrite):Prom
   await audit(actor,'routine.day.shift',id);
   refreshRoutine();
   return {status:'ok',id:String(existing._id)};
+}
+
+export interface MasterDayTypeWrite{classId:string;shift:string;weekday:number;dayType:DayType;actor:string}
+
+/**
+ * Say what a weekday of a class's week is: a teaching day, its weekly day off, or its weekly exam day.
+ *
+ * An empty weekday has no document (a day is written the moment a period goes into it), so this writes
+ * one — a day that is only a label is still a day the owner chose. Nothing else is touched: the periods
+ * stay whatever the type, so a Friday marked off and then marked a teaching day again is the Friday it
+ * was. Like every routine write it is open to the owner at will, and it leaves a line in the day's own
+ * history and in the audit log.
+ */
+export async function setMasterDayType({classId,shift,weekday,dayType,actor}:MasterDayTypeWrite):Promise<RoutineOutcome>{
+  if(!validId(classId)||!Number.isInteger(weekday)||weekday<0||weekday>6)return {status:'invalid',fields:['weekday']};
+  if(!shift.trim())return {status:'invalid',fields:['shift']};
+  if(!(DAY_TYPES as readonly string[]).includes(dayType))return {status:'invalid',fields:['dayType']};
+  /* A dev server started before this field existed still holds the old cached model, and Mongoose drops a
+     write to a field it does not know without a word. Say so (restart the server) rather than answer ok. */
+  if(!MasterRoutine.schema.path('dayType'))return {status:'error'};
+  const group=await classOf(classId);
+  if(!group)return {status:'invalid',fields:['classId']};
+  const doc=await upsertMasterDay(classId,shift.trim(),weekday,actor,group);
+  if(!doc)return {status:'error'};
+  /* Tapping the option already chosen writes nothing and leaves no line in the history. */
+  if((doc.dayType||'class')===dayType)return {status:'ok',id:String(doc._id)};
+  doc.dayType=dayType;
+  recordHistory(doc,{actor,actorName:await actorName(actor),code:'dayType',params:{type:dayType}});
+  await doc.save();
+  await audit(actor,'routine.day.type',String(doc._id));
+  refreshRoutine();
+  return {status:'ok',id:String(doc._id)};
 }
 
 export interface DailyWrite extends DailySheetInput{force?:boolean;actor:string}

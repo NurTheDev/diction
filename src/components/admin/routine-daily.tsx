@@ -584,6 +584,11 @@ export function RoutineDailySheet(props: RoutineDailyProps) {
               {t("daily.adjustedBanner")}
             </p>
           )}
+          {sheet.dayType === "exam" && (
+            <p className="rds-banner rds-banner-exam" data-exam-banner>
+              {t("daily.examBanner")}
+            </p>
+          )}
 
           <div className="rds-fields">
             <div className="rds-col">

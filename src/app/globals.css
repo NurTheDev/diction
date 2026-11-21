@@ -20205,6 +20205,99 @@ body:has(dialog.cm-modal[open]) {
   border: 1px solid color-mix(in srgb, var(--rm-info) 22%, transparent);
 }
 
+/* ───────────── Day type: teaching day · weekly day off · weekly exam day ───────────── */
+
+.rm-badge-weekoff {
+  color: var(--rm-action);
+  background: var(--rm-action-soft);
+  border: 1px solid color-mix(in srgb, var(--rm-action) 28%, transparent);
+}
+.rm-badge-exam {
+  color: var(--rm-warn);
+  background: var(--rm-warn-soft);
+  border: 1px solid color-mix(in srgb, #f59e0b 40%, transparent);
+}
+/* A weekly day off keeps its periods, so they stay readable and editable, just visibly not running. */
+.rm-day-weekoff::before {
+  background: var(--rm-action);
+}
+.rm-day-weekoff .rm-periods {
+  opacity: 0.55;
+}
+
+.rm-daytype {
+  display: grid;
+  gap: 6px;
+}
+.rm-daytype-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--rm-muted);
+}
+.rm-daytype-group {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  padding: 3px;
+  background: var(--rm-bg);
+  border: 1px solid var(--rm-border);
+  border-radius: 11px;
+}
+/* `.rm-daytype` in front: the shell's own `.admin-shell button` (44px) would out-rank a lone class. */
+.rm-daytype .rm-daytype-opt {
+  min-height: 38px;
+  padding: 6px 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: center;
+  color: var(--rm-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition:
+    background-color 0.18s var(--rm-ease),
+    color 0.18s var(--rm-ease);
+}
+.rm-daytype .rm-daytype-opt:hover:not(:disabled):not(.rm-daytype-on) {
+  color: var(--rm-primary);
+  background: var(--rm-primary-soft);
+}
+.rm-daytype .rm-daytype-opt:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--rm-info) 45%, transparent);
+  outline-offset: 2px;
+}
+.rm-daytype .rm-daytype-opt:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+.rm-daytype .rm-daytype-opt.rm-daytype-on {
+  color: #fff;
+  background: var(--rm-primary);
+}
+.rm-daytype .rm-daytype-opt.rm-daytype-on[data-day-type="off"] {
+  background: var(--rm-action);
+}
+.rm-daytype .rm-daytype-opt.rm-daytype-on[data-day-type="exam"] {
+  background: var(--rm-warn);
+}
+.rm-daytype-help {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--rm-muted);
+}
+.rm-daytype-error {
+  font-weight: 600;
+  color: var(--rm-action);
+}
+@media (max-width: 640px) {
+  .rm-daytype .rm-daytype-opt {
+    min-height: 44px;
+  }
+}
+
 /* ───────────── Periods ───────────── */
 
 .rm-periods {
@@ -26996,6 +27089,12 @@ body:has(dialog.cm-modal[open]) {
   background: color-mix(in srgb, var(--rd-info) 10%, var(--rd-surface));
   border-color: color-mix(in srgb, var(--rd-info) 30%, transparent);
   color: color-mix(in srgb, var(--rd-info) 75%, #000);
+}
+
+.rds-banner-exam {
+  background: color-mix(in srgb, #f59e0b 14%, var(--rd-surface));
+  border-color: color-mix(in srgb, #f59e0b 40%, transparent);
+  color: var(--rd-warn);
 }
 
 /* ---------- fields (page form and drawer form) ---------- */
