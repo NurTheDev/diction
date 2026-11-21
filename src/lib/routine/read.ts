@@ -24,8 +24,9 @@ import {historyViews,type HistoryView,type StoredHistoryEntry} from './history';
 import {dhakaDay} from '@/lib/admin/today';
 import {hasPassed,shiftDate,weekdayOf,type Language} from './time';
 import {roomKey,type RoutineSlot} from './conflicts';
+import {routineShiftWords} from '@/lib/classes/class-shared';
 
-export interface RoutineClass{id:string;nameBn:string;nameEn:string;name:string;shift:string;active:boolean}
+export interface RoutineClass{id:string;nameBn:string;nameEn:string;name:string;shift:string;shifts:string[];active:boolean}
 export interface RoutineTeacher{id:string;name:string}
 
 export interface PeriodView{
@@ -133,7 +134,7 @@ export interface AssignmentView{
   updatedAt:string;
 }
 
-type ClassDoc={_id:mongoose.Types.ObjectId;name:{bn:string;en?:string};shift?:string;active?:boolean;order?:number};
+type ClassDoc={_id:mongoose.Types.ObjectId;name:{bn:string;en?:string};shift?:string;shifts?:string[];active?:boolean;order?:number};
 type UserDoc={_id:mongoose.Types.ObjectId;name:string};
 type StoredPeriod={_id:mongoose.Types.ObjectId;start:string;end:string;subject:{bn:string;en?:string};
   teacher?:mongoose.Types.ObjectId|null;room?:string;jointWith?:mongoose.Types.ObjectId|null;order?:number;
@@ -154,7 +155,8 @@ export async function routineClasses(language:Language):Promise<RoutineClass[]>{
   return docs.map(doc=>({
     id:String(doc._id),nameBn:doc.name.bn,nameEn:doc.name.en||'',
     name:(language==='bn'?doc.name.bn:doc.name.en)||doc.name.bn,
-    shift:doc.shift||'',active:doc.active!==false,
+    shift:doc.shift||'',shifts:(doc.shifts||[]).map(value=>String(value)).filter(Boolean),
+    active:doc.active!==false,
   }));
 }
 
@@ -164,20 +166,27 @@ export async function routineClass(classId:string,language:Language):Promise<Rou
   const doc=await CenterClassGroup.findById(classId).lean<ClassDoc|null>();
   if(!doc)return null;
   return {id:String(doc._id),nameBn:doc.name.bn,nameEn:doc.name.en||'',
-    name:(language==='bn'?doc.name.bn:doc.name.en)||doc.name.bn,shift:doc.shift||'',active:doc.active!==false};
+    name:(language==='bn'?doc.name.bn:doc.name.en)||doc.name.bn,shift:doc.shift||'',
+    shifts:(doc.shifts||[]).map(value=>String(value)).filter(Boolean),active:doc.active!==false};
 }
 
 /**
- * The shifts a class's week can be written under: the class's own shift first, then any shift already
- * stored in its routines, so a centre that runs a morning and an evening batch of one class can build
- * both without a settings screen.
+ * The shifts a class's week can be written under: every shift its card says it runs, then any shift
+ * already stored in its routines.
+ *
+ * The class's `shifts[]` holds canonical keys while a routine stores the Bangla label behind a key, so
+ * `labels` is the catalog's three words in the day's order. A legacy class with only a free `shift`
+ * keeps that word exactly as it stands.
  */
-export async function shiftsForClass(classId:string,fallback:string):Promise<string[]>{
-  const found=fallback.trim()?[fallback.trim()]:[];
-  if(!mongoose.isValidObjectId(classId))return found;
+export async function shiftsForClass(
+  group:Pick<RoutineClass,'id'|'shift'|'shifts'>,
+  labels:readonly string[],
+):Promise<string[]>{
+  const found=routineShiftWords(group,labels);
+  if(!mongoose.isValidObjectId(group.id))return found;
   const [master,daily]=await Promise.all([
-    MasterRoutine.distinct('shift',{classGroup:classId}),
-    DailyRoutine.distinct('shift',{classGroup:classId}),
+    MasterRoutine.distinct('shift',{classGroup:group.id}),
+    DailyRoutine.distinct('shift',{classGroup:group.id}),
   ]);
   const all=[...found,...[...master,...daily].map(value=>String(value).trim()).filter(Boolean)];
   return [...new Set(all)];

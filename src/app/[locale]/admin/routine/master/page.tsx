@@ -6,6 +6,7 @@ import {formatNumber} from '@/lib/admin/format';
 import {dayHeaders,type Language} from '@/components/admin/list-dates';
 import {assignments,centreWeek,jointOptionsForWeek,knownRooms,knownShifts,masterWeek,routineClasses,
   shiftsForClass,teacherOptions} from '@/lib/routine/read';
+import {classShiftWords} from '@/lib/classes/shift-words';
 import {shiftDate} from '@/lib/routine/time';
 import {dhakaDay} from '@/lib/admin/today';
 import {dayTotals,scanSlots,type RoutineSlot} from '@/lib/routine/conflicts';
@@ -59,7 +60,8 @@ export default async function RoutineMasterPage({params,searchParams}:{
     </section>
   </>;
 
-  const shifts=await shiftsForClass(chosen.id,chosen.shift);
+  const shiftLabels=await classShiftWords();
+  const shifts=await shiftsForClass(chosen,shiftLabels);
   const askedShift=String(query.shift||'');
   const shift=shifts.includes(askedShift)?askedShift:(shifts[0]||chosen.shift||'');
   const [days,slots,teachers,rooms,assignmentRows,everyShift]=await Promise.all([

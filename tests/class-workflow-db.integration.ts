@@ -30,6 +30,8 @@ import {CenterActivityLog,CenterClassGroup,CenterPayment,CenterSettings,CenterSt
 import {syncClassIndexes} from '../src/lib/admin/cron';
 import {purgeRemovedStudents,removalWindow,studentPurgeAt} from '../src/lib/center/student-purge';
 import {dhakaCalendar} from '../src/lib/center/month-status';
+import {MasterRoutine} from '../src/models/Routine';
+import {routineClass,shiftsForClass} from '../src/lib/routine/read';
 
 const DAY=86400000;
 const today=dhakaCalendar(new Date());
@@ -217,6 +219,20 @@ async function run(){
     assert.deepEqual(stored!.teachers.map(String),[String(teacher._id)],
       'the teachers who take it — which is what decides whose marks grid opens');
 
+    /* ── 7. the routine offers every shift the class runs ─────────────────────────────────────────── */
+    const twoShifts=await CenterClassGroup.create({name:{bn:`${NAME} দুই শিফট`,en:`${NAME_EN} two shifts`},
+      academicYear:today.year,shift:SHIFT,shifts:['morning','day'],active:true});
+    const labels=['সকাল','দুপুর','সন্ধ্যা'];
+    const classView=await routineClass(String(twoShifts._id),'bn');
+    assert.deepEqual(classView!.shifts,['morning','day'],
+      'the routine read keeps the class\'s shift keys as well as its one routine word');
+    assert.deepEqual(await shiftsForClass(classView!,labels),['সকাল','দুপুর'],
+      'so a class running morning and day offers both before either routine has been written');
+    await MasterRoutine.create({classGroup:twoShifts._id,shift:'সন্ধ্যা',weekday:0,periods:[]});
+    assert.deepEqual(await shiftsForClass(classView!,labels),['সকাল','দুপুর','সন্ধ্যা'],
+      'and a shift a routine already carries stays in the list too');
+
+    await MasterRoutine.deleteMany({classGroup:{$in:[whole._id,twoShifts._id]}});
     await CenterStudent.deleteMany({studentId:/^S2DB-/});
     await wipeClasses();
     await CenterPayment.deleteMany({groupId:'s2db'});

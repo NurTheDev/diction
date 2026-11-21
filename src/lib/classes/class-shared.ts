@@ -41,6 +41,22 @@ export function shiftWordsOf(card:{shifts:string[];shift:string}):string[]{
 }
 
 /**
+ * What a routine's shift selector offers for a class.
+ *
+ * A class's card reads canonical keys; a routine stores the Bangla label behind a key, because that is
+ * the word the owner sees and the word routines were already written with. So the class's keys are
+ * translated through the same catalog labels before they reach a routine query — and a legacy class
+ * that has only a free word keeps that word exactly as it stands.
+ */
+export function routineShiftWords(card:{shifts:string[];shift:string},labels:readonly string[]):string[]{
+  const words=shiftWordsOf(card).map(word=>{
+    const at=(CLASS_SHIFT_KEYS as readonly string[]).indexOf(String(word).trim().toLowerCase());
+    return at>=0?(String(labels[at]||'').trim()||word):word;
+  }).filter(Boolean);
+  return [...new Set(words)];
+}
+
+/**
  * F-08 · A shift word a class wore before the boxes existed, recognised as one of the three keys.
  *
  * The owner's own word is kept exactly as it stands — a class that says "প্রভাতী" is not a morning

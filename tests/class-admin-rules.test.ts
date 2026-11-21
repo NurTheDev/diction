@@ -21,7 +21,7 @@ import {existsSync,readdirSync,readFileSync,statSync} from 'node:fs';
 import {CenterClassGroup} from '../src/models/CenterRecords';
 import {Batch} from '../src/models/Academic';
 import {classGroupSchema,shiftsOf} from '../src/schemas/center';
-import {CLASS_SHIFT_KEYS,isShiftKey,shiftWordsOf} from '../src/lib/classes/class-shared';
+import {CLASS_SHIFT_KEYS,isShiftKey,routineShiftWords,shiftWordsOf} from '../src/lib/classes/class-shared';
 
 const read=(file:string):string=>readFileSync(file,'utf8');
 const walk=(dir:string,out:string[]=[]):string[]=>{
@@ -74,6 +74,13 @@ assert.deepEqual(shiftWordsOf({shifts:['morning','evening'],shift:''}),['morning
 assert.deepEqual(shiftWordsOf({shifts:[],shift:'সকাল'}),['সকাল'],
   'and a class written before it shows the word it has always had');
 assert.deepEqual(shiftWordsOf({shifts:[],shift:''}),[],'a class with neither says nothing, and the card says so');
+const shiftLabels=['সকাল','দুপুর','সন্ধ্যা'];
+assert.deepEqual(routineShiftWords({shifts:['morning','day'],shift:'সকাল'},shiftLabels),['সকাল','দুপুর'],
+  'a class that runs two shifts offers both to the routine, in the class\'s own order');
+assert.deepEqual(routineShiftWords({shifts:['day'],shift:'দুপুর'},shiftLabels),['দুপুর'],
+  'a class that runs only the day shift offers the day word, not the morning one');
+assert.deepEqual(routineShiftWords({shifts:[],shift:'প্রভাতী'},shiftLabels),['প্রভাতী'],
+  'and a class written before the boxes still offers the one word it has always had');
 
 // ── 3. The shape of a write ──────────────────────────────────────────────────────────────────────
 const base={nameBn:'নমুনা সপ্তম শ্রেণি',nameEn:'Sample Class Seven',level:'সপ্তম শ্রেণি',
@@ -97,6 +104,7 @@ assert.equal(classGroupSchema.safeParse({...base,academicYear:'২০২৬'}).s
 
 // ── 4. The write itself ──────────────────────────────────────────────────────────────────────────
 const ACTION='src/actions/class-admin.ts';
+const SHIFT_WORDS='src/lib/classes/shift-words.ts';
 assert.ok(existsSync(ACTION),'the class screen has its own write side');
 const action=read(ACTION);
 assert.ok(action.includes("requireAdmin()")&&action.includes("admin.role!=='admin'"),
@@ -107,7 +115,9 @@ assert.ok(/Number\(value\.academicYear\)!==Number\(current\.academicYear\)/.test
   'the academic year is written once and never moved, because a fee history is read against the year it was taken in');
 assert.ok(action.includes('code===11000')&&action.includes("'duplicate'"),
   'a second class with a name the centre already has is answered as a duplicate, which is a sentence the operator can act on');
-assert.ok(/shiftWord\(/.test(action)&&/getTranslations\(\{locale:'bn',namespace:'classAdmin'\}\)/.test(action),
+const shiftWords=read(SHIFT_WORDS);
+assert.ok(shiftWords.includes("getTranslations({locale:'bn',namespace:'classAdmin'})")
+  &&action.includes('classShiftWords()'),
   'the shift a routine will read is fetched from the catalog rather than written as a literal in the action');
 assert.ok(action.includes('class.batches')&&action.includes('class.create')&&action.includes('class.update'),
   'every write leaves an activity row naming what happened');

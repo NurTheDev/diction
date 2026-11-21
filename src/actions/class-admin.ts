@@ -46,7 +46,8 @@ import {Batch} from '@/models/Academic';
 import {User} from '@/models/User';
 import {appendFileSync,mkdirSync} from 'node:fs';
 import {formatNumber,type Digits} from '@/lib/admin/format';
-import {CLASS_SHIFT_KEYS,isShiftKey,shiftKeyOfWord} from '@/lib/classes/class-shared';
+import {CLASS_SHIFT_KEYS,shiftKeyOfWord} from '@/lib/classes/class-shared';
+import {classShiftWords} from '@/lib/classes/shift-words';
 
 /**
  * The server's own account of a write, appended where the verification run reads its logs.
@@ -101,20 +102,6 @@ const refresh=(classId=''):void=>{
     if(mongoose.isValidObjectId(classId))revalidatePath(`/${lang}/admin/students/classes/${classId}`);
   }
 };
-
-/** The Bangla word behind a shift key, read from the catalog: no Bangla literal lives in this file. */
-async function shiftWord(key:string):Promise<string>{
-  const t=await getTranslations({locale:'bn',namespace:'classAdmin'});
-  const word=isShiftKey(key)?t(key==='morning'?'shiftMorning':key==='day'?'shiftDay':'shiftEvening'):'';
-  return String(word||'');
-}
-
-/** The three labels in the day's order, read from the catalog once per write. */
-async function shiftWords():Promise<string[]>{
-  const words:string[]=[];
-  for(const key of CLASS_SHIFT_KEYS)words.push(await shiftWord(key));
-  return words;
-}
 
 /** Which language the operator is reading, so a refusal arrives in it and in their own digits. */
 async function languageOf():Promise<Digits>{
@@ -217,7 +204,7 @@ export async function saveClassGroupAction(previous:ClassActionState,form:FormDa
     if(allowed.length!==teacherIds.length)return {status:'invalid',fields:['teacherIds']};
   }
   const teachers=teacherIds.map(entry=>new mongoose.Types.ObjectId(entry));
-  const words=await shiftWords();
+  const words=await classShiftWords();
   /* The session is opened inside the try, not before it: a connection that refuses a session is a write
      the operator is told about, not a route that dies under them. A refusal keeps the draft; a death
      loses the screen. */

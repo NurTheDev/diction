@@ -161,7 +161,9 @@ assert.ok(action.includes('return words.includes(word)?\'\':word;'),
   'an unticked label is dropped, while a word that is none of the three is kept as its owner wrote it');
 assert.ok(/shiftKeyOfWord\(String\(current\.shift\|\|''\),words\)/.test(action),
   'and the first save of a class written before the boxes gives it the canonical key its word means');
-assert.ok(action.includes("await getTranslations({locale:'bn',namespace:'classAdmin'})"),
+const shiftWords=read('src/lib/classes/shift-words.ts');
+assert.ok(shiftWords.includes("getTranslations({locale:'bn',namespace:'classAdmin'})")
+  &&action.includes('classShiftWords()'),
   'the labels are read from the catalog: no Bangla literal lives in the action');
 const model=read('src/models/CenterRecords.ts');
 assert.ok(model.includes("groupSchema.index({'name.bn':1,academicYear:1,shift:1},"
