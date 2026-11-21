@@ -1,5 +1,4 @@
 "use client";
-import "@/public-assistant.css";
 import {
   AlertTriangle,
   ArrowRight,

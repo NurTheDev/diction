@@ -1,5 +1,4 @@
 "use client";
-import "@/admin-loading.css";
 import { useTranslations } from "next-intl";
 /**
  * O1 · what an admin screen looks like while its own numbers are being fetched.
