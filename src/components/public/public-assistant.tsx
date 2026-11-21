@@ -64,8 +64,21 @@ export function PublicAssistant({
         }),
         signal: c.signal,
       });
-      if (!r.ok || !r.body)
-        throw Error(r.status === 429 ? "rate" : "unavailable");
+      if (!r.ok || !r.body) {
+        let code = "";
+        try {
+          code = (await r.json())?.error || "";
+        } catch {}
+        throw Error(
+          r.status === 429
+            ? code === "daily"
+              ? "daily"
+              : "rate"
+            : r.status === 503 && code === "busy"
+              ? "busy"
+              : "unavailable",
+        );
+      }
       const reader = r.body.getReader(),
         decoder = new TextDecoder();
       let buffer = "",
@@ -112,7 +125,11 @@ export function PublicAssistant({
       setError(
         e instanceof Error && e.message === "rate"
           ? pub("rateLimited")
-          : pub("noResponse"),
+          : e instanceof Error && e.message === "daily"
+            ? pub("dailyLimit")
+            : e instanceof Error && e.message === "busy"
+              ? pub("busy")
+              : pub("noResponse"),
       );
     } finally {
       controller.current = null;
