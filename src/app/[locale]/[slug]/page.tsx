@@ -27,6 +27,7 @@ import {
   Facebook,
   GraduationCap,
   MapPin,
+  Phone,
   Target,
   Trophy,
   Youtube,
@@ -526,6 +527,12 @@ export default async function PublicPage({
               <a className="text-link" href={mapUrl}>
                 {t("mapOpen")} <ArrowRight size={16} />
               </a>
+              <h2>{t("call")}</h2>
+              <p>
+                <a className="text-link" href={`tel:${site!.phone}`}>
+                  <Phone size={17} aria-hidden="true" /> {site!.phone}
+                </a>
+              </p>
               <h2>{t("social")}</h2>
               <p>{t("contactNote")}</p>
               <div className="contact-social">

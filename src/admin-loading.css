@@ -1,0 +1,285 @@
+/* ==========================================================
+   Admin loading skeleton  (prefix: ldg-)
+   ========================================================== */
+
+.ldg {
+  --ldg-primary: var(--primary, #2e3192);
+  --ldg-info: var(--info, #0090c8);
+  --ldg-ink: var(--ink, #1a1d3a);
+  --ldg-muted: var(--muted, #5b6180);
+  --ldg-border: var(--border, #e3e6f2);
+  --ldg-surface: var(--surface, #fff);
+  --ldg-base: color-mix(in srgb, var(--ldg-primary) 7%, #eceef7);
+  --ldg-shine: color-mix(in srgb, var(--ldg-primary) 2%, #fafbff);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  /* wait a beat so fast loads never flash a skeleton */
+  animation: ldg-in 0.35s ease 0.12s both;
+}
+
+/* ---------- shimmer block (every grey shape) ---------- */
+.ldg-sk {
+  display: block;
+  border-radius: 10px;
+  background: linear-gradient(
+    100deg,
+    var(--ldg-base) 30%,
+    var(--ldg-shine) 50%,
+    var(--ldg-base) 70%
+  );
+  background-size: 220% 100%;
+  animation: ldg-shimmer 1.5s linear infinite;
+}
+
+/* ---------- indeterminate top bar ---------- */
+.ldg-bar {
+  position: relative;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ldg-primary) 10%, #fff);
+}
+.ldg-bar span {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: 38%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--ldg-primary), var(--ldg-info));
+  animation: ldg-slide 1.3s ease-in-out infinite;
+}
+
+/* ---------- status card (the real, announced text) ---------- */
+.ldg-status {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  border: 1px solid color-mix(in srgb, var(--ldg-info) 25%, #fff);
+  border-inline-start: 4px solid var(--ldg-info);
+  border-radius: 16px;
+  background: linear-gradient(
+    120deg,
+    color-mix(in srgb, var(--ldg-info) 8%, #fff),
+    var(--ldg-surface) 70%
+  );
+}
+.ldg-spin {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border: 3px solid color-mix(in srgb, var(--ldg-primary) 15%, #fff);
+  border-top-color: var(--ldg-primary);
+  border-radius: 50%;
+  animation: ldg-rotate 0.8s linear infinite;
+}
+.ldg-status-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.ldg-status-text p {
+  margin: 0;
+}
+.ldg-status-main {
+  color: var(--ldg-ink);
+  font-weight: 700;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+.ldg-status-help {
+  color: var(--ldg-muted);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+/* ---------- decorative skeleton ---------- */
+.ldg-shape {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+/* header */
+.ldg-head {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 22px;
+  border: 1px solid var(--ldg-border);
+  border-radius: 20px;
+  background: var(--ldg-surface);
+}
+.ldg-tag {
+  width: 120px;
+  height: 24px;
+  border-radius: 999px;
+}
+.ldg-title {
+  width: min(360px, 70%);
+  height: 34px;
+  border-radius: 12px;
+}
+.ldg-sub {
+  width: min(560px, 92%);
+  height: 14px;
+}
+.ldg-sub-short {
+  width: min(320px, 60%);
+}
+
+/* stat tiles */
+.ldg-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+.ldg-kpi {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid var(--ldg-border);
+  border-radius: 18px;
+  background: var(--ldg-surface);
+}
+.ldg-kpi-ico {
+  flex: none;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+}
+.ldg-kpi-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+.ldg-kpi-label {
+  width: 70%;
+  height: 12px;
+}
+.ldg-kpi-num {
+  width: 46%;
+  height: 24px;
+  border-radius: 8px;
+}
+
+/* table panel */
+.ldg-panel {
+  overflow: hidden;
+  border: 1px solid var(--ldg-border);
+  border-radius: 20px;
+  background: var(--ldg-surface);
+}
+.ldg-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--ldg-border);
+  background: color-mix(in srgb, var(--ldg-primary) 3%, #fff);
+}
+.ldg-panel-title {
+  width: 180px;
+  height: 20px;
+}
+.ldg-panel-btn {
+  width: 96px;
+  height: 34px;
+  border-radius: 999px;
+}
+.ldg-rows {
+  display: flex;
+  flex-direction: column;
+}
+.ldg-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 22px;
+}
+.ldg-row + .ldg-row {
+  border-top: 1px dashed var(--ldg-border);
+}
+.ldg-avatar {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}
+.ldg-row-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+.ldg-line-a {
+  width: 44%;
+  height: 14px;
+}
+.ldg-line-b {
+  width: 26%;
+  height: 11px;
+}
+.ldg-pill {
+  flex: none;
+  width: 76px;
+  height: 26px;
+  border-radius: 999px;
+}
+/* varied widths so it does not look like a barcode */
+.ldg-row:nth-child(2n) .ldg-line-a { width: 56%; }
+.ldg-row:nth-child(3n) .ldg-line-a { width: 36%; }
+.ldg-row:nth-child(2n) .ldg-line-b { width: 34%; }
+.ldg-row:nth-child(3n) .ldg-line-b { width: 20%; }
+/* fade out toward the bottom: "there is more coming" */
+.ldg-row:nth-child(n + 5) { opacity: 0.7; }
+.ldg-row:nth-child(n + 6) { opacity: 0.45; }
+
+/* ---------- motion ---------- */
+@keyframes ldg-shimmer {
+  from { background-position: 120% 0; }
+  to { background-position: -120% 0; }
+}
+@keyframes ldg-slide {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(270%); }
+}
+@keyframes ldg-rotate {
+  to { transform: rotate(360deg); }
+}
+@keyframes ldg-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+[dir="rtl"] .ldg-bar span {
+  animation-direction: reverse;
+}
+
+@media (max-width: 640px) {
+  .ldg-head { padding: 16px; }
+  .ldg-row { padding: 14px 16px; gap: 12px; }
+  .ldg-panel-head { padding: 14px 16px; }
+  .ldg-pill { display: none; }
+  .ldg-status { padding: 14px 16px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ldg,
+  .ldg-sk,
+  .ldg-bar span,
+  .ldg-spin {
+    animation: none;
+  }
+  .ldg-bar span {
+    width: 100%;
+    opacity: 0.5;
+  }
+}
