@@ -11,7 +11,7 @@ export function BatchFinder(){
  const names=p.raw('subjects') as string[];
  const num=(n:number)=>new Intl.NumberFormat(locale==='bn'?'bn-BD':'en').format(n);
  const gradeOptions=[{key:'all',value:'all',label:p('filterClass')},...Array.from({length:9},(_,i)=>i+4).map(n=>({key:`grade-${n}`,value:String(n),label:`${p('class')} ${num(n)}`}))];
- const subjectOptions=[{key:'all',value:'all',label:p('filterSubject')},...names.map((name,i)=>({key:`subject-${subjectValues[i]}`,value:subjectValues[i],label:name}))];
+ const subjectOptions=[{key:'all',value:'all',label:p('filterSubject')},...subjectValues.map((value,i)=>({key:`subject-${value}`,value,label:names[i]??value}))];
  return <form className="batch-finder" action={`/${locale}/courses`} method="get">
   <div className="batch-finder-label"><span className="batch-finder-dot"/>{p('coursesTag')}</div>
   <div className="batch-finder-fields">

@@ -5153,7 +5153,9 @@ body:has(.private-motion-disabled) .scroll-progress {
   white-space: nowrap;
   cursor: default;
   box-shadow: 0 6px 14px -10px var(--chip-fg);
-  transition: transform 0.2s ease, box-shadow 0.2s ease,
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
     border-color 0.2s ease;
 }
 
@@ -5169,7 +5171,10 @@ body:has(.private-motion-disabled) .scroll-progress {
   color: var(--chip-fg);
   font-size: 10px;
   line-height: 1;
-  transition: transform 0.25s ease, background 0.2s ease, color 0.2s ease;
+  transition:
+    transform 0.25s ease,
+    background 0.2s ease,
+    color 0.2s ease;
 }
 
 .subject-chip:hover {
@@ -5195,18 +5200,54 @@ button.subject-chip {
 }
 
 /* ---------- 12 distinct colours (1–6 keep your original palette) ---------- */
-.subject-chip-1  { --chip-bg: #fff0ee; --chip-fg: #a81720; } /* red    */
-.subject-chip-2  { --chip-bg: #e9f8ef; --chip-fg: #007a3d; } /* green  */
-.subject-chip-3  { --chip-bg: #e9f9ff; --chip-fg: #006c95; } /* cyan   */
-.subject-chip-4  { --chip-bg: #fff7e8; --chip-fg: #845300; } /* amber  */
-.subject-chip-5  { --chip-bg: #f0f3ff; --chip-fg: #2e3192; } /* indigo */
-.subject-chip-6  { --chip-bg: #eaf6ff; --chip-fg: #007bb3; } /* sky    */
-.subject-chip-7  { --chip-bg: #e6f7f5; --chip-fg: #0b6b64; } /* teal   */
-.subject-chip-8  { --chip-bg: #f4eefe; --chip-fg: #6a2fb8; } /* purple */
-.subject-chip-9  { --chip-bg: #fdeef6; --chip-fg: #b0245f; } /* pink   */
-.subject-chip-10 { --chip-bg: #f3f8e4; --chip-fg: #4d6a0c; } /* olive  */
-.subject-chip-11 { --chip-bg: #fff1e6; --chip-fg: #a34a05; } /* orange */
-.subject-chip-12 { --chip-bg: #eef1f6; --chip-fg: #3d4a63; } /* slate  */
+.subject-chip-1 {
+  --chip-bg: #fff0ee;
+  --chip-fg: #a81720;
+} /* red    */
+.subject-chip-2 {
+  --chip-bg: #e9f8ef;
+  --chip-fg: #007a3d;
+} /* green  */
+.subject-chip-3 {
+  --chip-bg: #e9f9ff;
+  --chip-fg: #006c95;
+} /* cyan   */
+.subject-chip-4 {
+  --chip-bg: #fff7e8;
+  --chip-fg: #845300;
+} /* amber  */
+.subject-chip-5 {
+  --chip-bg: #f0f3ff;
+  --chip-fg: #2e3192;
+} /* indigo */
+.subject-chip-6 {
+  --chip-bg: #eaf6ff;
+  --chip-fg: #007bb3;
+} /* sky    */
+.subject-chip-7 {
+  --chip-bg: #e6f7f5;
+  --chip-fg: #0b6b64;
+} /* teal   */
+.subject-chip-8 {
+  --chip-bg: #f4eefe;
+  --chip-fg: #6a2fb8;
+} /* purple */
+.subject-chip-9 {
+  --chip-bg: #fdeef6;
+  --chip-fg: #b0245f;
+} /* pink   */
+.subject-chip-10 {
+  --chip-bg: #f3f8e4;
+  --chip-fg: #4d6a0c;
+} /* olive  */
+.subject-chip-11 {
+  --chip-bg: #fff1e6;
+  --chip-fg: #a34a05;
+} /* orange */
+.subject-chip-12 {
+  --chip-bg: #eef1f6;
+  --chip-fg: #3d4a63;
+} /* slate  */
 
 /* ---------- small screens ---------- */
 @media (max-width: 560px) {
@@ -30004,7 +30045,11 @@ body:has(dialog.cm-modal[open]) {
     linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
   background-size: 34px 34px;
   mask-image: radial-gradient(circle at 50% 45%, #000 0%, transparent 72%);
-  -webkit-mask-image: radial-gradient(circle at 50% 45%, #000 0%, transparent 72%);
+  -webkit-mask-image: radial-gradient(
+    circle at 50% 45%,
+    #000 0%,
+    transparent 72%
+  );
 }
 .bvd-play:focus-visible {
   outline: 3px solid #ffd84d;

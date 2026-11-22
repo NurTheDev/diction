@@ -23,7 +23,7 @@ export function CourseExplorer({status,courses,initialGrade='all',initialSubject
   return <div className="course-explorer">
     <div className="filter-bar" role="group" aria-label={t('coursesTag')}>
       <div className="filter-field"><label htmlFor="grade"><GraduationCap size={17} aria-hidden="true"/>{t('filterClass')}</label><select id="grade" value={grade} onChange={e=>setGrade(e.target.value)}><option value="all">{t('all')}</option>{Array.from({length:9},(_,i)=>i+4).map(n=><option key={n} value={n}>{t('class')} {number(n)}</option>)}</select></div>
-      <div className="filter-field"><label htmlFor="subject"><BookOpen size={17} aria-hidden="true"/>{t('filterSubject')}</label><select id="subject" value={subject} onChange={e=>setSubject(e.target.value)}><option value="all">{t('all')}</option>{names.map((n,i)=><option key={subjectValues[i]} value={subjectValues[i]}>{n}</option>)}</select></div>
+      <div className="filter-field"><label htmlFor="subject"><BookOpen size={17} aria-hidden="true"/>{t('filterSubject')}</label><select id="subject" value={subject} onChange={e=>setSubject(e.target.value)}><option value="all">{t('all')}</option>{subjectValues.map((value,i)=><option key={value} value={value}>{names[i]??value}</option>)}</select></div>
     </div>
     {status==='guide'&&<div className="info-line course-guide-note"><Info size={18} aria-hidden="true"/><span>{t('courseGuideNote')}</span></div>}
     <h2 className="content-heading course-list-heading">{t('single')}</h2>
