@@ -44,14 +44,18 @@ const dayAt = (offset: number): string =>
  *
  * What the page is careful about:
  *
- *   • **Today is Dhaka's today, never the server's.** The date is read in Asia/Kolkata-free `Asia/Dhaka`
- *     (UTC+6), and the picker is the house's own three-select `BanglaDate` — a native date input would
- *     hand a Bangladeshi operator an mm/dd/yyyy box that reads wrong.
+ *   • **Today is Dhaka's today, never the server's.** The date is read in `Asia/Dhaka` (UTC+6), and the
+ *     picker is the house's own three-select `BanglaDate` — a native date input would hand a Bangladeshi
+ *     operator an mm/dd/yyyy box that reads wrong.
  *   • **A past date is not a locked one.** It can be walked back to and fixed, and it carries a badge
  *     saying it has passed rather than a refusal.
  *   • **Nothing is stored that the week already says.** A day identical to the master costs no document,
- *     and the sheet reports which of the two happened — that is the Atlas storage rule made visible to
- *     the person who benefits from it.
+ *     and the sheet reports which of the two happened.
+ *   • **Moving between days remounts the client parts.** Yesterday / Today / Tomorrow are soft links, so
+ *     the form, the sheet and the dispatch block carry a `key` of class + shift + date. Without it React
+ *     keeps their old state and the picker and the messages show the previous day.
+ *   • **The message titles follow the chosen date.** Yesterday / today / tomorrow are named; any other day
+ *     is named by its date.
  */
 export default async function RoutineDailyPage({
   params,
@@ -73,12 +77,16 @@ export default async function RoutineDailyPage({
     classes.find((group) => group.id === asked) || classes[0] || null;
   const today = dayAt(0);
   const date = DAY.test(String(query.date || "")) ? String(query.date) : today;
+  const askedShiftParam = String(query.shift || "");
+  const jumpTail =
+    (chosen ? `&classId=${encodeURIComponent(chosen.id)}` : "") +
+    (askedShiftParam ? `&shift=${encodeURIComponent(askedShiftParam)}` : "");
 
   const heading = (
     <>
       <div className="admin-heading" data-routine-daily={chosen?.id || "none"}>
         <div>
-          <span className="section-tag">✦ &nbsp; {t("daily.title")}</span>
+          <span className="section-tag">✦ {t("daily.title")}</span>
           <h1 data-daily-heading>{t("daily.title")}</h1>
           <p className="admin-help">{t("daily.sub")}</p>
           <p className="admin-help" data-daily-date>
@@ -108,7 +116,8 @@ export default async function RoutineDailyPage({
             key={jump.key}
             className="admin-mini-button"
             data-daily-jump={jump.key}
-            href={`/admin/routine/daily?date=${dayAt(jump.offset)}${chosen ? `&classId=${chosen.id}` : ""}`}>
+            aria-current={dayAt(jump.offset) === date ? "date" : undefined}
+            href={`/admin/routine/daily?date=${dayAt(jump.offset)}${jumpTail}`}>
             {jump.label}
           </Link>
         ))}
@@ -152,11 +161,40 @@ export default async function RoutineDailyPage({
       ])
     : [[], [], [], null];
 
+  /* One identity for "this class, this shift, this date". Everything client-side below is keyed on it, so
+     moving to another day mounts them fresh instead of carrying the previous day's state across. */
+  const viewKey = `${chosen.id}:${shift}:${date}`;
+
   /* Slice 2 · the day going out. The messages are written here, on the server, from the sheet and from the
      catalogs — so the text the operator copies is already in the screen's own language and their own
-     digits, and the same builder serves the class group and every teacher who takes a period today. */
-  const say = (key: string, params?: Record<string, string | number>): string =>
-    String(t(key, params));
+     digits, and the same builder serves the class group and every teacher who takes a period.
+
+     The two titles follow the chosen date: yesterday / today / tomorrow by name, any other day by its
+     date. Every other line of the message still comes straight from the catalog. */
+  const relative =
+    date === dayAt(-1)
+      ? "Yesterday"
+      : date === today
+        ? "Today"
+        : date === dayAt(1)
+          ? "Tomorrow"
+          : "";
+  const dateWord = formatDate(
+    new Date(`${date}T00:00:00+06:00`),
+    digits,
+    language,
+  );
+  const say = (
+    key: string,
+    params?: Record<string, string | number>,
+  ): string => {
+    const base = key.replace(/^dispatch\./, "");
+    if (base === "classTitle" || base === "teacherTitle")
+      return String(
+        t(`dispatch.${base}${relative || "Date"}`, { date: dateWord }),
+      );
+    return String(t(key, params));
+  };
   const dispatch = sheet
     ? (() => {
         const classText = classDispatchText(
@@ -242,6 +280,7 @@ export default async function RoutineDailyPage({
         </div>
         <div className="admin-panel-body">
           <form
+            key={viewKey}
             method="get"
             className="admin-filter report-filters"
             data-daily-form-filters>
@@ -308,6 +347,7 @@ export default async function RoutineDailyPage({
               {t("daily.shiftLabel")}: {shift || t("master.noShift")}
             </p>
             <RoutineDailySheet
+              key={viewKey}
               sheet={sheet}
               teachers={teachers}
               rooms={rooms}
@@ -330,6 +370,7 @@ export default async function RoutineDailyPage({
 
       {sheet && dispatch && (
         <RoutineDispatch
+          key={viewKey}
           classId={sheet.classId}
           shift={sheet.shift}
           date={sheet.date}
@@ -348,9 +389,10 @@ export default async function RoutineDailyPage({
         />
       )}
 
-      {/* The paper sheet for the notice board: today's routine across every class, hidden on screen and
-        laid out for print. One print stylesheet, one button, and what comes out is what actually runs —
-        a date's own sheet speaks for its class, and the week speaks where no sheet does. */}
+      {/* The paper sheet for the notice board: the chosen day's routine across every class, hidden on
+        screen and laid out for print. One print stylesheet, one button, and what comes out is what
+        actually runs — a date's own sheet speaks for its class, and the week speaks where no sheet
+        does. */}
       {notice && (
         <section
           className="routine-notice print-hidden"

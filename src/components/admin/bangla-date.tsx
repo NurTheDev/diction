@@ -33,13 +33,21 @@ export function BanglaDate({
     t = useTranslations("common"),
     months = monthNames(t.raw("months") as MonthTable),
     [parts, setParts] = useState(() => split(value ?? defaultValue)),
-    [lastValue, setLastValue] = useState(value);
+    [lastValue, setLastValue] = useState(value),
+    [lastDefault, setLastDefault] = useState(defaultValue);
   useEffect(() => {
     if (value !== lastValue) {
       setParts(split(value));
       setLastValue(value);
     }
   }, [value, lastValue]);
+  /* Uncontrolled use: when the page hands down a new default (a soft navigation to another date), follow it. */
+  useEffect(() => {
+    if (value === undefined && defaultValue !== lastDefault) {
+      setParts(split(defaultValue));
+      setLastDefault(defaultValue);
+    }
+  }, [value, defaultValue, lastDefault]);
   const digits = (n: number) =>
       new Intl.NumberFormat(bn ? "bn-BD" : "en-GB", {
         useGrouping: false,
