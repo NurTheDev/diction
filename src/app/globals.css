@@ -30045,11 +30045,7 @@ body:has(dialog.cm-modal[open]) {
     linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
   background-size: 34px 34px;
   mask-image: radial-gradient(circle at 50% 45%, #000 0%, transparent 72%);
-  -webkit-mask-image: radial-gradient(
-    circle at 50% 45%,
-    #000 0%,
-    transparent 72%
-  );
+  -webkit-mask-image: radial-gradient(circle at 50% 45%, #000 0%, transparent 72%);
 }
 .bvd-play:focus-visible {
   outline: 3px solid #ffd84d;
