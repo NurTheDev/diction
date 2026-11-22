@@ -1,6 +1,5 @@
 import { Link } from "@/i18n/navigation";
 import { practiceList } from "@/lib/content/practice-tests";
-import "@/practice-list.css";
 import { ArrowRight, BookOpenCheck, Info } from "lucide-react";
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";

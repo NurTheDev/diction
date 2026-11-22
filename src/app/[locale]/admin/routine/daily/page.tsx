@@ -18,6 +18,7 @@ import {
   whatsappHref,
 } from "@/lib/routine/dispatch";
 import {
+  assignments,
   dailySheet,
   jointOptions,
   knownRooms,
@@ -44,18 +45,14 @@ const dayAt = (offset: number): string =>
  *
  * What the page is careful about:
  *
- *   • **Today is Dhaka's today, never the server's.** The date is read in `Asia/Dhaka` (UTC+6), and the
- *     picker is the house's own three-select `BanglaDate` — a native date input would hand a Bangladeshi
- *     operator an mm/dd/yyyy box that reads wrong.
+ *   • **Today is Dhaka's today, never the server's.** The date is read in Asia/Kolkata-free `Asia/Dhaka`
+ *     (UTC+6), and the picker is the house's own three-select `BanglaDate` — a native date input would
+ *     hand a Bangladeshi operator an mm/dd/yyyy box that reads wrong.
  *   • **A past date is not a locked one.** It can be walked back to and fixed, and it carries a badge
  *     saying it has passed rather than a refusal.
  *   • **Nothing is stored that the week already says.** A day identical to the master costs no document,
- *     and the sheet reports which of the two happened.
- *   • **Moving between days remounts the client parts.** Yesterday / Today / Tomorrow are soft links, so
- *     the form, the sheet and the dispatch block carry a `key` of class + shift + date. Without it React
- *     keeps their old state and the picker and the messages show the previous day.
- *   • **The message titles follow the chosen date.** Yesterday / today / tomorrow are named; any other day
- *     is named by its date.
+ *     and the sheet reports which of the two happened — that is the Atlas storage rule made visible to
+ *     the person who benefits from it.
  */
 export default async function RoutineDailyPage({
   params,
@@ -77,16 +74,28 @@ export default async function RoutineDailyPage({
     classes.find((group) => group.id === asked) || classes[0] || null;
   const today = dayAt(0);
   const date = DAY.test(String(query.date || "")) ? String(query.date) : today;
-  const askedShiftParam = String(query.shift || "");
-  const jumpTail =
-    (chosen ? `&classId=${encodeURIComponent(chosen.id)}` : "") +
-    (askedShiftParam ? `&shift=${encodeURIComponent(askedShiftParam)}` : "");
+  /* The word every message and heading uses for the day it is about, so a sheet for tomorrow says
+     tomorrow's routine and one for a later date says that date's — never "today's" by default. */
+  const dayWord =
+    date === today
+      ? t("dispatch.dayWord.today")
+      : date === dayAt(1)
+        ? t("dispatch.dayWord.tomorrow")
+        : date === dayAt(-1)
+          ? t("dispatch.dayWord.yesterday")
+          : t("dispatch.dayWord.date", {
+              date: formatDate(
+                new Date(`${date}T00:00:00+06:00`),
+                digits,
+                language,
+              ),
+            });
 
   const heading = (
     <>
       <div className="admin-heading" data-routine-daily={chosen?.id || "none"}>
         <div>
-          <span className="section-tag">✦ {t("daily.title")}</span>
+          <span className="section-tag">✦ &nbsp; {t("daily.title")}</span>
           <h1 data-daily-heading>{t("daily.title")}</h1>
           <p className="admin-help">{t("daily.sub")}</p>
           <p className="admin-help" data-daily-date>
@@ -116,8 +125,7 @@ export default async function RoutineDailyPage({
             key={jump.key}
             className="admin-mini-button"
             data-daily-jump={jump.key}
-            aria-current={dayAt(jump.offset) === date ? "date" : undefined}
-            href={`/admin/routine/daily?date=${dayAt(jump.offset)}${jumpTail}`}>
+            href={`/admin/routine/daily?date=${dayAt(jump.offset)}${chosen ? `&classId=${chosen.id}` : ""}`}>
             {jump.label}
           </Link>
         ))}
@@ -152,49 +160,44 @@ export default async function RoutineDailyPage({
     ? askedShift
     : shifts[0] || chosen.shift || "";
   const sheet = await dailySheet(chosen.id, shift, date, language);
-  const [teachers, rooms, joints, notice] = sheet
+  /* A date that simply follows a weekly day off carries the week's own word as its reason, so the form,
+     the message and the notice all read "weekly day off" without anybody having typed it. */
+  if (sheet && !sheet.stored && sheet.dayType === "off")
+    sheet.holidayReason = t("day.type.off");
+  const [teachers, rooms, joints, notice, subjectRows] = sheet
     ? await Promise.all([
         teacherOptions(),
         knownRooms(),
         jointOptions(sheet.weekday),
         printNotice(date, language),
+        assignments(language, chosen.id),
       ])
-    : [[], [], [], null];
+    : [[], [], [], null, []];
 
-  /* One identity for "this class, this shift, this date". Everything client-side below is keyed on it, so
-     moving to another day mounts them fresh instead of carrying the previous day's state across. */
-  const viewKey = `${chosen.id}:${shift}:${date}`;
+  /* The subjects a weekly exam can be about: the ones the week already teaches, the ones this date
+     already holds, and the class's standing teaching assignments — so an exam day with no periods
+     still offers the subjects the class actually runs. */
+  const examSubjects = sheet
+    ? [
+        ...new Map(
+          [...sheet.masterPeriods, ...sheet.periods, ...subjectRows]
+            .filter((item) => item.subjectBn.trim())
+            .map((item) => [
+              item.subjectBn.trim(),
+              {
+                bn: item.subjectBn.trim(),
+                en: item.subjectEn.trim(),
+              },
+            ]),
+        ).values(),
+      ].sort((a, b) => a.bn.localeCompare(b.bn))
+    : [];
 
   /* Slice 2 · the day going out. The messages are written here, on the server, from the sheet and from the
      catalogs — so the text the operator copies is already in the screen's own language and their own
-     digits, and the same builder serves the class group and every teacher who takes a period.
-
-     The two titles follow the chosen date: yesterday / today / tomorrow by name, any other day by its
-     date. Every other line of the message still comes straight from the catalog. */
-  const relative =
-    date === dayAt(-1)
-      ? "Yesterday"
-      : date === today
-        ? "Today"
-        : date === dayAt(1)
-          ? "Tomorrow"
-          : "";
-  const dateWord = formatDate(
-    new Date(`${date}T00:00:00+06:00`),
-    digits,
-    language,
-  );
-  const say = (
-    key: string,
-    params?: Record<string, string | number>,
-  ): string => {
-    const base = key.replace(/^dispatch\./, "");
-    if (base === "classTitle" || base === "teacherTitle")
-      return String(
-        t(`dispatch.${base}${relative || "Date"}`, { date: dateWord }),
-      );
-    return String(t(key, params));
-  };
+     digits, and the same builder serves the class group and every teacher who takes a period today. */
+  const say = (key: string, params?: Record<string, string | number>): string =>
+    String(t(key, { day: dayWord, ...params }));
   const dispatch = sheet
     ? (() => {
         const classText = classDispatchText(
@@ -212,6 +215,14 @@ export default async function RoutineDailyPage({
             })),
             language,
             digits,
+            holiday: sheet.status === "holiday" ? sheet.holidayReason : "",
+            exam: sheet.dayType === "exam",
+            examSubject:
+              language === "en"
+                ? sheet.examSubjectEn || sheet.examSubjectBn
+                : sheet.examSubjectBn,
+            examOnly:
+              sheet.dayType === "exam" && sheet.examMode === "exam",
           },
           say,
         );
@@ -280,7 +291,6 @@ export default async function RoutineDailyPage({
         </div>
         <div className="admin-panel-body">
           <form
-            key={viewKey}
             method="get"
             className="admin-filter report-filters"
             data-daily-form-filters>
@@ -320,7 +330,9 @@ export default async function RoutineDailyPage({
             </label>
             <label>
               <span>{t("daily.dateLabel")}</span>
-              <BanglaDate name="date" defaultValue={date} />
+              {/* `key`: the widget reads its date once, so a quick-date link (same page, new date) would
+                  leave it showing the old day unless it is rebuilt for the new one. */}
+              <BanglaDate key={date} name="date" defaultValue={date} />
             </label>
             <button
               type="submit"
@@ -347,11 +359,11 @@ export default async function RoutineDailyPage({
               {t("daily.shiftLabel")}: {shift || t("master.noShift")}
             </p>
             <RoutineDailySheet
-              key={viewKey}
               sheet={sheet}
               teachers={teachers}
               rooms={rooms}
               joints={joints}
+              examSubjects={examSubjects}
               weekdays={dayHeaders(language)}
               digits={digits}
               language={language}
@@ -370,7 +382,6 @@ export default async function RoutineDailyPage({
 
       {sheet && dispatch && (
         <RoutineDispatch
-          key={viewKey}
           classId={sheet.classId}
           shift={sheet.shift}
           date={sheet.date}
@@ -385,14 +396,14 @@ export default async function RoutineDailyPage({
           changedSinceSent={sheet.changedSinceSent}
           digits={digits}
           language={language}
+          dayWord={dayWord}
           canEdit={canWrite}
         />
       )}
 
-      {/* The paper sheet for the notice board: the chosen day's routine across every class, hidden on
-        screen and laid out for print. One print stylesheet, one button, and what comes out is what
-        actually runs — a date's own sheet speaks for its class, and the week speaks where no sheet
-        does. */}
+      {/* The paper sheet for the notice board: today's routine across every class, hidden on screen and
+        laid out for print. One print stylesheet, one button, and what comes out is what actually runs —
+        a date's own sheet speaks for its class, and the week speaks where no sheet does. */}
       {notice && (
         <section
           className="routine-notice print-hidden"
@@ -417,10 +428,30 @@ export default async function RoutineDailyPage({
                 <h2 data-notice-class-name>
                   {entry.className}
                   {entry.shift ? ` · ${entry.shift}` : ""}
+                  {entry.dayType === "exam" ? ` · ${t("day.type.exam")}` : ""}
                 </h2>
+                {entry.dayType === "exam" && entry.status !== "holiday" && (
+                  <p className="notice-exam" data-notice-exam>
+                    {entry.examSubjectBn || entry.examSubjectEn
+                      ? t("dispatch.examSubject", {
+                          subject:
+                            language === "en"
+                              ? entry.examSubjectEn || entry.examSubjectBn
+                              : entry.examSubjectBn,
+                        })
+                      : t("dispatch.examDay")}
+                    {entry.examMode === "exam"
+                      ? ` · ${t("daily.examModeExam")}`
+                      : ""}
+                  </p>
+                )}
                 {entry.status === "holiday" ? (
                   <p className="notice-holiday" data-notice-holiday>
-                    {t("dispatch.holiday", { reason: entry.holidayReason })}
+                    {t("dispatch.holiday", {
+                      reason:
+                        entry.holidayReason ||
+                        (entry.dayType === "off" ? t("day.type.off") : ""),
+                    })}
                   </p>
                 ) : entry.periods.length === 0 ? (
                   <p className="notice-empty" data-notice-empty>

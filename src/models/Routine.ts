@@ -23,7 +23,7 @@
  * beside it rather than a refusal. The only fields nobody can write are the system's own — `_id`, the
  * timestamps, `createdBy`, and the bin stamps.
  */
-import {Schema,model,models} from 'mongoose';
+import mongoose,{Schema,model,models} from 'mongoose';
 import {addRecycleFields} from './recycle';
 
 /** A name the operator types, in both languages: Bangla is what the centre reads, English is optional. */
@@ -112,6 +112,10 @@ const masterSchema=new Schema({
   periods:{type:[period],default:[]},
   /** Archive, the staff floor: a day switched off stays readable and stops being offered as a template. */
   active:{type:Boolean,default:true},
+  /** What this weekday is for this class and shift: a teaching day, its weekly day off, or its weekly
+      exam day. Periods are kept whatever the type, so switching back to `class` loses nothing. A day
+      written before this field existed has none, and reads as `class`. */
+  dayType:{type:String,enum:['class','off','exam'],default:'class'},
   /** The last twenty edits of this day, newest last. Capped in code, pruned by the daily job. */
   history:{type:[historyEntry],default:[]},
   createdBy:userRef,
@@ -133,6 +137,11 @@ const dailySchema=new Schema({
   status:{type:String,enum:['normal','adjusted','holiday'],default:'normal'},
   holidayReason:{type:String,default:'',trim:true,maxlength:300},
   notes:{type:String,default:'',trim:true,maxlength:1000},
+  /** A weekly exam day's own choices: which subject's exam is held, and whether classes run beside it.
+      Both are written on the date, not on the week, because the exam subject is this date's news. */
+  examSubjectBn:{type:String,default:'',trim:true,maxlength:200},
+  examSubjectEn:{type:String,default:'',trim:true,maxlength:200},
+  examMode:{type:String,enum:['both','exam'],default:'both'},
   periods:{type:[period],default:[]},
   /* The sent marks. Slice 1 stores them and reads them — the badge that says a sheet has changed since
      it went out — and the dispatch that writes them is a later slice. `sentSignature` is the day's own
@@ -166,6 +175,13 @@ assignmentSchema.index({teacher:1,classGroup:1,'subject.bn':1},{unique:true,part
 assignmentSchema.index({classGroup:1,active:1});
 assignmentSchema.index({teacher:1,active:1});
 
-export const MasterRoutine=models.MasterRoutine||model('MasterRoutine',masterSchema);
-export const DailyRoutine=models.DailyRoutine||model('DailyRoutine',dailySchema);
+/* `models.X||model(...)` keeps whatever shape a dev server compiled first, so a field added afterwards is
+   dropped by Mongoose without a word until the whole server restarts. A cached model that lacks the newest
+   field is replaced instead. A production process has nothing cached, so it is unaffected. */
+const current=(name:string,schema:Schema,newestPath:string)=>{
+  if(models[name]&&!models[name].schema.path(newestPath))mongoose.deleteModel(name);
+  return models[name]||model(name,schema);
+};
+export const MasterRoutine=current('MasterRoutine',masterSchema,'dayType');
+export const DailyRoutine=current('DailyRoutine',dailySchema,'examMode');
 export const TeachingAssignment=models.TeachingAssignment||model('TeachingAssignment',assignmentSchema);

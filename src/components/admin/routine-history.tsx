@@ -24,7 +24,7 @@ const idle:RoutineActionState={status:'idle'};
 
 /** The codes this screen knows a sentence for. Anything else falls back to "a change was written". */
 const CODES=new Set(['periodSave','periodMove','periodDelete','periodRestore','daySave','dayMove',
-  'dayDuplicate','dailySave','dailyReset','bulkShift','bulkFields','replaceTeacher','restored']);
+  'dayDuplicate','dayType','dailySave','dailyReset','bulkShift','bulkFields','replaceTeacher','restored']);
 
 /** One entry's wall clock, read in Asia/Dhaka and written in the reader's own digits. */
 export function historyWhen(iso:string,digits:Digits,language:'bn'|'en'):string{
@@ -56,6 +56,10 @@ export function useHistorySentence(){
        weekday is a word the screen owns. */
     if(code==='dayMove'&&weekdays[Number(view.params.to)])params.to=weekdays[Number(view.params.to)];
     if(code==='dayDuplicate'&&weekdays[Number(view.params.from)])params.from=weekdays[Number(view.params.from)];
+    if(code==='dayType'){
+      const kind=view.params.type==='off'||view.params.type==='exam'?view.params.type:'class';
+      params.type=t(`day.type.${kind}`);
+    }
     return t(`history.code.${code}`,params);
   };
 }

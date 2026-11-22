@@ -36,6 +36,24 @@ export interface PeriodShape{
 
 export type DayStatus='normal'|'adjusted'|'holiday';
 
+/** What a weekday of a class's week is: taught, the weekly day off, or the weekly exam day. */
+export const DAY_TYPES=['class','off','exam'] as const;
+export type DayType=typeof DAY_TYPES[number];
+/** A stored value read safely: a day written before the field existed has none, and is a teaching day. */
+export const dayTypeOf=(value:unknown):DayType=>value==='off'||value==='exam'?value:'class';
+
+/**
+ * What a weekly exam day runs: the exam on its own, or the exam and the day's classes as well.
+ *
+ * `both` is the default because that is what an exam day did before the choice existed — a date that
+ * follows the week keeps its periods. Choosing `exam` is the date saying "no classes today", and the
+ * working sheet then stores no periods at all, which is what every reader (dispatch, notice, teacher
+ * schedule, clash check) already knows how to read as an empty day.
+ */
+export const EXAM_MODES=['both','exam'] as const;
+export type ExamMode=typeof EXAM_MODES[number];
+export const examModeOf=(value:unknown):ExamMode=>value==='exam'?'exam':'both';
+
 const trim=(value:unknown):string=>String(value??'').trim();
 /** An id read as lower-case text, so the same period stored twice never compares as two. */
 const idOf=(value:unknown):string=>{const text=trim(value);return text?text.toLowerCase():''};
@@ -80,17 +98,21 @@ export interface SheetDraft{
   masterPeriods:PeriodShape[];
   /** A sheet that has been sent is kept whatever it says: it is the record of what went out. */
   sentAt?:Date|string|null;
+  /** The day is a weekly exam day and says something about the exam: a subject, or "only the exam". */
+  exam?:boolean;
 }
 
 /**
  * Does this draft need a document? Only when it says something the week does not: a status that is not
- * `normal`, a holiday reason, a note, a period the master does not have, or a sent mark to keep.
+ * `normal`, a holiday reason, a note, a period the master does not have, a sent mark to keep, or an exam
+ * choice the week cannot carry.
  *
  * Note what is NOT a reason to store: a day whose periods were copied from the master and never
  * touched. That copy is the week, and the week is already stored.
  */
 export function needsDocument(draft:SheetDraft):boolean{
   if(draft.sentAt)return true;
+  if(draft.exam)return true;
   if(trim(draft.notes))return true;
   if(trim(draft.holidayReason))return true;
   if(draft.status!=='normal')return true;
@@ -122,10 +144,20 @@ export function isPrunable(date:string,now:Date=new Date()):boolean{
 /** A sheet as its sent mark reads it: the day, not only its periods. A holiday declared or a note
  * added after the dispatch went out is as much a change since the send as a moved room is, so the
  * signature the badge compares against covers everything the sheet holds. */
-export interface SentSheet{status:DayStatus;notes?:string;holidayReason?:string;periods:PeriodShape[]}
+export interface SentSheet{status:DayStatus;notes?:string;holidayReason?:string;periods:PeriodShape[];
+  /** A weekly exam day's own choice: which exam, and whether classes run beside it. */
+  examSubjectBn?:string;examSubjectEn?:string;examMode?:string}
 export function sheetSignature(sheet:SentSheet):string{
-  return createHash('sha256').update(JSON.stringify({status:sheet.status,notes:trim(sheet.notes),
-    reason:trim(sheet.holidayReason),day:daySignature(sheet.periods)})).digest('hex');
+  /* The exam fields join the signature only when the day carries one, so a sheet sent before the exam
+     choice existed keeps the signature it was sent with and is not badged as changed by an upgrade. */
+  const body:Record<string,unknown>={status:sheet.status,notes:trim(sheet.notes),
+    reason:trim(sheet.holidayReason),day:daySignature(sheet.periods)};
+  if(trim(sheet.examSubjectBn)||trim(sheet.examSubjectEn)||trim(sheet.examMode)==='exam'){
+    body.examSubjectBn=trim(sheet.examSubjectBn);
+    body.examSubjectEn=trim(sheet.examSubjectEn);
+    body.examMode=trim(sheet.examMode);
+  }
+  return createHash('sha256').update(JSON.stringify(body)).digest('hex');
 }
 export function changedSinceSent(sheet:SentSheet,sentSignature:string):boolean{
   const sent=trim(sentSignature);

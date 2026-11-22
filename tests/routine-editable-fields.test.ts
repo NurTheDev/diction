@@ -94,6 +94,9 @@ const MODELS:{name:string;model:unknown;
       shift:{control:'shift',file:'master'},
       weekday:{control:'weekday',file:'master'},
       active:{control:'active',file:'master'},
+      /* A weekday's kind — a teaching day, the class's weekly day off, or its weekly exam day — is set from
+         the picker on the day's own card, which posts it as `dayType`. */
+      dayType:{control:'dayType',file:'master'},
       /* The label a row carries so the Recycle Bin can name what it holds is copied from the class record
          on every save: typing it would let the bin disagree with the class it points at. */
       'classLabel.bn':'derived','classLabel.en':'derived',
@@ -115,6 +118,11 @@ const MODELS:{name:string;model:unknown;
       status:{control:'status',file:'daily'},
       holidayReason:{control:'holidayReason',file:'daily'},
       notes:{control:'notes',file:'daily'},
+      /* A weekly exam day's own two choices: the subject being examined and whether classes run beside
+         it. They are written on the date, which is why they live here and not on the week. */
+      examSubjectBn:{control:'examSubjectBn',file:'daily'},
+      examSubjectEn:{control:'examSubjectEn',file:'daily'},
+      examMode:{control:'examMode',file:'daily'},
       'classLabel.bn':'derived','classLabel.en':'derived',
       /* The dispatch writes these when a sheet is sent; the operator reads them as a badge. */
       sentAt:'system',sentBy:'system',sentSignature:'derived',

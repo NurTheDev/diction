@@ -519,7 +519,7 @@ export default async function Home({
         <div className="wrap demo-split">
           <div className="demo-image">
             <Image
-              src="/brand/about-illustration.jpg"
+              src="/brand/about-illustration_v2.jpg"
               fill
               sizes="(max-width: 800px) 100vw, 550px"
               alt=""

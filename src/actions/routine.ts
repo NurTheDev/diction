@@ -22,10 +22,10 @@ import {requireAdmin} from '@/lib/admin/guard';
 import {dashboardDigits} from '@/lib/admin/digits';
 import {inDigits} from '@/lib/admin/format';
 import {assignmentSchema,bulkEditSchema,dayOpSchema,dispatchSchema,replaceTeacherSchema,
-  restoreHistorySchema,dailySheetSchema,routinePeriodSchema} from '@/schemas/routine';
+  restoreHistorySchema,dailySheetSchema,masterDayTypeSchema,routinePeriodSchema} from '@/schemas/routine';
 import {
   deleteMasterPeriod,markDailySheetSent,resetDailySheet,restoreMasterPeriod,saveAssignment,saveDailySheet,
-  saveMasterDay,saveMasterPeriod,type RoutineOutcome,
+  saveMasterDay,saveMasterPeriod,setMasterDayType,type RoutineOutcome,
 } from '@/lib/routine/engine';
 import {applyBulkEdit,applyReplaceTeacher,duplicateMasterDay,moveMasterDay,previewReplaceTeacher,
   restoreHistory,type BulkOutcome,type DayOpOutcome,type ReplaceOutcome} from '@/lib/routine/bulk';
@@ -144,6 +144,20 @@ export async function saveMasterDayAction(_:RoutineActionState,form:FormData):Pr
   }catch{return {status:'error'}}
 }
 
+/** Say what a weekday of the week is — a teaching day, the weekly day off, or the weekly exam day. */
+export async function setMasterDayTypeAction(_:RoutineActionState,form:FormData):Promise<RoutineActionState>{
+  let message='';
+  try{
+    const admin=await requireAdmin();
+    message=(await getTranslations('routine'))('day.typeSaved');
+    const input=masterDayTypeSchema.safeParse({classId:text(form,'classId'),shift:text(form,'shift'),
+      weekday:text(form,'weekday'),dayType:text(form,'dayType')});
+    if(!input.success)return {status:'invalid',fields:input.error.issues.map(issue=>String(issue.path[0]))};
+    const outcome=await setMasterDayType({...input.data,actor:admin.id});
+    return stateFor(outcome,outcome.status==='ok'?message:undefined);
+  }catch{return {status:'error'}}
+}
+
 /**
  * Save one date's working sheet — status, holiday reason, notes and every period, in one write, because
  * the day is one decision. The engine decides whether the day is worth storing at all.
@@ -160,7 +174,8 @@ export async function saveDailySheetAction(_previous:RoutineActionState,form:For
     const parsed=dailySheetSchema.safeParse({
       classId:text(form,'classId'),shift:text(form,'shift'),date:text(form,'date'),
       status:text(form,'status')||'normal',holidayReason:text(form,'holidayReason'),
-      notes:text(form,'notes'),periods,
+      notes:text(form,'notes'),examSubjectBn:text(form,'examSubjectBn'),
+      examSubjectEn:text(form,'examSubjectEn'),examMode:text(form,'examMode')||'both',periods,
     });
     if(!parsed.success)return {status:'invalid',fields:parsed.error.issues.map(issue=>String(issue.path[0]))};
     const outcome=await saveDailySheet({...parsed.data,force:flagged(form,'force'),actor:admin.id});
