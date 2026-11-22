@@ -40,7 +40,7 @@ export default async function Settings() {
           facebook: s.social.facebook,
           youtube: s.social.youtube,
           website: current?.website || "",
-          taglineBn: current?.taglineBn || "যত্নে গড়ি আগামীর স্বপ্ন",
+          taglineBn: current?.taglineBn || "পড়ালেখার প্রিয় প্রাঙ্গণ",
         }}
         proof={proof.success ? proof.data : emptySocialProof}
         binned={binned}
