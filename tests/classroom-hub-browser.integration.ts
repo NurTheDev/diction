@@ -617,8 +617,11 @@ async function run(){
 
     await goto(page,`/bn/admin/center-exams/${examOneId}`,'[data-exam-grid]');
     const grid=page.locator('[data-exam-grid]');
-    assert.equal(await grid.locator('thead th').count(),9,
-      'the grid has a column per component, then the student, the total, the percentage, the grade, the point, the rank and the absent switch');
+    /* O1 added two columns to this grid: the roll the class is marked by, which leads the row, and the
+       row's own status, which says whether a mark has been sent — a grid that saves itself has to be
+       readable about it. Everything the component split proved is still here, between them. */
+    assert.equal(await grid.locator('thead th').count(),11,
+      'the grid has the roll, then a column per component, then the student, the total, the percentage, the grade, the point, the rank, the absent switch and the row\'s own status');
     const headText=await grid.locator('thead').innerText();
     for(const part of EXAM_ONE.parts){
       assert.ok(headText.includes(part.name),`a component names its own column (${headText})`);
@@ -631,7 +634,11 @@ async function run(){
       'one average per subject in the footer, however many columns that subject has');
     const footerCells=await grid.locator('tfoot tr').first().evaluate(
       (row:HTMLElement)=>[...row.children].reduce((sum,cell)=>sum+(Number(cell.getAttribute('colspan'))||1),0));
-    assert.equal(footerCells,9,'and the footer spans exactly the columns the body has');
+    /* Eleven, not nine: the footer's leading cell spans the roll and the student, one cell spans the
+       subject's two components, and the summary spans the total, the percentage, the grade, the point,
+       the rank, the absent switch and the row's own status — the two columns O1 added to the body are
+       columns the footer has to reach, or the average is printed under the wrong child's marks. */
+    assert.equal(footerCells,11,'and the footer spans exactly the columns the body has');
 
     const cellOf=(student:string,part:number)=>
       grid.locator(`[data-student="${String(students[student]._id)}"][data-subject="${oneSubject}"][data-part="${part}"]`);

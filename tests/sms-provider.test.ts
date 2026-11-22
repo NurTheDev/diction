@@ -73,13 +73,13 @@ async function run(){
   await submitBulkSmsBd({phone:'01711111111',message:'Hello',fetcher:asciiCall.fetcher});
   assert.equal(bodyOf(asciiCall.calls[0]).get('type'),'text','an ASCII body is sent as text');
 
-  // 4. Many-to-many: one call, `88<number>,<message>` pairs joined by semicolons.
-  assert.equal(serializeSmsMany([{phone:'01711111111',message:'এক'},{phone:'01822222222',message:'দুই'}]),'8801711111111,এক;8801822222222,দুই');
+  // 4. Many-to-many: one call, a JSON array of `{to, message}` pairs.
+  assert.equal(serializeSmsMany([{phone:'01711111111',message:'এক'},{phone:'01822222222',message:'দুই'}]),'[{"to":"8801711111111","message":"এক"},{"to":"8801822222222","message":"দুই"}]');
   const manyCall=recorder('{"response_code":202}');
   const many=await submitManyBulkSmsBd({items:[{phone:'01711111111',message:'এক'},{phone:'01822222222',message:'দুই'}],fetcher:manyCall.fetcher});
   assert.deepEqual(many,{status:'submitted',code:'202'});
   assert.equal(manyCall.calls[0].url,SMS_MANY_URL);
-  assert.equal(bodyOf(manyCall.calls[0]).get('messages'),'8801711111111,এক;8801822222222,দুই');
+  assert.equal(bodyOf(manyCall.calls[0]).get('messages'),'[{"to":"8801711111111","message":"এক"},{"to":"8801822222222","message":"দুই"}]');
   await assert.rejects(()=>submitManyBulkSmsBd({items:[{phone:'017111',message:'এক'}],fetcher:manyCall.fetcher}),/SMS_INVALID/,'an invalid number rejects the whole call rather than half-sending');
   await assert.rejects(()=>submitManyBulkSmsBd({items:[],fetcher:manyCall.fetcher}),/SMS_INVALID/);
 
@@ -135,6 +135,10 @@ async function run(){
   assert.equal(createSmsProvider().configured,true);
   process.env.SMS_PROVIDER='nonsense';
   assert.equal(smsProviderName(),'mock','an unrecognized provider falls back to mock, never to a real gateway');
+  process.env.SMS_PROVIDER='bulksmsbd';
+  process.env.CENTER_DATA_MODE='test';
+  assert.equal(createSmsProvider().name,'mock','test mode is mock even when .env.local names the real gateway');
+  delete process.env.CENTER_DATA_MODE;
 
   // 10. The write gate still stands: without it, even a configured provider refuses.
   process.env.SMS_PROVIDER='bulksmsbd';
@@ -142,7 +146,7 @@ async function run(){
   await assert.rejects(()=>submitBulkSmsBd({phone:'01711111111',message:'ডিকশন',fetcher:textBalance.fetcher}),/SMS_DISABLED/);
   await assert.rejects(()=>submitManyBulkSmsBd({items:[{phone:'01711111111',message:'ডিকশন'}],fetcher:textBalance.fetcher}),/SMS_DISABLED/);
 
-  console.log('SMS provider: the three documented endpoints and their parameters are used exactly, Bangla goes as type=unicode and ASCII as text, the many-to-many body is 88<number>,<message> pairs, balance parses from text and JSON, all 19 published response codes read as Bangla, and the API key is validated, redacted and never returned, logged or sent to a browser.');
+  console.log('SMS provider: the three documented endpoints and their parameters are used exactly, Bangla goes as type=unicode and ASCII as text, the many-to-many body is a JSON array of {to,message} pairs, balance parses from text and JSON, all 19 published response codes read as Bangla, and the API key is validated, redacted and never returned, logged or sent to a browser.');
 }
 
 run().catch(error=>{console.error(error);process.exit(1)});

@@ -22,6 +22,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import bnMessages from '../src/messages/bn.json';
 import enMessages from '../src/messages/en.json';
+import {parse,TYPE} from '@formatjs/icu-messageformat-parser';
 import {PUBLIC_NAMESPACES,SERVER_ONLY_NAMESPACES} from '../src/i18n/client-namespaces';
 
 type Catalog=Record<string,unknown>;
@@ -98,7 +99,7 @@ for(const [group,leaves] of byGroup){
 assert.deepEqual(twins.sort(),[],'no key is a numbered twin of a key that already exists');
 
 // ── 3. Every key `src/` asks for exists in both catalogs ───────────────────────────────────────
-type Used={key:string;where:string;how:string;raw?:boolean};
+type Used={key:string;where:string;how:string;raw?:boolean;bare?:boolean};
 const used:Used[]=[];
 const dynamic:{where:string;text:string}[]=[];
 
@@ -120,9 +121,9 @@ for(const file of sourceFiles('src')){
     bindings.set(match[1],match[2]);
   }
   for(const [name,ns] of bindings){
-    const call=new RegExp(`\\b${name.replace(/\$/g,'\\$')}\\s*(?:\\.raw)?\\s*\\(\\s*('([^']+)'|\`([^\`]*)\`)`,'g');
+    const call=new RegExp(`\\b${name.replace(/\$/g,'\\$')}\\s*(?:\\.raw)?\\s*\\(\\s*('([^']+)'|\`([^\`]*)\`)(?=\\s*(\\)|,))`,'g');
     for(const match of text.matchAll(call)){
-      if(match[2])used.push({key:`${ns}.${match[2]}`,where:at(match.index!),how:name,raw:/\.raw/.test(match[0])});
+      if(match[2])used.push({key:`${ns}.${match[2]}`,where:at(match.index!),how:name,raw:/\.raw/.test(match[0]),bare:match[4]===')'});
       else dynamic.push({where:at(match.index!),text:`${name}(\`${match[3]}\`)`});
     }
   }
@@ -180,6 +181,18 @@ for(const entry of used){
 assert.deepEqual([...missingBn].sort(),[],'every key src/ asks for exists in the Bangla catalog');
 assert.deepEqual([...missingEn].sort(),[],'every key src/ asks for exists in the English catalog');
 assert.deepEqual([...notSentence].sort(),[],'every key src/ translates is a sentence in both catalogs, not a group');
+/* A sentence with a `{slot}` throws FORMATTING_ERROR when it is called with no values — that is how the
+   SMS dialog's "{subject}" label crashed. So every catalog value must parse as ICU, and a call with no
+   values may only name a sentence that has no slot in either language (write a literal brace as '{x}'). */
+const slots=(value:unknown):boolean=>typeof value==='string'&&parse(value).some(element=>element.type!==TYPE.literal);
+const unparsable:string[]=[];
+for(const [name,catalog] of [['bn',bnMessages],['en',enMessages]] as const){
+  for(const key of leaves(catalog as Catalog)){try{parse(String(walk(catalog as Catalog,key)))}catch{unparsable.push(`${name}:${key}`)}}
+}
+assert.deepEqual(unparsable,[],'every catalog value is a valid ICU message');
+const slotWithoutValues=used.filter(entry=>entry.bare&&!entry.raw&&(slots(walk(bnMessages as Catalog,entry.key))||slots(walk(enMessages as Catalog,entry.key))))
+  .map(entry=>`${entry.key} (${entry.where})`);
+assert.deepEqual(slotWithoutValues,[],'a key called without values has no {slot} to fill');
 console.log(`Used keys: ${new Set(used.map(entry=>entry.key)).size} distinct across ${used.length} call sites, all present in both catalogs.`);
 if(dynamic.length)console.log(`  (${dynamic.length} computed keys are not checked statically: ${dynamic.map(entry=>entry.text).join(', ')})`);
 
@@ -380,18 +393,10 @@ assert.deepEqual([...new Set(unreadProviders)].sort(),[],'every provider in src/
    teacher's eyes exists to keep off a teacher's screen, so it may be shipped to an admin and never into the
    teacher, student or parent trees. Named here so the list can only shrink, in both directions: a route
    that stops being uncovered has to be struck off, and a new one fails. */
-const KNOWN_UNCOVERED_ROUTES=[
-  'src/app/[locale]/dashboard/fees/[id]/page.tsx',
-  'src/app/[locale]/dashboard/fees/page.tsx',
-  'src/app/[locale]/dashboard/materials/page.tsx',
-  'src/app/[locale]/dashboard/notices/page.tsx',
-  'src/app/[locale]/parent/fees/[id]/page.tsx',
-  'src/app/[locale]/parent/fees/page.tsx',
-  'src/app/[locale]/parent/materials/page.tsx',
-  'src/app/[locale]/parent/notices/page.tsx',
-  'src/app/[locale]/teacher/materials/page.tsx',
-  'src/app/[locale]/teacher/notices/page.tsx',
-].map(route=>route.split('/').join(path.sep));
+const KNOWN_UNCOVERED_ROUTES:string[]=[
+  // The ten portal routes that used to import an admin control are fixed. Keep this empty:
+  // any new route that leaks a group must fail the assertion above, not join a debt list.
+];
 const stillUncovered=(route:string):boolean=>uncovered.some(entry=>entry.startsWith(route));
 assert.deepEqual(uncovered.filter(entry=>!KNOWN_UNCOVERED_ROUTES.some(route=>entry.startsWith(route))).sort(),[],
   'every page hands its client components the catalog group they read, apart from the admin controls named as debt');

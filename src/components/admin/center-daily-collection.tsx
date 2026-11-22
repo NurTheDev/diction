@@ -1,43 +1,820 @@
-'use client';
-import {useTranslations} from 'next-intl';
-import {monthNames,type MonthTable} from '@/lib/admin/months';
-import {useEffect,useRef,useState} from 'react';
-import SendSmsDialog from './send-sms-dialog';
-import {searchCenterStudents,type CenterSearchItem} from '@/actions/center-students';
-import {loadCashStudent,todayCenterCash,setCenterDueDay} from '@/actions/center-daily';
-import {collectCenterCash,voidCenterCashAction,type CashState} from '@/actions/center-cash';
-import {BanglaDate} from './bangla-date';
+"use client";
+import {
+  collectCenterCash,
+  voidCenterCashAction,
+  type CashState,
+} from "@/actions/center-cash";
+import {
+  loadCashStudent,
+  setCenterDueDay,
+  todayCenterCash,
+} from "@/actions/center-daily";
+import {
+  searchCenterStudents,
+  type CenterSearchItem,
+} from "@/actions/center-students";
+import { formatDigits } from "@/lib/admin/format";
+import { monthNames, type MonthTable } from "@/lib/admin/months";
+import { useLocale, useTranslations } from "next-intl";
+import { useEffect, useRef, useState } from "react";
+import { BanglaDate } from "./bangla-date";
+import SendSmsDialog from "./send-sms-dialog";
 
-type Student=Awaited<ReturnType<typeof loadCashStudent>>;type Today=Awaited<ReturnType<typeof todayCenterCash>>;
+type Student = Awaited<ReturnType<typeof loadCashStudent>>;
+type Today = Awaited<ReturnType<typeof todayCenterCash>>;
 /* A stored month status is data; the operator reads a word. Checked by tests/i18n-catalog.test.ts. */
-const COLLECTION_STATUS_LABEL_KEYS:Record<string,string>={NOT_APPLICABLE:'statusLabels.notApplicable',HELD:'statusLabels.held',WAIVED:'statusLabels.waived',UPCOMING:'statusLabels.upcoming',PAID:'statusLabels.paid',PARTIAL:'statusLabels.partial',PENDING:'statusLabels.pending',DUE:'statusLabels.due'};
-const num=(v:string)=>v.replace(/[\u09e6-\u09ef]/g,c=>String(c.charCodeAt(0)-0x09e6)).trim();
-const money=(n:number)=>new Intl.NumberFormat('bn-BD').format(n);
+const COLLECTION_STATUS_LABEL_KEYS: Record<string, string> = {
+  NOT_APPLICABLE: "statusLabels.notApplicable",
+  HELD: "statusLabels.held",
+  WAIVED: "statusLabels.waived",
+  UPCOMING: "statusLabels.upcoming",
+  PAID: "statusLabels.paid",
+  PARTIAL: "statusLabels.partial",
+  PENDING: "statusLabels.pending",
+  DUE: "statusLabels.due",
+};
+const num = (v: string) =>
+  v.replace(/[\u09e6-\u09ef]/g, (c) => String(c.charCodeAt(0) - 0x09e6)).trim();
 /* An extra fee kind is a stored code on the row; the operator reads a word. Checked by tests/i18n-catalog.test.ts. */
-const EXTRA_FEE_LABEL_KEYS:Record<string,string>={admission:'extraLabels.admission',exam_fee:'extraLabels.examFee',other:'extraLabels.other'};
+const EXTRA_FEE_LABEL_KEYS: Record<string, string> = {
+  admission: "extraLabels.admission",
+  exam_fee: "extraLabels.examFee",
+  other: "extraLabels.other",
+};
 
-const COLLECTION_ERROR_MESSAGE_KEYS:Record<string,string>={INVALID_PAYMENT:'errors.invalidPayment',INVALID_RECEIPT:'errors.invalidReceipt',FUTURE_PAYMENT_DATE:'errors.futurePaymentDate',STUDENT_UNAVAILABLE:'errors.studentUnavailable',ON_HOLD_ADVANCE_NOT_SUPPORTED:'errors.onHoldNotSupported',MONTH_ALREADY_PAID:'errors.monthAlreadyPaid',EXTRA_REQUIRES_NOTE:'errors.extraRequiresNote',MONTH_UNAVAILABLE:'errors.monthUnavailable',MONTH_BEFORE_START:'errors.monthBeforeStart',RECEIPT_LINE_ALREADY_USED:'errors.receiptLineAlreadyUsed',REQUEST_ID_CONFLICT:'errors.requestIdConflict',RECEIPT_REQUIRED:'errors.receiptRequired',PICK_A_MONTH:'errors.pickAMonth',VALID_AMOUNT:'errors.validAmount',VALID_DISCOUNT:'errors.validDiscount',DISCOUNT_TOO_HIGH:'errors.discountTooHigh',SAVE_FAILED:'errors.saveFailed',VOID_FAILED:'errors.voidFailed'};
-export function DailyCollection({initial,initialMonth,initialExtra,initialToday,sms}:{initial:Student|null;initialMonth:number;initialExtra:string;initialToday:Today;sms:{templates:{key:string;name:string;body:string;active:boolean;edited:boolean}[];institutePhone:string}}){const t=useTranslations('daily'),common=useTranslations('common'),currency=common('currency'),months=monthNames(common.raw('months') as MonthTable);const ts=useTranslations('sms');
- const [student,setStudent]=useState<Student|null>(initial),[year,setYear]=useState(initial?.year||Number(initialToday.today.slice(0,4))),[query,setQuery]=useState(''),[results,setResults]=useState<CenterSearchItem[]>([]),[recent,setRecent]=useState<{id:string;name:string}[]>([]),[selected,setSelected]=useState<Record<number,string>>(()=>initial&&initialMonth>0?{[initialMonth]:String(Math.max(0,initial.months[initialMonth-1].due))}:{}),[edit,setEdit]=useState<number|null>(null),[receipt,setReceipt]=useState(''),[date,setDate]=useState(initialToday.today),[note,setNote]=useState(''),[discount,setDiscount]=useState(''),[showNote,setShowNote]=useState(false),[extra,setExtra]=useState(false),[extraTypes,setExtraTypes]=useState<Record<string,string>>(initialExtra?{[initialExtra]:''}:{}),[otherLabel,setOtherLabel]=useState(''),[sharedReason,setSharedReason]=useState(''),[state,setState]=useState<CashState>({status:'idle'}),[busy,setBusy]=useState(false),[today,setToday]=useState(initialToday),[receiptOpen,setReceiptOpen]=useState(false),[dueDay,setDueDay]=useState(String(initialToday.dueDay)),[settingMessage,setSettingMessage]=useState(''),[smsOpen,setSmsOpen]=useState(false);
- const searchRef=useRef<HTMLInputElement>(null),receiptRef=useRef<HTMLInputElement>(null),seq=useRef(0),saving=useRef(false);
- useEffect(()=>{try{const raw=JSON.parse(localStorage.getItem('diction-center-recent')||'[]');if(Array.isArray(raw))setRecent(raw.filter(x=>typeof x.id==='string'&&typeof x.name==='string').slice(0,5))}catch{}},[]);
- useEffect(()=>{if(query.trim().length<2){seq.current++;setResults([]);return}const token=++seq.current,t=setTimeout(()=>{void searchCenterStudents({q:query,classId:'',status:'',page:1}).then(r=>{if(seq.current===token)setResults(r.items)})},220);return()=>clearTimeout(t)},[query]);
- useEffect(()=>{if(Object.keys(selected).length)receiptRef.current?.focus()},[Object.keys(selected).length]);
- async function choose(id:string,nextYear=year){try{const s=await loadCashStudent(id,nextYear);setStudent(s);setSelected({});setReceipt('');setNote('');setDiscount('');setExtra(false);setExtraTypes({});setState({status:'idle'});setQuery('');setResults([]);const list=[{id:s.id,name:s.name},...recent.filter(x=>x.id!==s.id)].slice(0,5);setRecent(list);localStorage.setItem('diction-center-recent',JSON.stringify(list))}catch{setState({status:'error',message:'STUDENT_UNAVAILABLE'})}}
- function toggle(m:number){if(!student)return;const cell=student.months[m-1];if(['HELD','WAIVED','NOT_APPLICABLE'].includes(cell.status))return;setSelected(old=>{const n={...old};if(m in n)delete n[m];else n[m]=String(cell.due||cell.fee);return n});setState({status:'idle'})}
- const entries=Object.entries(selected).sort((a,b)=>Number(a[0])-Number(b[0])),amounts=entries.map(([,x])=>Number(num(x))),other=Object.values(extraTypes).filter(Boolean).map(x=>Number(num(x))),total=[...amounts,...other].reduce((a,b)=>a+b,0),
+const COLLECTION_ERROR_MESSAGE_KEYS: Record<string, string> = {
+  INVALID_PAYMENT: "errors.invalidPayment",
+  INVALID_RECEIPT: "errors.invalidReceipt",
+  FUTURE_PAYMENT_DATE: "errors.futurePaymentDate",
+  STUDENT_UNAVAILABLE: "errors.studentUnavailable",
+  ON_HOLD_ADVANCE_NOT_SUPPORTED: "errors.onHoldNotSupported",
+  MONTH_ALREADY_PAID: "errors.monthAlreadyPaid",
+  EXTRA_REQUIRES_NOTE: "errors.extraRequiresNote",
+  MONTH_UNAVAILABLE: "errors.monthUnavailable",
+  MONTH_BEFORE_START: "errors.monthBeforeStart",
+  RECEIPT_LINE_ALREADY_USED: "errors.receiptLineAlreadyUsed",
+  REQUEST_ID_CONFLICT: "errors.requestIdConflict",
+  RECEIPT_REQUIRED: "errors.receiptRequired",
+  PICK_A_MONTH: "errors.pickAMonth",
+  VALID_AMOUNT: "errors.validAmount",
+  VALID_DISCOUNT: "errors.validDiscount",
+  DISCOUNT_TOO_HIGH: "errors.discountTooHigh",
+  SAVE_FAILED: "errors.saveFailed",
+  VOID_FAILED: "errors.voidFailed",
+};
+export function DailyCollection({
+  initial,
+  initialMonth,
+  initialExtra,
+  initialToday,
+  sms,
+}: {
+  initial: Student | null;
+  initialMonth: number;
+  initialExtra: string;
+  initialToday: Today;
+  sms: {
+    templates: {
+      key: string;
+      name: string;
+      body: string;
+      active: boolean;
+      edited: boolean;
+    }[];
+    institutePhone: string;
+  };
+}) {
+  const t = useTranslations("daily"),
+    common = useTranslations("common"),
+    currency = common("currency"),
+    months = monthNames(common.raw("months") as MonthTable);
+  const en = useLocale() === "en",
+    money = (n: number) =>
+      new Intl.NumberFormat(en ? "en-IN" : "bn-BD").format(n),
+    dg = (v: string | number) => formatDigits(String(v), en ? "en" : "bn");
+  const ts = useTranslations("sms");
+  const [student, setStudent] = useState<Student | null>(initial),
+    [year, setYear] = useState(
+      initial?.year || Number(initialToday.today.slice(0, 4)),
+    ),
+    [query, setQuery] = useState(""),
+    [results, setResults] = useState<CenterSearchItem[]>([]),
+    [recent, setRecent] = useState<{ id: string; name: string }[]>([]),
+    [selected, setSelected] = useState<Record<number, string>>(() =>
+      initial && initialMonth > 0
+        ? {
+            [initialMonth]: String(
+              Math.max(0, initial.months[initialMonth - 1].due),
+            ),
+          }
+        : {},
+    ),
+    [edit, setEdit] = useState<number | null>(null),
+    [receipt, setReceipt] = useState(""),
+    [date, setDate] = useState(initialToday.today),
+    [note, setNote] = useState(""),
+    [discount, setDiscount] = useState(""),
+    [showNote, setShowNote] = useState(false),
+    [extra, setExtra] = useState(false),
+    [extraTypes, setExtraTypes] = useState<Record<string, string>>(
+      initialExtra ? { [initialExtra]: "" } : {},
+    ),
+    [otherLabel, setOtherLabel] = useState(""),
+    [sharedReason, setSharedReason] = useState(""),
+    [state, setState] = useState<CashState>({ status: "idle" }),
+    [busy, setBusy] = useState(false),
+    [today, setToday] = useState(initialToday),
+    [receiptOpen, setReceiptOpen] = useState(false),
+    [dueDay, setDueDay] = useState(String(initialToday.dueDay)),
+    [settingMessage, setSettingMessage] = useState(""),
+    [smsOpen, setSmsOpen] = useState(false);
+  const searchRef = useRef<HTMLInputElement>(null),
+    receiptRef = useRef<HTMLInputElement>(null),
+    seq = useRef(0),
+    saving = useRef(false);
+  useEffect(() => {
+    try {
+      const raw = JSON.parse(
+        localStorage.getItem("diction-center-recent") || "[]",
+      );
+      if (Array.isArray(raw))
+        setRecent(
+          raw
+            .filter(
+              (x) => typeof x.id === "string" && typeof x.name === "string",
+            )
+            .slice(0, 5),
+        );
+    } catch {}
+  }, []);
+  useEffect(() => {
+    if (query.trim().length < 2) {
+      seq.current++;
+      setResults([]);
+      return;
+    }
+    const token = ++seq.current,
+      t = setTimeout(() => {
+        void searchCenterStudents({
+          q: query,
+          classId: "",
+          status: "",
+          page: 1,
+        }).then((r) => {
+          if (seq.current === token) setResults(r.items);
+        });
+      }, 220);
+    return () => clearTimeout(t);
+  }, [query]);
+  useEffect(() => {
+    if (Object.keys(selected).length) receiptRef.current?.focus();
+  }, [Object.keys(selected).length]);
+  async function choose(id: string, nextYear = year) {
+    try {
+      const s = await loadCashStudent(id, nextYear);
+      setStudent(s);
+      setSelected({});
+      setReceipt("");
+      setNote("");
+      setDiscount("");
+      setExtra(false);
+      setExtraTypes({});
+      setState({ status: "idle" });
+      setQuery("");
+      setResults([]);
+      const list = [
+        { id: s.id, name: s.name },
+        ...recent.filter((x) => x.id !== s.id),
+      ].slice(0, 5);
+      setRecent(list);
+      localStorage.setItem("diction-center-recent", JSON.stringify(list));
+    } catch {
+      setState({ status: "error", message: "STUDENT_UNAVAILABLE" });
+    }
+  }
+  function toggle(m: number) {
+    if (!student) return;
+    const cell = student.months[m - 1];
+    if (["HELD", "WAIVED", "NOT_APPLICABLE"].includes(cell.status)) return;
+    setSelected((old) => {
+      const n = { ...old };
+      if (m in n) delete n[m];
+      else n[m] = String(cell.due || cell.fee);
+      return n;
+    });
+    setState({ status: "idle" });
+  }
+  const entries = Object.entries(selected).sort(
+      (a, b) => Number(a[0]) - Number(b[0]),
+    ),
+    amounts = entries.map(([, x]) => Number(num(x))),
+    other = Object.values(extraTypes)
+      .filter(Boolean)
+      .map((x) => Number(num(x))),
+    total = [...amounts, ...other].reduce((a, b) => a + b, 0),
     /* Group 3: what the desk let go, and what actually came into the drawer. The month is settled by
        the fee on the chip above; the discount is the part the centre did not ask for. */
-    discountAmount=Number(num(discount))||0,cashTaken=Math.max(0,total-discountAmount),same=amounts.length>0&&amounts.every(x=>x===amounts[0]),oldest=student?.months.find(m=>m.due>0&&['DUE','PARTIAL','PENDING'].includes(m.status))?.month;
- async function submit(e:React.FormEvent){e.preventDefault();if(saving.current||!student)return;if(!num(receipt)){setState({status:'error',message:'RECEIPT_REQUIRED'});receiptRef.current?.focus();return}if(!/^\d+$/.test(num(receipt))){setState({status:'error',message:'INVALID_RECEIPT'});return}if(!entries.length&&!other.length){setState({status:'error',message:'PICK_A_MONTH'});return}if([...amounts,...other].some(x=>!Number.isSafeInteger(x)||x<=0)){setState({status:'error',message:'VALID_AMOUNT'});return}if(discountAmount<0||!Number.isSafeInteger(discountAmount)){setState({status:'error',message:'VALID_DISCOUNT'});return}if(discountAmount>=total){setState({status:'error',message:'DISCOUNT_TOO_HIGH'});return}if(entries.some(([m])=>student.months[Number(m)-1].paid>=student.months[Number(m)-1].fee)&&(!extra||!note.trim())){setState({status:'error',message:'MONTH_ALREADY_PAID'});return}if(state.message==='SHARED_RECEIPT_NEEDS_CONFIRMATION'&&!sharedReason.trim()){setState({...state,message:'SHARED_RECEIPT_NEEDS_CONFIRMATION'});return}const data={student:student.id,year,receipt:num(receipt),date,note,discount:discountAmount,extra,selected,extraTypes,otherLabel,shared:state.message==='SHARED_RECEIPT_NEEDS_CONFIRMATION',sharedReason,sharedSeen:state.conflictFingerprint||''};const payload=JSON.stringify(data);let requestId=crypto.randomUUID();try{const prior=JSON.parse(sessionStorage.getItem('diction-center-cash-request')||'null');if(prior?.payload===payload&&typeof prior.id==='string')requestId=prior.id;sessionStorage.setItem('diction-center-cash-request',JSON.stringify({payload,id:requestId}))}catch{}const f=new FormData();f.set('student',student.id);f.set('requestId',requestId);f.set('academicYear',String(year));f.set('receiptNo',receipt);f.set('paidOn',date);f.set('note',note);if(extra)f.set('allowExtra','on');if(data.shared){f.set('allowShared','on');f.set('sharedReason',sharedReason);f.set('sharedSeen',state.conflictFingerprint||'')}for(const [m,a] of entries)f.set(`month-${m}`,a);for(const [k,v] of Object.entries(extraTypes))if(v)f.set(k,v);f.set('otherLabel',otherLabel);if(discountAmount>0)f.set('discount',String(discountAmount));saving.current=true;setBusy(true);try{const r=await collectCenterCash({status:'idle'},f);setState(r);if(r.status==='ok'){setReceiptOpen(true);setToday(await todayCenterCash());setStudent(await loadCashStudent(student.id,year))}}catch{setState({status:'error',message:'SAVE_FAILED'})}finally{saving.current=false;setBusy(false)}}
- function next(){sessionStorage.removeItem('diction-center-cash-request');setStudent(null);setSelected({});setReceipt('');setNote('');setDiscount('');setSharedReason('');setState({status:'idle'});setReceiptOpen(false);setExtraTypes({});setExtra(false);setQuery('');setTimeout(()=>searchRef.current?.focus(),0)}
- async function voidReceipt(id:string,sid:string){const reason=window.prompt(t('voidPrompt'));if(!reason?.trim())return;const f=new FormData();f.set('batchId',id);f.set('student',sid);f.set('reason',reason);f.set('confirm','YES');const r=await voidCenterCashAction(f);if(!r.ok){setState({status:'error',message:r.message||'VOID_FAILED'});return}setToday(await todayCenterCash());if(student?.id===sid)setStudent(await loadCashStudent(sid,year))}
- return <div className="daily-layout"><section className="admin-panel daily-entry"><div className="admin-panel-body"><h1>{t('title')}</h1><details><summary>{t('dueDaySummary',{dueDay:today.dueDay})}</summary><label>{t('dayLabel')}<input className="admin-input daily-year" inputMode="numeric" value={dueDay} onChange={e=>setDueDay(e.target.value)}/></label><button type="button" className="admin-mini-button" onClick={()=>{void (async()=>{const r=await setCenterDueDay(dueDay);setSettingMessage(r.ok?t('settingSaved'):t(r.errorKey||'settingFailed'));if(r.ok){setToday(await todayCenterCash());if(student)setStudent(await loadCashStudent(student.id,year))}})()}}>{t('saveDayButton')}</button>{settingMessage&&<p role="status">{settingMessage}</p>}</details><label className="daily-search-label">{t('searchLabel')}<input ref={searchRef} autoFocus value={query} onChange={e=>setQuery(e.target.value)} className="admin-input daily-search" placeholder={t('searchPlaceholder')} autoComplete="off"/></label>{results.length>0&&<ul className="daily-results">{results.map(x=><li key={x.id}><button type="button" onClick={()=>void choose(x.id)}>{x.nameBn} · {x.classBn} · {x.guardianPhone||x.studentId}</button></li>)}</ul>}{recent.length>0&&<div className="daily-chips"><span>{t('recentLabel')}</span>{recent.map(r=><button key={r.id} type="button" onClick={()=>void choose(r.id)}>{r.name}</button>)}</div>}
- {student&&<><div className="daily-student"><strong>{student.name}</strong><span>{student.className} · {student.studentId}</span><span>{t('guardianPhoneLabel')} {student.phone||t('none')}</span><span>{t('monthlyFeeLabel')} {currency}{student.monthlyFee==null?'—':money(student.monthlyFee)} · {t('totalDueLabel')} {currency}{money(student.totalDue)}</span></div><label>{t('yearLabel')} <input className="admin-input daily-year" inputMode="numeric" value={year} onChange={e=>setYear(Number(num(e.target.value))||0)} onBlur={()=>{if(student&&year>=1900&&year<=2200)void choose(student.id,year)}}/></label>{student.status==='on_hold'&&<p className="admin-feedback error">{t('heldNote')}</p>}<div className="daily-months">{student.months.map(m=><button type="button" key={m.month} className={`daily-month daily-${m.status.toLowerCase()} ${m.month in selected?'chosen':''}`} disabled={student.status==='on_hold'||['HELD','WAIVED','NOT_APPLICABLE'].includes(m.status)} aria-pressed={m.month in selected} onClick={()=>toggle(m.month)}><strong>{months[m.month-1]}</strong><small>{t(COLLECTION_STATUS_LABEL_KEYS[m.status]||m.status)}{m.month===oldest?t('earlierSuffix'):''}</small>{m.receipts.map((r,i)=><small key={i}>#{r.receipt||'—'} · {currency}{money(r.amount)}</small>)}</button>)}</div><div className="daily-chips">{entries.map(([m,a])=><span key={m}>{months[Number(m)-1]} · {currency}{money(Number(num(a))||0)} <button type="button" onClick={()=>setEdit(edit===Number(m)?null:Number(m))}>Edit</button>{edit===Number(m)&&<input aria-label={`${months[Number(m)-1]} ${t('takaUnit')}`} value={a} inputMode="numeric" onChange={e=>setSelected(x=>({...x,[Number(m)]:e.target.value}))}/>}</span>)}</div>{entries.length>0&&<p data-daily-total>{same?`${money(entries.length)} ${t('monthsTimes')}${currency}${money(amounts[0])} = `:t('totalEquals')}{currency}{money(total||0)}{discountAmount>0&&<> · {t('discountWord')} {currency}{money(discountAmount)} · <strong data-daily-cash>{t('cashTaken')} {currency}{money(cashTaken)}</strong></>}</p>}
- <form onSubmit={e=>void submit(e)} noValidate><label>{t('receiptLabel')}<input ref={receiptRef} className="admin-input" value={receipt} onChange={e=>setReceipt(e.target.value)} inputMode="numeric" aria-label={t('receiptLabel')}/></label><label>{t('dateLabel')} <BanglaDate value={date} onChange={setDate} required/></label><div className="daily-chips">{(['admission','exam_fee','other'] as const).map((k,i)=><button type="button" key={k} onClick={()=>setExtraTypes(x=>({...x,[k]:x[k]===undefined?'':undefined as unknown as string}))}>+ {t(EXTRA_FEE_LABEL_KEYS[k])}</button>)}<button type="button" onClick={()=>setShowNote(x=>!x)}>+ {t('addNoteButton')}</button></div>{Object.entries(extraTypes).filter(([,v])=>v!==undefined).map(([k,v])=><label key={k}>{t(EXTRA_FEE_LABEL_KEYS[k]||k)}<input className="admin-input" inputMode="numeric" value={v} onChange={e=>setExtraTypes(x=>({...x,[k]:e.target.value}))}/></label>)}{extraTypes.other!==undefined&&<label>{t('otherDescLabel')}<input className="admin-input" value={otherLabel} onChange={e=>setOtherLabel(e.target.value)}/></label>}{entries.some(([m])=>student.months[Number(m)-1].paid>=student.months[Number(m)-1].fee)&&<label><input type="checkbox" checked={extra} onChange={e=>{setExtra(e.target.checked);setShowNote(e.target.checked)}}/> {t('extraLabel')}</label>}{showNote&&<label>{t('noteLabel')}<input className="admin-input" value={note} onChange={e=>setNote(e.target.value)}/></label>}
-    {/* A discount is part of taking the fee, not a separate screen: it sits where the money is typed,
+    discountAmount = Number(num(discount)) || 0,
+    cashTaken = Math.max(0, total - discountAmount),
+    same = amounts.length > 0 && amounts.every((x) => x === amounts[0]),
+    oldest = student?.months.find(
+      (m) => m.due > 0 && ["DUE", "PARTIAL", "PENDING"].includes(m.status),
+    )?.month;
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (saving.current || !student) return;
+    if (!num(receipt)) {
+      setState({ status: "error", message: "RECEIPT_REQUIRED" });
+      receiptRef.current?.focus();
+      return;
+    }
+    if (!/^\d+$/.test(num(receipt))) {
+      setState({ status: "error", message: "INVALID_RECEIPT" });
+      return;
+    }
+    if (!entries.length && !other.length) {
+      setState({ status: "error", message: "PICK_A_MONTH" });
+      return;
+    }
+    if (
+      [...amounts, ...other].some((x) => !Number.isSafeInteger(x) || x <= 0)
+    ) {
+      setState({ status: "error", message: "VALID_AMOUNT" });
+      return;
+    }
+    if (discountAmount < 0 || !Number.isSafeInteger(discountAmount)) {
+      setState({ status: "error", message: "VALID_DISCOUNT" });
+      return;
+    }
+    if (discountAmount >= total) {
+      setState({ status: "error", message: "DISCOUNT_TOO_HIGH" });
+      return;
+    }
+    if (
+      entries.some(
+        ([m]) =>
+          student.months[Number(m) - 1].paid >=
+          student.months[Number(m) - 1].fee,
+      ) &&
+      (!extra || !note.trim())
+    ) {
+      setState({ status: "error", message: "MONTH_ALREADY_PAID" });
+      return;
+    }
+    if (
+      state.message === "SHARED_RECEIPT_NEEDS_CONFIRMATION" &&
+      !sharedReason.trim()
+    ) {
+      setState({ ...state, message: "SHARED_RECEIPT_NEEDS_CONFIRMATION" });
+      return;
+    }
+    const data = {
+      student: student.id,
+      year,
+      receipt: num(receipt),
+      date,
+      note,
+      discount: discountAmount,
+      extra,
+      selected,
+      extraTypes,
+      otherLabel,
+      shared: state.message === "SHARED_RECEIPT_NEEDS_CONFIRMATION",
+      sharedReason,
+      sharedSeen: state.conflictFingerprint || "",
+    };
+    const payload = JSON.stringify(data);
+    let requestId = crypto.randomUUID();
+    try {
+      const prior = JSON.parse(
+        sessionStorage.getItem("diction-center-cash-request") || "null",
+      );
+      if (prior?.payload === payload && typeof prior.id === "string")
+        requestId = prior.id;
+      sessionStorage.setItem(
+        "diction-center-cash-request",
+        JSON.stringify({ payload, id: requestId }),
+      );
+    } catch {}
+    const f = new FormData();
+    f.set("student", student.id);
+    f.set("requestId", requestId);
+    f.set("academicYear", String(year));
+    f.set("receiptNo", receipt);
+    f.set("paidOn", date);
+    f.set("note", note);
+    if (extra) f.set("allowExtra", "on");
+    if (data.shared) {
+      f.set("allowShared", "on");
+      f.set("sharedReason", sharedReason);
+      f.set("sharedSeen", state.conflictFingerprint || "");
+    }
+    for (const [m, a] of entries) f.set(`month-${m}`, a);
+    for (const [k, v] of Object.entries(extraTypes)) if (v) f.set(k, v);
+    f.set("otherLabel", otherLabel);
+    if (discountAmount > 0) f.set("discount", String(discountAmount));
+    saving.current = true;
+    setBusy(true);
+    try {
+      const r = await collectCenterCash({ status: "idle" }, f);
+      setState(r);
+      if (r.status === "ok") {
+        setReceiptOpen(true);
+        setToday(await todayCenterCash());
+        setStudent(await loadCashStudent(student.id, year));
+      }
+    } catch {
+      setState({ status: "error", message: "SAVE_FAILED" });
+    } finally {
+      saving.current = false;
+      setBusy(false);
+    }
+  }
+  function next() {
+    sessionStorage.removeItem("diction-center-cash-request");
+    setStudent(null);
+    setSelected({});
+    setReceipt("");
+    setNote("");
+    setDiscount("");
+    setSharedReason("");
+    setState({ status: "idle" });
+    setReceiptOpen(false);
+    setExtraTypes({});
+    setExtra(false);
+    setQuery("");
+    setTimeout(() => searchRef.current?.focus(), 0);
+  }
+  async function voidReceipt(id: string, sid: string) {
+    const reason = window.prompt(t("voidPrompt"));
+    if (!reason?.trim()) return;
+    const f = new FormData();
+    f.set("batchId", id);
+    f.set("student", sid);
+    f.set("reason", reason);
+    f.set("confirm", "YES");
+    const r = await voidCenterCashAction(f);
+    if (!r.ok) {
+      setState({ status: "error", message: r.message || "VOID_FAILED" });
+      return;
+    }
+    setToday(await todayCenterCash());
+    if (student?.id === sid) setStudent(await loadCashStudent(sid, year));
+  }
+  return (
+    <div className="daily-layout">
+      <section className="admin-panel daily-entry">
+        <div className="admin-panel-body">
+          <h1>{t("title")}</h1>
+          <details>
+            <summary>
+              {t("dueDaySummary", { dueDay: dg(today.dueDay) })}
+            </summary>
+            <label>
+              {t("dayLabel")}
+              <input
+                className="admin-input daily-year"
+                inputMode="numeric"
+                value={dueDay}
+                onChange={(e) => setDueDay(e.target.value)}
+              />
+            </label>
+            <button
+              type="button"
+              className="admin-mini-button"
+              onClick={() => {
+                void (async () => {
+                  const r = await setCenterDueDay(dueDay);
+                  setSettingMessage(
+                    r.ok ? t("settingSaved") : t(r.errorKey || "settingFailed"),
+                  );
+                  if (r.ok) {
+                    setToday(await todayCenterCash());
+                    if (student)
+                      setStudent(await loadCashStudent(student.id, year));
+                  }
+                })();
+              }}>
+              {t("saveDayButton")}
+            </button>
+            {settingMessage && <p role="status">{settingMessage}</p>}
+          </details>
+          <label className="daily-search-label">
+            {t("searchLabel")}
+            <input
+              ref={searchRef}
+              autoFocus
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="admin-input daily-search"
+              placeholder={t("searchPlaceholder")}
+              autoComplete="off"
+            />
+          </label>
+          {results.length > 0 && (
+            <ul className="daily-results">
+              {results.map((x) => (
+                <li key={x.id}>
+                  <button type="button" onClick={() => void choose(x.id)}>
+                    {x.nameBn} · {x.classBn} · {x.guardianPhone || x.studentId}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          {recent.length > 0 && (
+            <div className="daily-chips">
+              <span>{t("recentLabel")}</span>
+              {recent.map((r) => (
+                <button
+                  key={r.id}
+                  type="button"
+                  onClick={() => void choose(r.id)}>
+                  {r.name}
+                </button>
+              ))}
+            </div>
+          )}
+          {student && (
+            <>
+              <div className="daily-student">
+                <strong>{student.name}</strong>
+                <span>
+                  {student.className} · {student.studentId}
+                </span>
+                <span>
+                  {t("guardianPhoneLabel")}{" "}
+                  {student.phone ? dg(student.phone) : t("none")}
+                </span>
+                <span>
+                  {t("monthlyFeeLabel")} {currency}
+                  {student.monthlyFee == null
+                    ? "—"
+                    : money(student.monthlyFee)}{" "}
+                  · {t("totalDueLabel")} {currency}
+                  {money(student.totalDue)}
+                </span>
+              </div>
+              <label>
+                {t("yearLabel")}{" "}
+                <input
+                  className="admin-input daily-year"
+                  inputMode="numeric"
+                  value={year}
+                  onChange={(e) => setYear(Number(num(e.target.value)) || 0)}
+                  onBlur={() => {
+                    if (student && year >= 1900 && year <= 2200)
+                      void choose(student.id, year);
+                  }}
+                />
+              </label>
+              {student.status === "on_hold" && (
+                <p className="admin-feedback">{t("heldNote")}</p>
+              )}
+              <div className="daily-months">
+                {student.months.map((m) => (
+                  <button
+                    type="button"
+                    key={m.month}
+                    className={`daily-month daily-${m.status.toLowerCase()} ${m.month in selected ? "chosen" : ""}`}
+                    disabled={["HELD", "WAIVED", "NOT_APPLICABLE"].includes(
+                      m.status,
+                    )}
+                    aria-pressed={m.month in selected}
+                    onClick={() => toggle(m.month)}>
+                    <strong>{months[m.month - 1]}</strong>
+                    <small>
+                      {t(COLLECTION_STATUS_LABEL_KEYS[m.status] || m.status)}
+                      {m.month === oldest ? t("earlierSuffix") : ""}
+                    </small>
+                    {m.receipts.map((r, i) => (
+                      <small key={i}>
+                        #{r.receipt ? dg(r.receipt) : "—"} · {currency}
+                        {money(r.amount)}
+                      </small>
+                    ))}
+                  </button>
+                ))}
+              </div>
+              <div className="daily-chips">
+                {entries.map(([m, a]) => (
+                  <span key={m}>
+                    {months[Number(m) - 1]} · {currency}
+                    {money(Number(num(a)) || 0)}{" "}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setEdit(edit === Number(m) ? null : Number(m))
+                      }>
+                      {t("editAmount")}
+                    </button>
+                    {edit === Number(m) && (
+                      <input
+                        aria-label={`${months[Number(m) - 1]} ${t("takaUnit")}`}
+                        value={a}
+                        inputMode="numeric"
+                        onChange={(e) =>
+                          setSelected((x) => ({
+                            ...x,
+                            [Number(m)]: e.target.value,
+                          }))
+                        }
+                      />
+                    )}
+                  </span>
+                ))}
+              </div>
+              {entries.length > 0 && (
+                <p data-daily-total>
+                  {same
+                    ? `${money(entries.length)} ${t("monthsTimes")}${currency}${money(amounts[0])} = `
+                    : t("totalEquals")}
+                  {currency}
+                  {money(total || 0)}
+                  {discountAmount > 0 && (
+                    <>
+                      {" "}
+                      · {t("discountWord")} {currency}
+                      {money(discountAmount)} ·{" "}
+                      <strong data-daily-cash>
+                        {t("cashTaken")} {currency}
+                        {money(cashTaken)}
+                      </strong>
+                    </>
+                  )}
+                </p>
+              )}
+              <form onSubmit={(e) => void submit(e)} noValidate>
+                <label>
+                  {t("receiptLabel")}
+                  <input
+                    ref={receiptRef}
+                    className="admin-input"
+                    value={receipt}
+                    onChange={(e) => setReceipt(e.target.value)}
+                    inputMode="numeric"
+                    aria-label={t("receiptLabel")}
+                  />
+                </label>
+                <label>
+                  {t("dateLabel")}{" "}
+                  <BanglaDate value={date} onChange={setDate} required />
+                </label>
+                <div className="daily-chips">
+                  {(["admission", "exam_fee", "other"] as const).map((k, i) => (
+                    <button
+                      type="button"
+                      key={k}
+                      onClick={() =>
+                        setExtraTypes((x) => ({
+                          ...x,
+                          [k]:
+                            x[k] === undefined
+                              ? ""
+                              : (undefined as unknown as string),
+                        }))
+                      }>
+                      + {t(EXTRA_FEE_LABEL_KEYS[k])}
+                    </button>
+                  ))}
+                  <button type="button" onClick={() => setShowNote((x) => !x)}>
+                    + {t("addNoteButton")}
+                  </button>
+                </div>
+                {Object.entries(extraTypes)
+                  .filter(([, v]) => v !== undefined)
+                  .map(([k, v]) => (
+                    <label key={k}>
+                      {t(EXTRA_FEE_LABEL_KEYS[k] || k)}
+                      <input
+                        className="admin-input"
+                        inputMode="numeric"
+                        value={v}
+                        onChange={(e) =>
+                          setExtraTypes((x) => ({ ...x, [k]: e.target.value }))
+                        }
+                      />
+                    </label>
+                  ))}
+                {extraTypes.other !== undefined && (
+                  <label>
+                    {t("otherDescLabel")}
+                    <input
+                      className="admin-input"
+                      value={otherLabel}
+                      onChange={(e) => setOtherLabel(e.target.value)}
+                    />
+                  </label>
+                )}
+                {entries.some(
+                  ([m]) =>
+                    student.months[Number(m) - 1].paid >=
+                    student.months[Number(m) - 1].fee,
+                ) && (
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={extra}
+                      onChange={(e) => {
+                        setExtra(e.target.checked);
+                        setShowNote(e.target.checked);
+                      }}
+                    />{" "}
+                    {t("extraLabel")}
+                  </label>
+                )}
+                {showNote && (
+                  <label>
+                    {t("noteLabel")}
+                    <input
+                      className="admin-input"
+                      value={note}
+                      onChange={(e) => setNote(e.target.value)}
+                    />
+                  </label>
+                )}
+                {/* A discount is part of taking the fee, not a separate screen: it sits where the money is typed,
         it is optional, and the cash read-out below it moves as it is typed. */}
-    <label className="daily-discount">{t('discountLabel')}<input className="admin-input" inputMode="numeric" value={discount} data-discount
-      aria-label={t('discountLabel')} onChange={e=>{setDiscount(e.target.value);setState({status:'idle'})}}/><small>{t('discountHelp')}</small></label>{state.message==='SHARED_RECEIPT_NEEDS_CONFIRMATION'&&<div role="alert"><strong>{t('sharedReceiptHeading')}</strong>{state.conflicts?.map((x,i)=><p key={i}>{x.name} · {x.date} · {currency}{money(x.amount)}</p>)}<label>{t('sharedReasonLabel')}<input className="admin-input" value={sharedReason} onChange={e=>setSharedReason(e.target.value)}/></label></div>}{state.status==='error'&&state.message!=='SHARED_RECEIPT_NEEDS_CONFIRMATION'&&<p role="alert" className="admin-feedback error">{t(COLLECTION_ERROR_MESSAGE_KEYS[state.message||'']||'errors.saveFailed')}</p>}<button className="button daily-save" disabled={busy||student.status==='on_hold'||state.status==='ok'}>{busy?t('saving'):state.message==='SHARED_RECEIPT_NEEDS_CONFIRMATION'?t('saveAnyway'):t('submitButton')}</button></form></>}
- {state.status==='ok'&&<div role="status" className="daily-success"><strong>{t('savedHeading')}{currency}{money(discountAmount>0?cashTaken:total)}</strong>{discountAmount>0&&<p data-daily-discount>{t('feeWord')} {currency}{money(total)} · {t('discountWord')} {currency}{money(discountAmount)}</p>}<p>{t('receiptWord')}{num(receipt)} {state.replayed?t('replayedSuffix'):''}</p><button type="button" onClick={()=>window.print()}>{t('printButton')}</button>{student&&<button type="button" className="admin-mini-button" data-sms-open="" onClick={()=>setSmsOpen(true)}>{t('smsButton')}</button>}<button type="button" onClick={next}>{t('nextButton')}</button></div>}{smsOpen&&student&&<SendSmsDialog open onClose={()=>setSmsOpen(false)} request={{source:'receipt',receipt:{student:student.id,amount:cashTaken,month:`${year}-${String(entries.length?Number(entries[0][0]):Number(initialToday.today.slice(5,7))).padStart(2,'0')}`,receiptNo:num(receipt)}}} templates={sms.templates} institutePhone={sms.institutePhone} title={ts('titles.receipt')} defaultTemplateKey="payment_receipt"/>}{receiptOpen&&student&&<div className="daily-print"><img src="/brand/logo.png" alt="Diction"/><h1>{t('printTitle')}</h1><p>{student.name} · {student.className}</p><p>{t('pageWord')}{num(receipt)} · {date}</p>{entries.map(([m,a])=><p key={m}>{months[Number(m)-1]}: {currency}{money(Number(num(a)))}</p>)}{Object.entries(extraTypes).filter(([,a])=>a).map(([k,a])=><p key={k}>{t(EXTRA_FEE_LABEL_KEYS[k]||k)}: {currency}{money(Number(num(a)))}</p>)}{discountAmount>0&&<p>{t('printDiscount')}: {currency}{money(discountAmount)}</p>}<strong>{t('totalWord')}{currency}{money(total)}</strong>{discountAmount>0&&<strong>{t('printCash')}{currency}{money(cashTaken)}</strong>}</div>}</div></section><section className="admin-panel daily-today"><div className="admin-panel-head"><h2>{t('todayHeading')}</h2></div><div className="admin-panel-body"><strong>{currency}{money(today.total)} · {money(today.count)} {t('receiptsUnit')}</strong>{today.entries.map(x=><div className="daily-today-line" key={x.id}><span>{x.name} · #{x.receipt} · {currency}{money(x.amount)}</span><button type="button" onClick={()=>void voidReceipt(x.id,x.student)}>{t('voidButton')}</button></div>)}</div></section></div>
+                <label className="daily-discount">
+                  {t("discountLabel")}
+                  <input
+                    className="admin-input"
+                    inputMode="numeric"
+                    value={discount}
+                    data-discount
+                    aria-label={t("discountLabel")}
+                    onChange={(e) => {
+                      setDiscount(e.target.value);
+                      setState({ status: "idle" });
+                    }}
+                  />
+                  <small>{t("discountHelp")}</small>
+                </label>
+                {state.message === "SHARED_RECEIPT_NEEDS_CONFIRMATION" && (
+                  <div role="alert">
+                    <strong>{t("sharedReceiptHeading")}</strong>
+                    {state.conflicts?.map((x, i) => (
+                      <p key={i}>
+                        {x.name} · {x.date} · {currency}
+                        {money(x.amount)}
+                      </p>
+                    ))}
+                    <label>
+                      {t("sharedReasonLabel")}
+                      <input
+                        className="admin-input"
+                        value={sharedReason}
+                        onChange={(e) => setSharedReason(e.target.value)}
+                      />
+                    </label>
+                  </div>
+                )}
+                {state.status === "error" &&
+                  state.message !== "SHARED_RECEIPT_NEEDS_CONFIRMATION" && (
+                    <p role="alert" className="admin-feedback error">
+                      {t(
+                        COLLECTION_ERROR_MESSAGE_KEYS[state.message || ""] ||
+                          "errors.saveFailed",
+                      )}
+                    </p>
+                  )}
+                <button
+                  className="button daily-save"
+                  disabled={busy || state.status === "ok"}>
+                  {busy
+                    ? t("saving")
+                    : state.message === "SHARED_RECEIPT_NEEDS_CONFIRMATION"
+                      ? t("saveAnyway")
+                      : t("submitButton")}
+                </button>
+              </form>
+            </>
+          )}
+          {state.status === "ok" && (
+            <div role="status" className="daily-success">
+              <strong>
+                {t("savedHeading")}
+                {currency}
+                {money(discountAmount > 0 ? cashTaken : total)}
+              </strong>
+              {discountAmount > 0 && (
+                <p data-daily-discount>
+                  {t("feeWord")} {currency}
+                  {money(total)} · {t("discountWord")} {currency}
+                  {money(discountAmount)}
+                </p>
+              )}
+              <p>
+                {t("receiptWord")}
+                {dg(num(receipt))} {state.replayed ? t("replayedSuffix") : ""}
+              </p>
+              <button type="button" onClick={() => window.print()}>
+                {t("printButton")}
+              </button>
+              {student && (
+                <button
+                  type="button"
+                  className="admin-mini-button"
+                  data-sms-open=""
+                  onClick={() => setSmsOpen(true)}>
+                  {t("smsButton")}
+                </button>
+              )}
+              <button type="button" onClick={next}>
+                {t("nextButton")}
+              </button>
+            </div>
+          )}
+          {smsOpen && student && (
+            <SendSmsDialog
+              open
+              onClose={() => setSmsOpen(false)}
+              request={{
+                source: "receipt",
+                receipt: {
+                  student: student.id,
+                  amount: cashTaken,
+                  month: `${year}-${String(entries.length ? Number(entries[0][0]) : Number(initialToday.today.slice(5, 7))).padStart(2, "0")}`,
+                  receiptNo: num(receipt),
+                },
+              }}
+              templates={sms.templates}
+              institutePhone={sms.institutePhone}
+              title={ts("titles.receipt")}
+              defaultTemplateKey="payment_receipt"
+            />
+          )}
+          {receiptOpen && student && (
+            <div className="daily-print">
+              <img src="/brand/logo.png" alt="Diction" />
+              <h1>{t("printTitle")}</h1>
+              <p>
+                {student.name} · {student.className}
+              </p>
+              <p>
+                {t("pageWord")}
+                {dg(num(receipt))} · {dg(date)}
+              </p>
+              {entries.map(([m, a]) => (
+                <p key={m}>
+                  {months[Number(m) - 1]}: {currency}
+                  {money(Number(num(a)))}
+                </p>
+              ))}
+              {Object.entries(extraTypes)
+                .filter(([, a]) => a)
+                .map(([k, a]) => (
+                  <p key={k}>
+                    {t(EXTRA_FEE_LABEL_KEYS[k] || k)}: {currency}
+                    {money(Number(num(a)))}
+                  </p>
+                ))}
+              {discountAmount > 0 && (
+                <p>
+                  {t("printDiscount")}: {currency}
+                  {money(discountAmount)}
+                </p>
+              )}
+              <strong>
+                {t("totalWord")}
+                {currency}
+                {money(total)}
+              </strong>
+              {discountAmount > 0 && (
+                <strong>
+                  {t("printCash")}
+                  {currency}
+                  {money(cashTaken)}
+                </strong>
+              )}
+            </div>
+          )}
+        </div>
+      </section>
+      <section className="admin-panel daily-today">
+        <div className="admin-panel-head">
+          <h2>{t("todayHeading")}</h2>
+        </div>
+        <div className="admin-panel-body">
+          <strong>
+            {currency}
+            {money(today.total)} · {money(today.count)} {t("receiptsUnit")}
+          </strong>
+          {today.entries.map((x) => (
+            <div className="daily-today-line" key={x.id}>
+              <span>
+                {x.name} · #{dg(x.receipt)} · {currency}
+                {money(x.amount)}
+              </span>
+              <button
+                type="button"
+                onClick={() => void voidReceipt(x.id, x.student)}>
+                {t("voidButton")}
+              </button>
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
 }

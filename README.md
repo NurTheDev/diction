@@ -100,7 +100,7 @@ zip and the screenshots under `screenshots/`.
 | models | `src/models/` | every Mongoose schema, including recycle-bin wrappers |
 | jobs | `src/app/api/admin/jobs/`, `src/lib/admin/cron.ts` | the two scheduled jobs and their workers |
 | verify | `scripts/verify*.ts`, `tests/`, `scripts/verify-plan.ts` | the registry, the harness, and every suite that proves a row |
-| docs | `docs/` | SPEC, STATUS, DEPLOYMENT, GO-LIVE, OPERATIONS, VERIFY, per-milestone notes |
+| docs | `docs/` | SPEC, STATUS, SETUP, FEATURES, RELEASE-READINESS, HISTORY, DEPLOYMENT, GO-LIVE, OPERATIONS, VERIFY |
 
 ## Milestones
 
@@ -114,9 +114,14 @@ zip and the screenshots under `screenshots/`.
 ## Documentation index
 
 - `docs/SPEC.md` — the requirement spec and its change log.
+- `docs/STATUS.md` — what works today, module by module, with evidence; read this before touching code.
+- `docs/SETUP.md` — local test run, admin login, MongoDB Atlas, Gemini AI and YouTube setup.
+- `docs/FEATURES.md` — achievements, staff roles, blog and lecture sheets, public AI and practice tests.
+- `docs/RELEASE-READINESS.md` — the launch blockers and the public-site handoff.
+- `docs/HISTORY.md` — milestone records, checkpoints and design reviews, kept for context.
 - `docs/DEPLOYMENT.md` — staging deployment, Atlas, Vercel, cron, BulkSMSBD, troubleshooting.
 - `docs/GO-LIVE.md` — the owner's production launch checklist, step by step.
 - `docs/OPERATIONS.md` — monthly backups, storage monitoring, recycle bin, handover.
 - `docs/G2-OPERATOR-SCREENS.md` — the operator's screens after the group 2 pass: the dashboard's two tiers, the SMS centre's three cards, the five menu groups, the phone rules, and a ten-step click checklist.
-- `docs/STATUS.md` — milestone-by-milestone engineering record.
 - `docs/VERIFY.md` — how the verification harness reads and writes evidence.
+- `docs/PRIVACY-DRAFT.md` — the unapproved privacy-policy working draft.

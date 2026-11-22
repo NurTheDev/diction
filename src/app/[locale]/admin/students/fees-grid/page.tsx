@@ -1,12 +1,15 @@
-import { getTranslations } from "next-intl/server";
-import { monthNames, type MonthTable } from "@/lib/admin/months";
-import { Link } from "@/i18n/navigation";
-import {requireAdminPage} from '@/lib/admin/guard';
-import { CenterClassGroup } from "@/models/CenterRecords";
-import { getCenterSheet } from "@/lib/center/sheet-view";
-import { dhakaCalendar } from "@/lib/center/month-status";
 import { CenterPrintButton } from "@/components/admin/center-print-button";
+import { Link } from "@/i18n/navigation";
+import { formatNumber } from "@/lib/admin/format";
+import { requireAdminPage } from "@/lib/admin/guard";
+import { monthNames, type MonthTable } from "@/lib/admin/months";
+import { dhakaCalendar } from "@/lib/center/month-status";
+import { getCenterSheet } from "@/lib/center/sheet-view";
+import { CenterClassGroup } from "@/models/CenterRecords";
+import { getTranslations } from "next-intl/server";
+
 export const dynamic = "force-dynamic";
+
 /* A stored month status is data; the reader gets the word from the catalog. Checked by tests/i18n-catalog.test.ts. */
 const names: Record<string, string> = {
   NOT_APPLICABLE: "statusLabels.notApplicable",
@@ -18,6 +21,19 @@ const names: Record<string, string> = {
   PENDING: "statusLabels.pending",
   DUE: "statusLabels.due",
 };
+
+/* Order of the colour legend above the table. */
+const legend = [
+  "PAID",
+  "PARTIAL",
+  "PENDING",
+  "DUE",
+  "UPCOMING",
+  "HELD",
+  "WAIVED",
+  "NOT_APPLICABLE",
+];
+
 export default async function Grid({
   params,
   searchParams,
@@ -57,63 +73,102 @@ export default async function Grid({
     } catch {
       error = t("grid.loadError");
     }
+  const numLocale = locale === "en" ? "en" : "bn";
+  const totalPaid = sheet ? sheet.rows.reduce((a, r) => a + r.paid, 0) : 0;
+  const totalDue = sheet ? sheet.rows.reduce((a, r) => a + r.due, 0) : 0;
+
   return (
-    <>
-      <div className="admin-heading">
-        <div>
-          <h1>{t("grid.title")}</h1>
-          <p>{t("grid.scopeNote")}</p>
-        </div>
-      </div>
-      <form method="get" className="admin-filter">
-        <label>
+    <div className="fg">
+      <header className="fg-head">
+        <h1>{t("grid.title")}</h1>
+        <p>{t("grid.scopeNote")}</p>
+      </header>
+
+      <form method="get" className="fg-filter">
+        <label className="fg-field fg-field-class">
           {t("grid.classLabel")}
           <select
-            className="admin-select"
+            className="fg-select"
             name="class"
             defaultValue={q.class || ""}
             required>
             <option value="">{t("grid.chooseClass")}</option>
             {groups.map((g) => (
               <option key={String(g._id)} value={String(g._id)}>
-                {g.name.bn} · {g.academicYear} · {g.shift}
+                {g.name.bn} · {formatNumber(g.academicYear, numLocale)}
+                {g.shift ? ` · ${g.shift}` : ""}
               </option>
             ))}
           </select>
         </label>
-        <label>
+
+        <label className="fg-field fg-field-year">
           {t("grid.yearLabel")}
           <input
-            className="admin-input"
+            className="fg-input"
             name="year"
             inputMode="numeric"
             defaultValue={year}
           />
         </label>
-        <button className="button button-navy">{t("grid.viewButton")}</button>
+
+        <button type="submit" className="fg-btn">
+          {t("grid.viewButton")}
+        </button>
+
         {sheet && (
           <a
-            className="admin-mini-button"
+            className="fg-btn-ghost"
             href={`/${locale}/admin/students/fees-grid/export?class=${encodeURIComponent(sheet.groupId)}&year=${year}`}>
             {t("grid.downloadExcel")}
           </a>
         )}
       </form>
-      {error && <p role="alert">{error}</p>}
+
+      {error && (
+        <p role="alert" className="fg-alert">
+          {error}
+        </p>
+      )}
+
       {sheet && (
-        <section className="admin-panel sheet-print">
-          <div className="admin-panel-head">
-            <h2>
-              {sheet.groupName} · {sheet.year}
-            </h2>
-            <CenterPrintButton />
+        <section className="fg-panel sheet-print">
+          <div className="fg-panel-head">
+            <div className="fg-panel-title">
+              <h2>
+                {sheet.groupName} · {formatNumber(sheet.year, numLocale)}
+              </h2>
+              <ul className="fg-stats">
+                <li className="fg-stat fg-stat-paid">
+                  {t("grid.paidColumn")}
+                  <b>{totalPaid}</b>
+                </li>
+                <li className="fg-stat fg-stat-due">
+                  {t("grid.dueColumn")}
+                  <b>{totalDue}</b>
+                </li>
+              </ul>
+            </div>
+            <div className="fg-panel-actions">
+              <CenterPrintButton />
+            </div>
           </div>
-          <div className="admin-table-wrap sheet-scroll">
-            <table className="admin-table center-fee-grid sheet-table">
+
+          <ul className="fg-legend" aria-hidden="true">
+            {legend.map((s) => (
+              <li key={s} data-status={s}>
+                <i />
+                {daily(names[s])}
+              </li>
+            ))}
+          </ul>
+
+          <div className="fg-scroll">
+            <table className="fg-table">
               <thead>
                 <tr>
-                  <th>Sl</th>
-                  <th>{t("grid.namePhoneColumn")}</th>
+                  <th className="fg-th-no">{t("serialShort")}</th>
+                  <th className="fg-th-name">{t("grid.namePhoneColumn")}</th>
                   <th>{t("grid.admissionColumn")}</th>
                   {months.map((m) => (
                     <th key={m}>{m}</th>
@@ -125,46 +180,70 @@ export default async function Grid({
               <tbody>
                 {sheet.rows.map((r, i) => (
                   <tr key={r.id}>
-                    <td>{i + 1}</td>
-                    <td>
+                    <td className="fg-no">{i + 1}</td>
+                    <td className="fg-name">
                       <Link href={`/admin/students/${r.id}`}>{r.name}</Link>
                       <small>{r.phone || "—"}</small>
                     </td>
-                    <td>
+                    <td className="fg-adm">
                       <Link
                         href={`/admin/students/collect?student=${r.id}&year=${year}&fee=admission`}>
-                        <small>{r.admission.receipts.join(", ") || "—"}</small>
-                        <strong>{r.admission.amount || "—"}</strong>
+                        <small
+                          className={
+                            r.admission.receipts.length
+                              ? "fg-rcpt"
+                              : "fg-rcpt fg-empty"
+                          }>
+                          {r.admission.receipts.join(", ") || "—"}
+                        </small>
+                        <strong
+                          className={
+                            r.admission.amount ? "fg-amt" : "fg-amt fg-empty"
+                          }>
+                          {r.admission.amount || "—"}
+                        </strong>
                       </Link>
                     </td>
                     {r.cells.map((c, j) => (
-                      <td className={`sheet-${c.status.toLowerCase()}`} key={j}>
+                      <td className="fg-cell" data-status={c.status} key={j}>
                         <Link
                           href={`/admin/students/collect?student=${r.id}&year=${year}&month=${j + 1}`}>
-                          <small>{c.receipts.join(", ") || "—"}</small>
-                          <strong>{c.paid || "—"}</strong>
-                          <small>{daily(names[c.status] || c.status)}</small>
+                          <small
+                            className={
+                              c.receipts.length ? "fg-rcpt" : "fg-rcpt fg-empty"
+                            }>
+                            {c.receipts.join(", ") || "—"}
+                          </small>
+                          <strong
+                            className={c.paid ? "fg-amt" : "fg-amt fg-empty"}>
+                            {c.paid || "—"}
+                          </strong>
+                          <small className="fg-st">
+                            {daily(names[c.status] || c.status)}
+                          </small>
                         </Link>
                       </td>
                     ))}
-                    <td>{r.paid}</td>
-                    <td>{r.due}</td>
+                    <td className="fg-sum fg-sum-paid">{r.paid}</td>
+                    <td className="fg-sum fg-sum-due">{r.due}</td>
                   </tr>
                 ))}
-                <tr>
-                  <th colSpan={2}>{t("grid.monthlyTotals")}</th>
+                <tr className="fg-total">
+                  <th colSpan={2} className="fg-total-label">
+                    {t("grid.monthlyTotals")}
+                  </th>
                   <th>{sheet.admissionTotal}</th>
                   {sheet.totals.map((n, i) => (
                     <th key={i}>{n}</th>
                   ))}
-                  <th>{sheet.rows.reduce((a, r) => a + r.paid, 0)}</th>
-                  <th>{sheet.rows.reduce((a, r) => a + r.due, 0)}</th>
+                  <th>{totalPaid}</th>
+                  <th>{totalDue}</th>
                 </tr>
               </tbody>
             </table>
           </div>
         </section>
       )}
-    </>
+    </div>
   );
 }

@@ -100,6 +100,19 @@ export function screenPlan(_milestone:string):ScreenTarget[]{
     {path:'/en/admin/center-exams?new=1',label:'center-exams-create-en',waitFor:'[data-exam-form="create"]'},
     {path:'/bn/admin/center-exams/marksheet',label:'marksheet-bn',waitFor:'[data-marksheet-form]'},
     {path:'/en/admin/center-exams/marksheet',label:'marksheet-en',waitFor:'[data-marksheet-form]'},
+    /* R9 · the two routine screens, in both languages, at the honest first look. This pass runs before
+       the browser suites and creates no centre of its own, so what it photographs is a routine screen
+       with nothing written yet: the master builder names the fact and offers the door to the classes
+       screen, and the daily sheet does the same. Both selectors are listed because the two states are
+       two different subtrees, and a routine screen that crashed on an empty centre would be a screen
+       nobody could start from — worth a photograph in its own right. The week with periods on it, the
+       sheet filled from that week, the period drawer open and the same drawer as a full-screen touch
+       sheet are photographed with real data by
+       tests/routine-edit-anything-browser.integration.ts into screenshots/r9. */
+    {path:'/bn/admin/routine/master',label:'routine-master-bn',waitFor:'[data-routine-master],[data-routine-empty]'},
+    {path:'/en/admin/routine/master',label:'routine-master-en',waitFor:'[data-routine-master],[data-routine-empty]'},
+    {path:'/bn/admin/routine/daily',label:'routine-daily-bn',waitFor:'[data-routine-daily]'},
+    {path:'/en/admin/routine/daily',label:'routine-daily-en',waitFor:'[data-routine-daily]'},
   ];
 }
 

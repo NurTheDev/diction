@@ -11,23 +11,41 @@
  *
  * Fail-closed: a role this function does not know gets nothing at all.
  */
-export interface OverviewScope{
+export interface OverviewScope {
   /** The visitor follow-up panel: today's count, the overdue count and the next few names. */
-  followUps:boolean;
+  followUps: boolean;
   /** The intake counters, today's new admissions and the checklist — the owner's morning read. */
-  intake:boolean;
+  intake: boolean;
   /** The automatic-SMS problems panel. */
-  smsProblems:boolean;
+  smsProblems: boolean;
   /** Database usage, which only a super admin may see. */
-  database:boolean;
+  database: boolean;
 }
 
-const NOTHING:OverviewScope={followUps:false,intake:false,smsProblems:false,database:false};
+const NOTHING: OverviewScope = {
+  followUps: false,
+  intake: false,
+  smsProblems: false,
+  database: false,
+};
 
-export function overviewScope(role:string):OverviewScope{
-  if(role==='superadmin')return {followUps:true,intake:true,smsProblems:true,database:true};
-  if(role==='admin')return {followUps:true,intake:true,smsProblems:true,database:false};
-  if(role==='staff')return {followUps:true,intake:false,smsProblems:false,database:false};
+export function overviewScope(role: string): OverviewScope {
+  if (role === "superadmin")
+    return { followUps: true, intake: true, smsProblems: true, database: true };
+  if (role === "admin")
+    return {
+      followUps: true,
+      intake: true,
+      smsProblems: true,
+      database: false,
+    };
+  if (role === "staff")
+    return {
+      followUps: true,
+      intake: false,
+      smsProblems: false,
+      database: false,
+    };
   // content editors and exam managers are redirected to their own pages before this is ever asked;
   // anything else — a disabled role, a student, an empty string — gets no panel at all.
   return NOTHING;

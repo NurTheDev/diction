@@ -1,0 +1,2 @@
+--- tests/class-workflow-db.integration.ts (exit 0) ---
+Class record: a name is unique only among the classes the centre is running, so an archived or binned class gives it back — and a database written before that rule is brought in line by the nightly sync rather than left enforcing the old one; a class stores the sentence behind a zero, so free is not "not decided yet"; a removal is dropped when its own window closes and never before, a removal with no window is left alone, the money outlives the student, and the drop names whoever removed them.

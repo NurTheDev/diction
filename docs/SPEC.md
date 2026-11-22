@@ -10,8 +10,8 @@ Companion documents:
 | --- | --- |
 | `docs/STATUS.md` | What actually works today, with evidence. Read this before touching code. |
 | `docs/STALE-TESTS.md` | Disposition and written reason for the three stale browser tests. |
-| `docs/history/` | Older per-milestone records, kept for context. |
-| `README.md`, `DEPLOYMENT.md`, `ATLAS-SETUP.md` | Setup and hosting guides (to be consolidated in R7). |
+| `docs/HISTORY.md` | Older per-milestone records, checkpoints and design reviews, kept for context. |
+| `docs/SETUP.md`, `docs/FEATURES.md`, `docs/RELEASE-READINESS.md` | Setup, feature limits and launch blockers. |
 
 ---
 
@@ -22,7 +22,7 @@ You are a senior full-stack engineer. The project is **Diction Coaching Center**
 Bangladesh, Est. 2011): a bilingual (Bangla primary, English secondary) Next.js website with an
 admin dashboard on MongoDB. The owner is non-technical, so everything must be simple, tested, and
 delivered as a complete runnable project. The project ZIP and its docs (`docs/STATUS.md`,
-`MILESTONE-*-CHANGELOG.txt`, `test-results/`, `screenshots/`) are the source of truth.
+`docs/HISTORY.md`, `test-results/`, `screenshots/`) are the source of truth.
 **Do not rewrite working code; extend it.**
 
 ## 2. Stack

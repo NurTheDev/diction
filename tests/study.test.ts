@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {aiStatus,GEMINI_COMPAT_BASE} from '../src/lib/ai';
+import {aiStatus,chatRequestBody,GEMINI_COMPAT_BASE,openChatStream,providerErrorKind} from '../src/lib/ai';
 import {answerSchema,plannerSchema,focusSchema,chatSchema} from '../src/schemas/study';
 import {dhakaDay,addDays,makePlan} from '../src/lib/study-date';
 import {makeChallenge} from '../src/lib/study';
@@ -18,4 +18,24 @@ assert.equal(chatSchema.safeParse({consent:true,locale:'bn',messages:[{role:'use
 assert.equal(chatSchema.safeParse({consent:true,locale:'bn',messages:[{role:'assistant',content:'hello'}]}).success,false);
 assert.equal(chatSchema.safeParse({consent:false,locale:'bn',messages:[{role:'user',content:'Hi'}]}).success,false);
 assert.equal(aiStatus({}).ready,false);const aiEnv={DATA_COLLECTION_ENABLED:'true',AI_STUDY_BUDDY_ENABLED:'true',GEMINI_API_KEY:'fake-key',AI_MODEL:'gemini-3.8-flash'};assert.equal(aiStatus(aiEnv).ready,true);assert.equal(aiStatus({...aiEnv,AI_STUDY_BUDDY_ENABLED:'false'}).ready,false);assert.equal(aiStatus({...aiEnv,NODE_ENV:'development',PREVIEW_WITHOUT_SERVICES:'1'}).ready,false);assert.equal(aiStatus({...aiEnv,AI_API_BASE_URL:'http://localhost'}).ready,false);assert.equal(aiStatus({...aiEnv,AI_API_BASE_URL:'https://user:pass@example.com/'}).ready,false);assert.equal(aiStatus({...aiEnv,AI_MODEL:'invalid model'}).ready,false);assert.equal(GEMINI_COMPAT_BASE,'https://generativelanguage.googleapis.com/v1beta/openai');
-console.log('Study feature validation tests passed.');
+(async()=>{
+  /* A busy free provider is retried before the stream is read, and the retry's success is returned. */
+  const realFetch=globalThis.fetch;
+  try{
+    let calls=0;
+    globalThis.fetch=(async()=>{calls++;return calls<3?new Response('busy',{status:503}):Response.json({choices:[{message:{content:'ok'}}]})}) as unknown as typeof fetch;
+    const config={key:'fake-key',model:'gemini-3.8-flash',base:GEMINI_COMPAT_BASE};
+    const response=await openChatStream(config,{model:config.model,stream:true,messages:[]});
+    assert.equal(calls,3,'a busy provider is retried');
+    assert.equal(response.status,200,'the successful retry is returned');
+  }finally{globalThis.fetch=realFetch}
+  const config={key:'fake-key',model:'gemini-3.8-flash',base:GEMINI_COMPAT_BASE};
+  assert.equal(chatRequestBody(config,[{role:'user',content:'Hi'}]).reasoning_effort,'low','Gemini gets a small thinking budget');
+  assert.equal(chatRequestBody({...config,base:'https://example.test/v1'},[{role:'user',content:'Hi'}]).reasoning_effort,undefined,'other providers are not sent a Gemini-only field');
+  assert.equal(chatRequestBody(config,[{role:'user',content:'Hi'}]).max_tokens,4096);
+  assert.equal(await providerErrorKind(new Response('[{"error":{"status":"UNAVAILABLE"}}]',{status:503})),'busy');
+  assert.equal(await providerErrorKind(new Response('{"error":{"details":[{"violations":[{"quotaId":"GenerateRequestsPerDayPerProjectPerModel-FreeTier"}]}]}}',{status:429})),'daily');
+  assert.equal(await providerErrorKind(new Response('{"error":{"status":"RESOURCE_EXHAUSTED"}}',{status:429})),'rate');
+  assert.equal(await providerErrorKind(new Response('{}',{status:404})),'model');
+  console.log('Study feature validation tests passed.');
+})().catch(error=>{console.error(error);process.exit(1)});

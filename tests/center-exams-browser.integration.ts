@@ -327,8 +327,28 @@ async function run(){
       'নমুনা-২,A,,',
     ].join('\n'),'utf8');
     const importPanel=page.locator('[data-marks-import]');
+    /* O1: the import is a folded second door in the grid's own toolbar now — one button beside the save,
+       rather than a panel standing between an operator and the marks. The suite opens the fold to drive
+       it; nothing about the preview, the commit or the rows it writes changed. */
+    /* The fold's summary sits in the toolbar that follows the grid down the screen, so the click goes
+       to the element itself and keeps trying while the fold reports itself closed — a pointer must not
+       be at the mercy of landing on a row beneath a sticky bar, and neither must this suite be. */
+    const fold=page.locator('[data-import-fold]');
+    await until('the import fold opens',async()=>{
+      if((await fold.getAttribute('open'))===null)
+        await page.locator('[data-grid-import-toggle]').click({force:true}).catch(()=>undefined);
+      return (await fold.getAttribute('open'))!==null;
+    },20000);
+    await importPanel.locator('[data-import-file]').waitFor({state:'visible',timeout:60000});
     await importPanel.locator('[data-import-file]').setInputFiles(csvPath);
-    await importPanel.locator('[data-import-preview]').click();
+    /* The preview button wakes up the moment a sheet is chosen: if the first click arrives before the
+       component has seen the file it lands on a disabled button, so the click is retried until the
+       preview is on the screen. */
+    await until('the sheet is previewed',async()=>{
+      if(await importPanel.locator('[data-import-table]').count())return true;
+      await importPanel.locator('[data-import-preview]').click({force:true}).catch(()=>undefined);
+      return Boolean(await importPanel.locator('[data-import-table]').count());
+    },30000);
     await importPanel.locator('[data-import-table]').waitFor({timeout:90000});
     assert.ok((await importPanel.locator('[data-import-counts]').innerText()).includes(bnDigits(4)),'the preview counts the four rows of the sheet');
     assert.ok((await importPanel.locator('[data-import-unused]').innerText()).includes('মন্তব্য'),'a column that is not a subject of this exam is left unread, and named');
@@ -338,9 +358,49 @@ async function run(){
     assert.equal(await statusOf(4),'unmatched','a student who is not in this exam is listed, not written');
     assert.equal(await statusOf(5),'incomplete','and a row with a hole in it is not committed');
     await shot(page,'exam-marks-import-bn-1440');
-    await importPanel.locator('[data-import-confirm]').click();
-    await importPanel.locator('[data-import-outcome]').waitFor({timeout:90000});
-    await until('the uploaded rows are stored',async()=>(await CenterExamResult.countDocuments({exam:examId}))===5);
+    /* The commit button sits under a preview table five rows deep, inside the fold, under the toolbar
+       that follows the grid down the screen — so the click is asked for again while the button is still
+       there and still enabled.
+
+       What ends the asking cannot be the answer sentence, because a commit that lands destroys it:
+       `onImported` remounts the grid so the marks on screen are the marks that were just written, and
+       the door it hands the fresh grid is a new one — folded, empty, holding nothing to read. So the two
+       answers are the door going quiet, which is what a landed commit does, and the door still standing
+       with a refusal on it. Waiting for the sentence alone waits forever on the commit that worked. */
+    const answer=page.locator('[data-marks-import] [data-import-outcome],[data-marks-import] [data-import-error]');
+    const doors=page.locator('[data-marks-import]');
+    const quiet=async():Promise<boolean>=>
+      (await fold.getAttribute('open'))===null
+      &&(await importPanel.locator('[data-import-row]').count())===0;
+    try{
+      /* Only the door's own state ends the asking: the rows can be stored a beat before the grid
+         remounts, and a wait that leaves on the database would read a preview that is already history. */
+      await until('the sheet to be committed, and the grid to be the grid that was written',async()=>{
+        if(await answer.count()||await quiet())return true;
+        const confirm=importPanel.locator('[data-import-confirm]');
+        if(await confirm.count()&&(await confirm.getAttribute('disabled'))===null)
+          await confirm.click({force:true}).catch(()=>undefined);
+        return await answer.count()||await quiet();
+      },180000);
+    }catch(error){
+      /* "Nothing happened" is not a diagnosis: the two things that decide it are whether the commit was
+         ever asked (the button's own state, the fold's) and whether it landed (the rows stored). */
+      const confirm=importPanel.locator('[data-import-confirm]');
+      const stored=await CenterExamResult.countDocuments({exam:examId}).catch(()=>-1);
+      throw Error(`${String(error).split('\n')[0]}
+  panel="${(await importPanel.innerText().catch(()=>'gone')).replace(/\s+/g,' ').slice(0,400)}"
+  confirm(present=${await confirm.count().catch(()=>-1)},disabled=${await confirm.getAttribute('disabled').catch(()=>'?')},label="${await confirm.innerText().catch(()=>'?')}")
+  doors=${await doors.count().catch(()=>-1)} foldOpen=${await fold.getAttribute('open').catch(()=>'gone')} previewRows=${await importPanel.locator('[data-import-row]').count().catch(()=>-1)}
+  resultsStored=${stored} url=${page.url()}`);
+    }
+    assert.equal(await answer.locator('[data-import-error]').count(),0,
+      `the commit was refused rather than landed: ${await answer.first().innerText().catch(()=>'nothing on the door')}`);
+    /* The rows are the fact, and they are asked for plainly: a grid that remounts itself after an import
+       is a grid that says "these are the marks now" with its rows rather than with a sentence. */
+    await until('the uploaded rows are stored',async()=>
+      (await CenterExamResult.countDocuments({exam:examId}).catch(()=>-1))===5,90000);
+    assert.ok(await quiet()||await answer.count(),
+      'and the door went back to being a closed door, with the marks on the grid behind it');
     const uploaded=await CenterExamResult.findOne({exam:examId,student:s5._id}).lean();
     assert.equal(uploaded.total,120,'the uploaded marks were stored');
     assert.equal(String(uploaded.classGroup),String(classB._id),'and their result knows which class it belongs to');

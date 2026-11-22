@@ -5,7 +5,7 @@
  * for a manual curl. The secret is required and must be long: with it missing or short the job
  * refuses to run rather than running unauthenticated.
  */
-import {CenterActivityLog,CenterSettings,CenterSmsLog} from '@/models/CenterRecords';
+import {CenterActivityLog,CenterClassGroup,CenterSettings,CenterSmsLog} from '@/models/CenterRecords';
 
 export const CRON_SECRET_MIN_LENGTH=32;
 export const LOG_RETENTION_MONTHS=12;
@@ -42,4 +42,27 @@ export async function trimOldLogs(now:Date=new Date()):Promise<TrimReport>{
     CenterActivityLog.deleteMany({createdAt:{$lt:cutoff}}),
   ]);
   return {smsLog:smsLog.deletedCount,activityLog:activityLog.deletedCount};
+}
+
+/**
+ * S2 · F-09 — bring the class indexes in line with the schema they are declared in.
+ *
+ * A class name used to be unique across every class the centre had ever written, so archiving Class Nine
+ * kept the name taken and this year's Class Nine could not be created. The rule is partial now: it binds
+ * only the classes that are live and running. But an index is not a schema — a database written before the
+ * change still carries the wider index under the very same name, and Mongoose's own `init()` cannot
+ * replace one: it reports the conflict and leaves the old rule in force, so the fix would be true in the
+ * code and false in the database it runs against. The nightly job asks the model to drop what its schema
+ * no longer declares and create what it does, which is the one place a change to an index reaches an
+ * existing database without an operator having to run a migration by hand.
+ */
+export async function syncClassIndexes():Promise<{dropped:string[]}>{
+  try{
+    return {dropped:await CenterClassGroup.syncIndexes()};
+  }catch(error){
+    /* A night without the sync is a night the old rule stays in force, which is what it was yesterday;
+       the housekeeping that did run is not worth losing over it. */
+    console.error('Daily job: the class indexes could not be brought in line with the schema.',error);
+    return {dropped:[]};
+  }
 }

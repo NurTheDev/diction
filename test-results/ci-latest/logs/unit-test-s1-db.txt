@@ -1,0 +1,2 @@
+--- tests/student-money-db.integration.ts (exit 0) ---
+Student money record: a pause stored as a range whose earlier arrears stay on both dues reads, a pause with no month on it counted for nothing until it is given one, a lift that closes the range and back-bills nothing, a move that writes the class timeline and moves the roll, and a price that takes effect from its month — quoted only once that month arrives — while every settled month keeps the price it was settled at.

@@ -1,0 +1,3 @@
+--- tests/achievement.test.ts (exit 0) ---
+Achievement validation and model consent guard passed.
+Unsafe achievement query and bulk writes fail closed.

@@ -23,7 +23,7 @@ Raw log: `test-results/r0-cold-start-20261112.txt`, summary: `test-results/r0-ve
 | 1 | `npm ci` | **PASS** — clean install from `package-lock.json`. |
 | 2 | `npm run typecheck` (`tsc --noEmit`) | **PASS** — 0 errors. |
 | 3 | `npm test` | **PASS** — **31** unit suites (22 core + 9 Center). All green, ~15 s, no database needed. |
-| 4 | `next build --webpack` (run by `test-mode`) | **PASS** — "✓ Compiled successfully in 50s", "✓ Generating static pages (173/173)". The old "build OOMs in the sandbox" caveat in `STALE-TESTS-REPORT.md` does **not** apply to a 3.9 GB machine. |
+| 4 | `next build --webpack` (run by `test-mode`) | **PASS** — "✓ Compiled successfully in 50s", "✓ Generating static pages (173/173)". The old "build OOMs in the sandbox" caveat in `HISTORY.md` does **not** apply to a 3.9 GB machine. |
 | 5 | `npm run test-mode` (whole command) | **BLOCKED at step 5 only** — it builds fine, then must download a MongoDB binary from `fastdl.mongodb.org`, which this sandbox's network allowlist refuses (`ECONNRESET`, 3 retries, exit 1). Nothing before that step failed. |
 | 6 | Browser + Mongo integration tests (13 files) | **BLOCKED** — same reason, plus Playwright's Chromium CDN (`cdn.playwright.dev`) is refused. |
 
@@ -76,7 +76,7 @@ stack trace (`tests/helpers/env-preflight.ts`).
 | Class/year sheet view + Excel export | working | prior log; `students/fees-grid/export/route.ts`. |
 | Due list (live) + CSV export | **partial** | code read: class filter + CSV only. The M3-4 changelog also claims month filter, select-all, Excel and print/PDF — **those are not in the code**. |
 | Month-end due snapshots — manual button | working | code read + prior log. Gated by `CENTER_DUE_SNAPSHOT_WRITE_ENABLED` (off by default) and a confirm checkbox (which §4 of the SPEC forbids for common tasks — review in R1/R6). |
-| Month-end due snapshots — **scheduled endpoint** | **missing** | No `/api/admin/center/month-end-scheduler` route exists; `CRON_SECRET` and `DUE_SNAPSHOT_START_MONTH` appear only in `MILESTONE-3-4-START-HERE.md`, never in `src/`. No `vercel.json` either. |
+| Month-end due snapshots — **scheduled endpoint** | **missing** | No `/api/admin/center/month-end-scheduler` route exists; `CRON_SECRET` and `DUE_SNAPSHOT_START_MONTH` appear only in `HISTORY.md`, never in `src/`. No `vercel.json` either. |
 | Legacy fee **review** (read-only suggestions) | working | code read: `admin/students/legacy-review/page.tsx`. |
 | Legacy fee **conversion/migration** | **missing** | No conversion code (searched `poisha`, `convertLegacy`, `LegacyFee`). Only the experimental identity link (`CENTER_LEGACY_LINK_ENABLED`, off by default). |
 | Portal linking for Center students/guardians | **partial (R5 slice 2)** | There is still no stored link: `/dashboard/results` and `/parent/results` match the signed-in account's own `User.phone` against a `CenterStudent`'s `studentPhone`, `guardianPhone` or `altPhone`, exactly and never as a pattern, and read only published exam results (§19). Fees are still the legacy `Student`/`FeeInvoice`/`FeePayment` models, and no page outside `/admin` reads `CenterPayment`. |
@@ -87,32 +87,32 @@ stack trace (`tests/helpers/env-preflight.ts`).
 | Teacher CV bank | **missing** | → R4. |
 | Delete / archive / Recycle Bin | **partial (R1 in progress)** | Engine landed and CI-verified: `deletedAt/deletedBy/purgeAt` on twelve schemas, `src/lib/admin/recycle.ts` (soft delete with 30-day purge date, restore, real reference counts, purge), a schema-level invariant that hides binned rows from every ordinary read/write, and the nine former hard deletes converted to binning (`requireAdmin`). `staff` role added (archive/hide, never delete). Owed in R1: Recycle Bin page, ConfirmDialog naming the item, 10 s Undo toast, bulk select, the daily purge job, and delete/archive controls for the remaining no-control types (`docs/R1-AUDIT.md` status line). |
 | Retention/purge, reports, backup, database-usage card | missing / partial | `src/lib/center/database-usage.ts` exists; `admin/audit` exists; the rest → R6. |
-| Deployment guide | partial | `DEPLOYMENT.md`, `ATLAS-SETUP.md`, `DASHBOARD-LOGIN.md` exist but describe the missing scheduler as delivered → R7. |
+| Deployment guide | partial | `DEPLOYMENT.md` and `SETUP.md` exist; older wording that described the missing scheduler as delivered is kept in `HISTORY.md` → R7. |
 
 ## 4. Documentation says / code does
 
 Found in R0 by reading the code, not the docs. Each line is a correction to an earlier claim; the
 older files are left in place as history, and this table is the authority.
 
-1. `MILESTONE-3-4-CHANGELOG.txt` item 5 and `MILESTONE-3-4-START-HERE.md` §35 describe a
+1. `HISTORY.md` (Milestones 3–4 changelog) item 5 and the Milestones 3–4 start-here §35 describe a
    `CRON_SECRET` scheduler endpoint and `DUE_SNAPSHOT_START_MONTH`. **Neither exists in code.**
-2. `MILESTONE-3-4-CHANGELOG.txt` item 1 promises a due list with month filter, select-all, Excel and
-   print/PDF. **The page has a class filter and a CSV link only.**
-3. `MILESTONE-3-4-CHANGELOG.txt` item 2 promises legacy-fee conversion preserving poisha/method/
-   reference. **Only review + an experimental identity link exist.**
-4. `MILESTONE-3-4-CHANGELOG.txt` item 3 promises portal links with read-only access to linked
-   students. **The parent portal still reads legacy fee models only.**
-5. `MILESTONE-3-4-CHANGELOG.txt` item 4 promises "ভর্তি সম্পন্ন → student creation". **It is a status
-   label only.**
+2. `HISTORY.md` (Milestones 3–4 changelog) item 1 promises a due list with month filter, select-all,
+   Excel and print/PDF. **The page has a class filter and a CSV link only.**
+3. `HISTORY.md` (Milestones 3–4 changelog) item 2 promises legacy-fee conversion preserving
+   poisha/method/reference. **Only review + an experimental identity link exist.**
+4. `HISTORY.md` (Milestones 3–4 changelog) item 3 promises portal links with read-only access to
+   linked students. **The parent portal still reads legacy fee models only.**
+5. `HISTORY.md` (Milestones 3–4 changelog) item 4 promises "ভর্তি সম্পন্ন → student creation". **It is
+   a status label only.**
 6. `test-results/milestone-3-4-verification.txt` lines 19-20 report PASS for
    `center-legacy-migration-browser` and `center-portal-access-browser`. **Neither test file is in
    the repository**, so those two claims cannot be reproduced. (Consistent with items 3 and 4.)
-7. `CENTER-DELIVERY-STATUS.md` says the production build OOMs in a 2 GB sandbox. On 3.9 GB it builds
+7. `HISTORY.md` (Center module delivery checkpoint) says the production build OOMs in a 2 GB sandbox. On 3.9 GB it builds
    in 50 s — see §1 step 4. `scripts/test-mode.ts` used to cap **both** the typecheck and the build at
    `--max-old-space-size=768`; that was fine until the repository outgrew it (see §14), and the two
    steps now have separate heaps.
-8. Root `STATUS.md` was a Milestone-1 narrative, not a status file. It is preserved at
-   `docs/history/MILESTONE-1-REVIEW.md`; this file is the status file from now on.
+8. The old root `STATUS.md` was a Milestone-1 narrative, not a status file. It is preserved in
+   `HISTORY.md`; this file is the status file from now on.
 9. The older docs cite 360/1440 screenshots in `screenshots/workbook-import/` and
    `screenshots/workbook-preview-wip/`. **`screenshots/` is empty — 0 files.** That visual evidence
    was never shipped in this ZIP, so it cannot be re-checked. From R1 onwards every milestone must
@@ -1129,3 +1129,89 @@ Every promise on paper is asserted against paper and code together in `tests/r7-
 every variable the source reads, the deployment facts, the go-live order — rollout before brake,
 receipt before due before results — and the operations rhythms. Docs are requirements; requirements
 get proofs.
+
+## 23. S1 + S2 — the Student & Class Workflow Audit (complete, CI-verified)
+
+Two milestones close one audit. It read the centre's own screens rather than its schemas and came back
+with numbered findings about the two records the desk works on all day — a student's money over time
+(S1) and a class (S2). The audit numbered no F-17, so the findings are F-01 to F-16 and F-18, and every
+one of them is now a rule with a proof behind it: rows `S1.1`–`S1.6` and `S2.1`–`S2.4` in
+`scripts/verify-plan.ts`, each pointing at a suite that runs in CI.
+
+**S1 · a student's money over time.** F-01: a pause is a range of months, not a flag — the months before
+it stay owed, every month inside it is billed by nobody, and lifting one closes the range at the month
+*before* the resume, so the resume month is billed and the paused months are never billed again; a pause
+the record has no month for (every pause written before this slice) counts for nothing instead of being
+invented from enrolment. F-02: a move writes one line to `classHistory` carrying the name the class wore
+that day, backfills the class the student left from enrolment on the first move only, sorts a backdated
+move into the place it happened, and refuses a move to the class the student is already in or to a month
+before enrolment. F-03: a price is a line added and never a line edited — each month bills at the price
+that month had, a price written for a month nobody has reached is quoted by no screen until it arrives,
+and a month the centre has already taken money for cannot be re-priced at all. F-18: an achievement
+card's date is spelled from `bn.json` and the operator's own digit setting, so a Bangla certificate never
+depends on the host's ICU tables, and a day that is not a day is refused rather than rolled into the next
+month. The three doors are async server actions in `src/actions/center-students.ts` with their planners
+pure beside them in `src/lib/center/student-changes.ts`: each parses the month it is handed rather than
+trusting it, writes under the student's own lock, moves the revision a concurrent edit is refused by,
+re-reads both classes a move touches and writes its own audit line.
+
+**S2 · the class workflow.** F-04: one editor (`ClassEditorForm` in
+`src/components/admin/class-management.tsx`) holds every field a class has and all three surfaces render
+it — the board's sheet, the list's fold (`center-class-edit.tsx`) and the create box
+(`center-forms.tsx`) — posting to one action (`saveClassGroupAction`, `src/actions/class-admin.ts`), so
+no screen can save half a class. F-05: a class with children on it is not closed; the count is read
+inside the transaction, a student who has left does not hold a class open while a paused one does, and
+the refusal is the brief's own two sentences with the count in the operator's digits. F-06: a closed
+class is a record, not a door — it says it is closed, names what is still readable there, and puts the
+enrolment form on the other side of that sentence. F-07: an enrolment takes its fee from the class it
+stands in and says where the number came from. F-08: the shifts a class runs are canonical keys and the
+one word a routine reads is derived from the first of them in the order the day happens, so no two
+screens can disagree about one class. F-09: the unique-name rule is a partial index binding only classes
+both live and running, so an archived class or one filed in the Recycle Bin gives its name back — and
+because a database written before the rule still enforces the wider one under the very same index name,
+the nightly `syncIndexes()` is part of the proof rather than a comment about it. F-10: a removal is filed
+with the date it stops being kept (`removal.purgeAt`), the window is the centre's own setting
+(`purgeRetentionDays`, schema default 365, falling back to `STUDENT_PURGE_RETENTION_DAYS` of 30 when no
+setting can be read), the purge drops what the window has closed on in pages, names whoever removed the
+student in an audit row, and leaves the payments alone — a cashbook that loses a line when a child leaves
+is one nobody can audit. F-11: a list held in client state adopts the server's re-read after a write
+without moving the operator off the page they walked to. F-12: a restore whose class has been closed or
+filed away asks which running class the student comes back to and carries the move in the same write,
+with the timeline line and the audit row that follow. F-13: the month a restore offers starts the month
+*after* the one the student left — `monthAfterWord` in `src/lib/center/student-changes.ts`, read by both
+restore doors and by the lift door beside them — because the picker's `notBefore` names the first month
+that *is* allowed while `restoreCenterStudent` refuses the leave month itself (`INVALID_RESUME`), and a
+picker that offers a month the door refuses costs the operator the reason they typed with it; the
+browser proof walks the picker to the year the student left in and reads the leave month as a dead
+button and the month after it as a live one, and the helper reads the month out of a removal whether the
+door filed it as a month or an import filed it as a date. F-14: the
+pager and the read count a page by the same number, and a page that has emptied under the operator's feet
+is stepped back from rather than shown. F-15: a wrong class address lists every class instead of
+dead-ending. F-16: a fee distinguishes a class the centre runs for free from one nobody has priced
+(`feeFree` beside `monthlyFee`), and clearing a price is an act the operator performs — the form posts
+the fee it opened with — rather than something a half-filled submit does on its way past.
+
+**The two doors the audit left behind, deleted.** F-04 made `createCenterClass` and `updateCenterClass`
+in `src/actions/center-students.ts` unreachable: they wrote halves of a class — no level, no room, shifts
+as free words, a fee with one meaning. They stayed exported, and stayed in step with the real action for
+as long as they existed, which is the work itself: every guard written twice, every refusal worded twice,
+and an archive guard that one door had and the other did not was a guard nobody had. They are gone now,
+with `centerClassSchema` in `src/schemas/center.ts` that only the create door parsed and the `languageOf`
+helper that only the deleted archive refusal needed; `docs/R1-AUDIT.md` still names them, as the R1 map it
+is. A class is written by one action, and `tests/class-workflow-core.test.ts` pins the absence so the
+doors cannot come back quietly.
+
+**Proof.** The rules are `tests/student-money-core.test.ts` and `tests/class-workflow-core.test.ts`
+(`test:s1:money`, `test:s2:core`), the records `tests/student-money-db.integration.ts` and
+`tests/class-workflow-db.integration.ts`, the screens `tests/student-money-browser.integration.ts`,
+`tests/students-reference-browser.integration.ts` and `tests/class-workflow-browser.integration.ts`
+(photographs in `screenshots/s1` and `screenshots/s2`), the words `test:s1:copy` and `test:s2:copy`, and
+the date `tests/achievement.test.ts`. S1 closed on run
+[44289817070](https://github.com/NurTheDev/diction/actions/runs/44289817070), tag `s1-verified`; S2
+closed on run [44310354466](https://github.com/NurTheDev/diction/actions/runs/44310354466) with **115
+PASS, 0 FAIL, 0 NOT TESTED of 115 requirements**, tag `s2-verified`. The deletion of the two legacy class
+doors and the F-13 polish above went through the same harness again on this branch and closed at **115
+PASS, 0 FAIL, 0 NOT TESTED of 115 requirements** on run
+[44327804671](https://github.com/NurTheDev/diction/actions/runs/44327804671) at commit `d10928f`, whose
+report is `test-results/ci-latest/verify-report.md` and which is the commit the tag `s2-final-verified`
+points at.

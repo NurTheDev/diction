@@ -1,0 +1,2 @@
+--- tests/marks-grid-entry.test.ts (exit 0) ---
+Marks grid: the roll column leads a class list ordered 1, 2, 7-A, 7-B, 10 with the child who has no roll last — Bangla and ASCII digits read as the same numbers — every enrolled child is painted with a per-row status, the total, percentage and grade move as a mark is typed, and the CSV or XLSX import is one folded button in the toolbar rather than a step anybody has to take.

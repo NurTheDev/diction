@@ -1,0 +1,2 @@
+--- tests/submit-feedback.test.ts (exit 0) ---
+Submit feedback: 14 mutating controls across 6 screens all go through one button that is disabled, spinning and reading "saving…" while it writes, one skeleton sits above every admin address, and the answer to every mutation is raised top-right in both languages — success and the reason for a refusal.

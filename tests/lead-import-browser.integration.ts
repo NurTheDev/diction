@@ -35,7 +35,7 @@ const FIXTURE=path.join('tests','fixtures','Visitor-Import-FAKE-SAMPLE.xlsx');
 const SHOTS=path.join('screenshots','r3');
 
 async function run(){
-  await preflight({mongo:true,browser:true,origin:process.env.TEST_ORIGIN||'http://127.0.0.1:3100',originTimeoutMs:process.env.TEST_ORIGIN?60000:8000,test:'tests/lead-import-browser.integration.ts — start the app first, then run it with TEST_ORIGIN and TEST_MONGO_URI (see STALE-TESTS-REPORT.md)'});
+  await preflight({mongo:true,browser:true,origin:process.env.TEST_ORIGIN||'http://127.0.0.1:3100',originTimeoutMs:process.env.TEST_ORIGIN?60000:8000,test:'tests/lead-import-browser.integration.ts — start the app first, then run it with TEST_ORIGIN and TEST_MONGO_URI (see docs/STALE-TESTS.md)'});
   const shared=process.env.TEST_ORIGIN?process.env.TEST_MONGO_URI:null;
   const mongo=shared?{getUri:()=>shared,stop:async()=>{}}:await MongoMemoryReplSet.create({replSet:{count:1}});
   await mongoose.connect(mongo.getUri(),{dbName:testDbName()});

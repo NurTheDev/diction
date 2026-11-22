@@ -266,7 +266,9 @@ export async function buildSmsPlan(input:SmsPlanInput,provider:SmsProvider=creat
 
   // An unrendered {chip} means the operator picked a variable we have no value for.
   const unrendered=items.find(item=>/\{\w+\}/.test(item.message));
-  const blocked=!body.trim()?'EMPTY_MESSAGE':unrendered?`UNRENDERED_VARIABLE:${unrendered.message.match(/\{\w+\}/)?.[0]}`:null;
+  // A blank centre number fails every recipient alike; name the setting instead of skipping them all as "incomplete".
+  const noInstitutePhone=requiredChips.includes('institute_phone')&&!String(globalValues.institute_phone??'').trim();
+  const blocked=!body.trim()?'EMPTY_MESSAGE':noInstitutePhone?'MISSING_INSTITUTE_PHONE':unrendered?`UNRENDERED_VARIABLE:${unrendered.message.match(/\{\w+\}/)?.[0]}`:null;
 
   return {
     requestId:input.requestId,templateKey,purpose,subjectKind,audience:input.audience,month,body,

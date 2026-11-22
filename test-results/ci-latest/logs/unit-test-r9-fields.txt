@@ -1,0 +1,2 @@
+--- tests/routine-editable-fields.test.ts (exit 0) ---
+Routine fields: 3 schemas walked path by path — 49 bound to a control that a named component renders and src/actions/routine.ts reads, 12 written by the engine rather than typed, 26 system fields that no form posts; every path classified, none classified twice.

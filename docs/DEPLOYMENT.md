@@ -377,7 +377,8 @@ handover), after the privacy, retention, consent and cost reviews named in `READ
 `PRIVACY-DRAFT.md`. The 365-day purge with an anonymized ledger is R6 work and does not exist yet —
 which is the second reason nothing real belongs on this site.
 
-Related documents: `README.md` (what the build is and what is unfinished), the repository-root
-`DEPLOYMENT.md` (operations and security posture, older and broader), `ATLAS-SETUP.md` (Bangla Atlas
-walkthrough), `docs/VERIFY.md` (the one-command verification harness), `docs/STATUS.md` (what is
-proven, requirement by requirement) and `docs/SMS-GOLD-LIVE.md` (the SMS layer's decisions).
+Related documents: `README.md` (what the build is and what is unfinished), `SETUP.md` (local run,
+login, Atlas, AI and YouTube setup), `FEATURES.md` (feature limits),
+`RELEASE-READINESS.md` (launch blockers), `HISTORY.md` (the older, broader deployment and security
+posture, kept for context), `VERIFY.md` (the one-command verification harness), `STATUS.md` (what is
+proven, requirement by requirement) and `SMS-GOLD-LIVE.md` (the SMS layer's decisions).

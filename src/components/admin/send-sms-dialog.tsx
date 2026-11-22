@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 /**
  * SendSmsDialog (R2) — the ONE compose surface the spec asks for.
@@ -18,325 +18,623 @@
  * same requestId travels with every call, which the batch's unique index enforces server-side.
  */
 
-import {useTranslations} from 'next-intl';
-import {formatDigits,formatNumber} from '@/lib/admin/format';
-import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
-import {AlertTriangle,CheckCircle2,Loader2,Send,X} from 'lucide-react';
-import {SMS_VARIABLES,smsTemplateName} from '@/lib/center/sms-templates';
-import {dailyLimitLine} from '@/lib/center/sms-staff';
-import type {SmsSkipReason} from '@/lib/center/sms-recipients';
+import { formatDigits, formatNumber } from "@/lib/admin/format";
+import type { SmsSkipReason } from "@/lib/center/sms-recipients";
+import { dailyLimitLine } from "@/lib/center/sms-staff";
+import { SMS_VARIABLES, smsTemplateName } from "@/lib/center/sms-templates";
+import { AlertTriangle, CheckCircle2, Loader2, Send, X } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-export type SmsSendRequest={
-  source:'dues'|'class'|'students'|'student'|'receipt'|'lead'|'leads'|'teacherCandidates';
-  classGroup?:string;
-  ids?:string[];
-  id?:string;
-  receipt?:{student:string;amount:number;month:string;receiptNo:string;dueDate?:string};
+export type SmsSendRequest = {
+  source:
+    | "dues"
+    | "class"
+    | "students"
+    | "student"
+    | "receipt"
+    | "lead"
+    | "leads"
+    | "teacherCandidates";
+  classGroup?: string;
+  ids?: string[];
+  id?: string;
+  receipt?: {
+    student: string;
+    amount: number;
+    month: string;
+    receiptNo: string;
+    dueDate?: string;
+  };
 };
 
-export type SmsTemplateOption={key:string;name:string;body:string;active:boolean;edited:boolean};
-
-export type SmsPreview={
-  phones:number;messages:number;segments:number;cost:number;unitCost:number;
-  balance:number|null;balanceOk:boolean;lowBalance:boolean;
-  quiet:boolean;quietUntil:string;blocked:string|null;month:string;body:string;
-  recipients:{phone:string;studentName:string;preview:string;segments:number;cost:number}[];
-  skipped:{reason:SmsSkipReason;labelKey:string;studentName:string;phone:string}[];
-  skippedCount:number;
-  groupingRefused:{phone:string;reason:string}[];
-  duplicates:{id:string;name:string}[];
+export type SmsTemplateOption = {
+  key: string;
+  name: string;
+  body: string;
+  active: boolean;
+  edited: boolean;
 };
 
-export type SmsSendResult={
-  ok:boolean;blocked?:string;error?:string;message?:string;
-  batchId?:string;status?:string;
-  sent?:number;failed?:number;skipped?:number;queued?:number;
-  quietUntil?:string;monthTotals?:{sent:number;failed:number;skipped:number;queued:number;segments:number;cost:number};
+export type SmsPreview = {
+  phones: number;
+  messages: number;
+  segments: number;
+  cost: number;
+  unitCost: number;
+  balance: number | null;
+  balanceOk: boolean;
+  lowBalance: boolean;
+  quiet: boolean;
+  quietUntil: string;
+  blocked: string | null;
+  month: string;
+  body: string;
+  recipients: {
+    phone: string;
+    studentName: string;
+    preview: string;
+    segments: number;
+    cost: number;
+  }[];
+  skipped: {
+    reason: SmsSkipReason;
+    labelKey: string;
+    studentName: string;
+    phone: string;
+  }[];
+  skippedCount: number;
+  groupingRefused: { phone: string; reason: string }[];
+  duplicates: { id: string; name: string }[];
+};
+
+export type SmsSendResult = {
+  ok: boolean;
+  blocked?: string;
+  error?: string;
+  message?: string;
+  batchId?: string;
+  status?: string;
+  sent?: number;
+  failed?: number;
+  skipped?: number;
+  queued?: number;
+  quietUntil?: string;
+  monthTotals?: {
+    sent: number;
+    failed: number;
+    skipped: number;
+    queued: number;
+    segments: number;
+    cost: number;
+  };
 };
 
 /** What /api/admin/sms/send returns: one shape for preview, send and retry. */
 /** R3.11: the route also answers with the day's ceiling and, when it refuses, with the sentence to show. */
-export type SmsCallResult=SmsSendResult&{preview?:SmsPreview;institutePhone?:string;className?:string;detail?:string;
-  daily?:{limit:number;sent:number;remaining:number}|null;messageBn?:string;messageEn?:string};
+export type SmsCallResult = SmsSendResult & {
+  preview?: SmsPreview;
+  institutePhone?: string;
+  className?: string;
+  detail?: string;
+  daily?: { limit: number; sent: number; remaining: number } | null;
+  messageBn?: string;
+  messageEn?: string;
+};
 
-type Props={
-  open:boolean;
-  onClose:()=>void;
-  request:SmsSendRequest;
-  templates:SmsTemplateOption[];
-  title:string;
-  defaultTemplateKey?:string;
-  institutePhone?:string;
-  en?:boolean;
+type Props = {
+  open: boolean;
+  onClose: () => void;
+  request: SmsSendRequest;
+  templates: SmsTemplateOption[];
+  title: string;
+  defaultTemplateKey?: string;
+  institutePhone?: string;
+  en?: boolean;
   /** Called after a send or a retry succeeded, so the caller can refresh its own screen. */
-  onSent?:()=>void;
+  onSent?: () => void;
   /**
    * R3.11: the message is shown, not written. A staff sender gets the visitor thank-you word for word
    * — no textarea, no variable chips — and the server refuses any custom text from them anyway
    * (`smsSendPolicyRefusal`), so hiding the box is the same rule seen from the front.
    */
-  lockedText?:boolean;
+  lockedText?: boolean;
 };
 
-
-
-
-function newRequestId():string{
-  if(typeof crypto!=='undefined'&&typeof crypto.randomUUID==='function')return crypto.randomUUID();
-  return 'sms-0000-0000-0000-000000000000';
+function newRequestId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function")
+    return crypto.randomUUID();
+  return "sms-0000-0000-0000-000000000000";
 }
 
 /** Segments follow the spec: 70 per Unicode message, 67 per part once it has to be split. */
-export function segmentCount(text:string):number{
-  const length=[...text].length;
-  if(!length)return 0;
-  return length<=70?1:Math.ceil(length/67);
+export function segmentCount(text: string): number {
+  const length = [...text].length;
+  if (!length) return 0;
+  return length <= 70 ? 1 : Math.ceil(length / 67);
 }
 
-export default function SendSmsDialog({open,onClose,request,templates,title,defaultTemplateKey='due_reminder',institutePhone='',en=false,onSent,lockedText=false}:Props){
-  const ts=useTranslations('sms');const digits:'bn'|'en'=en?'en':'bn';const tc=useTranslations('common');
+export default function SendSmsDialog({
+  open,
+  onClose,
+  request,
+  templates,
+  title,
+  defaultTemplateKey = "due_reminder",
+  institutePhone = "",
+  en = false,
+  onSent,
+  lockedText = false,
+}: Props) {
+  const ts = useTranslations("sms");
+  const digits: "bn" | "en" = en ? "en" : "bn";
+  const tc = useTranslations("common");
   /* A default template's name is a catalog key; an operator's own name is a sentence. */
-  const TEMPLATE_NAMES=ts.raw('templates') as Record<string,string>;
+  const TEMPLATE_NAMES = ts.raw("templates") as Record<string, string>;
   /** A visitor send (R3.9): one number per lead, no fee chips, and no guardian/student choice to make. */
-  const isLead=request.source==='lead'||request.source==='leads';
-  const [step,setStep]=useState(1);
-  const [templateKey,setTemplateKey]=useState(defaultTemplateKey);
-  const [text,setText]=useState('');
+  const isLead = request.source === "lead" || request.source === "leads";
+  const [step, setStep] = useState(1);
+  const [templateKey, setTemplateKey] = useState(defaultTemplateKey);
+  const [text, setText] = useState("");
   /** {subject} is the one variable no source can know: a notice topic, or the subject a teacher is needed for. */
-  const [subject,setSubject]=useState('');
-  const [target,setTarget]=useState<'guardian'|'student'|'both'>('guardian');
+  const [subject, setSubject] = useState("");
+  const [target, setTarget] = useState<"guardian" | "student" | "both">(
+    "guardian",
+  );
   /**
    * A lead's only number is carried as its guardian number, so a visitor send is always a guardian send.
    * The picker does not offer the choice (there is no second number to choose), and the request does not
    * trust the state either: 'student' or 'both' against a lead would resolve to NOBODY, and a send that
    * quietly covers nobody is worse than a radio button that is not there.
    */
-  const sendTarget=isLead?'guardian':target;
-  const [groupSiblings,setGroupSiblings]=useState(true);
-  const [force,setForce]=useState(false);
-  const [skipDuplicates,setSkipDuplicates]=useState(false);
-  const [showRecipients,setShowRecipients]=useState(false);
-  const [preview,setPreview]=useState<SmsPreview|null>(null);
+  const sendTarget = isLead ? "guardian" : target;
+  const [groupSiblings, setGroupSiblings] = useState(true);
+  const [force, setForce] = useState(false);
+  const [skipDuplicates, setSkipDuplicates] = useState(false);
+  const [showRecipients, setShowRecipients] = useState(false);
+  const [preview, setPreview] = useState<SmsPreview | null>(null);
   /** R3.11: what today's ceiling leaves for this operator, reported by every preview. */
-  const [daily,setDaily]=useState<{limit:number;sent:number;remaining:number}|null>(null);
-  const [previewError,setPreviewError]=useState('');
-  const [loadingPreview,setLoadingPreview]=useState(false);
-  const [sending,setSending]=useState(false);
+  const [daily, setDaily] = useState<{
+    limit: number;
+    sent: number;
+    remaining: number;
+  } | null>(null);
+  const [previewError, setPreviewError] = useState("");
+  const [loadingPreview, setLoadingPreview] = useState(false);
+  const [sending, setSending] = useState(false);
   /** R3.11: the whole answer, not just the send summary — a refusal can carry the sentence to show. */
-  const [result,setResult]=useState<SmsCallResult|null>(null);
-  const [retrying,setRetrying]=useState(false);
-  const [requestId,setRequestId]=useState('');
-  const textRef=useRef<HTMLTextAreaElement|null>(null);
-  const sendRef=useRef<HTMLButtonElement|null>(null);
+  const [result, setResult] = useState<SmsCallResult | null>(null);
+  const [retrying, setRetrying] = useState(false);
+  const [requestId, setRequestId] = useState("");
+  const textRef = useRef<HTMLTextAreaElement | null>(null);
+  const sendRef = useRef<HTMLButtonElement | null>(null);
 
   // A caller that rebuilds its request object on every render must not reset an open dialog, so the
   // reset keys on the serialized request rather than on object identity.
-  const requestKey=useMemo(()=>JSON.stringify(request),[request]);
-  const requestRef=useRef(request);
-  useEffect(()=>{requestRef.current=request},[request,requestKey]);
+  const requestKey = useMemo(() => JSON.stringify(request), [request]);
+  const requestRef = useRef(request);
+  useEffect(() => {
+    requestRef.current = request;
+  }, [request, requestKey]);
 
-  useEffect(()=>{
-    if(!open)return;
-    setStep(1);setResult(null);setSending(false);setRetrying(false);setForce(false);
-    setSkipDuplicates(false);setShowRecipients(false);setPreview(null);setPreviewError('');
-    setRequestId(newRequestId());setTemplateKey(defaultTemplateKey);setText('');setSubject('');
-  },[open,requestKey,defaultTemplateKey]);
+  useEffect(() => {
+    if (!open) return;
+    setStep(1);
+    setResult(null);
+    setSending(false);
+    setRetrying(false);
+    setForce(false);
+    setSkipDuplicates(false);
+    setShowRecipients(false);
+    setPreview(null);
+    setPreviewError("");
+    setRequestId(newRequestId());
+    setTemplateKey(defaultTemplateKey);
+    setText("");
+    setSubject("");
+  }, [open, requestKey, defaultTemplateKey]);
 
-  useEffect(()=>{
-    if(!open)return;
-    const onKey=(event:KeyboardEvent)=>{if(event.key==='Escape'&&!sending)onClose()};
-    window.addEventListener('keydown',onKey);
-    return ()=>window.removeEventListener('keydown',onKey);
-  },[open,onClose,sending]);
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !sending) onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose, sending]);
 
-  const call=useCallback(async(payload:Record<string,unknown>):Promise<{status:number;data:SmsCallResult|null}>=>{
-    try{
-      const response=await fetch('/api/admin/sms/send',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({...requestRef.current,...payload}),
-      });
-      const data=await response.json().catch(()=>null);
-      return {status:response.status,data:(data||null) as SmsCallResult|null};
-    }catch{
-      return {status:0,data:null};
-    }
-  },[]);
+  const call = useCallback(
+    async (
+      payload: Record<string, unknown>,
+    ): Promise<{ status: number; data: SmsCallResult | null }> => {
+      try {
+        const response = await fetch("/api/admin/sms/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...requestRef.current, ...payload }),
+        });
+        const data = await response.json().catch(() => null);
+        return {
+          status: response.status,
+          data: (data || null) as SmsCallResult | null,
+        };
+      } catch {
+        return { status: 0, data: null };
+      }
+    },
+    [],
+  );
 
-  const loadPreview=useCallback(async()=>{
-    if(!requestId)return;
+  const loadPreview = useCallback(async () => {
+    if (!requestId) return;
     setLoadingPreview(true);
-    const {status,data}=await call({mode:'preview',requestId,templateKey,text,subject,target:sendTarget,groupSiblings});
-    if(status&&data?.ok&&data.preview){setPreview(data.preview);setDaily(data.daily||null);setPreviewError('')}
-    else{setPreview(data?.preview||null);setDaily(data?.daily||null);setPreviewError(String((en?data?.messageEn:data?.messageBn)||data?.detail||data?.error||data?.blocked||(status?'UNAVAILABLE':'NETWORK')))}
+    // The topic is typed on step 2, so an empty one is previewed as "…": otherwise step 1 counts every
+    // recipient as skipped for missing data before the operator has had a chance to write it.
+    const { status, data } = await call({
+      mode: "preview",
+      requestId,
+      templateKey,
+      text,
+      subject: subject.trim() || "…",
+      target: sendTarget,
+      groupSiblings,
+    });
+    if (status && data?.ok && data.preview) {
+      setPreview(data.preview);
+      setDaily(data.daily || null);
+      setPreviewError("");
+    } else {
+      setPreview(data?.preview || null);
+      setDaily(data?.daily || null);
+      setPreviewError(
+        String(
+          (en ? data?.messageEn : data?.messageBn) ||
+            data?.detail ||
+            data?.error ||
+            data?.blocked ||
+            (status ? "UNAVAILABLE" : "NETWORK"),
+        ),
+      );
+    }
     setLoadingPreview(false);
-  },[call,requestId,templateKey,text,subject,sendTarget,groupSiblings]);
+  }, [call, requestId, templateKey, text, subject, sendTarget, groupSiblings]);
 
   // Debounced, so typing a custom message does not fire a request per keystroke.
-  useEffect(()=>{
-    if(!open||!requestId)return;
-    const timer=setTimeout(()=>{void loadPreview()},text?450:0);
-    return ()=>clearTimeout(timer);
-  },[open,requestId,loadPreview,text]);
+  useEffect(() => {
+    if (!open || !requestId) return;
+    const timer = setTimeout(
+      () => {
+        void loadPreview();
+      },
+      text ? 450 : 0,
+    );
+    return () => clearTimeout(timer);
+  }, [open, requestId, loadPreview, text]);
 
-  const skippedGroups=useMemo(()=>{
-    const items=preview?.skipped||[];
-    const counts=new Map<SmsSkipReason,{labelKey:string;count:number}>();
-    for(const item of items){
-      const found=counts.get(item.reason);
-      if(found)found.count+=1;
-      else counts.set(item.reason,{labelKey:item.labelKey,count:1});
+  const skippedGroups = useMemo(() => {
+    const items = preview?.skipped || [];
+    const counts = new Map<
+      SmsSkipReason,
+      { labelKey: string; count: number }
+    >();
+    for (const item of items) {
+      const found = counts.get(item.reason);
+      if (found) found.count += 1;
+      else counts.set(item.reason, { labelKey: item.labelKey, count: 1 });
     }
-    return [...counts.entries()].map(([reason,value])=>({reason,...value}));
-  },[preview]);
+    return [...counts.entries()].map(([reason, value]) => ({
+      reason,
+      ...value,
+    }));
+  }, [preview]);
 
-  if(!open)return null;
+  if (!open) return null;
 
-  const activeTemplate=templates.find(item=>item.key===templateKey)||null;
-  const body=templateKey==='custom'?text:(result?.ok?'':activeTemplate?.body||preview?.body||'');
-  const characters=[...(preview?.body||body)].length;
-  const emptyMessage=templateKey==='custom'&&!text.trim();
-  const needsSubject=/\{subject\}/.test(preview?.body||body);
+  // Shown on step 1, and again on step 3 when nobody is left: a template changed on step 2 can skip
+  // everyone, and an empty preview with no reason reads as a rendering bug.
+  const skippedList = !!skippedGroups.length && (
+    <div className="sms-skipped" data-sms-skipped="">
+      <strong>
+        {ts("dialog.skippedCount", {
+          count: formatNumber(preview?.skippedCount || 0, digits),
+        })}
+      </strong>
+      <ul>
+        {skippedGroups.map((item) => (
+          <li key={item.reason}>
+            {ts(item.labelKey)} —{" "}
+            <span className="admin-help">
+              {formatNumber(item.count, digits)}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+  const activeTemplate =
+    templates.find((item) => item.key === templateKey) || null;
+  const body =
+    templateKey === "custom"
+      ? text
+      : result?.ok
+        ? ""
+        : activeTemplate?.body || preview?.body || "";
+  const characters = [...(preview?.body || body)].length;
+  const emptyMessage = templateKey === "custom" && !text.trim();
+  const needsSubject = /\{subject\}/.test(preview?.body || body);
   // A blocked plan is the server telling us the message would go out with a hole in it. The operator
   // gets the reason plus, for the two fixable ones, the field that fixes it.
-  const planBlocked=preview?.blocked&&preview.blocked!=='EMPTY_MESSAGE'?preview.blocked:'';
-  const hardError=previewError&&!emptyMessage&&previewError!=='EMPTY_MESSAGE'
-    ?previewError
-    :planBlocked.startsWith('UNRENDERED_VARIABLE')
-      ?ts('dialog.missingValue',{name:planBlocked.slice(planBlocked.indexOf(':')+1)})
-      :planBlocked;
-  const quietBlocked=!!preview?.quiet&&!force;
-  const canSend=!!preview&&preview.phones>0&&!hardError&&!emptyMessage&&!preview.blocked;
+  const planBlocked =
+    preview?.blocked && preview.blocked !== "EMPTY_MESSAGE"
+      ? preview.blocked
+      : "";
+  const hardError =
+    previewError && !emptyMessage && previewError !== "EMPTY_MESSAGE"
+      ? previewError
+      : planBlocked.startsWith("UNRENDERED_VARIABLE")
+        ? ts("dialog.missingValue", {
+            name: planBlocked.slice(planBlocked.indexOf(":") + 1),
+          })
+        : planBlocked === "MISSING_INSTITUTE_PHONE"
+          ? ts("dialog.noInstitutePhone")
+          : planBlocked;
+  const quietBlocked = !!preview?.quiet && !force;
+  const subjectMissing = needsSubject && !subject.trim();
+  const canSend =
+    !!preview &&
+    preview.phones > 0 &&
+    !hardError &&
+    !emptyMessage &&
+    !subjectMissing &&
+    !preview.blocked;
 
-  const insertChip=(chip:string)=>{
-    const token=`{${chip}}`;
-    const field=textRef.current;
-    if(templateKey!=='custom'){setTemplateKey('custom');setText(token);return}
-    if(!field){setText(value=>`${value}${token}`);return}
-    const start=field.selectionStart??text.length,end=field.selectionEnd??text.length;
-    setText(`${text.slice(0,start)}${token}${text.slice(end)}`);
-    requestAnimationFrame(()=>{field.focus();field.setSelectionRange(start+token.length,start+token.length)});
+  const insertChip = (chip: string) => {
+    const token = `{${chip}}`;
+    const field = textRef.current;
+    if (templateKey !== "custom") {
+      setTemplateKey("custom");
+      setText(token);
+      return;
+    }
+    if (!field) {
+      setText((value) => `${value}${token}`);
+      return;
+    }
+    const start = field.selectionStart ?? text.length,
+      end = field.selectionEnd ?? text.length;
+    setText(`${text.slice(0, start)}${token}${text.slice(end)}`);
+    requestAnimationFrame(() => {
+      field.focus();
+      field.setSelectionRange(start + token.length, start + token.length);
+    });
   };
 
-  const send=async()=>{
-    if(sending||!requestId||!canSend)return;
-    setSending(true);setResult(null);
-    const {status,data}=await call({mode:'send',requestId,templateKey,text,subject,target:sendTarget,groupSiblings,force,skipDuplicates});
-    if(data&&(data.ok||data.blocked))setResult(data);
-    else setResult({ok:false,error:String(data?.detail||data?.error||(status?'UNAVAILABLE':'NETWORK')),message:String((en?data?.messageEn:data?.messageBn)||'')||ts('dialog.couldSend')});
+  const send = async () => {
+    if (sending || !requestId || !canSend) return;
+    setSending(true);
+    setResult(null);
+    const { status, data } = await call({
+      mode: "send",
+      requestId,
+      templateKey,
+      text,
+      subject,
+      target: sendTarget,
+      groupSiblings,
+      force,
+      skipDuplicates,
+    });
+    if (data && (data.ok || data.blocked)) setResult(data);
+    else
+      setResult({
+        ok: false,
+        error: String(
+          data?.detail || data?.error || (status ? "UNAVAILABLE" : "NETWORK"),
+        ),
+        message:
+          String((en ? data?.messageEn : data?.messageBn) || "") ||
+          ts("dialog.couldSend"),
+      });
     setSending(false);
-    if(data?.ok&&data.batchId&&data.status!=='queued')onSent?.();
+    if (data?.ok && data.batchId && data.status !== "queued") onSent?.();
     sendRef.current?.focus();
   };
 
-  const retry=async()=>{
-    const batchId=result?.batchId||'';
-    if(!batchId||retrying)return;
+  const retry = async () => {
+    const batchId = result?.batchId || "";
+    if (!batchId || retrying) return;
     setRetrying(true);
-    const {data}=await call({mode:'retry',batchId});
-    if(data?.ok)setResult(current=>current?{...current,failed:data.failed??0,sent:(current.sent||0)+(data.sent||0),status:data.failed?'partial':'done'}:current);
-    else setResult(current=>current?{...current,error:String(data?.error||'UNAVAILABLE')}:current);
+    const { data } = await call({ mode: "retry", batchId });
+    if (data?.ok)
+      setResult((current) =>
+        current
+          ? {
+              ...current,
+              failed: data.failed ?? 0,
+              sent: (current.sent || 0) + (data.sent || 0),
+              status: data.failed ? "partial" : "done",
+            }
+          : current,
+      );
+    else
+      setResult((current) =>
+        current
+          ? { ...current, error: String(data?.error || "UNAVAILABLE") }
+          : current,
+      );
     setRetrying(false);
-    if(data?.ok&&!data.failed)onSent?.();
+    if (data?.ok && !data.failed) onSent?.();
   };
 
   return (
-    <div className="sms-overlay" onClick={()=>{if(!sending)onClose()}}>
-      <div className="sms-dialog" role="dialog" aria-modal="true" aria-label={title} data-sms-dialog="" onClick={event=>event.stopPropagation()}>
+    <div
+      className="sms-overlay"
+      onClick={() => {
+        if (!sending) onClose();
+      }}>
+      <div
+        className="sms-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        data-sms-dialog=""
+        onClick={(event) => event.stopPropagation()}>
         <header className="sms-head">
           <div>
             <h2>{title}</h2>
-            <p className="admin-help">{ts('dialog.step')} {step} / 4 — {(ts.raw('steps') as string[])[step-1]}</p>
+            <p className="admin-help">
+              {ts("dialog.step")} {formatNumber(step, digits)} /{" "}
+              {formatNumber(4, digits)} —{" "}
+              {(ts.raw("steps") as string[])[step - 1]}
+            </p>
           </div>
-          <button type="button" className="admin-mini-button" onClick={onClose} disabled={sending} aria-label={ts('dialog.close')}>
+          <button
+            type="button"
+            className="admin-mini-button"
+            onClick={onClose}
+            disabled={sending}
+            aria-label={ts("dialog.close")}>
             <X aria-hidden="true" size={14} />
           </button>
         </header>
 
         <ol className="sms-steps" aria-hidden="true">
-          {[1,2,3,4].map(item=><li key={item} data-active={item===step?'true':'false'} data-done={item<step?'true':'false'}>{item}</li>)}
+          {[1, 2, 3, 4].map((item) => (
+            <li
+              key={item}
+              data-active={item === step ? "true" : "false"}
+              data-done={item < step ? "true" : "false"}>
+              {formatNumber(item, digits)}
+            </li>
+          ))}
         </ol>
 
-        {step===1&&(
+        {step === 1 && (
           <section className="sms-step" data-sms-step="1">
             <p className="admin-help" data-sms-summary="">
-              {loadingPreview&&!preview
-                ?ts('dialog.countingRecipients')
-                :preview
-                  ?`${ts('dialog.total')} ${formatNumber(preview.phones,digits)} ${ts('dialog.numbers')} · ${formatNumber(preview.messages,digits)} ${ts('dialog.messages')} · ${formatNumber(preview.segments,digits)} ${ts('dialog.segments')}`
-                  :ts('dialog.countingRecipients')}
+              {loadingPreview && !preview
+                ? ts("dialog.countingRecipients")
+                : preview
+                  ? `${ts("dialog.total")} ${formatNumber(preview.phones, digits)} ${ts("dialog.numbers")} · ${formatNumber(preview.messages, digits)} ${ts("dialog.messages")} · ${formatNumber(preview.segments, digits)} ${ts("dialog.segments")}`
+                  : ts("dialog.countingRecipients")}
             </p>
-            {daily&&<p className="admin-help" data-sms-daily="">{dailyLimitLine(daily.limit,daily.remaining,en?'en':'bn')}</p>}
-            {hardError&&<p className="admin-feedback error" role="status">{hardError}</p>}
+            {daily && (
+              <p className="admin-help" data-sms-daily="">
+                {dailyLimitLine(daily.limit, daily.remaining, en ? "en" : "bn")}
+              </p>
+            )}
+            {hardError && (
+              <p className="admin-feedback error" role="status">
+                {hardError}
+              </p>
+            )}
 
             <fieldset className="admin-fieldset">
-              <legend>{isLead?ts('dialog.visitorNumber'):ts('dialog.whoReceives')}</legend>
+              <legend>
+                {isLead ? ts("dialog.visitorNumber") : ts("dialog.whoReceives")}
+              </legend>
               {/* A lead has one number, the first one written on the sheet — not a guardian's and a
                   student's. Offering the choice would offer two ways to reach nobody, so it is not
                   offered, and the send goes to that one number as a guardian message. */}
-              {isLead
-                ?<p className="admin-help">{ts('dialog.goesFirstNumber')}</p>
-                :([['guardian',ts('dialog.guardian')],['student',ts('dialog.student')],['both',ts('dialog.both')]] as const).map(([value,label])=>(
+              {isLead ? (
+                <p className="admin-help">{ts("dialog.goesFirstNumber")}</p>
+              ) : (
+                (
+                  [
+                    ["guardian", ts("dialog.guardian")],
+                    ["student", ts("dialog.student")],
+                    ["both", ts("dialog.both")],
+                  ] as const
+                ).map(([value, label]) => (
                   <label className="admin-check" key={value}>
-                    <input type="radio" name="smsTarget" value={value} checked={target===value} onChange={()=>setTarget(value)} />
+                    <input
+                      type="radio"
+                      name="smsTarget"
+                      value={value}
+                      checked={target === value}
+                      onChange={() => setTarget(value)}
+                    />
                     {label}
                   </label>
-                ))}
+                ))
+              )}
               <label className="admin-check">
-                <input type="checkbox" name="smsGroupSiblings" checked={groupSiblings} onChange={event=>setGroupSiblings(event.target.checked)} />
+                <input
+                  type="checkbox"
+                  name="smsGroupSiblings"
+                  checked={groupSiblings}
+                  onChange={(event) => setGroupSiblings(event.target.checked)}
+                />
                 {isLead
-                  ?ts('dialog.oneMessagePer')
-                  :ts('dialog.oneMessagePerPhone')}
+                  ? ts("dialog.oneMessagePer")
+                  : ts("dialog.oneMessagePerPhone")}
               </label>
             </fieldset>
 
-            {!!preview?.duplicates.length&&(
+            {!!preview?.duplicates.length && (
               <fieldset className="admin-fieldset" data-sms-duplicates="">
-                <legend>{ts('dialog.sameTemplateAlready')}</legend>
-                <p className="admin-help">{preview.duplicates.map(item=>item.name||item.id).join(', ')}</p>
+                <legend>{ts("dialog.sameTemplateAlready")}</legend>
+                <p className="admin-help">
+                  {preview.duplicates
+                    .map((item) => item.name || item.id)
+                    .join(", ")}
+                </p>
                 <label className="admin-check">
-                  <input type="checkbox" name="smsSkipDuplicates" checked={skipDuplicates} onChange={event=>setSkipDuplicates(event.target.checked)} />
-                  {ts('dialog.skipThose')}
+                  <input
+                    type="checkbox"
+                    name="smsSkipDuplicates"
+                    checked={skipDuplicates}
+                    onChange={(event) =>
+                      setSkipDuplicates(event.target.checked)
+                    }
+                  />
+                  {ts("dialog.skipThose")}
                 </label>
               </fieldset>
             )}
 
-            {!!skippedGroups.length&&(
-              <div className="sms-skipped" data-sms-skipped="">
-                <strong>{ts('dialog.skippedCount',{count:formatNumber(preview?.skippedCount||0,digits)})}</strong>
-                <ul>
-                  {skippedGroups.map(item=>(
-                    <li key={item.reason}>{ts(item.labelKey)} — <span className="admin-help">{formatNumber(item.count,digits)}</span></li>
-                  ))}
-                </ul>
-              </div>
-            )}
+            {skippedList}
 
-            {!!preview?.groupingRefused.length&&(
+            {!!preview?.groupingRefused.length && (
               <p className="admin-feedback" data-sms-grouping-refused="">
-                {ts('dialog.siblings')}
+                {ts("dialog.siblings")}
               </p>
             )}
 
-            <button type="button" className="admin-mini-button" onClick={()=>setShowRecipients(value=>!value)} data-sms-recipients-toggle="" aria-expanded={showRecipients}>
-              {showRecipients?ts('dialog.hideList'):ts('dialog.showRecipientList')}
+            <button
+              type="button"
+              className="admin-mini-button"
+              onClick={() => setShowRecipients((value) => !value)}
+              data-sms-recipients-toggle=""
+              aria-expanded={showRecipients}>
+              {showRecipients
+                ? ts("dialog.hideList")
+                : ts("dialog.showRecipientList")}
             </button>
-            {showRecipients&&(
+            {showRecipients && (
               <div className="admin-table-wrap">
                 <table className="admin-table" data-sms-recipients="">
                   <thead>
                     <tr>
-                      <th scope="col">{ts('dialog.student')}</th>
-                      <th scope="col">{ts('dialog.phone')}</th>
-                      <th scope="col">{ts('dialog.segmentsHeader')}</th>
+                      <th scope="col">{ts("dialog.student")}</th>
+                      <th scope="col">{ts("dialog.phone")}</th>
+                      <th scope="col">{ts("dialog.segmentsHeader")}</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {(preview?.recipients||[]).map(item=>(
-                      <tr key={item.phone}><td>{item.studentName||'—'}</td><td dir="ltr">{item.phone}</td><td>{item.segments}</td></tr>
+                    {(preview?.recipients || []).map((item) => (
+                      <tr key={item.phone}>
+                        <td>{item.studentName || "—"}</td>
+                        <td dir="ltr">{formatDigits(item.phone, digits)}</td>
+                        <td>{formatNumber(item.segments, digits)}</td>
+                      </tr>
                     ))}
-                    {!(preview?.recipients||[]).length&&(
-                      <tr><td colSpan={3} className="admin-empty">{ts('dialog.nobodyMessage')}</td></tr>
+                    {!(preview?.recipients || []).length && (
+                      <tr>
+                        <td colSpan={3} className="admin-empty">
+                          {ts("dialog.nobodyMessage")}
+                        </td>
+                      </tr>
                     )}
                   </tbody>
                 </table>
@@ -345,144 +643,296 @@ export default function SendSmsDialog({open,onClose,request,templates,title,defa
           </section>
         )}
 
-        {step===2&&(
+        {step === 2 && (
           <section className="sms-step" data-sms-step="2">
             <fieldset className="admin-fieldset">
-              <legend>{ts('dialog.template')}</legend>
-              {templates.map(item=>(
+              <legend>{ts("dialog.template")}</legend>
+              {templates.map((item) => (
                 <label className="admin-check" key={item.key}>
-                  <input type="radio" name="smsTemplate" value={item.key} checked={templateKey===item.key}
-                    onChange={()=>{setTemplateKey(item.key);if(item.key!=='custom')setText('')}} />
-                  {smsTemplateName(TEMPLATE_NAMES,item.name)}
-                  {item.edited?` · ${ts('dialog.edited')}`:''}
-                  {!item.active?` · ${ts('dialog.inactive')}`:''}
+                  <input
+                    type="radio"
+                    name="smsTemplate"
+                    value={item.key}
+                    checked={templateKey === item.key}
+                    onChange={() => {
+                      setTemplateKey(item.key);
+                      if (item.key !== "custom") setText("");
+                    }}
+                  />
+                  {smsTemplateName(TEMPLATE_NAMES, item.name)}
+                  {item.edited ? ` · ${ts("dialog.edited")}` : ""}
+                  {!item.active ? ` · ${ts("dialog.inactive")}` : ""}
                 </label>
               ))}
             </fieldset>
 
             {/* R3.11: a staff sender reads the message, they do not write it — the thank-you, word for
                 word, with no textarea and no chips to bend it into something else. */}
-            {lockedText
-              ?<p className="admin-help" data-sms-locked="">{activeTemplate?.body||''}</p>
-              :<label className="admin-check sms-text-label" htmlFor="sms-custom-text">
-                <span>{ts('dialog.message')}</span>
-                <textarea id="sms-custom-text" className="admin-textarea" name="smsText" ref={textRef} rows={templateKey==='custom'?6:3}
-                  value={templateKey==='custom'?text:(activeTemplate?.body||'')}
-                  onChange={event=>{setTemplateKey('custom');setText(event.target.value)}}
-                  placeholder={ts('dialog.writeHere')} />
-              </label>}
-            {!lockedText&&<div className="sms-chips" data-sms-chips="">
-              {SMS_VARIABLES.map(chip=>(
-                <button type="button" key={chip} className="admin-mini-button" data-sms-chip={chip} onClick={()=>insertChip(chip)}>
-                  {`{${chip}}`}
-                </button>
-              ))}
-            </div>}
-            {needsSubject&&(
-              <label className="admin-check sms-text-label" htmlFor="sms-subject">
-                <span>{ts('dialog.subjectValueSubject')}</span>
-                <input id="sms-subject" className="admin-input" name="smsSubject" value={subject} maxLength={120}
-                  onChange={event=>setSubject(event.target.value)}
-                  placeholder={ts('dialog.eGNotice')} />
+            {lockedText ? (
+              <p className="admin-help" data-sms-locked="">
+                {activeTemplate?.body || ""}
+              </p>
+            ) : (
+              <label className="sms-text-label" htmlFor="sms-custom-text">
+                <span>{ts("dialog.message")}</span>
+                <textarea
+                  id="sms-custom-text"
+                  className="admin-textarea"
+                  name="smsText"
+                  ref={textRef}
+                  rows={templateKey === "custom" ? 6 : 3}
+                  value={
+                    templateKey === "custom" ? text : activeTemplate?.body || ""
+                  }
+                  onChange={(event) => {
+                    setTemplateKey("custom");
+                    setText(event.target.value);
+                  }}
+                  placeholder={ts("dialog.writeHere")}
+                />
               </label>
             )}
-            {institutePhone&&<p className="admin-help">{ts('dialog.institutePhone')}: <span dir="ltr">{institutePhone}</span></p>}
+            {!lockedText && (
+              <div className="sms-chips" data-sms-chips="">
+                {SMS_VARIABLES.map((chip) => (
+                  <button
+                    type="button"
+                    key={chip}
+                    className="admin-mini-button"
+                    data-sms-chip={chip}
+                    onClick={() => insertChip(chip)}>
+                    {`{${chip}}`}
+                  </button>
+                ))}
+              </div>
+            )}
+            {needsSubject && (
+              <label className="sms-text-label" htmlFor="sms-subject">
+                <span>{ts("dialog.subjectValueSubject")}</span>
+                <input
+                  id="sms-subject"
+                  className="admin-input"
+                  name="smsSubject"
+                  value={subject}
+                  maxLength={120}
+                  onChange={(event) => setSubject(event.target.value)}
+                  placeholder={ts("dialog.eGNotice")}
+                />
+              </label>
+            )}
+            {subjectMissing && (
+              <p className="admin-help" role="status" data-sms-need-subject="">
+                {ts("dialog.needSubject")}
+              </p>
+            )}
+            {institutePhone && (
+              <p className="admin-help">
+                {ts("dialog.institutePhone")}:{" "}
+                <span dir="ltr">{institutePhone}</span>
+              </p>
+            )}
           </section>
         )}
 
-        {step===3&&(
+        {step === 3 && (
           <section className="sms-step" data-sms-step="3">
             <div className="sms-previews" data-sms-previews="">
-              {(preview?.recipients||[]).map(item=>(
-                <article className="sms-preview" key={item.phone} data-sms-preview="">
-                  <header><strong>{item.studentName||item.phone}</strong><span dir="ltr">{item.phone}</span></header>
-                  <p className="admin-cell-message" dir="auto">{item.preview}</p>
-                  <footer className="admin-help">{item.segments} {ts('dialog.segments')} · {tc('currency')}{item.cost.toFixed(2)}</footer>
+              {(preview?.recipients || []).map((item) => (
+                <article
+                  className="sms-preview"
+                  key={item.phone}
+                  data-sms-preview="">
+                  <header>
+                    <strong>
+                      {item.studentName || formatDigits(item.phone, digits)}
+                    </strong>
+                    <span dir="ltr">{formatDigits(item.phone, digits)}</span>
+                  </header>
+                  <p className="admin-cell-message" dir="auto">
+                    {item.preview}
+                  </p>
+                  <footer className="admin-help">
+                    {formatNumber(item.segments, digits)}{" "}
+                    {ts("dialog.segments")} · {tc("currency")}
+                    {formatDigits(item.cost.toFixed(2), digits)}
+                  </footer>
                 </article>
               ))}
-              {!(preview?.recipients||[]).length&&<p className="admin-empty">{ts('dialog.thereNothingSend')}</p>}
+              {!(preview?.recipients || []).length && (
+                <>
+                  <p className="admin-empty">{ts("dialog.thereNothingSend")}</p>
+                  {skippedList}
+                </>
+              )}
             </div>
 
             <dl className="admin-defs" data-sms-figures="">
-              <div><dt>{ts('dialog.characters')}</dt><dd data-sms-characters="">{formatNumber(characters,digits)}</dd></div>
-              <div><dt>{ts('dialog.messagesLabel')}</dt><dd data-sms-messages="">{formatNumber(preview?.messages??0,digits)}</dd></div>
-              <div><dt>{ts('dialog.segmentsLabel')}</dt><dd data-sms-segments="">{formatNumber(preview?.segments??0,digits)}</dd></div>
-              <div><dt>{ts('dialog.estimatedCost')}</dt><dd data-sms-cost="">{tc('currency')}{formatDigits((preview?.cost??0).toFixed(2),digits)}</dd></div>
-              <div><dt>{ts('dialog.balance')}</dt><dd data-sms-balance="">
-                {preview?.balanceOk?`${tc('currency')}${formatDigits((preview?.balance??0).toFixed(2),digits)}`:ts('dialog.unavailable')}
-              </dd></div>
+              <div>
+                <dt>{ts("dialog.characters")}</dt>
+                <dd data-sms-characters="">
+                  {formatNumber(characters, digits)}
+                </dd>
+              </div>
+              <div>
+                <dt>{ts("dialog.messagesLabel")}</dt>
+                <dd data-sms-messages="">
+                  {formatNumber(preview?.messages ?? 0, digits)}
+                </dd>
+              </div>
+              <div>
+                <dt>{ts("dialog.segmentsLabel")}</dt>
+                <dd data-sms-segments="">
+                  {formatNumber(preview?.segments ?? 0, digits)}
+                </dd>
+              </div>
+              <div>
+                <dt>{ts("dialog.estimatedCost")}</dt>
+                <dd data-sms-cost="">
+                  {tc("currency")}
+                  {formatDigits((preview?.cost ?? 0).toFixed(2), digits)}
+                </dd>
+              </div>
+              <div>
+                <dt>{ts("dialog.balance")}</dt>
+                <dd data-sms-balance="">
+                  {preview?.balanceOk
+                    ? `${tc("currency")}${formatDigits((preview?.balance ?? 0).toFixed(2), digits)}`
+                    : ts("dialog.unavailable")}
+                </dd>
+              </div>
             </dl>
 
-            {preview?.lowBalance&&(
-              <p className="admin-feedback error" role="status" data-sms-low-balance="">
-                <AlertTriangle aria-hidden="true" size={14} /> {ts('dialog.enoughBalanceSome')}
+            {preview?.lowBalance && (
+              <p
+                className="admin-feedback error"
+                role="status"
+                data-sms-low-balance="">
+                <AlertTriangle aria-hidden="true" size={14} />{" "}
+                {ts("dialog.enoughBalanceSome")}
               </p>
             )}
-            {preview?.quiet&&(
+            {preview?.quiet && (
               <p className="admin-feedback" role="status" data-sms-quiet="">
-                {ts('dialog.quietHoursNow')} ({preview.quietUntil}) — {ts('dialog.sendingNowQueues')}
+                {ts("dialog.quietHoursNow")} (
+                {formatDigits(preview.quietUntil, digits)}) —{" "}
+                {ts("dialog.sendingNowQueues")}
                 <label className="admin-check">
-                  <input type="checkbox" name="smsForce" checked={force} onChange={event=>setForce(event.target.checked)} data-sms-force="" />
-                  {ts('dialog.sendAnyway')}
+                  <input
+                    type="checkbox"
+                    name="smsForce"
+                    checked={force}
+                    onChange={(event) => setForce(event.target.checked)}
+                    data-sms-force=""
+                  />
+                  {ts("dialog.sendAnyway")}
                 </label>
               </p>
             )}
           </section>
         )}
 
-        {step===4&&(
+        {step === 4 && (
           <section className="sms-step" data-sms-step="4">
-            {!result&&(
+            {!result && (
               <>
                 <p className="admin-help" data-sms-confirm="">
-                  {ts('dialog.costLine',{count:formatNumber(preview?.messages??0,digits),cost:(preview?.cost??0).toFixed(2)})}
-                  {quietBlocked?` ${ts('dialog.queued')}`:''}
-                  {preview?.skippedCount?` ${ts('dialog.skippedDot',{count:formatNumber(preview.skippedCount,digits)})}`:''}
+                  {ts("dialog.costLine", {
+                    count: formatNumber(preview?.messages ?? 0, digits),
+                    cost: formatDigits((preview?.cost ?? 0).toFixed(2), digits),
+                  })}
+                  {quietBlocked ? ` ${ts("dialog.queued")}` : ""}
+                  {preview?.skippedCount
+                    ? ` ${ts("dialog.skippedDot", { count: formatNumber(preview.skippedCount, digits) })}`
+                    : ""}
                 </p>
-                {sending&&(
-                  <div className="sms-progress" data-sms-progress="" role="status" aria-live="polite">
-                    <Loader2 aria-hidden="true" size={15} className="sms-spin" />
-                    <span>{ts('dialog.sending')}</span>
-                    <div className="sms-bar"><span /></div>
+                {sending && (
+                  <div
+                    className="sms-progress"
+                    data-sms-progress=""
+                    role="status"
+                    aria-live="polite">
+                    <Loader2
+                      aria-hidden="true"
+                      size={15}
+                      className="sms-spin"
+                    />
+                    <span>{ts("dialog.sending")}</span>
+                    <div className="sms-bar">
+                      <span />
+                    </div>
                   </div>
                 )}
               </>
             )}
 
-            {result&&(
-              <div className="sms-result" data-sms-result="" role="status" aria-live="polite">
-                {result.ok?<CheckCircle2 aria-hidden="true" size={16} className="sms-ok" />:<AlertTriangle aria-hidden="true" size={16} className="sms-bad" />}
+            {result && (
+              <div
+                className="sms-result"
+                data-sms-result=""
+                role="status"
+                aria-live="polite">
+                {result.ok ? (
+                  <CheckCircle2
+                    aria-hidden="true"
+                    size={16}
+                    className="sms-ok"
+                  />
+                ) : (
+                  <AlertTriangle
+                    aria-hidden="true"
+                    size={16}
+                    className="sms-bad"
+                  />
+                )}
                 <div>
                   <strong data-sms-result-title="">
                     {result.ok
-                      ?result.status==='queued'
-                        ?ts('dialog.resultQueued')
-                        :result.status==='existing'
-                          ?ts('dialog.countedFromEarlier')
-                          :ts('dialog.sent')
-                      :ts('dialog.notSent')}
+                      ? result.status === "queued"
+                        ? ts("dialog.resultQueued")
+                        : result.status === "existing"
+                          ? ts("dialog.countedFromEarlier")
+                          : ts("dialog.sent")
+                      : ts("dialog.notSent")}
                   </strong>
                   <p className="admin-help" data-sms-result-text="">
                     {result.ok
-                      ?result.status==='queued'
-                        ?`${ts('dialog.goOutWhen')} (${result.quietUntil||''}). ${ts('dialog.skipped')}: ${result.skipped??0}`
-                        :`${ts('dialog.resultSent')}: ${result.sent??0} · ${ts('dialog.failed')}: ${result.failed??0} · ${ts('dialog.skipped')}: ${result.skipped??0}`
-                      // A sentence the server wrote for the operator outranks the code it filed the
-                      // refusal under (R3.11): "DAILY_LIMIT" is a fact for a log, not an answer for a
-                      // person who just pressed send and needs to know when they may press it again.
-                      :String((en?result.messageEn:result.messageBn)||result.message||result.blocked||result.error||'UNAVAILABLE')}
+                      ? result.status === "queued"
+                        ? `${ts("dialog.goOutWhen")} (${formatDigits(result.quietUntil || "", digits)}) · ${ts("dialog.skipped")}: ${formatNumber(result.skipped ?? 0, digits)}`
+                        : `${ts("dialog.resultSent")}: ${formatNumber(result.sent ?? 0, digits)} · ${ts("dialog.failed")}: ${formatNumber(result.failed ?? 0, digits)} · ${ts("dialog.skipped")}: ${formatNumber(result.skipped ?? 0, digits)}`
+                      : // A sentence the server wrote for the operator outranks the code it filed the
+                        // refusal under (R3.11): "DAILY_LIMIT" is a fact for a log, not an answer for a
+                        // person who just pressed send and needs to know when they may press it again.
+                        String(
+                          (en ? result.messageEn : result.messageBn) ||
+                            result.message ||
+                            result.blocked ||
+                            result.error ||
+                            "UNAVAILABLE",
+                        )}
                   </p>
-                  {result.ok&&result.monthTotals&&(
-                    <p className="admin-help" data-sms-month="">{ts('dialog.month')}: {result.monthTotals.sent} {ts('dialog.monthSentUnit')} · {tc('currency')}{result.monthTotals.cost.toFixed(2)}</p>
+                  {result.ok && result.monthTotals && (
+                    <p className="admin-help" data-sms-month="">
+                      {ts("dialog.month")}:{" "}
+                      {formatNumber(result.monthTotals.sent, digits)}{" "}
+                      {ts("dialog.monthSentUnit")} · {tc("currency")}
+                      {formatDigits(result.monthTotals.cost.toFixed(2), digits)}
+                    </p>
                   )}
                 </div>
-                {result.ok&&(result.failed??0)>0&&(
-                  <button type="button" className="admin-mini-button" onClick={()=>void retry()} disabled={retrying} data-sms-retry="">
-                    {retrying?ts('dialog.retrying'):ts('dialog.retryFailed')}
+                {result.ok && (result.failed ?? 0) > 0 && (
+                  <button
+                    type="button"
+                    className="admin-mini-button"
+                    onClick={() => void retry()}
+                    disabled={retrying}
+                    data-sms-retry="">
+                    {retrying
+                      ? ts("dialog.retrying")
+                      : ts("dialog.retryFailed")}
                   </button>
                 )}
-                {result.ok&&result.status==='existing'&&(
-                  <p className="admin-help">{ts('dialog.sameRequestSent')}</p>
+                {result.ok && result.status === "existing" && (
+                  <p className="admin-help">{ts("dialog.sameRequestSent")}</p>
                 )}
               </div>
             )}
@@ -490,20 +940,52 @@ export default function SendSmsDialog({open,onClose,request,templates,title,defa
         )}
 
         <footer className="sms-foot">
-          <button type="button" className="admin-mini-button" onClick={()=>setStep(value=>Math.max(1,value-1))} disabled={step===1||sending} data-sms-back="">
-            {ts('dialog.back')}
+          <button
+            type="button"
+            className="admin-mini-button"
+            onClick={() => setStep((value) => Math.max(1, value - 1))}
+            disabled={step === 1 || sending}
+            data-sms-back="">
+            {ts("dialog.back")}
           </button>
-          {step<4?(
-            <button type="button" className="button button-navy" onClick={()=>setStep(value=>Math.min(4,value+1))} disabled={!!hardError} data-sms-next="">
-              {ts('dialog.next')}
+          {step < 4 ? (
+            <button
+              type="button"
+              className="button button-navy"
+              onClick={() => setStep((value) => Math.min(4, value + 1))}
+              disabled={!!hardError || (step === 2 && subjectMissing)}
+              data-sms-next="">
+              {ts("dialog.next")}
             </button>
-          ):!result?(
-            <button type="button" ref={sendRef} className="button sms-send" onClick={()=>void send()} disabled={!canSend||sending} data-sms-send="">
-              {sending?<Loader2 aria-hidden="true" size={15} className="sms-spin" />:<Send aria-hidden="true" size={15} />}
-              {ts('dialog.sendCount',{count:formatNumber(preview?.messages??0,digits)})}
+          ) : !result ? (
+            <button
+              type="button"
+              ref={sendRef}
+              className="button sms-send"
+              onClick={() => void send()}
+              disabled={!canSend || sending}
+              data-sms-send="">
+              {sending ? (
+                <Loader2 aria-hidden="true" size={15} className="sms-spin" />
+              ) : (
+                <Send aria-hidden="true" size={15} />
+              )}
+              {/* A send in flight says it is sending rather than repeating how many it was asked to
+                  send: the button is already disabled, and the word is what the operator reads. */}
+              {sending
+                ? ts("dialog.sending")
+                : ts("dialog.sendCount", {
+                    count: formatNumber(preview?.messages ?? 0, digits),
+                  })}
             </button>
-          ):(
-            <button type="button" className="button button-navy" onClick={onClose} data-sms-done="">{ts('dialog.done')}</button>
+          ) : (
+            <button
+              type="button"
+              className="button button-navy"
+              onClick={onClose}
+              data-sms-done="">
+              {ts("dialog.done")}
+            </button>
           )}
         </footer>
       </div>

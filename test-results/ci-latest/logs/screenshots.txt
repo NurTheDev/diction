@@ -1,54 +1,6 @@
       "scrollWidth": 1440
     },
     {
-      "path": "/en/admin/students",
-      "width": 360,
-      "clientWidth": 360,
-      "scrollWidth": 360
-    },
-    {
-      "path": "/en/admin/students",
-      "width": 1440,
-      "clientWidth": 1440,
-      "scrollWidth": 1440
-    },
-    {
-      "path": "/en/admin/students/collect",
-      "width": 360,
-      "clientWidth": 360,
-      "scrollWidth": 360
-    },
-    {
-      "path": "/en/admin/students/collect",
-      "width": 1440,
-      "clientWidth": 1440,
-      "scrollWidth": 1440
-    },
-    {
-      "path": "/en/admin/students/dues",
-      "width": 360,
-      "clientWidth": 360,
-      "scrollWidth": 360
-    },
-    {
-      "path": "/en/admin/students/dues",
-      "width": 1440,
-      "clientWidth": 1440,
-      "scrollWidth": 1440
-    },
-    {
-      "path": "/en/admin/leads",
-      "width": 360,
-      "clientWidth": 360,
-      "scrollWidth": 360
-    },
-    {
-      "path": "/en/admin/leads",
-      "width": 1440,
-      "clientWidth": 1440,
-      "scrollWidth": 1440
-    },
-    {
       "path": "/en/admin/sms",
       "width": 360,
       "clientWidth": 360,
@@ -392,6 +344,54 @@
     },
     {
       "path": "/en/admin/center-exams/marksheet",
+      "width": 1440,
+      "clientWidth": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "path": "/bn/admin/routine/master",
+      "width": 360,
+      "clientWidth": 360,
+      "scrollWidth": 360
+    },
+    {
+      "path": "/bn/admin/routine/master",
+      "width": 1440,
+      "clientWidth": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "path": "/en/admin/routine/master",
+      "width": 360,
+      "clientWidth": 360,
+      "scrollWidth": 360
+    },
+    {
+      "path": "/en/admin/routine/master",
+      "width": 1440,
+      "clientWidth": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "path": "/bn/admin/routine/daily",
+      "width": 360,
+      "clientWidth": 360,
+      "scrollWidth": 360
+    },
+    {
+      "path": "/bn/admin/routine/daily",
+      "width": 1440,
+      "clientWidth": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "path": "/en/admin/routine/daily",
+      "width": 360,
+      "clientWidth": 360,
+      "scrollWidth": 360
+    },
+    {
+      "path": "/en/admin/routine/daily",
       "width": 1440,
       "clientWidth": 1440,
       "scrollWidth": 1440

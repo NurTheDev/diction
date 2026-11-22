@@ -1,2 +1,2 @@
 --- tests/nav-groups.test.ts (exit 0) ---
-Admin menu: five operator groups (daily, students, communication, reports, settings), 49 screens each in one place and pointing at a real route, both catalogues complete, and every role's visible set unchanged by the regrouping.
+Admin menu: five operator groups (daily, students, communication, reports, settings), 51 screens each in one place and pointing at a real route, both catalogues complete, and every role's visible set unchanged by the regrouping.

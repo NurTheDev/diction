@@ -1,0 +1,2 @@
+--- tests/student-money-core.test.ts (exit 0) ---
+Student money core: a pause is a range that stops the meter without forgiving the arrears before it, lifting one back-bills nothing, a move writes the class timeline and moves the roll, a price takes effect from its month and never reaches a settled one, the three doors write all of it under a lock with an audit line, and the achievement card spells its month from the catalog.

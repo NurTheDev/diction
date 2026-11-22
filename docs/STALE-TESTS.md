@@ -1,7 +1,7 @@
 # The three stale browser tests — disposition, reasons and verification
 
 Status after R0 (2026-11-12): **two repaired and kept, one retired with a written reason.**
-Supersedes the root `STALE-TESTS-REPORT.md` (now a pointer to this file).
+This file supersedes the former root `STALE-TESTS-REPORT.md`.
 
 | Test | Disposition | Can it run here? |
 | --- | --- | --- |

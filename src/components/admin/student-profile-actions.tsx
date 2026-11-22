@@ -2,9 +2,10 @@
 import {useActionState,useEffect,useRef,useState} from 'react';
 import {useRouter} from 'next/navigation';
 import {useTranslations} from 'next-intl';
-import {removeCenterStudent,setStudentHold,type CenterActionState} from '@/actions/center-students';
+import {removeCenterStudent,type CenterActionState} from '@/actions/center-students';
 import {MonthField} from './month-popover';
 import {StatusChipMenu} from './list-pattern';
+import {HoldDoor,type DoorKit} from './student-money-doors';
 import {toastOnWrite} from './recycle-toast-host';
 import type {Digits} from '@/lib/admin/format';
 
@@ -12,27 +13,26 @@ const idle:CenterActionState={status:'idle'};
 /* Removing a student files the row away from the page it was on, so the answer travels back with the
    write rather than from an effect that would never run on an unmounted form. */
 const removeWrite=toastOnWrite<CenterActionState,CenterActionState>(removeCenterStudent);
-const holdWrite=toastOnWrite<CenterActionState,CenterActionState>(setStudentHold);
 
 /** The badge a status wears: green while the student is running, amber while the fee run skips them. */
 const badge=(status:string):string=>status==='active'?'enabled':'pending';
 
 /**
  * The profile's hold door, and the pattern's: the badge IS the switch. One tap opens it, the second
- * commits, a toast answers and the page re-reads — the same two taps the list row offers, from the same
- * component, so the profile and the list cannot drift apart about what a hold is.
+ * asks the question a pause cannot be written without — which month it takes effect from, or which
+ * month the student resumes in — and the sheet commits, a toast answers and the page re-reads. It is
+ * the same sheet the list row opens, from the same component, so the profile and the list cannot drift
+ * apart about what a pause is or about what one is billed by.
  */
-export function StudentStatusChip({id,status}:{id:string;status:'active'|'on_hold'}){
-  const t=useTranslations('center'),[state,action]=useActionState(holdWrite,idle),router=useRouter();
-  useEffect(()=>{if(state.status==='ok')router.refresh()},[state,router]);
-  return <StatusChipMenu<'active'|'on_hold'> kind="student" value={status} options={['active','on_hold']}
+export function StudentStatusChip({kit,status,holdFrom}:{kit:DoorKit;status:'active'|'on_hold';
+  /** The month the open pause took effect, as `YYYY-MM`: the sheet will not offer a resume inside it. */
+  holdFrom:string}){
+  const t=useTranslations('center'),router=useRouter(),[door,setDoor]=useState<'hold'|'lift'|null>(null);
+  return <><StatusChipMenu<'active'|'on_hold'> kind="student" value={status} options={['active','on_hold']}
     labelOf={option=>t(option==='on_hold'?'onHold':'active')} badgeOf={badge} title={t('status')}
-    onPick={option=>{
-      const form=new FormData();
-      form.set('id',id);
-      form.set('hold',option==='on_hold'?'1':'');
-      action(form);
-    }}/>;
+    onPick={option=>setDoor(option==='on_hold'?'hold':'lift')}/>
+    {door&&<HoldDoor mode={door} kit={kit} holdFrom={holdFrom}
+      onDone={()=>router.refresh()} onClose={()=>setDoor(null)}/>}</>;
 }
 
 /** The profile header's Remove door: a leave month and a reason, typed by a person, before anything moves. */

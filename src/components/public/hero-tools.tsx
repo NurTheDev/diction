@@ -6,7 +6,25 @@ import {subjectValues} from '@/lib/subjects';
 import type {AnimationPlaybackControls} from 'motion';
 
 /** Native GET form works with JavaScript disabled; values are validated by the destination UI. */
-export function BatchFinder(){const locale=useLocale(),p=useTranslations('pages');const names=p.raw('subjects') as string[];const num=(n:number)=>new Intl.NumberFormat(locale==='bn'?'bn-BD':'en').format(n);return <form className="batch-finder" action={`/${locale}/courses`} method="get"><div className="batch-finder-label"><span className="batch-finder-dot"/>{p('coursesTag')}</div><div className="batch-finder-fields"><label className="batch-select"><span className="sr-only">{p('filterClass')}</span><select name="grade" defaultValue="all"><option value="all">{p('filterClass')}</option>{Array.from({length:9},(_,i)=>i+4).map(n=><option key={n} value={n}>{p('class')} {num(n)}</option>)}</select></label><label className="batch-select"><span className="sr-only">{p('filterSubject')}</span><select name="subject" defaultValue="all"><option value="all">{p('filterSubject')}</option>{names.map((name,i)=><option value={subjectValues[i]} key={subjectValues[i]}>{name}</option>)}</select></label><button className="batch-find-button" type="submit">{p('explore')} <ArrowRight size={16}/></button></div></form>}
+export function BatchFinder(){
+ const locale=useLocale(),p=useTranslations('pages');
+ const names=p.raw('subjects') as string[];
+ const num=(n:number)=>new Intl.NumberFormat(locale==='bn'?'bn-BD':'en').format(n);
+ const gradeOptions=[{key:'all',value:'all',label:p('filterClass')},...Array.from({length:9},(_,i)=>i+4).map(n=>({key:`grade-${n}`,value:String(n),label:`${p('class')} ${num(n)}`}))];
+ const subjectOptions=[{key:'all',value:'all',label:p('filterSubject')},...subjectValues.map((value,i)=>({key:`subject-${value}`,value,label:names[i]??value}))];
+ return <form className="batch-finder" action={`/${locale}/courses`} method="get">
+  <div className="batch-finder-label"><span className="batch-finder-dot"/>{p('coursesTag')}</div>
+  <div className="batch-finder-fields">
+   <label className="batch-select"><span className="sr-only">{p('filterClass')}</span>
+    <select name="grade" defaultValue="all">{gradeOptions.map(option=><option key={option.key} value={option.value}>{option.label}</option>)}</select>
+   </label>
+   <label className="batch-select"><span className="sr-only">{p('filterSubject')}</span>
+    <select name="subject" defaultValue="all">{subjectOptions.map(option=><option key={option.key} value={option.value}>{option.label}</option>)}</select>
+   </label>
+   <button className="batch-find-button" type="submit">{p('explore')} <ArrowRight size={16}/></button>
+  </div>
+ </form>;
+}
 
 /** The normal link is the fallback before hydration and without JavaScript. */
 export function HeroVideo({videoId}:{videoId:string|null}){const t=useTranslations('pages'),v=useTranslations('channelVideo');const locale=useLocale();const dialog=useRef<HTMLDialogElement>(null);const [playing,setPlaying]=useState(false);function open(e:React.MouseEvent<HTMLAnchorElement>){if(!videoId)return;e.preventDefault();setPlaying(true);dialog.current?.showModal()}return <><a className="button hero-demo-link" href={`/${locale}/demo-classes`} onClick={open}><span className="hero-play-icon"><Play size={15} fill="currentColor"/></span>{t('homeDemoButton')} <ArrowRight size={16}/></a><dialog className="hero-video-dialog" ref={dialog} onClose={()=>setPlaying(false)} aria-label={t('homeDemoButton')}><div className="hero-video-dialog-head"><strong>{t('homeDemoButton')}</strong><button type="button" onClick={()=>dialog.current?.close()} aria-label={t('close')}><X size={20}/></button></div>{playing&&videoId&&<div className="hero-video-player"><iframe title={t('homeDemoButton')} src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1`} allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen referrerPolicy="strict-origin-when-cross-origin"/></div>}<p>{v('privacy')}</p></dialog></>}

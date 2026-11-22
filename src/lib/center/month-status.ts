@@ -18,5 +18,10 @@ export function monthStatus({month,startMonth,feeHistory,holds=[],paid=0,waived=
  if(paid>=fee)return {status:'PAID',...base};if(overdue)return {status:'DUE',...base};if(paid>0)return {status:'PARTIAL',...base};
  if(target>key(today))return {status:'UPCOMING',...base};return {status:'PENDING',...base};
 }
-/** On-hold students' earlier dues still exist, but due-list/SMS defaults exclude them. */
+/**
+ * Who a *fee* message is composed for: the students the centre is running. A paused student's earlier
+ * arrears still exist and still show on the dues screens — F-01 stopped a pause from forgiving them —
+ * but a paused student is not sent a demand for money, so the default audience for a fee message stays
+ * the running roll. `src/lib/center/sms-recipients.ts` enforces the same rule per student.
+ */
 export function includeInDefaultDueList(status:'active'|'on_hold'|'removed'){return status==='active'}

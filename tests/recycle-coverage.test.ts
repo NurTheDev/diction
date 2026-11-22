@@ -22,19 +22,22 @@ import {Exam,Result,Attendance,Student as AcademicStudent} from '../src/models/A
 import {ModelTest,TestAttempt} from '../src/models/ModelTest';
 import {AdminAudit} from '../src/models/AdminAudit';
 import {TeacherCandidate} from '../src/models/TeacherCandidate';
+import {DailyRoutine,MasterRoutine,TeachingAssignment} from '../src/models/Routine';
 import {recycleKinds,archivableKinds,canArchiveKind} from '../src/lib/admin/recycle-kinds';
 import {recycleRegistry} from '../src/lib/admin/recycle';
 import {kindSchema} from '../src/lib/admin/recycle-kinds';
 
-// 1. The twenty-three schemas that carry deletedAt / deletedBy / purgeAt. TeacherCandidate joined in
+// 1. The twenty-six schemas that carry deletedAt / deletedBy / purgeAt. TeacherCandidate joined in
 //    R4: a CV is a private record, so it bins without any public route and without an archive state.
-const participating=[['Editorial',Editorial],['Course',Course],['LearningMaterial',LearningMaterial],['MediaFile',MediaFile],['PortalNotice',PortalNotice],['FAQContent',FAQContent],['FacilityContent',FacilityContent],['AchievementRecord',AchievementRecord],['PracticeTest',PracticeTest],['PublicSheet',PublicSheet],['CenterClassGroup',CenterClassGroup],['CenterExam',CenterExam],['Admission',Admission],['Slot',Slot],['TrialBooking',TrialBooking],['ContactMessage',ContactMessage],['HeroBanner',HeroBanner],['TeacherContent',TeacherContent],['User',User],['Exam',Exam],['ModelTest',ModelTest],['Lead',Lead],['TeacherCandidate',TeacherCandidate]] as const;
-assert.equal(participating.length,23);
+//    R9 added the class routine's three types — a day of the master week, a date's working sheet and a
+//    teaching assignment — which bin the same way and have no public route either.
+const participating=[['Editorial',Editorial],['Course',Course],['LearningMaterial',LearningMaterial],['MediaFile',MediaFile],['PortalNotice',PortalNotice],['FAQContent',FAQContent],['FacilityContent',FacilityContent],['AchievementRecord',AchievementRecord],['PracticeTest',PracticeTest],['PublicSheet',PublicSheet],['CenterClassGroup',CenterClassGroup],['CenterExam',CenterExam],['Admission',Admission],['Slot',Slot],['TrialBooking',TrialBooking],['ContactMessage',ContactMessage],['HeroBanner',HeroBanner],['TeacherContent',TeacherContent],['User',User],['Exam',Exam],['ModelTest',ModelTest],['Lead',Lead],['TeacherCandidate',TeacherCandidate],['MasterRoutine',MasterRoutine],['DailyRoutine',DailyRoutine],['TeachingAssignment',TeachingAssignment]] as const;
+assert.equal(participating.length,26);
 for(const [name,model] of participating){
   assert.ok((model.schema as any).path('deletedAt'),`${name} has deletedAt`);
   assert.ok((model.schema as any).path('purgeAt'),`${name} has purgeAt`);
 }
-assert.deepEqual(participating.map(([n])=>n).sort(),recycleRegistry.map(entry=>({editorial:'Editorial',course:'Course',material:'LearningMaterial',media:'MediaFile',portalNotice:'PortalNotice',faq:'FAQContent',facility:'FacilityContent',achievementRecord:'AchievementRecord',practiceTest:'PracticeTest',publicSheet:'PublicSheet',classGroup:'CenterClassGroup',centerExam:'CenterExam',slot:'Slot',trialBooking:'TrialBooking',admission:'Admission',contactMessage:'ContactMessage',heroBanner:'HeroBanner',teacher:'TeacherContent',portalAccount:'User',exam:'Exam',modelTest:'ModelTest',lead:'Lead',teacherCandidate:'TeacherCandidate'}[entry.kind])).sort(),'the registry and the schemas are the same twenty-three types');
+assert.deepEqual(participating.map(([n])=>n).sort(),recycleRegistry.map(entry=>({editorial:'Editorial',course:'Course',material:'LearningMaterial',media:'MediaFile',portalNotice:'PortalNotice',faq:'FAQContent',facility:'FacilityContent',achievementRecord:'AchievementRecord',practiceTest:'PracticeTest',publicSheet:'PublicSheet',classGroup:'CenterClassGroup',centerExam:'CenterExam',slot:'Slot',trialBooking:'TrialBooking',admission:'Admission',contactMessage:'ContactMessage',heroBanner:'HeroBanner',teacher:'TeacherContent',portalAccount:'User',exam:'Exam',modelTest:'ModelTest',lead:'Lead',teacherCandidate:'TeacherCandidate',masterRoutine:'MasterRoutine',dailyRoutine:'DailyRoutine',teachingAssignment:'TeachingAssignment'}[entry.kind])).sort(),'the registry and the schemas are the same twenty-six types');
 
 // 2. Financial, audit and student records are NOT auto-hidden: they have no deletedAt at all, so
 //    the rule cannot touch them. Students keep their own removed status; payments are voided.
@@ -60,7 +63,7 @@ for(const kind of ['editorial','course','faq','facility','achievementRecord','pr
   const def=recycleRegistry.find(entry=>entry.kind===kind)!;
   assert.equal(typeof def.publicPaths,'function',`${kind} revalidates its public routes`);
 }
-for(const kind of ['material','media','portalNotice','classGroup','centerExam','trialBooking','admission','contactMessage','portalAccount','exam','modelTest','teacherCandidate'] as const){
+for(const kind of ['material','media','portalNotice','classGroup','centerExam','trialBooking','admission','contactMessage','portalAccount','exam','modelTest','teacherCandidate','masterRoutine','dailyRoutine','teachingAssignment'] as const){
   const def=recycleRegistry.find(entry=>entry.kind===kind)!;
   assert.equal(def.publicPaths,undefined,`${kind} has no public page to revalidate`);
 }
@@ -89,4 +92,4 @@ assert.ok(milestonePath?.schema?.path('purgeAt'),'milestones carry purgeAt');
 for(const kind of archivableKinds)assert.equal(canArchiveKind(kind),true,`${kind} can be archived`);
 for(const kind of recycleKinds.filter(k=>!(archivableKinds as readonly string[]).includes(k)))assert.equal(canArchiveKind(kind),false,`${kind} has no archive path`);
 
-console.log('Recycle coverage: 23 schemas carry the bin fields; 15 financial/audit/student types cannot be hidden; find/findOne/count/distinct/findOneAnd*/update*/delete*/aggregate/bulkWrite are covered; estimatedDocumentCount is the documented exception; public kinds revalidate their routes; the client kind lists match the registry.');
+console.log('Recycle coverage: 26 schemas carry the bin fields; 15 financial/audit/student types cannot be hidden; find/findOne/count/distinct/findOneAnd*/update*/delete*/aggregate/bulkWrite are covered; estimatedDocumentCount is the documented exception; public kinds revalidate their routes; the client kind lists match the registry.');

@@ -1,0 +1,2 @@
+--- tests/admin-nav-results.test.ts (exit 0) ---
+Exam doors: the legacy "ফলাফল" item is gone from the menu, one item — পরীক্ষা ও ফলাফল — leads to the exam hub, /admin/exams and /admin/overview/results both forward to it in the reader's own language, the sidebar folds the exam items by one list, and the class and batch screen has its own gated door at /admin/classes.

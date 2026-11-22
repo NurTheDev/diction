@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import {siteSettingsSchema,validSocial} from '../src/schemas/site-settings';
-const base={nameBn:'ডিকশন কোচিং সেন্টার',nameEn:'Diction Coaching Center',addressBn:'ঢাকা, বাংলাদেশ',addressEn:'Dhaka, Bangladesh',logoUrl:'/brand/logo.png',facebook:'https://www.facebook.com/Dictioncoachingcenter',youtube:'https://www.youtube.com/@DictionCoaching'};
+const base={nameBn:'ডিকশন কোচিং সেন্টার',nameEn:'Diction Coaching Center',addressBn:'ঢাকা, বাংলাদেশ',addressEn:'Dhaka, Bangladesh',phone:'01684606304',logoUrl:'/brand/logo.png',facebook:'https://www.facebook.com/Dictioncoachingcenter',youtube:'https://www.youtube.com/@DictionCoaching'};
 assert.equal(siteSettingsSchema.safeParse(base).success,true);
+assert.equal(siteSettingsSchema.safeParse({...base,phone:'+8801684606304'}).success,true);
+assert.equal(siteSettingsSchema.safeParse({...base,phone:'12345'}).success,false);
+assert.equal(siteSettingsSchema.safeParse({...base,phone:undefined}).success,false);
 assert.equal(siteSettingsSchema.safeParse({...base,logoUrl:'https://evil.example/logo.png'}).success,false);
 assert.equal(validSocial('https://facebook.com.evil.example/page','facebook'),false);
 assert.equal(validSocial('https://user@facebook.com/page','facebook'),false);

@@ -1,0 +1,2 @@
+--- tests/exam-grading-percentage.test.ts (exit 0) ---
+Percentage grading: the owner's seven bands, 25 of 30 an A+, 38 of 50 an A, 8 of 20 a C, every full mark from 20 to 100, every boundary, components added before the share is taken, and absence and a failed subject still outranking it — passed.

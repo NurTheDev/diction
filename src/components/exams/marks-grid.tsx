@@ -24,7 +24,8 @@
  *   • **Totals, grades and positions update as the teacher types**, from the same engine the server uses
  *     (`lib/exams/grading`), so the number on screen while marking is the number that will be stored.
  */
-import {useCallback,useEffect,useMemo,useRef,useState,useTransition,type ClipboardEvent,type KeyboardEvent} from 'react';
+import {useCallback,useEffect,useMemo,useRef,useState,useTransition,
+  type ClipboardEvent,type KeyboardEvent,type ReactNode} from 'react';
 import {useRouter} from 'next/navigation';
 import {useTranslations} from 'next-intl';
 import {formatNumber,inDigits,type Digits} from '@/lib/admin/format';
@@ -32,11 +33,19 @@ import {calculateResult,classSummary,positionOf,type ExamSubject,type MarkEntry,
 import {readMarkCell,parsePastedBlock} from '@/lib/exams/grid';
 import {isAbsentToken} from '@/lib/exams/vocab';
 import {saveMarksBatchAction,previewMarksAction,commitMarksAction} from '@/actions/center-exams';
+import {SubmitButton} from '@/components/admin/submit-button';
+/* The bus, not the host: this grid is also rendered on a teacher's own exam page, which ships the
+   `exams` catalog alone and carries no host — see `admin/toast-bus.ts`. */
+import {showRecycleToast} from '@/components/admin/toast-bus';
 import type {ExamState,MarksImportState,GridRow} from '@/lib/exams/exam-state';
 
 export interface GridSubject{id:string;name:string;full:number;pass:number;parts:{name:string;marks:number}[]}
 export interface GridStudent{
-  id:string;name:string;studentId:string;version:number;
+  id:string;name:string;studentId:string;
+  /** The roll the class knows the child by. It is the first column of the grid and the order it is in:
+      a teacher marking from a paper roll reads down a column of numbers, not a column of names. */
+  roll:string;
+  version:number;
   marks:Record<string,{obtained:number|null;absent:boolean;parts?:{name:string;obtained:number|null}[]}>;
 }
 /** One typed component score, as text: blank is untouched, digits are a mark. Keyed student::subject, then slot. */
@@ -131,13 +140,27 @@ function CellErrors({errors,digits}:{errors:CellErrors;digits:Digits}){
   </ul>;
 }
 
-export function MarksGrid({examId,subjects,students,bands,canWrite,digits,published}:{
+export function MarksGrid({examId,subjects,students,bands,canWrite,digits,published,importDoor}:{
   examId:string;subjects:GridSubject[];students:GridStudent[];
   bands:{min:number;label:string;point:number}[];canWrite:boolean;digits:Digits;published:boolean;
+  /** The upload door, handed in by the panel so the grid can offer it where the grid's own tools are —
+      one fold in the bar above the table, never a step anybody has to take. */
+  importDoor?:ReactNode;
 }){
   const t=useTranslations('exams');
   const router=useRouter();
   const table=useRef<HTMLTableElement|null>(null);
+  /* Whether the save about to happen is one an operator asked for by pressing the button. The grid also
+     saves itself as a burst of typing settles, and its own status line says so; a corner message for
+     every one of those would cover the grid the operator is reading. So the toast is raised for the
+     write somebody is waiting on, and the autosave keeps its line.
+
+     The toast lands in the admin shell, which carries the host that paints it. A teacher's own exam page
+     ships the `exams` catalog alone — no admin copy, not even in the bytes behind the visible ones — so
+     there is no host there and the grid's own status line is the answer, which is the same sentence. */
+  const asked=useRef(false);
+  /** One save at a time: a second request with the same row versions is refused as stale, and the operator is told nothing was saved. */
+  const inFlight=useRef(false);
   const [cells,setCells]=useState<Cells>(()=>initialCells(students,subjects));
   const [partCells,setPartCells]=useState<PartCells>(()=>initialPartCells(students,subjects));
   const columns=useMemo(()=>columnsOf(subjects),[subjects]);
@@ -252,7 +275,7 @@ export function MarksGrid({examId,subjects,students,bands,canWrite,digits,publis
   },[subjects,students]);
 
   const save=useCallback(async()=>{
-    if(!editable)return;
+    if(!editable||inFlight.current)return;
     const ids=Object.keys(dirty).filter(id=>dirty[id]);
     if(!ids.length)return;
     const rows:GridRow[]=[];
@@ -279,8 +302,9 @@ export function MarksGrid({examId,subjects,students,bands,canWrite,digits,publis
     form.set('exam',examId);
     form.set('rows',JSON.stringify(rows));
     let outcome:ExamState={status:'idle'};
+    inFlight.current=true;
     startTransition(async()=>{
-      outcome=await saveMarksBatchAction({status:'idle'},form);
+      try{outcome=await saveMarksBatchAction({status:'idle'},form)}finally{inFlight.current=false}
       const savedIds=rows.filter(row=>!(outcome.refusals||[]).some(refusal=>refusal.studentId===row.studentId)).map(row=>row.studentId);
       setVersions(current=>{
         const next={...current};
@@ -298,12 +322,20 @@ export function MarksGrid({examId,subjects,students,bands,canWrite,digits,publis
         return next;
       });
       const staleCount=(outcome.refusals||[]).length;
-      setStatus(staleCount
-        ? {key:'grid.status.partial',params:{saved:outcome.saved??0,refused:staleCount}}
-        : {key:'grid.status.saved',params:{saved:outcome.saved??rows.length}});
+      const key=staleCount?'grid.status.partial':'grid.status.saved';
+      const params:Record<string,string|number>=staleCount
+        ? {saved:outcome.saved??0,refused:staleCount}:{saved:outcome.saved??rows.length};
+      setStatus({key,params});
+      const sentence=t(key,inDigits(digits)(params));
+      if(asked.current){
+        asked.current=false;
+        showRecycleToast(staleCount
+          ? {state:{status:'error'},success:'',error:sentence}
+          : {state:{status:'ok'},success:sentence,error:''});
+      }
       router.refresh();
     });
-  },[cells,partCells,dirty,editable,examId,router,subjects,versions]);
+  },[cells,partCells,digits,dirty,editable,examId,router,subjects,t,versions]);
 
   // Debounced autosave: one request for a burst of typing, and never while a save is in flight.
   useEffect(()=>{
@@ -406,18 +438,45 @@ export function MarksGrid({examId,subjects,students,bands,canWrite,digits,publis
 
   const summary=live.summary;
   const number=(value:number|null):string=>value===null?'—':formatNumber(Math.round(value*10)/10,digits);
+  /**
+   * One row's state, in the order an operator would ask about it: a row somebody else has changed
+   * outranks everything (this grid will not overwrite it), absence outranks the marks, a row this
+   * browser has not sent yet says so, a complete row says it is saved, and a row with something typed
+   * but a hole in it says it is incomplete rather than looking finished.
+   */
+  const rowStatus=(student:GridStudent,row?:GridLive['rows'][number]):{value:string;key:string}=>{
+    if(stale[student.id])return {value:'stale',key:'grid.rowStale'};
+    if(row?.absent)return {value:'absent',key:'grid.rowAbsent'};
+    if(dirty[student.id])return {value:'unsaved',key:'grid.rowUnsaved'};
+    if(row?.complete)return {value:'saved',key:'grid.rowSaved'};
+    const typed=subjects.some(subject=>String((cells[student.id]||{})[subject.id]||'').trim()!=='');
+    return typed?{value:'incomplete',key:'grid.rowIncomplete'}:{value:'empty',key:'grid.rowEmpty'};
+  };
   if(!students.length)return <p className="admin-help" data-grid-empty>{t('grid.noStudents')}</p>;
   return <div className="center-exam-gridwrap" data-exam-grid data-editable={editable?'yes':'no'}>
     <div className="center-exam-gridbar">
       <p className="admin-help">{editable?t('grid.help'):t('grid.readOnly')}</p>
-      {editable&&<button type="button" className="admin-mini-button" data-grid-save onClick={()=>{void save()}} disabled={pending||!dirtyIds.length}>
-        {t('grid.saveNow')}{dirtyIds.length?` (${formatNumber(dirtyIds.length,digits)})`:''}
-      </button>}
+      {/* A save in flight is a disabled button with a spinner and the word "saving" on it: the grid
+          autosaves as well, and an operator who cannot see the write is an operator who clicks again. */}
+      {editable&&<SubmitButton type="button" className="admin-mini-button" data-grid-save
+        onClick={()=>{asked.current=true;void save()}} disabled={!dirtyIds.length} pending={pending}
+        busyLabel={t('grid.saving')}
+        label={<>{t('grid.saveNow')}{dirtyIds.length?` (${formatNumber(dirtyIds.length,digits)})`:''}</>}/>}
       <span className="admin-help" data-grid-status role="status">{pending?t('grid.status.savingShort'):status?t(status.key,inDigits(digits)(status.params)):dirtyIds.length?t('grid.status.unsaved',{count:formatNumber(dirtyIds.length,digits)}):''}</span>
+      {/* A spreadsheet is a second door, not the door: it stays folded until an operator opens it, and
+          the grid above is complete and writable without it. */}
+      {importDoor&&<details className="center-exam-importfold" data-import-fold>
+        <summary className="admin-mini-button" data-grid-import-toggle>{t('grid.importToggle')}</summary>
+        <div className="center-exam-importfold-body">
+          <p className="admin-help" data-grid-import-help>{t('grid.importToggleHelp')}</p>
+          {importDoor}
+        </div>
+      </details>}
     </div>
     <div className="admin-table-wrap"><table className="center-exam-grid" ref={table} onPaste={onPaste} data-grid-table>
       <caption>{t('grid.caption')}</caption>
       <thead><tr>
+        <th scope="col">{t('col.roll')}</th>
         <th scope="col">{t('col.student')}</th>
         {columns.map(column=>{
           const subject=subjects.find(entry=>entry.id===column.subject);
@@ -433,10 +492,12 @@ export function MarksGrid({examId,subjects,students,bands,canWrite,digits,publis
         <th scope="col">{t('col.total')}</th><th scope="col">{t('col.percentage')}</th>
         <th scope="col">{t('col.grade')}</th><th scope="col">{t('col.point')}</th><th scope="col">{t('col.rank')}</th>
         {editable&&<th scope="col">{t('col.absent')}</th>}
+        <th scope="col">{t('col.status')}</th>
       </tr></thead>
       <tbody>{students.map((student,rowIndex)=>{
         const row=live.rows.find(entry=>entry.studentId===student.id);
         return <tr key={student.id} data-row={student.id} data-row-stale={stale[student.id]?'true':undefined} data-row-dirty={dirty[student.id]?'true':undefined}>
+          <td data-cell-roll>{student.roll||'—'}</td>
           <th scope="row">{student.name}<small>{student.studentId}</small></th>
           {columns.map((column,columnIndex)=>{
             const subject=subjects.find(entry=>entry.id===column.subject);
@@ -474,10 +535,13 @@ export function MarksGrid({examId,subjects,students,bands,canWrite,digits,publis
           <td data-cell-point>{row?.point?formatNumber(row.point,digits):'—'}</td>
           <td data-cell-position>{row?.position?formatNumber(row.position,digits):'—'}</td>
           {editable&&<td><button type="button" className="admin-mini-button" data-absent-row={student.id} aria-pressed={subjects.every(subject=>isAbsentToken((cells[student.id]||{})[subject.id]||''))} onClick={()=>toggleRowAbsent(student.id)}>{t('grid.absentToggle')}</button></td>}
+          {/* Where this row stands, said in one word: the grid autosaves, so "not saved yet" and "saved"
+              are facts an operator has to be able to read without watching the bar above the table. */}
+          <td data-cell-status={rowStatus(student,row).value}>{t(rowStatus(student,row).key)}</td>
         </tr>;
       })}</tbody>
       <tfoot><tr>
-        <th scope="row">{t('summary.title')}</th>
+        <th scope="row" colSpan={2}>{t('summary.title')}</th>
         {/* One average per SUBJECT, not per column: a subject split into components gets one cell that
             spans its own columns, so the footer lines up with a body that has a column per component.
             A footer counted in subjects under a body counted in columns is a summary printed under the
@@ -490,7 +554,7 @@ export function MarksGrid({examId,subjects,students,bands,canWrite,digits,publis
           return <td key={`${subject.id}:${column.part}`} colSpan={column.part===null?1:Math.max(1,subject.parts.length)}
             data-summary-subject={subject.id} title={t('summary.subjectAverage')}>{number(row?.average??null)}</td>;
         })}
-        <td colSpan={5+(editable?1:0)} data-summary-foot>{t('summary.average')}: {number(summary.average)} · {t('summary.passRate')}: {summary.passRate===null?'—':`${formatNumber(summary.passRate,digits)}%`} · {t('summary.counted')}: {formatNumber(summary.counted,digits)}</td>
+        <td colSpan={6+(editable?1:0)} data-summary-foot>{t('summary.average')}: {number(summary.average)} · {t('summary.passRate')}: {summary.passRate===null?'—':`${formatNumber(summary.passRate,digits)}%`} · {t('summary.counted')}: {formatNumber(summary.counted,digits)}</td>
       </tr></tfoot>
     </table></div>
     <CellErrors errors={errors} digits={digits}/>
@@ -573,7 +637,10 @@ export function ExamMarksPanel({examId,subjects,students,bands,canWrite,digits,p
   const router=useRouter();
   const [reload,setReload]=useState(0);
   return <div className="center-exam-panel">
-    <MarksGrid key={reload} examId={examId} subjects={subjects} students={students} bands={bands} canWrite={canWrite} digits={digits} published={published}/>
-    {!published&&canWrite&&<MarksImport examId={examId} digits={digits} onImported={()=>{setReload(count=>count+1);router.refresh()}}/>}
+    <MarksGrid key={reload} examId={examId} subjects={subjects} students={students} bands={bands}
+      canWrite={canWrite} digits={digits} published={published}
+      importDoor={!published&&canWrite
+        ? <MarksImport examId={examId} digits={digits} onImported={()=>{setReload(count=>count+1);router.refresh()}}/>
+        : null}/>
   </div>;
 }

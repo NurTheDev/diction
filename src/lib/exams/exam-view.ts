@@ -15,6 +15,7 @@ import mongoose from 'mongoose';
 import {CenterClassGroup,CenterExam,CenterExamResult,CenterGradingScale,CenterStudent} from '../../models/CenterRecords';
 import {scopeClasses,scopeCoversClass,type ExamScope} from './exam-scope';
 import {classSummary,positionOf,type ClassSummary,type SummaryRow} from './grading';
+import {asciiDigits,formatNumber} from '../admin/format';
 import {resultMessage,type ResultMessageValues} from './result-message';
 
 /** A class group as a screen names it: the name in the page's language plus the session year. */
@@ -65,6 +66,33 @@ export interface ExamDetailView{
 export const MAX_GRID_ROWS=500;
 
 /**
+ * The roll a class list is read by, as a number — or `null` when the roll is not one.
+ *
+ * Rolls are typed by whoever keeps the register, so the same column holds `7`, `৭`, `০৭`, `7-A` and
+ * blanks. A plain sort of those strings puts roll ১০ above roll ২, which is not how a teacher reads a
+ * class; so digits are read as digits (in either script) and a number is taken from the front of the
+ * string. A roll that begins with something else stays a string and sorts after every number, by name —
+ * still in one place on the sheet, just not pretending to be a number it is not.
+ */
+export function rollOrder(roll:string):number|null{
+  const lead=/^\s*0*(\d+)/.exec(asciiDigits(String(roll||'')));
+  return lead?Number(lead[1]):null;
+}
+
+/**
+ * The order a marks grid is walked in: roll first, because a paper roll is numbered; then the name,
+ * so two children who share a roll number (or who have none) still arrive in the same order every time.
+ */
+export function compareRoster(a:{roll?:string;name:string},b:{roll?:string;name:string}):number{
+  const one=rollOrder(a.roll||''),two=rollOrder(b.roll||'');
+  if(one!==null&&two!==null&&one!==two)return one-two;
+  if(one!==null&&two===null)return -1;
+  if(one===null&&two!==null)return 1;
+  const name=String(a.name||'').localeCompare(String(b.name||''),'bn');
+  return name!==0?name:String(a.roll||'').localeCompare(String(b.roll||''),'bn');
+}
+
+/**
  * One exam as one screen shows it.
  *
  * Returns `null` when the exam does not exist or this actor may not see a single one of its classes —
@@ -78,6 +106,8 @@ export async function examDetailView(examId:string,scope:ExamScope,locale:string
   const classIds=visibleClasses(scope,exam.classGroups);
   if(!classIds.length)return null;
   const groups=await CenterClassGroup.find({_id:{$in:classIds}}).select('name academicYear shift').lean<{_id:mongoose.Types.ObjectId;name:{bn:string;en?:string};academicYear:number;shift?:string}[]>();
+  /* The class list arrives in roll order, because that is the order the grid is marked in — see
+     `compareRoster` for what a roll that is not a number does. */
   const students=await CenterStudent.find({classGroup:{$in:classIds},status:'active'}).select('studentId name roll classGroup')
     .sort({'name.bn':1,_id:1}).limit(MAX_GRID_ROWS+1).lean<StudentDoc[]>();
   const results=await CenterExamResult.find({exam:exam._id,classGroup:{$in:classIds}})
@@ -88,7 +118,9 @@ export async function examDetailView(examId:string,scope:ExamScope,locale:string
     parts:(subject.parts||[]).map(part=>({name:localName(part.name,locale),marks:part.marks})),
   }));
   const byResult=new Map(results.map(row=>[String(row.student),row]));
-  const viewStudents:ViewStudent[]=students.map(student=>{
+  const viewStudents:ViewStudent[]=[...students].sort((a,b)=>compareRoster(
+    {roll:String(a.roll||''),name:localName(a.name,locale)},{roll:String(b.roll||''),name:localName(b.name,locale)}),
+  ).map(student=>{
     const row=byResult.get(String(student._id));
     return {
       id:String(student._id),name:localName(student.name,locale),studentId:String(student.studentId||''),
@@ -113,7 +145,7 @@ export async function examDetailView(examId:string,scope:ExamScope,locale:string
   return {
     id:String(exam._id),name:localName(exam.name,locale),type:exam.type,date:exam.date,status:exam.status,
     scaleName:String(exam.scaleName||''),
-    classes:groups.map(group=>({id:String(group._id),name:`${localName(group.name,locale)}${group.shift?` · ${group.shift}`:''} · ${group.academicYear}`})),
+    classes:groups.map(group=>({id:String(group._id),name:`${localName(group.name,locale)}${group.shift?` · ${group.shift}`:''} · ${formatNumber(group.academicYear,locale==='en'?'en':'bn')}`})),
     subjects,
     bands:[...exam.gradeBands].sort((a,b)=>b.min-a.min).map(band=>({min:band.min,label:band.label,point:band.point??0})),
     students:viewStudents,results:viewResults,summary:classSummary(summaryRows,subjects.map(subject=>({id:subject.id,full:subject.full,pass:subject.pass})),viewStudents.length),
@@ -150,7 +182,7 @@ export async function examListView(scope:ExamScope,filters:ExamListFilters,page:
   const groups=ids.length
     ? await CenterClassGroup.find({_id:{$in:ids}}).select('name academicYear').lean<{_id:mongoose.Types.ObjectId;name:{bn:string;en?:string};academicYear:number}[]>()
     : [];
-  const names=new Map(groups.map(group=>[String(group._id),`${localName(group.name,locale)} ${group.academicYear}`.trim()]));
+  const names=new Map(groups.map(group=>[String(group._id),`${localName(group.name,locale)} ${formatNumber(group.academicYear,locale==='en'?'en':'bn')}`.trim()]));
   const counts=new Map(
     (await CenterExamResult.aggregate<{_id:mongoose.Types.ObjectId;count:number}>([
       {$match:{exam:{$in:docs.map(doc=>doc._id)}}},{$group:{_id:'$exam',count:{$sum:1}}},

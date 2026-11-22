@@ -33,6 +33,11 @@ const shortNames=(language:Language):string[]=>{
  * `notAfter` switch off the months the rule layer would refuse anyway — a resume month that is not
  * after the leave month, a leave month in a future nobody has paid for — so the operator is stopped
  * by a dead button rather than by an error after a submit.
+ *
+ * Read the two bounds as the first month that IS allowed and the last one: the month `notBefore`
+ * names stays live and every month before it goes dead. A caller whose rule refuses a month — S2 ·
+ * F-13 refuses the month a student was removed in — therefore hands over the month after it, which
+ * is what `monthAfterWord` in `lib/center/student-changes` gives it.
  */
 export function MonthPopover({onPick,digits,language,label,notBefore,notAfter}:{
   onPick:(value:string)=>void;digits:Digits;language:Language;label:ReactNode;notBefore?:string;notAfter?:string;

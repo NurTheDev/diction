@@ -41,3 +41,15 @@ export async function getStaffPermission(permission:StaffPermission){const user=
 export async function getListAccess(permission:StaffPermission){const user=await getStaff();if(!user)return null;return user.role==='staff'?user:getStaffPermission(permission)}
 export async function requireListAccess(permission:StaffPermission){const user=await getListAccess(permission);if(!user)throw new Error('UNAUTHORIZED');return user}
 export async function requireStaffPermission(permission:StaffPermission){const user=await getStaffPermission(permission);if(!user)throw new Error('UNAUTHORIZED');return user}
+
+/** The page forms of the gates below: a role that may not open a screen is sent to the Overview (which
+ *  routes every role to a screen it may open) instead of the error boundary that blames the database. */
+async function orOverview<T>(user:T|null):Promise<T>{
+  if(user)return user;
+  let locale='bn';
+  try{locale=await getLocale()}catch{/* outside a request the fallback is the default locale */}
+  redirect(`/${locale}/admin`);
+}
+export async function requireArchiverPage(){return orOverview(await getArchiver())}
+export async function requireListAccessPage(permission:StaffPermission){return orOverview(await getListAccess(permission))}
+export async function requireStaffPermissionPage(permission:StaffPermission){return orOverview(await getStaffPermission(permission))}

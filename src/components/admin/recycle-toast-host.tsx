@@ -1,11 +1,14 @@
 'use client';
 import {useEffect,useState} from 'react';
-import {ActionFeedback,type FeedbackAction} from './action-feedback';
-import type {ActionState} from '@/actions/admin';
+import {ActionFeedback} from './action-feedback';
+import {RECYCLE_TOAST_EVENT,showRecycleToast,type RecycleToast} from './toast-bus';
 
-export type RecycleToast={id:number;state:ActionState;success:string;error:string;conflict?:string;actions?:FeedbackAction[]};
-export const RECYCLE_TOAST_EVENT='recycle:toast';
-let sequence=0;
+/* Raised from `./toast-bus`, which holds no vocabulary of its own: a screen that ships one catalog group
+   may import the bus without dragging this host's words into its payload, and a portal page that carries
+   no host simply hears nothing. Both names stay exported here, because every control that raises a toast
+   has always imported them from the host. */
+export {showRecycleToast,RECYCLE_TOAST_EVENT};
+export type {RecycleToast};
 
 /**
  * The toast lives here, in the admin layout, rather than inside the row that raised it: a successful
@@ -13,11 +16,6 @@ let sequence=0;
  * take the 10-second Undo window with it. Any control can raise a toast, and its action callbacks
  * survive the row they came from.
  */
-export function showRecycleToast(toast:Omit<RecycleToast,'id'>):void{
-  if(typeof document==='undefined')return;
-  sequence+=1;
-  document.dispatchEvent(new CustomEvent<RecycleToast>(RECYCLE_TOAST_EVENT,{detail:{...toast,id:sequence}}));
-}
 
 /**
  * Wrap a form action so its answer is raised the moment the write resolves — as a plain call on the way

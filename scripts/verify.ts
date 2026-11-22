@@ -409,6 +409,36 @@ async function main():Promise<void>{
        the screens: an owner does not take a snapshot, enable a write or reconcile. So the copy proof is
        the catalog scan that fails on those three words in either language, beside the parity scan that
        says every sentence these five screens paint lives in both catalogs and in no route file. */
+    await stepUnitSuites(ctx,'test:r9:fields','R9.7','Every field the routine schema holds is editable: each path of MasterRoutine, DailyRoutine and TeachingAssignment bound to a named control, the system\u2019s own paths left read-only, the covered count asserted');
+    await stepUnitSuites(ctx,'test:r9:copy','R9.8','The routine\u2019s words belong to the catalogs: every key the routine screens paint resolves in bn.json and en.json, both catalogs whole, no hardcoded pair or line of Bangla in a route file');
+    /* O1 · operational polish. Six rows, each its own script because each names a different claim: the
+       routine's own arithmetic, the percentage a grade is read from, the grid a mark is typed into, the
+       button every write goes through, the one door to exams and results, and the class a roll hangs
+       from. The two browser rows below are proved by one suite, run once. */
+    await stepUnitSuites(ctx,'test:o1:time','O1.1','A period is as long as the centre says and the next one starts where the last one ended: presets, custom lengths, the 23:55 clamp, every five-minute step, the paper shifts and the chain seed');
+    await stepUnitSuites(ctx,'test:o1:grading','O1.2','A grade is a percentage of whatever the full marks happen to be: 25/30 an A+, 38/50 an A, 8/20 a C, every band edge, and no hard-coded 100 anywhere');
+    await stepUnitSuites(ctx,'test:o1:grid','O1.3','The marks grid is a grid an operator types into: roll order read as numbers, every enrolled child painted, Enter down and Tab across, the import one folded button');
+    await stepUnitSuites(ctx,'test:o1:feedback','O1.4','Every write says it is writing and is answered top-right: one button behind fourteen controls, one skeleton above every admin address, and a toast for every mutation');
+    await stepUnitSuites(ctx,'test:o1:menu','O1.5','One door to exams and results, the old addresses forwarding to it, and the class screen with its own gated door');
+    await stepUnitSuites(ctx,'test:o1:classes','O1.6','A class is a place, a set of hours, a roll and its batches: the record, the shape of a write, the guards behind it and the screen that reads them');
+    /* S1 · a student's money over time: what a pause, a move and a price are. Four unit rows, each its
+       own script because each names a different claim — the three findings as rules with no database
+       behind them, the same three against the disposable database and the two reads the centre looks at,
+       the certificate's own date spelled from the catalogs, and the words the doors paint. The two
+       browser rows below are proved by suites the plan already names, run once each. */
+    await stepUnitSuites(ctx,'test:s1:money','S1.1','A pause is a range, a move is a timeline, a price is a line: the three findings as rules and the doors that write them');
+    await stepUnitSuites(ctx,'test:s1:db','S1.2','The same three changes against the disposable database: the record reads them back and both dues reads answer for a paused student',
+      {needsDb:true,env:{TEST_ORIGIN:ctx.origin,TEST_MONGO_URI:ctx.mongoUri,TEST_MONGO_DB:ctx.mongoDb}});
+    await stepUnitSuites(ctx,'test:s1:date','S1.3','The certificate\u2019s date spelled from the catalogs in the operator\u2019s digits, with a day that is not a day refused');
+    await stepUnitSuites(ctx,'test:s1:copy','S1.4','The doors\u2019 words belong to the catalogs: both whole, no variable named, no Bangla on an English screen, no hardcoded pair in a route file');
+    /* S2 · the class workflow: what a class is, who may close one, and where a removal comes back
+       to. Three unit rows — the findings as rules with no database behind them, the same findings
+       against the disposable database (the name index and the removal's own end), and the words this
+       slice paints — plus the browser row below, proved by the suite the plan names. */
+    await stepUnitSuites(ctx,'test:s2:core','S2.1','The class workflow as rules: a fee\u2019s two meanings, a shift word derived from its keys, a removal\u2019s own window, the refusal a class with children on it answers with, and the one editor every surface renders');
+    await stepUnitSuites(ctx,'test:s2:db','S2.2','The same workflow against the disposable database: the name rule binds only the classes that are live, the nightly sync brings an older database in line, and a removal is dropped when its window closes',
+      {needsDb:true,env:{TEST_ORIGIN:ctx.origin,TEST_MONGO_URI:ctx.mongoUri,TEST_MONGO_DB:ctx.mongoDb}});
+    await stepUnitSuites(ctx,'test:s2:copy','S2.4','The class workflow\u2019s words belong to the catalogs: both whole, no variable named, no Bangla on an English screen, no hardcoded pair in a route file');
     await stepUnitSuites(ctx,'test:g3:copy','G3.6','The plain-language sweep: no shipped value says snapshot, write enabled or reconciliation in either language, both catalogues whole, no hardcoded pair in a route file');
     await stepScreens(ctx);
     await stepBrowserTests(ctx);

@@ -1,4 +1,4 @@
-import {LayoutDashboard,ClipboardList,CalendarCheck,CalendarClock,Contact,CalendarDays,Inbox,BookOpenCheck,GraduationCap,FilePenLine,Images,ClipboardCheck,ListChecks,Settings,BookOpen,UsersRound,History,PanelsTopLeft,CalendarRange,FileText,Wallet,Bell,Bot,ShieldCheck,Award,Video,Newspaper,MessageSquare,FileUp,TrendingUp,FolderSearch,Scale} from 'lucide-react';
+import {LayoutDashboard,ClipboardList,CalendarCheck,CalendarClock,Contact,CalendarDays,Inbox,GraduationCap,FilePenLine,Images,ClipboardCheck,ListChecks,Settings,BookOpen,UsersRound,History,PanelsTopLeft,CalendarRange,FileText,Wallet,Bell,Bot,ShieldCheck,Award,Video,Newspaper,MessageSquare,FileUp,TrendingUp,FolderSearch,Scale,School,NotebookPen} from 'lucide-react';
 /**
  * The menu, in the order the day happens.
  *
@@ -36,13 +36,24 @@ export const navGroups=[
      not been hired, and hiring is the owner's decision, not the front desk's. */
   ['/admin/teacher-cvs','teacherCvs',FolderSearch]]},
  /* Who is enrolled, what they owe, and the timetable and exams they are enrolled into. */
- {key:'students',items:[['/admin/students','centerStudents',UsersRound],['/admin/students/dues','centerDues',Wallet],
+ /* O1: a class is what the roll, the fees and the timetable all hang from, so the class and batch
+    screen is the first door in this group rather than a row inside the student list. */
+ {key:'students',items:[['/admin/classes','classes',School],['/admin/academics','academics',NotebookPen],
+  ['/admin/students','centerStudents',UsersRound],['/admin/students/dues','centerDues',Wallet],
   ['/admin/students/fees-grid','centerSheetView',FileText],
   ['/admin/courses','courses',BookOpen],['/admin/batches','batches',CalendarRange],['/admin/slots','slots',CalendarDays],
+  /* R9: the week the centre teaches and the day it actually runs. Both sit beside the batches and slots
+     they are written for, and both in ONE group — a collapsed group must never hide half a timetable. */
+  ['/admin/routine/master','routineMaster',CalendarClock],['/admin/routine/daily','routineDaily',ClipboardCheck],
   ['/admin/materials','materials',FileText],['/admin/faculty','faculty',GraduationCap],
   /* The exam screens fold into one `details` inside this group (the sidebar does that by item key), so
-     they read as one subject rather than as four neighbours of the fee grid. */
-  ['/admin/academics','academics',BookOpenCheck],['/admin/center-exams','centerExams',ClipboardCheck],
+     they read as one subject rather than as four neighbours of the fee grid.
+     O1: ONE door to exams and results, not two. The old "Results" item pointed at a screen of academic
+     information whose numbers the exam hub already holds, and two doors to one grade is how a centre
+     ends up with two answers — so it is gone from the menu, its address forwards to the hub
+     (`/admin/exams`, `/admin/overview/results`), and the hub keeps the one name both languages already
+     gave it — "exams and results" in both languages, one item, `centerExams`. */
+  ['/admin/center-exams','centerExams',ClipboardCheck],
   /* R5: the grading scale sits beside the exams it grades, and is the owner's alone — an exam manager
      runs exams but does not decide what an A+ is worth centre-wide, and a teacher marks one class. */
   ['/admin/grading-scale','gradingScale',Scale],['/admin/model-tests','modelTests',ClipboardCheck],
@@ -74,4 +85,8 @@ export const navGroups=[
    a door that closes on the person who taps it is worse than no door, and staff keep the money
    *reports* (R6) rather than the student records behind them. */
 const CENTER_STUDENT_SCREENS=['centerStudents','centerDailyCash','centerSheetView','centerDues'];
-export function permitted(key:string,role:string){if(CENTER_STUDENT_SCREENS.includes(key))return role==='admin'||role==='superadmin';if(key==='teacherCvs')return role==='admin'||role==='superadmin';if(key==='gradingScale')return role==='admin'||role==='superadmin';if(role==='content_editor')return ['blog','sheets'].includes(key);if(role==='exam_manager')return ['centerExams','modelTests','practice'].includes(key);if(key==='roles'||key==='audit'||key==='ai'||key==='backup')return role==='superadmin';if(key==='sms')return role==='admin'||role==='superadmin';return role==='admin'||role==='superadmin'||role==='staff'}
+/* O1: the class and batch screen writes what a roll, a fee and a timetable hang from, so it is gated
+   exactly like the student screens it sits beside — a door that closes on the person who taps it is
+   worse than no door, and `tests/nav-groups.test.ts` holds every role's set against this. */
+const CLASS_SCREENS=['classes'];
+export function permitted(key:string,role:string){if(CENTER_STUDENT_SCREENS.includes(key)||CLASS_SCREENS.includes(key))return role==='admin'||role==='superadmin';if(key==='teacherCvs')return role==='admin'||role==='superadmin';if(key==='gradingScale')return role==='admin'||role==='superadmin';if(role==='content_editor')return ['blog','sheets'].includes(key);if(role==='exam_manager')return ['centerExams','modelTests','practice'].includes(key);if(key==='roles'||key==='audit'||key==='ai'||key==='backup')return role==='superadmin';if(key==='sms')return role==='admin'||role==='superadmin';return role==='admin'||role==='superadmin'||role==='staff'}

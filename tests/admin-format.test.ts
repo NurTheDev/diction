@@ -11,3 +11,5 @@ assert.equal(formatClass('10','bn','bn','শ্রেণি'),'শ্রেণ�
 assert.equal(formatClass('10','en','en','Class'),'Class 10');
 assert.equal(formatNumber(99),'৯৯');
 console.log('Admin formatter tests passed.');
+assert.equal(formatDate(''),'—','a student with no admission date shows a dash instead of crashing the profile');
+assert.equal(formatDate(undefined),'—');

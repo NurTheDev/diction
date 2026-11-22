@@ -18,7 +18,7 @@
  * `src/app/[locale]/admin` is swept now by construction; the only way out is NOT_A_SCREEN below, which
  * asks for a reason in writing.
  *
- * Run: start the app first, then TEST_ORIGIN and TEST_MONGO_URI (see STALE-TESTS-REPORT.md).
+ * Run: start the app first, then TEST_ORIGIN and TEST_MONGO_URI (see docs/STALE-TESTS.md).
  */
 // @ts-nocheck -- isolated browser test against the disposable database
 import {MongoMemoryReplSet} from 'mongodb-memory-server';
@@ -78,7 +78,7 @@ const KEY_PATH=/\b(?:exams|admin|nav|common)\.[a-zA-Z][a-zA-Z0-9]*(?:\.[a-zA-Z0-
 const LEARNER_PAGES=[['/dashboard/results','student'],['/parent/results','parent']];
 
 async function run(){
-  await preflight({mongo:true,browser:true,origin:process.env.TEST_ORIGIN||'http://127.0.0.1:3100',originTimeoutMs:process.env.TEST_ORIGIN?60000:8000,test:'tests/language-sweep-browser.integration.ts — start the app first, then run it with TEST_ORIGIN and TEST_MONGO_URI (see STALE-TESTS-REPORT.md)'});
+  await preflight({mongo:true,browser:true,origin:process.env.TEST_ORIGIN||'http://127.0.0.1:3100',originTimeoutMs:process.env.TEST_ORIGIN?60000:8000,test:'tests/language-sweep-browser.integration.ts — start the app first, then run it with TEST_ORIGIN and TEST_MONGO_URI (see docs/STALE-TESTS.md)'});
   const shared=process.env.TEST_ORIGIN?process.env.TEST_MONGO_URI:null;
   const mongo=shared?{getUri:()=>shared,stop:async()=>{}}:await MongoMemoryReplSet.create({replSet:{count:1}});
   await mongoose.connect(mongo.getUri(),{dbName:testDbName()});
