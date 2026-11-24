@@ -8,5 +8,6 @@ export {User} from './User';
 
 export {Admission,Slot,TrialBooking,ContactMessage} from './Intake';
 export {Lead} from './Lead';
+export {LeadSmsSchedule} from './LeadSchedule';
 export {Student,Batch,Exam,Attendance,Result} from './Academic';
 export {TeacherContent,FacilityContent,FAQContent,SiteSettingsContent} from './PublicContent';

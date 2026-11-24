@@ -489,7 +489,7 @@ const smsBatchSchema = new Schema(
     createdBy: { type: Schema.Types.ObjectId, ref: "User" },
     trigger: {
       type: String,
-      enum: ["manual", "auto_receipt", "auto_due", "auto_result"],
+      enum: ["manual", "auto_receipt", "auto_due", "auto_result", "scheduled"],
       default: "manual",
     },
     templateKey: String,

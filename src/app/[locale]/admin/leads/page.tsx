@@ -34,6 +34,7 @@ import {
 } from "@/lib/leads/vocab";
 import { getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
+import { CalendarClock, FileDown } from "lucide-react";
 
 type Query = {
   q?: string | string[];
@@ -202,6 +203,12 @@ export default async function Leads({
   const queryRecord: Record<string, string> = {};
   for (const [key, value] of Object.entries(current))
     if (value) queryRecord[key] = value === true ? "1" : String(value);
+  /* A phone-shaped search is refused by the list and by the export route alike, so it is not carried
+     into the download's URL: the report is the list as it is shown, which already ignored it. */
+  if (result.refusedPhone) delete queryRecord.q;
+  const exportQuery = new URLSearchParams(queryRecord).toString();
+  const exportHref = `/${locale}/admin/leads/export${exportQuery ? `?${exportQuery}` : ""}`;
+  const isAdmin = user.role === "admin" || user.role === "superadmin";
 
   return (
     <>
@@ -215,6 +222,21 @@ export default async function Leads({
                 : t("title")}
           </h1>
           <p>{t("desc")}</p>
+        </div>
+        <div className="list-row-actions">
+          {/* The report carries numbers, so it is offered only to the roles the route accepts. */}
+          {canArchive && (
+            <a className="admin-mini-button" href={exportHref} data-lead-report="">
+              <FileDown size={15} aria-hidden="true" />
+              {t("report.download")}
+            </a>
+          )}
+          {isAdmin && (
+            <Link className="admin-mini-button" href="/admin/leads/schedules" data-lead-schedules="">
+              <CalendarClock size={15} aria-hidden="true" />
+              {t("schedules.link")}
+            </Link>
+          )}
         </div>
       </div>
 

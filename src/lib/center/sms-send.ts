@@ -310,8 +310,8 @@ export interface SmsSendSummary{
   quietUntil?:string;message:string;
 }
 
-/** Who asked for this batch: an operator in the dialog, or one of the three automatic sends. */
-export type SmsBatchTrigger='manual'|'auto_receipt'|'auto_due'|'auto_result';
+/** Who asked for this batch: an operator in the dialog, one of the automatic sends, or the schedule job. */
+export type SmsBatchTrigger='manual'|'auto_receipt'|'auto_due'|'auto_result'|'scheduled';
 
 export interface SmsExecuteOptions{
   /** The acting admin's User id. Required for a human send; the daily job passes undefined. */

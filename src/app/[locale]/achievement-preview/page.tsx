@@ -24,11 +24,11 @@ export default async function AchievementPreview({
           sample
           settings={{
             website: "",
-            taglineBn: "পড়ালেখার প্রিয় প্রাঙ্গণ",
+            taglineBn: "পড়ালেখার প্রিয় প্রাঙ্গণ" /* i18n-scan-allow: the stored Bangla tagline — sample content in the design preview, data, not interface text */,
             logoUrl: "/brand/logo.png",
           }}
         />
       </AdminShell>
     </NextIntlClientProvider>
   );
-} // i18n-scan-allow: taglineBn is the stored Bangla tagline — sample content in the design preview, the saved default in settings; data, not interface.
+}
